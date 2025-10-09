@@ -1,0 +1,49 @@
+/* Custom Button Hover Effects */
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Floating logo wrapper */
+.image-wrapper {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.image-wrapper img {
+  pointer-events: auto;
+}
+
+/* Full viewport layout */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* Responsive logo container */
+.logo-container {
+  margin-bottom: -30px;
+  padding-bottom: 0;
+}
+
+/* Compact form spacing */
+.text-center.mb-4 {
+  margin-bottom: 1rem !important;
+}
+
+/* Reduce form margins */
+.form-group {
+  margin-bottom: 1rem;
+}
