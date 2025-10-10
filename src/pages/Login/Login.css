@@ -3,14 +3,46 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif !important;
 }
 
-/* Force no scroll on page load */
-html, body {
-  height: 100%;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
+/* Loading spinner animation */
+.spinner-border-sm {
+  animation: spinner-border 0.75s linear infinite;
+}
+
+/* Enhanced button hover effects for loading states */
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Focus styles for keyboard navigation */
+.form-control:focus,
+.btn:focus,
+.form-check-input:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Smooth transitions for better UX */
+.btn-primary {
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.spinner-border {
+  transition: opacity 0.3s ease;
+}
+
+/* Image carousel animations */
+.carousel-image {
+  transition: opacity 0.3s ease-in-out;
 }
 
 /* Login Page Container - Fixed Height */
@@ -20,7 +52,7 @@ html, body {
   position: fixed;
   top: 0;
   left: 0;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
