@@ -1,14 +1,72 @@
+/* Global Reset and Layout Fix */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Force no scroll on page load */
+html, body {
+  height: 100%;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Login Page Container - Fixed Height */
+.login-page-wrapper {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure all child elements respect boundaries */
+.container-fluid, .row, .col, [class*="col-"] {
+  max-width: 100% !important;
+  margin: 0 !important;
 /* Custom Button Hover Effects */
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgb(13, 110, 253, 0.3);
+}
+
+@media (min-width: 1400px) and (max-width: 1500px) {
+  /* Ensure right side image fills the entire area */
+  .d-none.d-lg-flex {
+    height: 100vh !important;
+  }
+
+  .carousel-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Remove any gaps in the image container */
+  .position-relative.d-flex {
+    height: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* General fix for large screens */
+@media (min-width: 1200px) {
+  /* Ensure no white space around the image */
+  .img-fluid.carousel-image {
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
 }
 
 .btn-outline-secondary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
 }
 
 /* Floating logo wrapper */
@@ -25,16 +83,10 @@
   pointer-events: auto;
 }
 
-/* Full viewport layout */
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-}
-
 /* Responsive logo container */
 .logo-container {
-  margin-bottom: -30px;
+  margin-bottom: -55px;
+  margin-top: -152px;
   padding-bottom: 0;
 }
 
@@ -46,4 +98,39 @@ body, html {
 /* Reduce form margins */
 .form-group {
   margin-bottom: 1rem;
+}
+
+.social-buttons{
+  margin-bottom: -94px;
+}
+
+/* Responsive Form - Proper spacing on Mobile */
+@media (max-width: 991.98px) {
+  /* Form container with proper spacing on mobile */
+  .bg-white {
+    padding: 20px 40px !important; /* 20px top/bottom, 40px left/right */
+    min-height: 100vh;
+  }
+
+  /* Ensure form elements have proper spacing */
+  .login-page-wrapper {
+    padding: 0;
+  }
+
+  /* Reduce max width on very small screens */
+  .w-100[style*="max-width"] {
+    max-width: calc(100% - 80px) !important; /* Account for the 40px*2 padding */
+  }
+}
+
+/* Small spacing for larger mobile screens */
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .bg-white {
+    padding: 30px 50px !important; /* 30px top/bottom, 50px left/right */
+  }
+
+  .w-100[style*="max-width"] {
+    max-width: calc(100% - 100px) !important; /* Account for the 50px*2 padding */
+  }
+}
 }
