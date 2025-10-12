@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
@@ -11,7 +11,7 @@ const FormSection = ({
     handleInputChange,
     handleSubmit,
     isLoading,
-    children // For SignUp component
+    children
 }) => {
     return (
         <motion.div
@@ -22,7 +22,6 @@ const FormSection = ({
             style={{ maxWidth: '450px' }}
         >
             <div className="text-center mb-0 mt-5">
-                {/* Logo */}
                 <div className="logo-container">
                     <img src="/assets/meetza.png" alt="Meetza" style={{
                         maxWidth: '250px',
@@ -33,12 +32,10 @@ const FormSection = ({
                     }} />
                 </div>
 
-                {/* Welcome Text */}
                 <h1 className="h2 fw-bold mb-2">Welcome Back</h1>
                 <p className="text-muted">Please enter your Details as a Member</p>
             </div>
 
-            {/* Tabs */}
             <div className="rounded-3 p-1 mb-3" style={{ backgroundColor: '#e0e0e0' }}>
                 <div className="d-flex gap-1">
                     <Button
@@ -70,10 +67,10 @@ const FormSection = ({
                 </div>
             </div>
 
-            {/* Form */}
-            <Form noValidate onSubmit={handleSubmit} onKeyDown={(e) => {
+            {/* بدل الـ Form بـ div */}
+            <div onKeyDown={(e) => {
                 if (e.key === 'Enter' && !isLoading) {
-                    handleSubmit(e);
+                    handleSubmit?.(e);
                 }
             }}>
                 {children ? children : (
@@ -92,26 +89,28 @@ const FormSection = ({
                         />
 
                         <div className="d-flex justify-content-between align-items-center mb-3">
-                            <Form.Check
-                                type="checkbox"
-                                id="rememberMe"
-                                label="Remember me"
-                                name="rememberMe"
-                                checked={formData.rememberMe}
-                                onChange={handleInputChange}
-                                className="text-muted small"
+                        <div className="d-flex align-items-center">
+                            <input
+                            type="checkbox"
+                            id="rememberMe"
+                            name="rememberMe"
+                            checked={formData.rememberMe}
+                            onChange={handleInputChange}
+                            style={{ marginRight: "4px" }}
                             />
-                            <button
-                                type="button"
-                                onClick={() => console.log('Forgot password clicked')}
-                                className="btn btn-link text-muted text-decoration-none small p-0"
-                                style={{
-                                    outline: 'none',
-                                    boxShadow: 'none'
-                                }}
-                            >
-                                Forgot Password ?
-                            </button>
+                            <label htmlFor="rememberMe" className="text-muted small mb-0">
+                            Remember me
+                            </label>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => console.log('Forgot password clicked')}
+                            className="btn btn-link text-muted text-decoration-none small p-0"
+                            style={{ outline: 'none', boxShadow: 'none' }}
+                        >
+                            Forgot Password ?
+                        </button>
                         </div>
 
                         <Button
@@ -146,7 +145,7 @@ const FormSection = ({
                         <SocialLoginButtons />
                     </>
                 )}
-            </Form>
+            </div>
         </motion.div>
     );
 };

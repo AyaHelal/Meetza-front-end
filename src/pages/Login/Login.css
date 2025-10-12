@@ -136,6 +136,15 @@
   margin-bottom: -94px;
 }
 
+.is-invalid {
+  background-image: none !important;
+}
+
+.is-invalid.form-control {
+  padding-right: 0 !important;
+}
+
+
 /* Responsive Form - Proper spacing on Mobile */
 @media (max-width: 991.98px) {
   /* Form container with proper spacing on mobile */

@@ -8,13 +8,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
-        {/* Login Page */}
         <Route path="/login" element={<Login />} />
-
-        {/* Sign Up Page */}
         <Route path="/signup" element={<SignUp />} />
-
-        {/* 404 Page - لو المستخدم دخل على صفحة مش موجودة */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
