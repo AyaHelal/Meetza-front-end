@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion';
+import { motion,AnimatePresence } from 'framer-motion';
 import { Button, Spinner } from 'react-bootstrap';
-import EmailField from '../../components/FormFields/EmailField';
-import PasswordField from '../../components/FormFields/PasswordField';
-import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
+import EmailField from '../FormFields/EmailField';
+import PasswordField from '../FormFields/PasswordField';
+import SocialLoginButtons from '../FormFields/SocialLoginButtons';
+
 
 const FormSection = ({
     activeTab,
@@ -11,13 +12,13 @@ const FormSection = ({
     handleInputChange,
     handleSubmit,
     isLoading,
-    message,
-    children
+    message
 }) => {
     return (
         <motion.div
             initial={{ opacity: 0, x: 300 }}
             animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.6 }}
             className="w-100"
             style={{ maxWidth: '450px' }}
@@ -83,94 +84,82 @@ const FormSection = ({
                         margin: "10px auto"
                     }}
                 >
-                    {message.type === "success" ? (
-                        <span style={{ fontSize: "1.4rem" }}>✅</span>
-                    ) : (
-                        <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                    )}
+                    {message.type === "success" ? <span>✅</span> : <span>⚠️</span>}
                     <span>{message.text}</span>
                 </div>
             )}
 
-            {/* بدل الـ Form بـ div */}
-            <div onKeyDown={(e) => {
-                if (e.key === 'Enter' && !isLoading) {
-                    handleSubmit?.(e);
-                }
-            }}>
-                {children ? children : (
-                    <>
-                        <EmailField
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            name="email"
-                            autoFocus
-                        />
+            <form onSubmit={handleSubmit}>
 
-                        <PasswordField
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            name="password"
-                        />
+                <EmailField
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    name="email"
+                    autoFocus
+                />
 
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                        <div className="d-flex align-items-center">
-                            <input
+                <PasswordField
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    name="password"
+                />
+
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex align-items-center">
+                        <input
                             type="checkbox"
                             id="rememberMe"
                             name="rememberMe"
                             checked={formData.rememberMe}
                             onChange={handleInputChange}
                             style={{ marginRight: "4px" }}
-                            />
-                            <label htmlFor="rememberMe" className="text-muted small mb-0">
+                        />
+                        <label htmlFor="rememberMe" className="text-muted small mb-0">
                             Remember me
-                            </label>
-                        </div>
+                        </label>
+                    </div>
 
-                        <button
-                            type="button"
-                            onClick={() => console.log('Forgot password clicked')}
-                            className="btn btn-link text-muted text-decoration-none small p-0"
-                            style={{ outline: 'none', boxShadow: 'none' }}
-                        >
-                            Forgot Password ?
-                        </button>
-                        </div>
+                    <button
+                        type="button"
+                        onClick={() => console.log('Forgot password clicked')}
+                        className="btn btn-link text-muted text-decoration-none small p-0"
+                        style={{ outline: 'none', boxShadow: 'none' }}
+                    >
+                        Forgot Password ?
+                    </button>
+                </div>
 
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            disabled={isLoading}
-                            className="w-100 py-3 mb-3 position-relative"
-                            style={{
-                                borderRadius: '12px',
-                                fontSize: '1.1rem',
-                                fontWeight: '500',
-                                opacity: isLoading ? 0.7 : 1
-                            }}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Spinner
-                                        as="span"
-                                        animation="border"
-                                        size="sm"
-                                        role="status"
-                                        aria-hidden="true"
-                                        className="me-2"
-                                    />
-                                    Signing In...
-                                </>
-                            ) : (
-                                'Continue'
-                            )}
-                        </Button>
+                <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isLoading}
+                    className="w-100 py-3 mb-3 position-relative"
+                    style={{
+                        borderRadius: '12px',
+                        fontSize: '1.1rem',
+                        fontWeight: '500',
+                        opacity: isLoading ? 0.7 : 1
+                    }}
+                >
+                    {isLoading ? (
+                        <>
+                            <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                                className="me-2"
+                            />
+                            Signing In...
+                        </>
+                    ) : (
+                        'Continue'
+                    )}
+                </Button>
 
-                        <SocialLoginButtons />
-                    </>
-                )}
-            </div>
+                <SocialLoginButtons />
+            </form>
         </motion.div>
     );
 };

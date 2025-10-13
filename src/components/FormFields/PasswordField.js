@@ -2,21 +2,37 @@ import { useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Password } from '@phosphor-icons/react';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
-const PasswordField = ({ value, onChange, name = "password" }) => {
+const PasswordField = ({ value, onChange, name = "password", showStrengthIndicator = false }) => {
 const [showPassword, setShowPassword] = useState(false);
 const [error, setError] = useState("");
 
 
 const validatePassword = (password) => {
-return password && password.length >= 8;
+    if (!password) return false;
+
+    const checks = {
+        length: password.length >= 8,
+        lowercase: /[a-z]/.test(password),
+        uppercase: /[A-Z]/.test(password),
+        numbers: /\d/.test(password),
+        symbols: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
+    };
+
+    const score = Object.values(checks).filter(check => check).length;
+
+    // Require at least 8 characters AND at least 3 out of 5 criteria for a strong password
+    return checks.length && score >= 3;
 };
 
 const handleChange = (e) => {
 const newValue = e.target.value;
 onChange(e);
-if (newValue && !validatePassword(newValue)) {
-    setError("Password must be at least 8 characters long.");
+if (!newValue.trim()) {
+    setError("");
+} else if (!validatePassword(newValue)) {
+    setError("Password must be at least 8 characters with uppercase, lowercase, numbers, and symbols.");
 } else {
     setError("");
 }
@@ -81,6 +97,9 @@ return (
         {error}
     </div>
     )}
+
+    {/* Password Strength Indicator */}
+    {showStrengthIndicator && <PasswordStrengthIndicator password={value} />}
 </div>
 );
 };

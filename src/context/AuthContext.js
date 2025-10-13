@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }) => {
         }
         } catch (error) {
         console.error("❌ Error parsing stored user:", error);
-        // لو فيه بيانات بايظة نحذفها
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         }

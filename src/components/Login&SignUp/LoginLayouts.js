@@ -12,8 +12,7 @@ const LoginLayout = ({
     isLoading,
     currentImageIndex,
     images,
-    message,
-    children
+    message
 }) => {
     return (
         <motion.div
@@ -35,7 +34,6 @@ const LoginLayout = ({
                         isLoading={isLoading}
                         message={message}
                     >
-                        {children}
                     </FormSection>
                 </Col>
 
@@ -53,12 +51,17 @@ const LoginLayout = ({
     );
 };
 
+
 const SignUpLayout = ({
     activeTab,
     setActiveTab,
+    formData,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
     currentImageIndex,
     images,
-    children
+    message
 }) => {
     return (
         <motion.div
@@ -84,13 +87,18 @@ const SignUpLayout = ({
                     <FormSection
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        message={message}
                     >
-                        {children}
                     </FormSection>
                 </Col>
             </Row>
         </motion.div>
     );
 };
+
 
 export { LoginLayout, SignUpLayout };

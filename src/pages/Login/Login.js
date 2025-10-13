@@ -61,16 +61,13 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-
                 loginUser(user, token);
                 localStorage.setItem("token", token);
 
-
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
-                navigate("/")
+                setTimeout(() => navigate("/"), 2000);
             } else {
-
                 setMessage({ text: response.message || "Invalid email or password", type: "error" });
             }
         } catch (error) {
@@ -88,29 +85,6 @@ const Login = () => {
 
     return (
         <LayoutWrapper activeTab="signin">
-            {message.text && (
-                <div
-                    className={`alert d-flex align-items-center justify-content-center text-center ${
-                        message.type === "success" ? "alert-success" : "alert-danger"
-                    }`}
-                    role="alert"
-                    style={{
-                        maxWidth: "450px",
-                        margin: "20px auto",
-                        fontSize: "1rem",
-                        fontWeight: "500",
-                        gap: "10px",
-                        borderRadius: "12px",
-                    }}
-                >
-                    {message.type === "success" ? (
-                        <span style={{ fontSize: "1.4rem" }}>✅</span>
-                    ) : (
-                        <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                    )}
-                    <span>{message.text}</span>
-                </div>
-            )}
             <LoginLayout
                 activeTab="signin"
                 setActiveTab={handleSignUpClick}
@@ -120,6 +94,7 @@ const Login = () => {
                 isLoading={isLoading}
                 currentImageIndex={currentImageIndex}
                 images={images}
+                message={message}
             />
         </LayoutWrapper>
     );

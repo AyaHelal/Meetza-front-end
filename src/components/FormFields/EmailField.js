@@ -12,10 +12,12 @@ const validateEmail = (email) => {
 const handleChange = (e) => {
     const newValue = e.target.value;
     onChange(e);
-    if (newValue && !validateEmail(newValue)) {
-    setError("Please enter a valid email address.");
+    if (!newValue.trim()) {
+        setError("");
+    } else if (!validateEmail(newValue)) {
+        setError("Please enter a valid email address.");
     } else {
-    setError("");
+        setError("");
     }
 };
 

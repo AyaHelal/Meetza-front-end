@@ -27,7 +27,6 @@ const SignUp = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-    // ✅ التصحيح هنا: الكلمة الصحيحة message مش messsage
     const [message, setMessage] = useState({ text: "", type: "" });
 
     const images = [
@@ -57,15 +56,25 @@ const SignUp = () => {
 
         // simple validation for username + confirm password
         if (name === 'username') {
-            if (!value.trim()) setErrors(prev => ({ ...prev, username: 'Username is required' }));
-            else if (value.length < 3) setErrors(prev => ({ ...prev, username: 'At least 3 characters' }));
-            else setErrors(prev => ({ ...prev, username: '' }));
+            if (!value.trim()) {
+                setErrors(prev => ({ ...prev, username: '' }));
+            } else if (value.length < 3) {
+                setErrors(prev => ({ ...prev, username: 'At least 3 characters' }));
+            } else if (!/^[a-zA-Z0-9\s]+$/.test(value)) {
+                setErrors(prev => ({ ...prev, username: 'Name can only contain letters, numbers, and spaces' }));
+            } else {
+                setErrors(prev => ({ ...prev, username: '' }));
+            }
         }
 
         if (name === 'confirmPassword') {
-            if (value !== formData.password)
+            if (!value.trim()) {
+                setErrors(prev => ({ ...prev, confirmPassword: '' })); // مسح الأيرور لو الحقل فارغ
+            } else if (value !== formData.password) {
                 setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
-            else setErrors(prev => ({ ...prev, confirmPassword: '' }));
+            } else {
+                setErrors(prev => ({ ...prev, confirmPassword: '' }));
+            }
         }
     };
 
@@ -111,26 +120,28 @@ const SignUp = () => {
             >
 
                 {message.text && (
-                <div
-                    className={`alert d-flex align-items-center justify-content-center text-center ${
-                        message.type === "success" ? "alert-success" : "alert-danger"
-                    }`}
-                    role="alert"
-                    style={{
-                        fontSize: "1rem",
-                        fontWeight: "500",
-                        gap: "10px",
-                        borderRadius: "12px",
-                    }}
-                >
-                    {message.type === "success" ? (
-                        <span style={{ fontSize: "1.4rem" }}>✅</span>
-                    ) : (
-                        <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                    )}
-                    <span>{message.text}</span>
-                </div>
-            )}
+                    <div
+                        className={`alert d-flex align-items-center justify-content-center text-center ${
+                            message.type === "success" ? "alert-success" : "alert-danger"
+                        }`}
+                        role="alert"
+                        style={{
+                            fontSize: "1rem",
+                            fontWeight: "500",
+                            gap: "10px",
+                            borderRadius: "12px",
+                            maxWidth: "450px",
+                            margin: "10px auto"
+                        }}
+                    >
+                        {message.type === "success" ? (
+                            <span style={{ fontSize: "1.4rem" }}>✅</span>
+                        ) : (
+                            <span style={{ fontSize: "1.4rem" }}>⚠️</span>
+                        )}
+                        <span>{message.text}</span>
+                    </div>
+                )}
 
                 <Form noValidate onSubmit={handleSubmit}>
                     {/* Username Field */}
@@ -138,7 +149,7 @@ const SignUp = () => {
                         <User size={32} color="#888" weight="bold" className="me-2" />
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
-                                Username
+                                Name
                             </label>
                             <input
                                 type="text"
@@ -167,6 +178,7 @@ const SignUp = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         name="password"
+                        showStrengthIndicator={true}
                     />
 
                     {/* Confirm Password Field */}
@@ -184,13 +196,27 @@ const SignUp = () => {
                                         value={formData.confirmPassword}
                                         onChange={handleInputChange}
                                         className={`form-control border-0 shadow-none ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                                        style={{ backgroundColor: "transparent" }}
+                                        style={{ backgroundColor: "transparent" , paddingBottom: '0px', paddingTop: '0px' }}
                                     />
+                                    {/* Eye / EyeSlash Button for Confirm Password */}
                                     <Button
                                         type="button"
                                         variant="link"
-                                        className="text-muted border-0 p-2 position-absolute end-0 top-50 translate-middle-y me-3"
+                                        className="text-muted border-0 p-1 position-absolute end-0 top-50 translate-middle-y me-3"
+                                        style={{
+                                            outline: "none !important",
+                                            boxShadow: "none !important",
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.outline = 'none';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.outline = 'none';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                                     >
                                         {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
                                     </Button>
