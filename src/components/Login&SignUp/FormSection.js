@@ -1,4 +1,4 @@
-import { motion,AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../FormFields/EmailField';
 import PasswordField from '../FormFields/PasswordField';

@@ -16,7 +16,7 @@ const Login = () => {
     });
 
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" }); // ✅ الرسالة زي الساين أب
+    const [message, setMessage] = useState({ text: "", type: "" });
     const { loginUser } = useContext(AuthContext);
 
     const images = [
