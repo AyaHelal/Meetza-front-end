@@ -1,8 +1,89 @@
 import { Button } from 'react-bootstrap';
-import { FaFacebook, FaGithub } from 'react-icons/fa';
+import { FaFacebook, FaApple } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
+import { googleLogin, facebookLogin, appleLogin } from '../../API/socialAuth';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = () => {
+    const navigate = useNavigate();
+    const { loginUser } = useContext(AuthContext);
+
+    // Google Login Handler
+    const handleGoogleLogin = async () => {
+        try {
+            if (window.google && window.google.accounts) {
+                window.google.accounts.oauth2.initTokenClient({
+                    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+                    scope: 'email profile',
+                    callback: async (response) => {
+                        if (response.access_token) {
+                            const result = await googleLogin(response.access_token);
+                            if (result.success) {
+                                loginUser(result.user, result.token, true);
+                                navigate('/');
+                            }
+                        }
+                    },
+                }).requestAccessToken();
+            } else {
+                alert('Google OAuth not loaded. Please check your configuration.');
+            }
+        } catch (error) {
+            console.error('Google login error:', error);
+            alert('Google login failed. Please try again.');
+        }
+    };
+
+    // Facebook Login Handler
+    const handleFacebookLogin = async () => {
+        try {
+            if (window.FB) {
+                window.FB.login(async (response) => {
+                    if (response.authResponse) {
+                        const result = await facebookLogin(response.authResponse.accessToken);
+                        if (result.success) {
+                            loginUser(result.user, result.token, true);
+                            navigate('/');
+                        }
+                    }
+                }, { scope: 'email' });
+            } else {
+                alert('Facebook SDK not loaded. Please check your configuration.');
+            }
+        } catch (error) {
+            console.error('Facebook login error:', error);
+            alert('Facebook login failed. Please try again.');
+        }
+    };
+
+    // Apple Login Handler
+    const handleAppleLogin = async () => {
+        try {
+            if (window.AppleID) {
+                window.AppleID.auth.init({
+                    clientId: process.env.REACT_APP_APPLE_CLIENT_ID,
+                    scope: 'email name',
+                    redirectURI: window.location.origin,
+                    usePopup: true
+                });
+
+                const data = await window.AppleID.auth.signIn();
+                const result = await appleLogin(data.id_token, data.code);
+                if (result.success) {
+                    loginUser(result.user, result.token, true);
+                    navigate('/');
+                }
+            } else {
+                alert('Apple Sign-In not loaded. Please check your configuration.');
+            }
+        } catch (error) {
+            console.error('Apple login error:', error);
+            alert('Apple login failed. Please try again.');
+        }
+    };
+
     return (
         <>
             <p className="text-center text-muted small mb-3">Or continue with</p>
@@ -10,6 +91,7 @@ const SocialLoginButtons = () => {
                 <Button
                     variant="outline-secondary"
                     className="rounded-circle p-1 border"
+                    onClick={handleGoogleLogin}
                     style={{
                         width: '55px',
                         height: '55px',
@@ -28,6 +110,7 @@ const SocialLoginButtons = () => {
                 <Button
                     variant="outline-secondary"
                     className="rounded-circle p-1 border"
+                    onClick={handleFacebookLogin}
                     style={{
                         width: '55px',
                         height: '55px',
@@ -42,16 +125,33 @@ const SocialLoginButtons = () => {
                 <Button
                     variant="outline-secondary"
                     className="rounded-circle p-1 border"
+                    onClick={handleAppleLogin}
                     style={{
                         width: '55px',
                         height: '55px',
                         borderRadius: '50%',
                         backgroundColor: 'rgba(255, 255, 255, 0.8)',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        color: '#333333'
+                        color: '#000000',
+                        border: '5px solid #000000',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}
                 >
-                    <FaGithub size={40} />
+                    <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#000000',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative'
+                    }}>
+                        <FaApple size={28} color="#ffffff" />
+                    </div>
                 </Button>
             </div>
         </>

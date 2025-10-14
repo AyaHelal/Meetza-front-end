@@ -61,8 +61,7 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-                loginUser(user, token);
-                localStorage.setItem("token", token);
+                loginUser(user, token, formData.rememberMe);
 
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
