@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import LayoutWrapper from '../../components/Login/LayoutWrapper';
-import { LoginLayout } from '../../components/Login/LoginLayouts';
+import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
+import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts';
 import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";

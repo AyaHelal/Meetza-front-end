@@ -5,7 +5,6 @@ const SocialAuthProvider = ({ children }) => {
     useEffect(() => {
         validateSocialAuthConfig();
 
-        // تحميل Google OAuth SDK
         const loadGoogleSDK = () => {
             if (!window.google) {
                 const script = document.createElement('script');
