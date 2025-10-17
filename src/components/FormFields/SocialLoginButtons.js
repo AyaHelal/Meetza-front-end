@@ -1,9 +1,9 @@
 import { Button } from 'react-bootstrap';
-import { FaFacebook, FaApple } from 'react-icons/fa';
+import { FaFacebook } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { googleLogin, facebookLogin, appleLogin } from '../../API/socialAuth';
+import { googleLogin, facebookLogin } from '../../API/socialAuth';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = () => {
@@ -68,29 +68,15 @@ const handleFacebookLogin = () => {
 };
 
 
-    // Apple Login Handler
-    const handleAppleLogin = async () => {
+    // LinkedIn Login Handler
+    const handleLinkedInLogin = async () => {
         try {
-            if (window.AppleID) {
-                window.AppleID.auth.init({
-                    clientId: process.env.REACT_APP_APPLE_CLIENT_ID,
-                    scope: 'email name',
-                    redirectURI: window.location.origin,
-                    usePopup: true
-                });
-
-                const data = await window.AppleID.auth.signIn();
-                const result = await appleLogin(data.id_token, data.code);
-                if (result.success) {
-                    loginUser(result.user, result.token, true);
-                    navigate('/');
-                }
-            } else {
-                alert('Apple Sign-In not loaded. Please check your configuration.');
-            }
+            // LinkedIn OAuth implementation
+            // For now, show a message that LinkedIn login is coming soon
+            alert('LinkedIn login is coming soon! Please use Google or Facebook for now.');
         } catch (error) {
-            console.error('Apple login error:', error);
-            alert('Apple login failed. Please try again.');
+            console.error('LinkedIn login error:', error);
+            alert('LinkedIn login failed. Please try again.');
         }
     };
 
@@ -135,15 +121,15 @@ const handleFacebookLogin = () => {
                 <Button
                     variant="outline-secondary"
                     className="rounded-circle p-1 border"
-                    onClick={handleAppleLogin}
+                    onClick={handleLinkedInLogin}
                     style={{
                         width: '55px',
                         height: '55px',
                         borderRadius: '50%',
                         backgroundColor: 'rgba(255, 255, 255, 0.8)',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        color: '#000000',
-                        border: '5px solid #000000',
+                        color: '#0077b5', // LinkedIn blue color
+                        border: '2px solid #0077b5',
                         position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
@@ -151,16 +137,23 @@ const handleFacebookLogin = () => {
                     }}
                 >
                     <div style={{
-                        width: '44px',
-                        height: '44px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '50%',
-                        backgroundColor: '#000000',
+                        backgroundColor: '#0077b5',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         position: 'relative'
                     }}>
-                        <FaApple size={28} color="#ffffff" />
+                        <span style={{
+                            color: '#ffffff',
+                            fontSize: '20px',
+                            fontWeight: 'bold',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
+                            in
+                        </span>
                     </div>
                 </Button>
             </div>

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { SOCIAL_AUTH_CONFIG, validateSocialAuthConfig } from '../../config/socialAuthConfig';
-import { debugFacebookSDK } from '../../utils/facebookDebug';
 
 const SocialAuthProvider = ({ children }) => {
     useEffect(() => {
@@ -44,10 +43,6 @@ const SocialAuthProvider = ({ children }) => {
                 script.defer = true;
                 script.onload = () => {
                     console.log('Facebook SDK loaded successfully');
-                    // Debug Facebook SDK after loading
-                    setTimeout(() => {
-                        debugFacebookSDK();
-                    }, 1000);
                 };
                 script.onerror = (error) => {
                     console.error('Failed to load Facebook SDK:', error);
@@ -58,19 +53,27 @@ const SocialAuthProvider = ({ children }) => {
             }
         };
 
-        const loadAppleSDK = () => {
-            if (!window.AppleID && SOCIAL_AUTH_CONFIG.APPLE_CLIENT_ID) {
+        const loadLinkedInSDK = () => {
+            if (!window.LinkedIn && SOCIAL_AUTH_CONFIG.LINKEDIN_CLIENT_ID) {
                 const script = document.createElement('script');
-                script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+                script.src = 'https://platform.linkedin.com/in.js';
                 script.async = true;
                 script.defer = true;
+                script.onload = () => {
+                    console.log('LinkedIn SDK loaded successfully');
+                };
+                script.onerror = (error) => {
+                    console.error('Failed to load LinkedIn SDK:', error);
+                };
                 document.head.appendChild(script);
+            } else if (!SOCIAL_AUTH_CONFIG.LINKEDIN_CLIENT_ID) {
+                console.warn('LinkedIn Client ID not configured');
             }
         };
 
         loadGoogleSDK();
         loadFacebookSDK();
-        loadAppleSDK();
+        loadLinkedInSDK();
     }, []);
 
     return <>{children}</>;
