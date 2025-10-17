@@ -32,9 +32,9 @@ const SocialAuthProvider = ({ children }) => {
                         appId: SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID,
                         cookie: true,
                         xfbml: true,
-                        version: 'v18.0'
+                        version: 'v19.0'
                     });
-                    
+
                     console.log('Facebook SDK initialized with App ID:', SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID);
                 };
 
