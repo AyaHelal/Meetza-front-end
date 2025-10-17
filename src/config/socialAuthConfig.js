@@ -1,5 +1,4 @@
 // Social Auth Configuration
-// قم بإضافة هذه المتغيرات إلى ملف .env الخاص بك
 
 export const SOCIAL_AUTH_CONFIG = {
     // Google OAuth
@@ -12,7 +11,7 @@ export const SOCIAL_AUTH_CONFIG = {
     APPLE_CLIENT_ID: process.env.REACT_APP_APPLE_CLIENT_ID || '',
 
     // API Base URL
-    API_BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+    API_BASE_URL: process.env.REACT_APP_API_URL || 'https://meetza-backend.vercel.app/api'
 };
 
 export const validateSocialAuthConfig = () => {

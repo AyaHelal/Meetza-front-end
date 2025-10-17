@@ -37,26 +37,34 @@ const SocialLoginButtons = () => {
     };
 
     // Facebook Login Handler
-    const handleFacebookLogin = async () => {
-        try {
-            if (window.FB) {
-                window.FB.login(async (response) => {
-                    if (response.authResponse) {
-                        const result = await facebookLogin(response.authResponse.accessToken);
-                        if (result.success) {
-                            loginUser(result.user, result.token, true);
-                            navigate('/');
+const handleFacebookLogin = async () => {
+    try {
+        if (window.FB) {
+            window.FB.login((response) => {
+                if (response.authResponse) {
+                    (async () => {
+                        try {
+                            const result = await facebookLogin(response.authResponse.accessToken);
+                            if (result.success) {
+                                loginUser(result.user, result.token, true);
+                                navigate('/');
+                            }
+                        } catch (error) {
+                            console.error('Facebook login error:', error);
+                            alert('Facebook login failed. Please try again.');
                         }
-                    }
-                }, { scope: 'email' });
-            } else {
-                alert('Facebook SDK not loaded. Please check your configuration.');
-            }
-        } catch (error) {
-            console.error('Facebook login error:', error);
-            alert('Facebook login failed. Please try again.');
+        })();
+    }
+            }, { scope: 'email' });
+        } else {
+            alert('Facebook SDK not loaded. Please check your configuration.');
         }
-    };
+    } catch (error) {
+        console.error('Facebook login error:', error);
+        alert('Facebook login failed. Please try again.');
+    }
+};
+
 
     // Apple Login Handler
     const handleAppleLogin = async () => {

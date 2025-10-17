@@ -12,7 +12,8 @@ const LoginLayout = ({
     isLoading,
     currentImageIndex,
     images,
-    message
+    message,
+    children
 }) => {
     return (
         <motion.div
@@ -34,6 +35,7 @@ const LoginLayout = ({
                         isLoading={isLoading}
                         message={message}
                     >
+                        {children}
                     </FormSection>
                 </Col>
 
@@ -52,53 +54,5 @@ const LoginLayout = ({
 };
 
 
-const SignUpLayout = ({
-    activeTab,
-    setActiveTab,
-    formData,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    currentImageIndex,
-    images,
-    message
-}) => {
-    return (
-        <motion.div
-            key="signup-layout"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-        >
-            <Row className="g-0">
-                {/* Left Side - Image */}
-                <Col lg={6} className="d-none d-lg-flex align-items-center justify-content-center p-0">
-                    <ImageSection
-                        currentImageIndex={currentImageIndex}
-                        images={images}
-                        initialX={300}
-                        animateX={0}
-                    />
-                </Col>
 
-                {/* Right Side - Form */}
-                <Col lg={6} className="d-flex align-items-center justify-content-center bg-white p-0 m-0">
-                    <FormSection
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        formData={formData}
-                        handleInputChange={handleInputChange}
-                        handleSubmit={handleSubmit}
-                        isLoading={isLoading}
-                        message={message}
-                    >
-                    </FormSection>
-                </Col>
-            </Row>
-        </motion.div>
-    );
-};
-
-
-export { LoginLayout, SignUpLayout };
+export { LoginLayout };
