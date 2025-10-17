@@ -41,14 +41,23 @@ const handleFacebookLogin = () => {
     try {
         if (window.FB) {
             window.FB.login((response) => {
+                console.log('Facebook login response:', response);
+                
                 if (response.authResponse) {
+                    console.log('Facebook auth response:', response.authResponse);
+                    
                     // استخدام async function منفصلة
                     const handleFacebookResponse = async () => {
                         try {
+                            console.log('Sending token to backend:', response.authResponse.accessToken);
                             const result = await facebookLogin(response.authResponse.accessToken);
+                            console.log('Backend response:', result);
+                            
                             if (result.success) {
                                 loginUser(result.user, result.token, true);
                                 navigate('/');
+                            } else {
+                                alert('Login failed: ' + (result.message || 'Unknown error'));
                             }
                         } catch (error) {
                             console.error('Facebook login error:', error);
@@ -57,9 +66,17 @@ const handleFacebookLogin = () => {
                     };
                     
                     handleFacebookResponse();
+                } else {
+                    console.log('Facebook login failed or cancelled');
+                    if (response.status === 'not_authorized') {
+                        alert('Facebook login was not authorized. Please try again.');
+                    } else if (response.status === 'unknown') {
+                        alert('Facebook login failed. Please try again.');
+                    }
                 }
             }, { scope: 'email' });
         } else {
+            console.error('Facebook SDK not loaded');
             alert('Facebook SDK not loaded. Please check your configuration.');
         }
     } catch (error) {

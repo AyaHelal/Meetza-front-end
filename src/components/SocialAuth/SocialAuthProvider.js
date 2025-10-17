@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { SOCIAL_AUTH_CONFIG, validateSocialAuthConfig } from '../../config/socialAuthConfig';
+import { debugFacebookSDK } from '../../utils/facebookDebug';
 
 const SocialAuthProvider = ({ children }) => {
     useEffect(() => {
@@ -33,13 +34,27 @@ const SocialAuthProvider = ({ children }) => {
                         xfbml: true,
                         version: 'v18.0'
                     });
+                    
+                    console.log('Facebook SDK initialized with App ID:', SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID);
                 };
 
                 const script = document.createElement('script');
                 script.src = 'https://connect.facebook.net/en_US/sdk.js';
                 script.async = true;
                 script.defer = true;
+                script.onload = () => {
+                    console.log('Facebook SDK loaded successfully');
+                    // Debug Facebook SDK after loading
+                    setTimeout(() => {
+                        debugFacebookSDK();
+                    }, 1000);
+                };
+                script.onerror = (error) => {
+                    console.error('Failed to load Facebook SDK:', error);
+                };
                 document.head.appendChild(script);
+            } else if (!SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID) {
+                console.warn('Facebook App ID not configured');
             }
         };
 
