@@ -37,12 +37,13 @@ const SocialLoginButtons = () => {
     };
 
     // Facebook Login Handler
-const handleFacebookLogin = async () => {
+const handleFacebookLogin = () => {
     try {
         if (window.FB) {
             window.FB.login((response) => {
                 if (response.authResponse) {
-                    (async () => {
+                    // استخدام async function منفصلة
+                    const handleFacebookResponse = async () => {
                         try {
                             const result = await facebookLogin(response.authResponse.accessToken);
                             if (result.success) {
@@ -53,8 +54,10 @@ const handleFacebookLogin = async () => {
                             console.error('Facebook login error:', error);
                             alert('Facebook login failed. Please try again.');
                         }
-        })();
-    }
+                    };
+                    
+                    handleFacebookResponse();
+                }
             }, { scope: 'email' });
         } else {
             alert('Facebook SDK not loaded. Please check your configuration.');
