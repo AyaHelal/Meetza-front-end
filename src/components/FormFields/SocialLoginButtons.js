@@ -19,31 +19,11 @@ const SocialLoginButtons = () => {
                     scope: 'email profile',
                     callback: async (response) => {
                         if (response.access_token) {
-                            console.log('Google login successful!');
-                            console.log('Access Token:', response.access_token);
-                            
-                            // مؤقتاً: إنشاء user object وهمي للاختبار
-                            const mockUser = {
-                                id: 'google_user_' + Date.now(),
-                                name: 'Google User',
-                                email: 'google@example.com',
-                                provider: 'google'
-                            };
-                            
-                            const mockToken = 'google_mock_token_' + Date.now();
-                            
-                            console.log('Using mock user for testing:', mockUser);
-                            
-                            // تسجيل دخول وهمي للاختبار
-                            loginUser(mockUser, mockToken, true);
-                            navigate('/');
-                            
-                            // TODO: إزالة هذا الكود عندما يكون الـ backend جاهز
-                            // const result = await googleLogin(response.access_token);
-                            // if (result.success) {
-                            //     loginUser(result.user, result.token, true);
-                            //     navigate('/');
-                            // }
+                            const result = await googleLogin(response.access_token);
+                            if (result.success) {
+                                loginUser(result.user, result.token, true);
+                                navigate('/');
+                            }
                         }
                     },
                 }).requestAccessToken();
@@ -61,59 +41,24 @@ const handleFacebookLogin = () => {
     try {
         if (window.FB) {
             window.FB.login((response) => {
-                console.log('Facebook login response:', response);
-                
                 if (response.authResponse) {
-                    console.log('Facebook auth response:', response.authResponse);
-                    
-                    // استخدام async function منفصلة
                     const handleFacebookResponse = async () => {
                         try {
-                            console.log('Facebook login successful!');
-                            console.log('Access Token:', response.authResponse.accessToken);
-                            console.log('User ID:', response.authResponse.userID);
-                            
-                            // مؤقتاً: إنشاء user object وهمي للاختبار
-                            const mockUser = {
-                                id: response.authResponse.userID,
-                                name: 'Facebook User',
-                                email: 'facebook@example.com',
-                                provider: 'facebook'
-                            };
-                            
-                            const mockToken = 'facebook_mock_token_' + Date.now();
-                            
-                            console.log('Using mock user for testing:', mockUser);
-                            
-                            // تسجيل دخول وهمي للاختبار
-                            loginUser(mockUser, mockToken, true);
-                            navigate('/');
-                            
-                            // TODO: إزالة هذا الكود عندما يكون الـ backend جاهز
-                            // const result = await facebookLogin(response.authResponse.accessToken);
-                            // if (result.success) {
-                            //     loginUser(result.user, result.token, true);
-                            //     navigate('/');
-                            // }
-                            
+                            const result = await facebookLogin(response.authResponse.accessToken);
+                            if (result.success) {
+                                loginUser(result.user, result.token, true);
+                                navigate('/');
+                            }
                         } catch (error) {
                             console.error('Facebook login error:', error);
                             alert('Facebook login failed. Please try again.');
                         }
                     };
-                    
+
                     handleFacebookResponse();
-                } else {
-                    console.log('Facebook login failed or cancelled');
-                    if (response.status === 'not_authorized') {
-                        alert('Facebook login was not authorized. Please try again.');
-                    } else if (response.status === 'unknown') {
-                        alert('Facebook login failed. Please try again.');
-                    }
                 }
             }, { scope: 'email' });
         } else {
-            console.error('Facebook SDK not loaded');
             alert('Facebook SDK not loaded. Please check your configuration.');
         }
     } catch (error) {
@@ -135,31 +80,11 @@ const handleFacebookLogin = () => {
                 });
 
                 const data = await window.AppleID.auth.signIn();
-                console.log('Apple login successful!');
-                console.log('Apple data:', data);
-                
-                // مؤقتاً: إنشاء user object وهمي للاختبار
-                const mockUser = {
-                    id: 'apple_user_' + Date.now(),
-                    name: 'Apple User',
-                    email: 'apple@example.com',
-                    provider: 'apple'
-                };
-                
-                const mockToken = 'apple_mock_token_' + Date.now();
-                
-                console.log('Using mock user for testing:', mockUser);
-                
-                // تسجيل دخول وهمي للاختبار
-                loginUser(mockUser, mockToken, true);
-                navigate('/');
-                
-                // TODO: إزالة هذا الكود عندما يكون الـ backend جاهز
-                // const result = await appleLogin(data.id_token, data.code);
-                // if (result.success) {
-                //     loginUser(result.user, result.token, true);
-                //     navigate('/');
-                // }
+                const result = await appleLogin(data.id_token, data.code);
+                if (result.success) {
+                    loginUser(result.user, result.token, true);
+                    navigate('/');
+                }
             } else {
                 alert('Apple Sign-In not loaded. Please check your configuration.');
             }
