@@ -313,6 +313,20 @@
     height: 45px !important;
   }
 
+  .social-buttons .btn svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .social-buttons .btn div {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .social-buttons .btn span {
+    font-size: 14px !important;
+  }
+
   /* Adjust logo size */
   .logo-container img {
     max-width: 200px;

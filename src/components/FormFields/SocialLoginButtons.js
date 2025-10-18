@@ -116,7 +116,7 @@ const handleFacebookLogin = () => {
                         color: '#1877f2'
                     }}
                 >
-                    <FaFacebook size={40} />
+                    <FaFacebook size={35} />
                 </Button>
                 <Button
                     variant="outline-secondary"
@@ -137,8 +137,8 @@ const handleFacebookLogin = () => {
                     }}
                 >
                     <div style={{
-                        width: '40px',
-                        height: '40px',
+                        width: '35px',
+                        height: '35px',
                         borderRadius: '50%',
                         backgroundColor: '#0077b5',
                         display: 'flex',
@@ -148,7 +148,7 @@ const handleFacebookLogin = () => {
                     }}>
                         <span style={{
                             color: '#ffffff',
-                            fontSize: '20px',
+                            fontSize: '18px',
                             fontWeight: 'bold',
                             fontFamily: 'Arial, sans-serif'
                         }}>
