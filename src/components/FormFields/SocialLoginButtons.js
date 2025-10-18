@@ -5,6 +5,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { googleLogin, facebookLogin } from '../../API/socialAuth';
 import '../../pages/Login/Login.css';
+import { useEffect } from 'react';
 
 const SocialLoginButtons = () => {
     const navigate = useNavigate();
