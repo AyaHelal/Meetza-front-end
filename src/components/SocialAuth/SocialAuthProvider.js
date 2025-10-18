@@ -31,10 +31,15 @@ const SocialAuthProvider = ({ children }) => {
                         appId: SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID,
                         cookie: true,
                         xfbml: true,
-                        version: 'v19.0'
+                        version: 'v17.0'
                     });
 
                     console.log('Facebook SDK initialized with App ID:', SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID);
+
+                    window.FB.getLoginStatus(function(response) {
+                    console.log('✅ FB SDK initialized successfully. Status:', response.status);
+                    });
+
                 };
 
                 const script = document.createElement('script');
