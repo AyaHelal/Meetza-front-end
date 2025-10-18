@@ -30,41 +30,35 @@ const SocialAuthProvider = ({ children }) => {
         };
 
         const loadFacebookSDK = () => {
-            if (!window.FB && SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID) {
-                window.fbAsyncInit = function () {
-                window.FB.init({
-                    appId: SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID,
-                    cookie: true,
-                    xfbml: true,
-                    version: 'v18.0',
-                });
-                console.log('✅ Facebook SDK initialized with App ID:', SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID);
-                };
+        if (window.FB) {
+            console.log('✅ Facebook SDK already loaded');
+            return;
+        }
 
-                const script = document.createElement('script');
-                script.src = 'https://connect.facebook.net/en_US/sdk.js';
-                script.async = true;
-                script.defer = true;
-                script.onload = () => {
-                console.log('✅ Facebook SDK script loaded successfully');
-                };
-                script.onerror = (error) => {
-                console.error('❌ Failed to load Facebook SDK:', error);
-                };
+        if (!SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID) {
+            console.warn('⚠️ Facebook App ID not configured');
+            return;
+        }
 
-                document.head.appendChild(script);
-            } else if (window.FB) {
-                console.log('⚠️ Facebook SDK already loaded — reinitializing...');
-                window.FB.init({
-                appId: SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID,
-                cookie: true,
-                xfbml: true,
-                version: 'v18.0',
-                });
-            } else {
-                console.warn('⚠️ Facebook App ID not configured');
-            }
-            };
+        window.fbAsyncInit = function () {
+            window.FB.init({
+            appId: SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID,
+            cookie: true,
+            xfbml: true,
+            version: 'v18.0',
+            });
+            console.log('✅ Facebook SDK initialized with App ID:', SOCIAL_AUTH_CONFIG.FACEBOOK_APP_ID);
+        };
+
+        const script = document.createElement('script');
+        script.src = 'https://connect.facebook.net/en_US/sdk.js';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => console.log('✅ Facebook SDK script loaded successfully');
+        script.onerror = (error) => console.error('❌ Failed to load Facebook SDK:', error);
+        document.body.appendChild(script);
+        };
+
 
         const loadLinkedInSDK = () => {
             if (!SOCIAL_AUTH_CONFIG.LINKEDIN_CLIENT_ID) {
