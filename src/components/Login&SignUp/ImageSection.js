@@ -15,6 +15,7 @@ const ImageSection = ({
             style={{
                 width: '100%',
                 height: '100%',
+                minHeight: '100vh',
                 transform: 'translateY(-15px)',
                 padding: '0 10px'
             }}
@@ -27,9 +28,9 @@ const ImageSection = ({
                 transition={{ duration: 0.3 }}
                 className="img-fluid carousel-image"
                 style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
                     filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))'
                 }}
             />

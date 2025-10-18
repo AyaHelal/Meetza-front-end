@@ -19,8 +19,11 @@ const FormSection = ({
             initial={{ opacity: 0, x: 300 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="w-100"
-            style={{ maxWidth: '450px' }}
+            className="w-100 d-flex flex-column justify-content-center"
+            style={{
+                maxWidth: '450px',
+                minHeight: '100vh' // Ensure form takes full height
+            }}
         >
             <div className="text-center mb-0 mt-5">
                 <div className="logo-container">

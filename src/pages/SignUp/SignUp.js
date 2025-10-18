@@ -153,7 +153,7 @@ const SignUp = () => {
                     )}
 
                     {/* Username Field */}
-                    <div className="d-flex gx-2 mt-4 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
+                    <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
                         <User size={32} color="#888" weight="bold" className="me-2" />
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
