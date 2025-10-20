@@ -8,7 +8,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
     const navigate = useNavigate();
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [currentImageIndex] = useState(0);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -17,6 +17,9 @@ const Login = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [failedAttempts, setFailedAttempts] = useState(0);
+    const [showCaptcha, setShowCaptcha] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState('');
     const { loginUser } = useContext(AuthContext);
 
     const images = [
@@ -27,15 +30,48 @@ const Login = () => {
         '/assets/image 5.png'
     ];
 
-    // handle image carousel effect
+    // Load failed attempts from localStorage on component mount
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentImageIndex((prevIndex) =>
-                prevIndex === images.length - 1 ? 0 : prevIndex + 1
-            );
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [images.length]);
+        const storedAttempts = localStorage.getItem('loginFailedAttempts');
+        const storedTimestamp = localStorage.getItem('loginFailedTimestamp');
+
+        if (storedAttempts && storedTimestamp) {
+            const timeDiff = Date.now() - parseInt(storedTimestamp);
+            const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+            // Reset counter after 24 hours
+            if (hoursDiff >= 24) {
+                localStorage.removeItem('loginFailedAttempts');
+                localStorage.removeItem('loginFailedTimestamp');
+                setFailedAttempts(0);
+                setShowCaptcha(false);
+            } else {
+                const attempts = parseInt(storedAttempts);
+                setFailedAttempts(attempts);
+                setShowCaptcha(attempts >= 3);
+            }
+        }
+    }, []);
+
+    // reCAPTCHA callback functions
+    const onCaptchaChange = (token) => {
+        setCaptchaToken(token);
+    };
+
+    const onCaptchaExpired = () => {
+        setCaptchaToken('');
+    };
+
+    // Make functions globally available for reCAPTCHA
+    useEffect(() => {
+        window.onCaptchaChange = onCaptchaChange;
+        window.onCaptchaExpired = onCaptchaExpired;
+
+        return () => {
+            delete window.onCaptchaChange;
+            delete window.onCaptchaExpired;
+        };
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -47,12 +83,24 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Check if CAPTCHA is required and not completed
+        if (showCaptcha && !captchaToken) {
+            setMessage({
+                text: "Please complete the reCAPTCHA verification",
+                type: "error"
+            });
+            return;
+        }
+
         setIsLoading(true);
+        setMessage({ text: "", type: "" });
 
         try {
             const credentials = {
                 email: formData.email,
                 password: formData.password,
+                ...(showCaptcha && captchaToken && { captchaToken })
             };
 
             const response = await login(credentials);
@@ -61,16 +109,48 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-                loginUser(user, token, formData.rememberMe);
+                // Reset failed attempts on successful login
+                localStorage.removeItem('loginFailedAttempts');
+                localStorage.removeItem('loginFailedTimestamp');
+                setFailedAttempts(0);
+                setShowCaptcha(false);
 
+                loginUser(user, token, formData.rememberMe);
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
                 setTimeout(() => navigate("/"), 2000);
             } else {
+                // Increment failed attempts
+                const newAttempts = failedAttempts + 1;
+                setFailedAttempts(newAttempts);
+
+                // Save to localStorage
+                localStorage.setItem('loginFailedAttempts', newAttempts.toString());
+                localStorage.setItem('loginFailedTimestamp', Date.now().toString());
+
+                // Show CAPTCHA after 3 failed attempts
+                if (newAttempts >= 3 && !showCaptcha) {
+                    setShowCaptcha(true);
+                }
+
                 setMessage({ text: response.message || "Invalid email or password", type: "error" });
             }
         } catch (error) {
             console.error("❌ Login error:", error);
+
+            // Increment failed attempts on error
+            const newAttempts = failedAttempts + 1;
+            setFailedAttempts(newAttempts);
+
+            // Save to localStorage
+            localStorage.setItem('loginFailedAttempts', newAttempts.toString());
+            localStorage.setItem('loginFailedTimestamp', Date.now().toString());
+
+            // Show CAPTCHA after 3 failed attempts
+            if (newAttempts >= 3 && !showCaptcha) {
+                setShowCaptcha(true);
+            }
+
             setMessage({
                 text: error.response?.data?.message || "Error occurred during login",
                 type: "error"
@@ -94,6 +174,9 @@ const Login = () => {
                 currentImageIndex={currentImageIndex}
                 images={images}
                 message={message}
+                showCaptcha={showCaptcha}
+                onCaptchaChange={onCaptchaChange}
+                onCaptchaExpired={onCaptchaExpired}
             />
         </LayoutWrapper>
     );

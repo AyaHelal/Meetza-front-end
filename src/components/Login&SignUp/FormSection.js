@@ -12,6 +12,7 @@ const FormSection = ({
     handleSubmit,
     isLoading,
     message,
+    showCaptcha,
     children
 }) => {
     return (
@@ -22,7 +23,7 @@ const FormSection = ({
             className="w-100 d-flex flex-column justify-content-center"
             style={{
                 maxWidth: '450px',
-                minHeight: '100vh' // Ensure form takes full height
+                minHeight: '100vh'
             }}
         >
             <div className="text-center mb-0 mt-5">
@@ -164,6 +165,18 @@ const FormSection = ({
                                 'Continue'
                             )}
                         </Button>
+
+                        {/* Show CAPTCHA if required */}
+                        {showCaptcha && (
+                            <div className="mb-3 d-flex justify-content-center">
+                                <div
+                                    className="g-recaptcha"
+                                    data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key'}
+                                    data-callback="window.onCaptchaChange"
+                                    data-expired-callback="window.onCaptchaExpired"
+                                ></div>
+                            </div>
+                        )}
 
                         <SocialLoginButtons />
                     </>

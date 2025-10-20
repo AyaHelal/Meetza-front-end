@@ -13,6 +13,9 @@ const LoginLayout = ({
     currentImageIndex,
     images,
     message,
+    showCaptcha,
+    onCaptchaChange,
+    onCaptchaExpired,
     children
 }) => {
     return (
@@ -34,6 +37,9 @@ const LoginLayout = ({
                         handleSubmit={handleSubmit}
                         isLoading={isLoading}
                         message={message}
+                        showCaptcha={showCaptcha}
+                        onCaptchaChange={onCaptchaChange}
+                        onCaptchaExpired={onCaptchaExpired}
                     >
                         {children}
                     </FormSection>
