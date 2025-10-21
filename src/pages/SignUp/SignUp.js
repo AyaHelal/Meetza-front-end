@@ -5,7 +5,7 @@ import { SignUpLayout } from '../../components/Login&SignUp/SignUpLayout';
 import FormSection from '../../components/Login&SignUp/FormSection';
 import { signup } from "../../API/auth.js";
 import { User, Password } from '@phosphor-icons/react';
-import { Form, Button, Spinner } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
@@ -19,8 +19,7 @@ const SignUp = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        rememberMe: false
+        confirmPassword: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -236,18 +235,6 @@ const SignUp = () => {
                             )}
                         </div>
                     )}
-
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <Form.Check
-                            type="checkbox"
-                            id="rememberMe"
-                            label="Remember me"
-                            name="rememberMe"
-                            checked={formData.rememberMe}
-                            onChange={handleInputChange}
-                            className="text-muted small"
-                        />
-                    </div>
 
                     <Button
                         type="submit"

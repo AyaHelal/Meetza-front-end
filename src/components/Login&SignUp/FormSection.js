@@ -113,19 +113,21 @@ const FormSection = ({
                         />
 
                         <div className="d-flex justify-content-between align-items-center mb-3">
-                        <div className="d-flex align-items-center">
-                            <input
-                            type="checkbox"
-                            id="rememberMe"
-                            name="rememberMe"
-                            checked={formData.rememberMe}
-                            onChange={handleInputChange}
-                            style={{ marginRight: "4px" }}
-                            />
-                            <label htmlFor="rememberMe" className="text-muted small mb-0">
-                            Remember me
-                            </label>
-                        </div>
+                        {activeTab === 'signin' && (
+                            <div className="d-flex align-items-center">
+                                <input
+                                type="checkbox"
+                                id="rememberMe"
+                                name="rememberMe"
+                                checked={formData.rememberMe}
+                                onChange={handleInputChange}
+                                style={{ marginRight: "4px" }}
+                                />
+                                <label htmlFor="rememberMe" className="text-muted small mb-0">
+                                Remember me
+                                </label>
+                            </div>
+                        )}
 
                         <button
                             type="button"

@@ -100,6 +100,7 @@ const Login = () => {
             const credentials = {
                 email: formData.email,
                 password: formData.password,
+                remember_me: formData.rememberMe, // إضافة remember_me
                 ...(showCaptcha && captchaToken && { captchaToken })
             };
 
