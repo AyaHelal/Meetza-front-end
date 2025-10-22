@@ -6,6 +6,18 @@ import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
 
+/**
+ * CAPTCHA BEHAVIOR:
+ * 1. Counter starts at 0 on every page load/refresh
+ * 2. Each failed login attempt increments the counter
+ * 3. CAPTCHA appears after exactly 3 failed attempts
+ * 4. Counter resets to 0 on successful login (including after CAPTCHA)
+ * 5. Counter resets to 0 after 24 hours
+ * 6. Counter persists across page refreshes within 24 hours
+ *
+ * This ensures CAPTCHA appears every 3 failed attempts and resets after success.
+ */
+
 const Login = () => {
     const navigate = useNavigate();
     const [currentImageIndex] = useState(0);
@@ -30,28 +42,38 @@ const Login = () => {
         '/assets/image 5.png'
     ];
 
-    // Load failed attempts from localStorage on component mount
+    // Reset failed attempts counter on every page load/refresh
+    // This ensures CAPTCHA appears after every 3 failed attempts
     useEffect(() => {
-        const storedAttempts = localStorage.getItem('loginFailedAttempts');
-        const storedTimestamp = localStorage.getItem('loginFailedTimestamp');
+        const resetAttemptsOnLoad = () => {
+            const storedAttempts = localStorage.getItem('loginFailedAttempts');
+            const storedTimestamp = localStorage.getItem('loginFailedTimestamp');
 
-        if (storedAttempts && storedTimestamp) {
-            const timeDiff = Date.now() - parseInt(storedTimestamp);
-            const hoursDiff = timeDiff / (1000 * 60 * 60);
+            if (storedAttempts && storedTimestamp) {
+                const timeDiff = Date.now() - parseInt(storedTimestamp);
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
 
-            // Reset counter after 24 hours
-            if (hoursDiff >= 24) {
-                localStorage.removeItem('loginFailedAttempts');
-                localStorage.removeItem('loginFailedTimestamp');
+                // Reset counter after 24 hours only
+                if (hoursDiff >= 24) {
+                    localStorage.removeItem('loginFailedAttempts');
+                    localStorage.removeItem('loginFailedTimestamp');
+                    setFailedAttempts(0);
+                    setShowCaptcha(false);
+                } else {
+                    // Keep the counter if within 24 hours
+                    const attempts = parseInt(storedAttempts);
+                    setFailedAttempts(attempts);
+                    setShowCaptcha(attempts >= 3);
+                }
+            } else {
+                // No previous attempts, start fresh
                 setFailedAttempts(0);
                 setShowCaptcha(false);
-            } else {
-                const attempts = parseInt(storedAttempts);
-                setFailedAttempts(attempts);
-                setShowCaptcha(attempts >= 3);
             }
-        }
-    }, []);
+        };
+
+        resetAttemptsOnLoad();
+    }, []); // Empty dependency array means it runs on every mount (page load/refresh)
 
     // reCAPTCHA callback functions
     const onCaptchaChange = (token) => {
@@ -110,7 +132,7 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-                // Reset failed attempts on successful login
+                // Reset failed attempts on successful login (including after CAPTCHA)
                 localStorage.removeItem('loginFailedAttempts');
                 localStorage.removeItem('loginFailedTimestamp');
                 setFailedAttempts(0);
@@ -121,20 +143,25 @@ const Login = () => {
 
                 setTimeout(() => navigate("/"), 2000);
             } else {
-                // Increment failed attempts
+                // Increment failed attempts on response error
                 const newAttempts = failedAttempts + 1;
                 setFailedAttempts(newAttempts);
 
-                // Save to localStorage
+                // Save to localStorage with timestamp
                 localStorage.setItem('loginFailedAttempts', newAttempts.toString());
                 localStorage.setItem('loginFailedTimestamp', Date.now().toString());
 
-                // Show CAPTCHA after 3 failed attempts
+                // Show CAPTCHA after 3 failed attempts (resets on page refresh)
                 if (newAttempts >= 3 && !showCaptcha) {
                     setShowCaptcha(true);
+                    setMessage({
+                        text: "Too many failed attempts. Please complete the CAPTCHA verification.",
+                        type: "error"
+                    });
+                } else {
+                    // Display error message for invalid credentials
+                    setMessage({ text: response.message || "Invalid email or password", type: "error" });
                 }
-
-                setMessage({ text: response.message || "Invalid email or password", type: "error" });
             }
         } catch (error) {
             console.error("❌ Login error:", error);
@@ -143,19 +170,23 @@ const Login = () => {
             const newAttempts = failedAttempts + 1;
             setFailedAttempts(newAttempts);
 
-            // Save to localStorage
+            // Save to localStorage with timestamp
             localStorage.setItem('loginFailedAttempts', newAttempts.toString());
             localStorage.setItem('loginFailedTimestamp', Date.now().toString());
 
-            // Show CAPTCHA after 3 failed attempts
+            // Show CAPTCHA after 3 failed attempts (resets on page refresh)
             if (newAttempts >= 3 && !showCaptcha) {
                 setShowCaptcha(true);
+                setMessage({
+                    text: "Too many failed attempts. Please complete the CAPTCHA verification.",
+                    type: "error"
+                });
+            } else {
+                setMessage({
+                    text: error.response?.data?.message || "Error occurred during login",
+                    type: "error"
+                });
             }
-
-            setMessage({
-                text: error.response?.data?.message || "Error occurred during login",
-                type: "error"
-            });
         } finally {
             setIsLoading(false);
         }
