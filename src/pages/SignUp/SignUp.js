@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import LayoutWrapper from '../../components/Login/LayoutWrapper';
-import { SignUpLayout } from '../../components/Login/LoginLayouts';
+import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
+import { SignUpLayout } from '../../components/Login&SignUp/SignUpLayout';
+import FormSection from '../../components/Login&SignUp/FormSection';
 import { signup } from "../../API/auth.js";
 import { User, Password } from '@phosphor-icons/react';
-import { Form, Button, Spinner } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
@@ -18,8 +19,7 @@ const SignUp = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        rememberMe: false
+        confirmPassword: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -118,34 +118,41 @@ const SignUp = () => {
                 currentImageIndex={currentImageIndex}
                 images={images}
             >
+                <FormSection
+                    activeTab="signup"
+                    setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup')}
+                    formData={formData}
+                    handleInputChange={handleInputChange}
+                    handleSubmit={handleSubmit}
+                    isLoading={isLoading}
+                    message={message}
+                >
+                    {message.text && (
+                        <div
+                            className={`alert d-flex align-items-center justify-content-center text-center ${
+                                message.type === "success" ? "alert-success" : "alert-danger"
+                            }`}
+                            role="alert"
+                            style={{
+                                fontSize: "1rem",
+                                fontWeight: "500",
+                                gap: "10px",
+                                borderRadius: "12px",
+                                maxWidth: "450px",
+                                margin: "10px auto"
+                            }}
+                        >
+                            {message.type === "success" ? (
+                                <span style={{ fontSize: "1.4rem" }}>✅</span>
+                            ) : (
+                                <span style={{ fontSize: "1.4rem" }}>⚠️</span>
+                            )}
+                            <span>{message.text}</span>
+                        </div>
+                    )}
 
-                {message.text && (
-                    <div
-                        className={`alert d-flex align-items-center justify-content-center text-center ${
-                            message.type === "success" ? "alert-success" : "alert-danger"
-                        }`}
-                        role="alert"
-                        style={{
-                            fontSize: "1rem",
-                            fontWeight: "500",
-                            gap: "10px",
-                            borderRadius: "12px",
-                            maxWidth: "450px",
-                            margin: "10px auto"
-                        }}
-                    >
-                        {message.type === "success" ? (
-                            <span style={{ fontSize: "1.4rem" }}>✅</span>
-                        ) : (
-                            <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                        )}
-                        <span>{message.text}</span>
-                    </div>
-                )}
-
-                <Form noValidate onSubmit={handleSubmit}>
                     {/* Username Field */}
-                    <div className="d-flex gx-2 mt-4 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
+                    <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
                         <User size={32} color="#888" weight="bold" className="me-2" />
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
@@ -198,7 +205,6 @@ const SignUp = () => {
                                         className={`form-control border-0 shadow-none ${errors.confirmPassword ? 'is-invalid' : ''}`}
                                         style={{ backgroundColor: "transparent" , paddingBottom: '0px', paddingTop: '0px' }}
                                     />
-                                    {/* Eye / EyeSlash Button for Confirm Password */}
                                     <Button
                                         type="button"
                                         variant="link"
@@ -230,18 +236,6 @@ const SignUp = () => {
                         </div>
                     )}
 
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <Form.Check
-                            type="checkbox"
-                            id="rememberMe"
-                            label="Remember me"
-                            name="rememberMe"
-                            checked={formData.rememberMe}
-                            onChange={handleInputChange}
-                            className="text-muted small"
-                        />
-                    </div>
-
                     <Button
                         type="submit"
                         variant="primary"
@@ -265,7 +259,7 @@ const SignUp = () => {
                     </Button>
 
                     <SocialLoginButtons />
-                </Form>
+                </FormSection>
             </SignUpLayout>
         </LayoutWrapper>
     );
