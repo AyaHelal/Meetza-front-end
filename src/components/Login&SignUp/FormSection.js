@@ -195,7 +195,7 @@ const FormSection = ({
 
                         {/* Show CAPTCHA if required */}
                         {showCaptcha && (
-                            <div className="mb-3 d-flex justify-content-center" key="captcha-widget">
+                            <div className="mb-3 d-flex justify-content-center" key={`captcha-${Date.now()}`}>
                                 <div
                                     className="g-recaptcha"
                                     data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LdzEfErAAAAADeiiCLtCGlNZ9YmPuSct-b1g0c2'}

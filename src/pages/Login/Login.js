@@ -6,6 +6,25 @@ import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
 
+/**
+ * SESSION-BASED CAPTCHA SYSTEM WITH TIMEOUT:
+ *
+ * COUNTER BEHAVIOR:
+ * - Counter starts at 0 on every page load/refresh
+ * - Each failed login attempt increments the counter
+ * - CAPTCHA appears after exactly 3 failed attempts
+ * - Counter resets to 0 on successful login (including after CAPTCHA)
+ * - Counter resets to 0 on page refresh/navigation
+ * - No persistent storage - fresh start every session
+ *
+ * TIMEOUT SYSTEM:
+ * - CAPTCHA auto-expires after 5 seconds when completed
+ * - Immediate reset when CAPTCHA expires (from reCAPTCHA API)
+ * - Clear timeout when user submits form
+ * - Visual error messages for expired CAPTCHA
+ * - Auto-reset of reCAPTCHA widget on expiration
+ */
+
 const Login = () => {
     const navigate = useNavigate();
     const [currentImageIndex] = useState(0);
@@ -43,21 +62,76 @@ const Login = () => {
         setCaptchaToken(token);
         if (token) {
             setMessage({ text: "", type: "" }); // Clear any error messages
+            console.log('🧹 Cleared error messages - CAPTCHA is now valid');
         }
     };
 
     const onCaptchaExpired = () => {
-        console.log('⏰ CAPTCHA expired');
+        console.log('⏰ CAPTCHA expired - clearing token and resetting');
         setCaptchaToken('');
+        setMessage({
+            text: "CAPTCHA expired. Please complete it again.",
+            type: "error"
+        });
+
+        // Force reset reCAPTCHA widget immediately
+        if (window.grecaptcha) {
+            try {
+                window.grecaptcha.reset();
+                console.log('🔄 reCAPTCHA widget reset immediately');
+            } catch (error) {
+                console.log('Could not reset reCAPTCHA widget');
+            }
+        }
     };
 
     // Reset CAPTCHA token when CAPTCHA is hidden
     useEffect(() => {
         if (!showCaptcha) {
             setCaptchaToken('');
-            console.log('🔄 CAPTCHA hidden, token reset');
         }
     }, [showCaptcha]);
+
+    // Auto-refresh CAPTCHA after 5 seconds
+    useEffect(() => {
+        let timeoutId;
+
+        if (showCaptcha && captchaToken) {
+            console.log('⏰ Setting CAPTCHA auto-refresh timer (5 seconds)');
+            timeoutId = setTimeout(() => {
+                console.log('🔄 CAPTCHA expired after 5 seconds - refreshing');
+                console.log('⏰ Clearing token and showing error message');
+                setCaptchaToken('');
+                setMessage({
+                    text: "CAPTCHA expired. Please complete it again.",
+                    type: "error"
+                });
+
+                // Force reset reCAPTCHA widget
+                if (window.grecaptcha) {
+                    try {
+                        window.grecaptcha.reset();
+                        console.log('✅ reCAPTCHA widget reset successfully');
+                    } catch (error) {
+                        console.log('❌ Could not reset reCAPTCHA widget:', error.message);
+                    }
+                } else {
+                    console.log('ℹ️ reCAPTCHA not available for reset');
+                }
+            }, 5 * 1000); // 5 seconds
+
+            // Store timeout ID globally for cleanup
+            window.captchaTimeoutId = timeoutId;
+        }
+
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                console.log('🧹 Cleared CAPTCHA timeout');
+            }
+            delete window.captchaTimeoutId;
+        };
+    }, [showCaptcha, captchaToken]);
 
     // Make functions globally available for reCAPTCHA
     useEffect(() => {
@@ -81,9 +155,15 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Clear any existing CAPTCHA timeout
+        if (window.captchaTimeoutId) {
+            clearTimeout(window.captchaTimeoutId);
+            delete window.captchaTimeoutId;
+            console.log('🧹 Cleared existing CAPTCHA timeout');
+        }
+
         // Check if CAPTCHA is required and not completed
         if (showCaptcha && !captchaToken) {
-            console.log('❌ CAPTCHA required but not completed');
             setMessage({
                 text: "Please complete the reCAPTCHA verification",
                 type: "error"
@@ -174,7 +254,7 @@ const Login = () => {
             }
         } finally {
             setIsLoading(false);
-            console.log('📊 Login attempt finished - showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty');
+            console.log('📊 Login attempt finished - showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty', 'message:', message.text);
         }
     };
 
