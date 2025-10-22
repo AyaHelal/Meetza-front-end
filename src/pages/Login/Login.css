@@ -45,23 +45,82 @@
   transition: opacity 0.3s ease-in-out;
 }
 
-/* Login Page Container - Fixed Height */
+/* Login Page Container - Responsive Layout */
 .login-page-wrapper {
-  height: 100vh;
-  width: 100vw;
-  position: fixed;
-  top: 0;
-  left: 0;
-  overflow: auto;
+  min-height: 100vh;
+  width: 100%;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  background-size: cover;
+  background-position: center;
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Ensure form takes full height on large screens */
+@media (min-height: 1024px) {
+  .login-page-wrapper {
+    height: 100vh; /* Force full height on large screens */
+  }
+
+  /* Form should take full height without any margins/padding */
+  .d-flex.flex-column.justify-content-center {
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100vh !important;
+  }
+
+  /* Remove any spacing from form content */
+  .d-flex.flex-column.justify-content-center > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Image section should also take full height without margins */
+  .position-relative.d-flex.align-items-center.justify-content-center {
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100vh !important;
+  }
+
+  /* Remove transform that might cause spacing */
+  .position-relative.d-flex.align-items-center.justify-content-center {
+    transform: none !important;
+  }
+
+  /* Ensure no gaps between elements */
+  .row {
+    height: 100vh !important;
+  }
+
+  .col-lg-6 {
+    height: 100vh !important;
+  }
+}
+
+/* Responsive design for smaller screens with proper margins */
+@media (max-width: 991px) {
+  .bg-white {
+    padding: 30px 20px !important;
+    margin-bottom: 20px !important; /* Add margin bottom for mobile */
+  }
+}
+
+@media (min-width: 992px) and (max-height: 1023px) {
+  .bg-white {
+    margin-bottom: 40px !important; /* Add margin bottom for medium screens */
+  }
 }
 
 /* Ensure all child elements respect boundaries */
 .container-fluid, .row, .col, [class*="col-"] {
   max-width: 100% !important;
   margin: 0 !important;
+}
 /* Custom Button Hover Effects */
 .btn-primary:hover {
   transform: translateY(-2px);
@@ -140,8 +199,46 @@
   background-image: none !important;
 }
 
-.is-invalid.form-control {
-  padding-right: 0 !important;
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 991.98px) {
+  /* Ensure no horizontal overflow */
+  * {
+    max-width: 100%;
+  }
+
+  /* Container should not exceed viewport width */
+  .container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Row should not cause overflow */
+  .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Columns should fit within container */
+  .col, .col-lg-6 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Form container should not overflow */
+  .bg-white {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Prevent any element from causing horizontal scroll */
+  body {
+    overflow-x: hidden !important;
+  }
 }
 
 
@@ -149,29 +246,90 @@
 @media (max-width: 991.98px) {
   /* Form container with proper spacing on mobile */
   .bg-white {
-    padding: 20px 40px !important; /* 20px top/bottom, 40px left/right */
+    padding: 30px 20px !important; /* 30px top/bottom, 20px left/right */
     min-height: 100vh;
+    width: 100vw;
+    margin: 0;
+    border-radius: 0;
   }
 
   /* Ensure form elements have proper spacing */
   .login-page-wrapper {
     padding: 0;
+    min-height: auto;
   }
 
-  /* Reduce max width on very small screens */
+  /* Form max width on mobile */
   .w-100[style*="max-width"] {
-    max-width: calc(100% - 80px) !important; /* Account for the 40px*2 padding */
+    max-width: calc(100vw - 40px) !important; /* Account for the 20px*2 padding */
+  }
+
+  /* Better spacing for form elements */
+  .form-control {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Social buttons spacing */
+  .social-buttons {
+    gap: 15px !important;
+  }
+
+  /* Logo spacing */
+  .logo-container {
+    margin-bottom: -30px;
+    margin-top: -100px;
+  }
+
+  /* Tab buttons spacing */
+  .rounded-3 {
+    margin-bottom: 20px;
   }
 }
 
 /* Small spacing for larger mobile screens */
 @media (min-width: 576px) and (max-width: 991.98px) {
   .bg-white {
-    padding: 30px 50px !important; /* 30px top/bottom, 50px left/right */
+    padding: 40px 30px !important; /* 40px top/bottom, 30px left/right */
   }
 
   .w-100[style*="max-width"] {
-    max-width: calc(100% - 100px) !important; /* Account for the 50px*2 padding */
+    max-width: calc(100vw - 60px) !important; /* Account for the 30px*2 padding */
   }
 }
+
+/* Extra small screens */
+@media (max-width: 575.98px) {
+  .bg-white {
+    padding: 20px 15px !important; /* 20px top/bottom, 15px left/right */
+  }
+
+  .w-100[style*="max-width"] {
+    max-width: calc(100vw - 30px) !important; /* Account for the 15px*2 padding */
+  }
+
+  /* Smaller social buttons on very small screens */
+  .social-buttons .btn {
+    width: 45px !important;
+    height: 45px !important;
+  }
+
+  .social-buttons .btn svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .social-buttons .btn div {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .social-buttons .btn span {
+    font-size: 14px !important;
+  }
+
+  /* Adjust logo size */
+  .logo-container img {
+    max-width: 200px;
+    height: 150px;
+  }
 }

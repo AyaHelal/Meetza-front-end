@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { Button, Spinner } from 'react-bootstrap';
-import EmailField from '../FormFields/EmailField';
-import PasswordField from '../FormFields/PasswordField';
-import SocialLoginButtons from '../FormFields/SocialLoginButtons';
-
+import EmailField from '../../components/FormFields/EmailField';
+import PasswordField from '../../components/FormFields/PasswordField';
+import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
+import { useEffect } from "react";
 
 const FormSection = ({
     activeTab,
@@ -12,16 +12,44 @@ const FormSection = ({
     handleInputChange,
     handleSubmit,
     isLoading,
-    message
+    message,
+    showCaptcha,
+    children
 }) => {
+
+    useEffect(() => {
+    const loadCaptcha = () => {
+        if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
+            window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
+                sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
+                callback: (token) => {
+                    console.log('Captcha verified:', token);
+                    window.onCaptchaChange && window.onCaptchaChange(token);
+                },
+                'expired-callback': () => {
+                    console.log('Captcha expired');
+                    window.onCaptchaExpired && window.onCaptchaExpired();
+                }
+            });
+        }
+    }
+    if (window.grecaptcha) {
+        loadCaptcha();
+    } else {
+        window.onloadCallback = loadCaptcha;
+    }
+}, [showCaptcha]);
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 300 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.6 }}
-            className="w-100"
-            style={{ maxWidth: '450px' }}
+            className="w-100 d-flex flex-column justify-content-center"
+            style={{
+                maxWidth: '450px',
+                minHeight: '100vh'
+            }}
         >
             <div className="text-center mb-0 mt-5">
                 <div className="logo-container">
@@ -84,81 +112,104 @@ const FormSection = ({
                         margin: "10px auto"
                     }}
                 >
-                    {message.type === "success" ? <span>✅</span> : <span>⚠️</span>}
+                    {message.type === "success" ? (
+                        <span style={{ fontSize: "1.4rem" }}>✅</span>
+                    ) : (
+                        <span style={{ fontSize: "1.4rem" }}>⚠️</span>
+                    )}
                     <span>{message.text}</span>
                 </div>
             )}
 
             <form onSubmit={handleSubmit}>
-
-                <EmailField
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    name="email"
-                    autoFocus
-                />
-
-                <PasswordField
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    name="password"
-                />
-
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="d-flex align-items-center">
-                        <input
-                            type="checkbox"
-                            id="rememberMe"
-                            name="rememberMe"
-                            checked={formData.rememberMe}
+                {children ? children : (
+                    <>
+                        <EmailField
+                            value={formData.email}
                             onChange={handleInputChange}
-                            style={{ marginRight: "4px" }}
+                            name="email"
+                            autoFocus
                         />
-                        <label htmlFor="rememberMe" className="text-muted small mb-0">
-                            Remember me
-                        </label>
-                    </div>
 
-                    <button
-                        type="button"
-                        onClick={() => console.log('Forgot password clicked')}
-                        className="btn btn-link text-muted text-decoration-none small p-0"
-                        style={{ outline: 'none', boxShadow: 'none' }}
-                    >
-                        Forgot Password ?
-                    </button>
-                </div>
+                        <PasswordField
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            name="password"
+                        />
 
-                <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={isLoading}
-                    className="w-100 py-3 mb-3 position-relative"
-                    style={{
-                        borderRadius: '12px',
-                        fontSize: '1.1rem',
-                        fontWeight: '500',
-                        opacity: isLoading ? 0.7 : 1
-                    }}
-                >
-                    {isLoading ? (
-                        <>
-                            <Spinner
-                                as="span"
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                aria-hidden="true"
-                                className="me-2"
-                            />
-                            Signing In...
-                        </>
-                    ) : (
-                        'Continue'
-                    )}
-                </Button>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                        {activeTab === 'signin' && (
+                            <div className="d-flex align-items-center">
+                                <input
+                                type="checkbox"
+                                id="rememberMe"
+                                name="rememberMe"
+                                checked={formData.rememberMe}
+                                onChange={handleInputChange}
+                                style={{ marginRight: "4px" }}
+                                />
+                                <label htmlFor="rememberMe" className="text-muted small mb-0">
+                                Remember me
+                                </label>
+                            </div>
+                        )}
 
-                <SocialLoginButtons />
+                        <button
+                            type="button"
+                            onClick={() => console.log('Forgot password clicked')}
+                            className="btn btn-link text-muted text-decoration-none small p-0"
+                            style={{ outline: 'none', boxShadow: 'none' }}
+                        >
+                            Forgot Password ?
+                        </button>
+                        </div>
+
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            disabled={isLoading}
+                            className="w-100 py-3 mb-3 position-relative"
+                            style={{
+                                borderRadius: '12px',
+                                fontSize: '1.1rem',
+                                fontWeight: '500',
+                                opacity: isLoading ? 0.7 : 1
+                            }}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Spinner
+                                        as="span"
+                                        animation="border"
+                                        size="sm"
+                                        role="status"
+                                        aria-hidden="true"
+                                        className="me-2"
+                                    />
+                                    Signing In...
+                                </>
+                            ) : (
+                                'Continue'
+                            )}
+                        </Button>
+
+                        {/* Show CAPTCHA if required */}
+                        {showCaptcha && (
+                            <div className="mb-3 d-flex justify-content-center" key={`captcha-${Date.now()}`}>
+                                <div
+                                    className="g-recaptcha"
+                                    data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LdzEfErAAAAADeiiCLtCGlNZ9YmPuSct-b1g0c2'}
+                                    data-callback="window.onCaptchaChange"
+                                    data-expired-callback="window.onCaptchaExpired"
+                                    data-theme="light"
+                                    data-size="normal"
+                                ></div>
+                            </div>
+                        )}
+
+                        <SocialLoginButtons />
+                    </>
+                )}
             </form>
         </motion.div>
     );

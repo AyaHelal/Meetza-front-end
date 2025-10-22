@@ -24,12 +24,11 @@ export const facebookLogin = async (accessToken) => {
     }
 };
 
-// Apple OAuth Login
-export const appleLogin = async (identityToken, authorizationCode) => {
+// LinkedIn OAuth Login
+export const linkedinLogin = async (accessToken) => {
     try {
-        const response = await axiosInstance.post('/auth/apple', {
-            identityToken: identityToken,
-            authorizationCode: authorizationCode
+        const response = await axiosInstance.post('/auth/linkedin', {
+            accessToken: accessToken
         });
         return response.data;
     } catch (error) {

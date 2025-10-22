@@ -1,5 +1,4 @@
 // Social Auth Configuration
-// قم بإضافة هذه المتغيرات إلى ملف .env الخاص بك
 
 export const SOCIAL_AUTH_CONFIG = {
     // Google OAuth
@@ -8,11 +7,11 @@ export const SOCIAL_AUTH_CONFIG = {
     // Facebook OAuth
     FACEBOOK_APP_ID: process.env.REACT_APP_FACEBOOK_APP_ID || '',
 
-    // Apple OAuth
-    APPLE_CLIENT_ID: process.env.REACT_APP_APPLE_CLIENT_ID || '',
+    // LinkedIn OAuth
+    LINKEDIN_CLIENT_ID: process.env.REACT_APP_LINKEDIN_CLIENT_ID || '',
 
     // API Base URL
-    API_BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+    API_BASE_URL: process.env.REACT_APP_API_URL || 'https://meetza-backend.vercel.app/api'
 };
 
 export const validateSocialAuthConfig = () => {
@@ -26,8 +25,8 @@ export const validateSocialAuthConfig = () => {
         missing.push('REACT_APP_FACEBOOK_APP_ID');
     }
 
-    if (!SOCIAL_AUTH_CONFIG.APPLE_CLIENT_ID) {
-        missing.push('REACT_APP_APPLE_CLIENT_ID');
+    if (!SOCIAL_AUTH_CONFIG.LINKEDIN_CLIENT_ID) {
+        missing.push('REACT_APP_LINKEDIN_CLIENT_ID');
     }
 
     if (missing.length > 0) {
