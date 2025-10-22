@@ -3,6 +3,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
+import { useEffect } from "react";
 
 const FormSection = ({
     activeTab,
@@ -15,6 +16,30 @@ const FormSection = ({
     showCaptcha,
     children
 }) => {
+
+    useEffect(() => {
+    const loadCaptcha = () => {
+        if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
+            window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
+                sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
+                callback: (token) => {
+                    console.log('Captcha verified:', token);
+                    window.onCaptchaChange && window.onCaptchaChange(token);
+                },
+                'expired-callback': () => {
+                    console.log('Captcha expired');
+                    window.onCaptchaExpired && window.onCaptchaExpired();
+                }
+            });
+        }
+    }
+    if (window.grecaptcha) {
+        loadCaptcha();
+    } else {
+        window.onloadCallback = loadCaptcha;
+    }
+}, [showCaptcha]);
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 300 }}
