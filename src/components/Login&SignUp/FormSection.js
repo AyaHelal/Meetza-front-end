@@ -3,7 +3,6 @@ import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
-import { useEffect } from "react";
 
 const FormSection = ({
     activeTab,
@@ -16,29 +15,8 @@ const FormSection = ({
     showCaptcha,
     children
 }) => {
-
-    useEffect(() => {
-    const loadCaptcha = () => {
-        if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
-            window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
-                sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
-                callback: (token) => {
-                    console.log('Captcha verified:', token);
-                    window.onCaptchaChange && window.onCaptchaChange(token);
-                },
-                'expired-callback': () => {
-                    console.log('Captcha expired');
-                    window.onCaptchaExpired && window.onCaptchaExpired();
-                }
-            });
-        }
-    }
-    if (window.grecaptcha) {
-        loadCaptcha();
-    } else {
-        window.onloadCallback = loadCaptcha;
-    }
-}, [showCaptcha]);
+    // Debug: Log props on every render
+    console.log('🔍 FormSection render - showCaptcha:', showCaptcha, 'activeTab:', activeTab);
 
     return (
         <motion.div
@@ -138,30 +116,30 @@ const FormSection = ({
                         />
 
                         <div className="d-flex justify-content-between align-items-center mb-3">
-                        {activeTab === 'signin' && (
-                            <div className="d-flex align-items-center">
-                                <input
-                                type="checkbox"
-                                id="rememberMe"
-                                name="rememberMe"
-                                checked={formData.rememberMe}
-                                onChange={handleInputChange}
-                                style={{ marginRight: "4px" }}
-                                />
-                                <label htmlFor="rememberMe" className="text-muted small mb-0">
-                                Remember me
-                                </label>
-                            </div>
-                        )}
+                            {activeTab === 'signin' && (
+                                <div className="d-flex align-items-center">
+                                    <input
+                                    type="checkbox"
+                                    id="rememberMe"
+                                    name="rememberMe"
+                                    checked={formData.rememberMe}
+                                    onChange={handleInputChange}
+                                    style={{ marginRight: "4px" }}
+                                    />
+                                    <label htmlFor="rememberMe" className="text-muted small mb-0">
+                                    Remember me
+                                    </label>
+                                </div>
+                            )}
 
-                        <button
-                            type="button"
-                            onClick={() => console.log('Forgot password clicked')}
-                            className="btn btn-link text-muted text-decoration-none small p-0"
-                            style={{ outline: 'none', boxShadow: 'none' }}
-                        >
-                            Forgot Password ?
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() => console.log('Forgot password clicked')}
+                                className="btn btn-link text-muted text-decoration-none small p-0"
+                                style={{ outline: 'none', boxShadow: 'none' }}
+                            >
+                                Forgot Password ?
+                            </button>
                         </div>
 
                         <Button

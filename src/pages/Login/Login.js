@@ -6,25 +6,6 @@ import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
 
-/**
- * SESSION-BASED CAPTCHA SYSTEM WITH TIMEOUT:
- *
- * COUNTER BEHAVIOR:
- * - Counter starts at 0 on every page load/refresh
- * - Each failed login attempt increments the counter
- * - CAPTCHA appears after exactly 3 failed attempts
- * - Counter resets to 0 on successful login (including after CAPTCHA)
- * - Counter resets to 0 on page refresh/navigation
- * - No persistent storage - fresh start every session
- *
- * TIMEOUT SYSTEM:
- * - CAPTCHA auto-expires after 5 seconds when completed
- * - Immediate reset when CAPTCHA expires (from reCAPTCHA API)
- * - Clear timeout when user submits form
- * - Visual error messages for expired CAPTCHA
- * - Auto-reset of reCAPTCHA widget on expiration
- */
-
 const Login = () => {
     const navigate = useNavigate();
     const [currentImageIndex] = useState(0);
@@ -51,10 +32,12 @@ const Login = () => {
 
     // Session-based CAPTCHA system - resets on every page load
     useEffect(() => {
+        console.log('🔄 Component mounted/updated - resetting failed attempts');
         setFailedAttempts(0);
         setShowCaptcha(false);
-        console.log('🔄 Session started - CAPTCHA counter reset to 0');
-    }, []);
+        setCaptchaToken('');
+        console.log('✅ CAPTCHA state reset - failedAttempts: 0, showCaptcha: false');
+    });
 
     // reCAPTCHA callback functions
     const onCaptchaChange = (token) => {
@@ -62,7 +45,6 @@ const Login = () => {
         setCaptchaToken(token);
         if (token) {
             setMessage({ text: "", type: "" }); // Clear any error messages
-            console.log('🧹 Cleared error messages - CAPTCHA is now valid');
         }
     };
 
@@ -73,16 +55,6 @@ const Login = () => {
             text: "CAPTCHA expired. Please complete it again.",
             type: "error"
         });
-
-        // Force reset reCAPTCHA widget immediately
-        if (window.grecaptcha) {
-            try {
-                window.grecaptcha.reset();
-                console.log('🔄 reCAPTCHA widget reset immediately');
-            } catch (error) {
-                console.log('Could not reset reCAPTCHA widget');
-            }
-        }
     };
 
     // Reset CAPTCHA token when CAPTCHA is hidden
@@ -91,47 +63,6 @@ const Login = () => {
             setCaptchaToken('');
         }
     }, [showCaptcha]);
-
-    // Auto-refresh CAPTCHA after 5 seconds
-    useEffect(() => {
-        let timeoutId;
-
-        if (showCaptcha && captchaToken) {
-            console.log('⏰ Setting CAPTCHA auto-refresh timer (5 seconds)');
-            timeoutId = setTimeout(() => {
-                console.log('🔄 CAPTCHA expired after 5 seconds - refreshing');
-                console.log('⏰ Clearing token and showing error message');
-                setCaptchaToken('');
-                setMessage({
-                    text: "CAPTCHA expired. Please complete it again.",
-                    type: "error"
-                });
-
-                // Force reset reCAPTCHA widget
-                if (window.grecaptcha) {
-                    try {
-                        window.grecaptcha.reset();
-                        console.log('✅ reCAPTCHA widget reset successfully');
-                    } catch (error) {
-                        console.log('❌ Could not reset reCAPTCHA widget:', error.message);
-                    }
-                } else {
-                    console.log('ℹ️ reCAPTCHA not available for reset');
-                }
-            }, 5 * 1000); // 5 seconds
-
-            // Store timeout ID globally for cleanup
-            window.captchaTimeoutId = timeoutId;
-        }
-
-        return () => {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                console.log('🧹 Cleared CAPTCHA timeout');
-            }
-            delete window.captchaTimeoutId;
-        };
-    }, [showCaptcha, captchaToken]);
 
     // Make functions globally available for reCAPTCHA
     useEffect(() => {
@@ -161,6 +92,8 @@ const Login = () => {
             delete window.captchaTimeoutId;
             console.log('🧹 Cleared existing CAPTCHA timeout');
         }
+
+        console.log('🔍 Debugging handleSubmit: formData:', formData, 'showCaptcha:', showCaptcha, 'captchaToken:', captchaToken);
 
         // Check if CAPTCHA is required and not completed
         if (showCaptcha && !captchaToken) {
@@ -199,6 +132,7 @@ const Login = () => {
                 // Reset failed attempts on successful login (CAPTCHA system)
                 setFailedAttempts(0);
                 setShowCaptcha(false);
+                console.log('🔄 Login successful - CAPTCHA system reset');
 
                 // Force reset reCAPTCHA widget if it exists
                 if (window.grecaptcha) {
@@ -218,6 +152,7 @@ const Login = () => {
                 // Increment failed attempts on response error
                 const newAttempts = failedAttempts + 1;
                 setFailedAttempts(newAttempts);
+                console.log(`📈 Failed attempt ${newAttempts} - showCaptcha: ${showCaptcha}`);
 
                 // Show CAPTCHA after 3 failed attempts (session-based)
                 if (newAttempts >= 3 && !showCaptcha) {
@@ -237,6 +172,7 @@ const Login = () => {
             // Increment failed attempts on error
             const newAttempts = failedAttempts + 1;
             setFailedAttempts(newAttempts);
+            console.log(`📈 Failed attempt ${newAttempts} (network error) - showCaptcha: ${showCaptcha}`);
 
             // Show CAPTCHA after 3 failed attempts (session-based)
             if (newAttempts >= 3 && !showCaptcha) {
@@ -245,7 +181,7 @@ const Login = () => {
                     text: "Too many failed attempts. Please complete the CAPTCHA verification.",
                     type: "error"
                 });
-                console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
+                console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts (network error)`);
             } else {
                 setMessage({
                     text: error.response?.data?.message || "Error occurred during login",
