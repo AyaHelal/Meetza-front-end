@@ -30,38 +30,12 @@ const Login = () => {
         '/assets/image 5.png'
     ];
 
-    // Reset failed attempts counter on every page load/refresh
-    // This ensures CAPTCHA appears after every 3 failed attempts
+    // Session-based CAPTCHA system - resets on every page load
     useEffect(() => {
-        const resetAttemptsOnLoad = () => {
-            const storedAttempts = localStorage.getItem('loginFailedAttempts');
-            const storedTimestamp = localStorage.getItem('loginFailedTimestamp');
-
-            if (storedAttempts && storedTimestamp) {
-                const timeDiff = Date.now() - parseInt(storedTimestamp);
-                const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-                // Reset counter after 24 hours only
-                if (hoursDiff >= 24) {
-                    localStorage.removeItem('loginFailedAttempts');
-                    localStorage.removeItem('loginFailedTimestamp');
-                    setFailedAttempts(0);
-                    setShowCaptcha(false);
-                } else {
-                    // Keep the counter if within 24 hours
-                    const attempts = parseInt(storedAttempts);
-                    setFailedAttempts(attempts);
-                    setShowCaptcha(attempts >= 3);
-                }
-            } else {
-                // No previous attempts, start fresh
-                setFailedAttempts(0);
-                setShowCaptcha(false);
-            }
-        };
-
-        resetAttemptsOnLoad();
-    }, []); // Empty dependency array means it runs on every mount (page load/refresh)
+        setFailedAttempts(0);
+        setShowCaptcha(false);
+        console.log('🔄 Session started - CAPTCHA counter reset to 0');
+    }, []);
 
     // reCAPTCHA callback functions
     const onCaptchaChange = (token) => {
@@ -122,6 +96,9 @@ const Login = () => {
             console.log('🔐 Sending request with CAPTCHA token:', captchaToken ? 'Present' : 'Missing');
         }
 
+        // Log current attempt count
+        console.log(`📊 Login attempt ${failedAttempts + 1} - showCaptcha: ${showCaptcha}`);
+
         setIsLoading(true);
         setMessage({ text: "", type: "" });
 
@@ -139,9 +116,7 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-                // Reset failed attempts on successful login (including after CAPTCHA)
-                localStorage.removeItem('loginFailedAttempts');
-                localStorage.removeItem('loginFailedTimestamp');
+                // Reset failed attempts on successful login (CAPTCHA system)
                 setFailedAttempts(0);
                 setShowCaptcha(false);
 
@@ -164,19 +139,15 @@ const Login = () => {
                 const newAttempts = failedAttempts + 1;
                 setFailedAttempts(newAttempts);
 
-                // Save to localStorage with timestamp
-                localStorage.setItem('loginFailedAttempts', newAttempts.toString());
-                localStorage.setItem('loginFailedTimestamp', Date.now().toString());
-
-                // Show CAPTCHA after 3 failed attempts (resets on page refresh)
+                // Show CAPTCHA after 3 failed attempts (session-based)
                 if (newAttempts >= 3 && !showCaptcha) {
                     setShowCaptcha(true);
                     setMessage({
                         text: "Too many failed attempts. Please complete the CAPTCHA verification.",
                         type: "error"
                     });
+                    console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
                 } else {
-                    // Display error message for invalid credentials
                     setMessage({ text: response.message || "Invalid email or password", type: "error" });
                 }
             }
@@ -187,17 +158,14 @@ const Login = () => {
             const newAttempts = failedAttempts + 1;
             setFailedAttempts(newAttempts);
 
-            // Save to localStorage with timestamp
-            localStorage.setItem('loginFailedAttempts', newAttempts.toString());
-            localStorage.setItem('loginFailedTimestamp', Date.now().toString());
-
-            // Show CAPTCHA after 3 failed attempts (resets on page refresh)
+            // Show CAPTCHA after 3 failed attempts (session-based)
             if (newAttempts >= 3 && !showCaptcha) {
                 setShowCaptcha(true);
                 setMessage({
                     text: "Too many failed attempts. Please complete the CAPTCHA verification.",
                     type: "error"
                 });
+                console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
             } else {
                 setMessage({
                     text: error.response?.data?.message || "Error occurred during login",
