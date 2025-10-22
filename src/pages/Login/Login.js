@@ -6,18 +6,6 @@ import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
 
-/**
- * CAPTCHA BEHAVIOR:
- * 1. Counter starts at 0 on every page load/refresh
- * 2. Each failed login attempt increments the counter
- * 3. CAPTCHA appears after exactly 3 failed attempts
- * 4. Counter resets to 0 on successful login (including after CAPTCHA)
- * 5. Counter resets to 0 after 24 hours
- * 6. Counter persists across page refreshes within 24 hours
- *
- * This ensures CAPTCHA appears every 3 failed attempts and resets after success.
- */
-
 const Login = () => {
     const navigate = useNavigate();
     const [currentImageIndex] = useState(0);
@@ -77,12 +65,25 @@ const Login = () => {
 
     // reCAPTCHA callback functions
     const onCaptchaChange = (token) => {
+        console.log('✅ CAPTCHA completed successfully:', token ? 'Token received' : 'No token');
         setCaptchaToken(token);
+        if (token) {
+            setMessage({ text: "", type: "" }); // Clear any error messages
+        }
     };
 
     const onCaptchaExpired = () => {
+        console.log('⏰ CAPTCHA expired');
         setCaptchaToken('');
     };
+
+    // Reset CAPTCHA token when CAPTCHA is hidden
+    useEffect(() => {
+        if (!showCaptcha) {
+            setCaptchaToken('');
+            console.log('🔄 CAPTCHA hidden, token reset');
+        }
+    }, [showCaptcha]);
 
     // Make functions globally available for reCAPTCHA
     useEffect(() => {
@@ -108,11 +109,17 @@ const Login = () => {
 
         // Check if CAPTCHA is required and not completed
         if (showCaptcha && !captchaToken) {
+            console.log('❌ CAPTCHA required but not completed');
             setMessage({
                 text: "Please complete the reCAPTCHA verification",
                 type: "error"
             });
             return;
+        }
+
+        // Log CAPTCHA status for debugging
+        if (showCaptcha) {
+            console.log('🔐 Sending request with CAPTCHA token:', captchaToken ? 'Present' : 'Missing');
         }
 
         setIsLoading(true);
@@ -137,6 +144,16 @@ const Login = () => {
                 localStorage.removeItem('loginFailedTimestamp');
                 setFailedAttempts(0);
                 setShowCaptcha(false);
+
+                // Force reset reCAPTCHA widget if it exists
+                if (window.grecaptcha) {
+                    try {
+                        window.grecaptcha.reset();
+                        console.log('🔄 reCAPTCHA widget reset');
+                    } catch (error) {
+                        console.log('ℹ️ No reCAPTCHA widget to reset');
+                    }
+                }
 
                 loginUser(user, token, formData.rememberMe);
                 setMessage({ text: response.message || "Login successful!", type: "success" });
@@ -189,6 +206,7 @@ const Login = () => {
             }
         } finally {
             setIsLoading(false);
+            console.log('📊 Login attempt finished - showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty');
         }
     };
 

@@ -195,12 +195,14 @@ const FormSection = ({
 
                         {/* Show CAPTCHA if required */}
                         {showCaptcha && (
-                            <div className="mb-3 d-flex justify-content-center">
+                            <div className="mb-3 d-flex justify-content-center" key="captcha-widget">
                                 <div
                                     className="g-recaptcha"
-                                    data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key'}
+                                    data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LdzEfErAAAAADeiiCLtCGlNZ9YmPuSct-b1g0c2'}
                                     data-callback="window.onCaptchaChange"
                                     data-expired-callback="window.onCaptchaExpired"
+                                    data-theme="light"
+                                    data-size="normal"
                                 ></div>
                             </div>
                         )}
