@@ -4,7 +4,7 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Password } from '@phosphor-icons/react';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
-const PasswordField = ({ value, onChange, name = "password", showStrengthIndicator = false }) => {
+const PasswordField = ({ value, onChange, name = "password", showStrengthIndicator = false, label = "Password" }) => {
 const [showPassword, setShowPassword] = useState(false);
 const [error, setError] = useState("");
 
@@ -51,7 +51,7 @@ return (
         className="text-888888"
         style={{ fontSize: "12px", paddingLeft: "12px" }}
         >
-        Password
+        {label}
         </label>
 
         <input
