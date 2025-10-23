@@ -23,12 +23,13 @@
   margin-bottom: 30px;
 }
 
-.verify-email-logo img {
-  max-width: 250px;
-  height: 200px;
-  margin: 0;
-  padding: 0;
-  background: transparent;
+.verify-email-logo h1 {
+  font-size: 3rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .code-inputs {
