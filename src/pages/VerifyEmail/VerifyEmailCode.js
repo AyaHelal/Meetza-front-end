@@ -140,7 +140,7 @@ export default function VerifyEmailCode() {
 
                     <p className="text-muted mb-4" style={{ maxWidth: 420, fontSize: "18px" }}>
                         {email ? (
-                            <>We've sent a verification code to <b>{email}</b>. Please enter it below.</>
+                            <>We've sent a verification code to <b>{email}</b>. Please enter it below to complete your registration.</>
                         ) : (
                             <>No email found. Please <Link to="/signup">sign up again</Link>.</>
                         )}
