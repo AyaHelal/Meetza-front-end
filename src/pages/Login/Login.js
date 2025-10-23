@@ -5,26 +5,6 @@ import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts';
 import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
-
-/**
- * SESSION-BASED CAPTCHA SYSTEM WITH TIMEOUT:
- *
- * COUNTER BEHAVIOR:
- * - Counter starts at 0 on every page load/refresh
- * - Each failed login attempt increments the counter
- * - CAPTCHA appears after exactly 3 failed attempts
- * - Counter resets to 0 on successful login (including after CAPTCHA)
- * - Counter resets to 0 on page refresh/navigation
- * - No persistent storage - fresh start every session
- *
- * TIMEOUT SYSTEM:
- * - CAPTCHA auto-expires after 5 seconds when completed
- * - Immediate reset when CAPTCHA expires (from reCAPTCHA API)
- * - Clear timeout when user submits form
- * - Visual error messages for expired CAPTCHA
- * - Auto-reset of reCAPTCHA widget on expiration
- */
-
 const Login = () => {
     const navigate = useNavigate();
     const [currentImageIndex] = useState(0);
@@ -259,6 +239,7 @@ const Login = () => {
     };
 
     const handleSignUpClick = () => navigate('/signup');
+    const handleForgotPassword = () => navigate('/forgot-password');
 
     return (
         <LayoutWrapper activeTab="signin">
@@ -275,6 +256,7 @@ const Login = () => {
                 showCaptcha={showCaptcha}
                 onCaptchaChange={onCaptchaChange}
                 onCaptchaExpired={onCaptchaExpired}
+                onForgotPassword={handleForgotPassword}
             />
         </LayoutWrapper>
     );

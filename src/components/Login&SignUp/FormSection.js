@@ -14,6 +14,7 @@ const FormSection = ({
     isLoading,
     message,
     showCaptcha,
+    onForgotPassword,
     children
 }) => {
 
@@ -156,7 +157,7 @@ const FormSection = ({
 
                         <button
                             type="button"
-                            onClick={() => console.log('Forgot password clicked')}
+                            onClick={onForgotPassword}
                             className="btn btn-link text-muted text-decoration-none small p-0"
                             style={{ outline: 'none', boxShadow: 'none' }}
                         >
