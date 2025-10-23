@@ -174,6 +174,7 @@ export default function ResetPassword() {
                             value={formData.newPassword}
                             onChange={handleChange}
                             name="newPassword"
+                            label="New Password"
                         />
 
                         <div className="mt-3">
@@ -181,6 +182,7 @@ export default function ResetPassword() {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 name="confirmPassword"
+                                label="Confirm Password"
                             />
                         </div>
 
