@@ -138,10 +138,10 @@ export default function VerifyEmailCode() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ maxWidth: '500px' }}
             >
-                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-4">
+                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-2">
                     {/* Logo */}
                     <motion.div
-                        className="mb-4"
+                        className="mb-0"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
@@ -154,7 +154,7 @@ export default function VerifyEmailCode() {
 
                     {/* Title */}
                     <motion.h2
-                        className="fw-bold mb-2"
+                        className="fw-bold mb-2 mt-0"
                         style={{
                             color: '#333',
                             fontSize: '1.8rem',
