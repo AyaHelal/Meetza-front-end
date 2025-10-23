@@ -45,7 +45,7 @@ export const forgotPassword = async (email) => {
     }
 };
 
-// ✅ Resend reset code (same as forgot password)
+// ✅ Resend reset code
 export const resendResetCode = async (email) => {
     try {
         const response = await axiosInstance.post("/auth/forgot_password", { email });
