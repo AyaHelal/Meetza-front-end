@@ -98,7 +98,13 @@ const SignUp = () => {
             setMessage({ text: response.message || "Signup successful!", type: "success" });
 
 
-            setTimeout(() => navigate("/login"), 2000);
+            // Save email to localStorage for verification
+            localStorage.setItem("userEmail", formData.email);
+
+            setTimeout(() => {
+                setMessage({ text: "", type: "" }); // Clear message before navigation
+                navigate("/verify-email");
+            }, 2000);
         } catch (error) {
             console.error("❌ Signup error:", error);
             setMessage({
@@ -127,29 +133,6 @@ const SignUp = () => {
                     isLoading={isLoading}
                     message={message}
                 >
-                    {message.text && (
-                        <div
-                            className={`alert d-flex align-items-center justify-content-center text-center ${
-                                message.type === "success" ? "alert-success" : "alert-danger"
-                            }`}
-                            role="alert"
-                            style={{
-                                fontSize: "1rem",
-                                fontWeight: "500",
-                                gap: "10px",
-                                borderRadius: "12px",
-                                maxWidth: "450px",
-                                margin: "10px auto"
-                            }}
-                        >
-                            {message.type === "success" ? (
-                                <span style={{ fontSize: "1.4rem" }}>✅</span>
-                            ) : (
-                                <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                            )}
-                            <span>{message.text}</span>
-                        </div>
-                    )}
 
                     {/* Username Field */}
                     <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
