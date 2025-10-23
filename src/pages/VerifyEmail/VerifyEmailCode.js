@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { verifyEmail, resendVerificationCode } from "../../API/auth";
 import "../Login/Login.css";
-import "./VerifyEmail.css";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function VerifyEmailCode() {
@@ -130,75 +129,145 @@ export default function VerifyEmailCode() {
     };
 
     return (
-        <div className="verify-email-wrapper">
+        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <motion.div
-                className="verify-email-container"
+                className="text-center w-100"
                 initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ maxWidth: '500px' }}
             >
-                <div className="verify-email-logo text-center mb-4">
-                    <motion.h1
-                        className="display-4 fw-bold text-primary mb-2"
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
+                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-2">
+                    {/* Logo */}
+                    <motion.div
+                        className="mb-0"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        Meetza
-                    </motion.h1>
-                </div>
+                        <img src="/assets/meetza.png" alt="Meetza" style={{
+                            maxWidth: '210px',
+                            height: 'auto'
+                        }} />
+                    </motion.div>
 
-                <div className="text-center">
+                    {/* Title */}
                     <motion.h2
-                        className="fw-semibold mb-3"
+                        className="fw-bold mb-2 mt-0"
+                        style={{
+                            color: '#333',
+                            fontSize: '1.8rem',
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '600'
+                        }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         Verify Email
                     </motion.h2>
 
-                    <p className="text-muted mb-4" style={{ maxWidth: 420, fontSize: "18px" }}>
+                    {/* Subtitle */}
+                    <motion.p
+                        className="text-muted mb-4"
+                        style={{
+                            fontSize: "1rem",
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '400'
+                        }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                    >
                         {email ? (
-                            <>We've sent a verification code to <b>{email}</b>. Please enter it below to complete your registration.</>
+                            <>We've sent a verification code to <b style={{ fontWeight: '600' }}>{email}</b>. Please enter it below to complete your registration.</>
                         ) : (
-                            <>No email found. Please <Link to="/signup">sign up again</Link>.</>
+                            <>No email found. Please <Link to="/signup" style={{ fontWeight: '500' }}>sign up again</Link>.</>
                         )}
-                    </p>
+                    </motion.p>
 
-                    <div className="code-inputs" onPaste={handlePaste}>
-                        {code.map((value, idx) => (
-                            <input
-                                key={idx}
-                                type="text"
-                                inputMode="numeric"
-                                className="code-input form-control"
-                                maxLength={1}
-                                value={value}
-                                onChange={(e) => handleChange(idx, e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(idx, e)}
-                                ref={(el) => (inputsRef.current[idx] = el)}
-                                disabled={loading}
-                            />
-                        ))}
-                    </div>
+                    {/* Code Input */}
+                    <motion.div
+                        className="mb-4"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                        <div className="d-flex gap-3 justify-content-center" onPaste={handlePaste}>
+                            {code.map((value, idx) => (
+                                <input
+                                    key={idx}
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="form-control text-center"
+                                    style={{
+                                        width: 60,
+                                        height: 60,
+                                        fontSize: 24,
+                                        fontWeight: 'bold',
+                                        borderRadius: '12px',
+                                        border: '2px solid #e0e0e0',
+                                        textAlign: 'center',
+                                        backgroundColor: '#f8f9fa',
+                                        fontFamily: "'Poppins', sans-serif"
+                                    }}
+                                    maxLength={1}
+                                    value={value}
+                                    onChange={(e) => handleChange(idx, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                                    ref={(el) => (inputsRef.current[idx] = el)}
+                                    disabled={loading}
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
 
-                    <div className="mb-4 d-flex align-items-center justify-content-center gap-1">
-                        <span>Didn't receive a code?</span>
-                        <button type="button" className="btn btn-link p-0" onClick={handleResend} disabled={loading}>
+                    {/* Resend Code */}
+                    <motion.div
+                        className="mb-4 text-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                    >
+                        <span style={{
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '400',
+                            color: '#6c757d'
+                        }}>Didn't receive a code? </span>
+                        <button
+                            type="button"
+                            className="btn btn-link text-primary p-0 text-decoration-none"
+                            onClick={handleResend}
+                            disabled={loading}
+                            style={{
+                                fontWeight: '600',
+                                fontFamily: "'Poppins', sans-serif"
+                            }}
+                        >
                             Request again
                         </button>
-                    </div>
+                    </motion.div>
 
-                    <button
+                    {/* Verify Button */}
+                    <motion.button
                         type="button"
-                        className="verify-button btn py-3 mt-1 mb-3"
+                        className="btn btn-primary w-100 py-3 mb-3"
+                        style={{
+                            borderRadius: '12px',
+                            fontSize: '1.1rem',
+                            fontWeight: '600',
+                            maxWidth: 420,
+                            fontFamily: "'Poppins', sans-serif"
+                        }}
                         onClick={handleVerify}
                         disabled={loading}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
                     >
                         {loading ? "Verifying..." : "Verify Email"}
-                    </button>
+                    </motion.button>
                 </div>
             </motion.div>
         </div>

@@ -17,6 +17,8 @@ const LoginLayout = ({
     onCaptchaChange,
     onCaptchaExpired,
     onForgotPassword,
+    onSkipCaptcha,
+    failedAttempts,
     children
 }) => {
     return (
@@ -42,6 +44,8 @@ const LoginLayout = ({
                         onCaptchaChange={onCaptchaChange}
                         onCaptchaExpired={onCaptchaExpired}
                         onForgotPassword={onForgotPassword}
+                        onSkipCaptcha={onSkipCaptcha}
+                        failedAttempts={failedAttempts}
                     >
                         {children}
                     </FormSection>

@@ -17,6 +17,8 @@ const FormSection = ({
     onForgotPassword,
     onCaptchaChange,
     onCaptchaExpired,
+    onSkipCaptcha,
+    failedAttempts,
     children
 }) => {
 
@@ -217,6 +219,30 @@ const FormSection = ({
                                         data-theme="light"
                                         data-size="normal"
                                     ></div>
+                                </div>
+                            )}
+
+                            {/* Failed Attempts Counter */}
+                            {failedAttempts > 0 && (
+                                <div className="mb-3 text-center">
+                                    <small className="text-warning">
+                                        Failed attempts: {failedAttempts}/3
+                                        {failedAttempts >= 3 && " - reCAPTCHA required"}
+                                    </small>
+                                </div>
+                            )}
+
+                            {/* Skip CAPTCHA Button */}
+                            {showCaptcha && onSkipCaptcha && (
+                                <div className="mb-3 text-center">
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-secondary"
+                                        onClick={onSkipCaptcha}
+                                        style={{ fontSize: '0.9rem' }}
+                                    >
+                                        Skip for now
+                                    </button>
                                 </div>
                             )}
 
