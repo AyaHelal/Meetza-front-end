@@ -227,7 +227,6 @@ const FormSection = ({
                                 <div className="mb-3 text-center">
                                     <small className="text-warning">
                                         Failed attempts: {failedAttempts}/3
-                                        {failedAttempts >= 3 && " - reCAPTCHA required"}
                                     </small>
                                 </div>
                             )}

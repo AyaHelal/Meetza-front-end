@@ -17,6 +17,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [failedAttempts, setFailedAttempts] = useState(0);
+    const [totalFailedAttempts, setTotalFailedAttempts] = useState(0);
     const [showCaptcha, setShowCaptcha] = useState(false);
     const [captchaToken, setCaptchaToken] = useState('');
     const { loginUser } = useContext(AuthContext);
@@ -32,9 +33,18 @@ const Login = () => {
     // Session-based CAPTCHA system - resets on every page load
     useEffect(() => {
         setFailedAttempts(0);
+        setTotalFailedAttempts(0);
         setShowCaptcha(false);
         console.log('🔄 Session started - CAPTCHA counter reset to 0');
     }, []);
+
+    // Show reCAPTCHA after 3 total failed attempts in the session
+    useEffect(() => {
+        if (totalFailedAttempts >= 3 && !showCaptcha) {
+            setShowCaptcha(true);
+            console.log('🚨 CAPTCHA triggered after', totalFailedAttempts, 'total failed attempts');
+        }
+    }, [totalFailedAttempts, showCaptcha]);
 
     // reCAPTCHA callback functions
     const onCaptchaChange = (token) => {
@@ -43,10 +53,10 @@ const Login = () => {
         if (token) {
             setMessage({ text: "", type: "" }); // Clear any error messages
             console.log('🧹 Cleared error messages - CAPTCHA is now valid');
-            // Hide reCAPTCHA after completion and reset counter
+            // Hide reCAPTCHA after completion but keep total failed attempts
             setShowCaptcha(false);
             setFailedAttempts(0);
-            console.log('✅ CAPTCHA completed - hiding reCAPTCHA and resetting counter');
+            console.log('✅ CAPTCHA completed - hiding reCAPTCHA, total attempts remain:', totalFailedAttempts);
         }
     };
 
@@ -57,6 +67,12 @@ const Login = () => {
             text: "CAPTCHA expired. Please complete it again.",
             type: "error"
         });
+
+        // Re-show CAPTCHA if we have enough failed attempts
+        if (totalFailedAttempts >= 3) {
+            setShowCaptcha(true);
+            console.log('🔄 Re-showing CAPTCHA after expiration');
+        }
 
         // Force reset reCAPTCHA widget immediately
         if (window.grecaptcha) {
@@ -76,14 +92,6 @@ const Login = () => {
         }
     }, [showCaptcha]);
 
-    // Re-show CAPTCHA if token is cleared and we have enough failed attempts
-    useEffect(() => {
-        if (!captchaToken && failedAttempts >= 3 && !showCaptcha) {
-            setShowCaptcha(true);
-            console.log('🔄 Re-showing CAPTCHA after token was cleared');
-        }
-    }, [captchaToken, failedAttempts, showCaptcha]);
-
     // Auto-refresh CAPTCHA after 5 seconds
     useEffect(() => {
         let timeoutId;
@@ -98,6 +106,12 @@ const Login = () => {
                     text: "CAPTCHA expired. Please complete it again.",
                     type: "error"
                 });
+
+                // Re-show CAPTCHA if we have enough failed attempts
+                if (totalFailedAttempts >= 3) {
+                    setShowCaptcha(true);
+                    console.log('🔄 Re-showing CAPTCHA after auto-expiration');
+                }
 
                 // Force reset reCAPTCHA widget
                 if (window.grecaptcha) {
@@ -123,7 +137,7 @@ const Login = () => {
             }
             delete window.captchaTimeoutId;
         };
-    }, [showCaptcha, captchaToken]);
+    }, [showCaptcha, captchaToken, totalFailedAttempts]);
 
     // Make functions globally available for reCAPTCHA
     useEffect(() => {
@@ -188,8 +202,9 @@ const Login = () => {
             if (response.success) {
                 const { user, token } = response.data;
 
-                // Reset failed attempts on successful login (CAPTCHA system)
+                // Reset all counters only on successful login
                 setFailedAttempts(0);
+                setTotalFailedAttempts(0);
                 setShowCaptcha(false);
                 setCaptchaToken('');
 
@@ -208,18 +223,20 @@ const Login = () => {
 
                 setTimeout(() => navigate("/"), 2000);
             } else {
-                // Increment failed attempts on response error
+                // Increment failed attempts counters
                 const newAttempts = failedAttempts + 1;
+                const newTotalAttempts = totalFailedAttempts + 1;
                 setFailedAttempts(newAttempts);
+                setTotalFailedAttempts(newTotalAttempts);
 
-                // Show CAPTCHA after 3 failed attempts (session-based)
-                if (newAttempts >= 3) {
+                // Show CAPTCHA after 3 total failed attempts in session
+                if (newTotalAttempts >= 3) {
                     setShowCaptcha(true);
                     setMessage({
                         text: "Too many failed attempts. Please complete the CAPTCHA verification.",
                         type: "error"
                     });
-                    console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
+                    console.log(`🚨 CAPTCHA triggered after ${newTotalAttempts} total failed attempts`);
                 } else {
                     setMessage({ text: response.message || "Invalid email or password", type: "error" });
                 }
@@ -227,18 +244,20 @@ const Login = () => {
         } catch (error) {
             console.error("❌ Login error:", error);
 
-            // Increment failed attempts on error
+            // Increment failed attempts counters on error
             const newAttempts = failedAttempts + 1;
+            const newTotalAttempts = totalFailedAttempts + 1;
             setFailedAttempts(newAttempts);
+            setTotalFailedAttempts(newTotalAttempts);
 
-            // Show CAPTCHA after 3 failed attempts (session-based)
-            if (newAttempts >= 3) {
+            // Show CAPTCHA after 3 total failed attempts in session
+            if (newTotalAttempts >= 3) {
                 setShowCaptcha(true);
                 setMessage({
                     text: "Too many failed attempts. Please complete the CAPTCHA verification.",
                     type: "error"
                 });
-                console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
+                console.log(`🚨 CAPTCHA triggered after ${newTotalAttempts} total failed attempts`);
             } else {
                 setMessage({
                     text: error.response?.data?.message || "Error occurred during login",
@@ -247,7 +266,7 @@ const Login = () => {
             }
         } finally {
             setIsLoading(false);
-            console.log('📊 Login attempt finished - showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty', 'message:', message.text);
+            console.log('📊 Login attempt finished - total attempts:', totalFailedAttempts, 'showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty');
         }
     };
 
@@ -258,11 +277,12 @@ const Login = () => {
         setShowCaptcha(false);
         setCaptchaToken('');
         setFailedAttempts(0);
+        // Don't reset totalFailedAttempts - keep them for re-triggering CAPTCHA
         setMessage({
             text: "CAPTCHA skipped. Please try logging in again.",
             type: "info"
         });
-        console.log('⏭️ CAPTCHA skipped - resetting all states');
+        console.log('⏭️ CAPTCHA skipped - total attempts remain:', totalFailedAttempts);
     };
 
     return (
@@ -282,7 +302,7 @@ const Login = () => {
                 onCaptchaExpired={onCaptchaExpired}
                 onForgotPassword={handleForgotPassword}
                 onSkipCaptcha={handleSkipCaptcha}
-                failedAttempts={failedAttempts}
+                failedAttempts={totalFailedAttempts}
             />
         </LayoutWrapper>
     );
