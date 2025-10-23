@@ -33,3 +33,40 @@ export const resendVerificationCode = async (email) => {
         throw error;
     }
 };
+
+// ✅ Resend reset code (same as forgot password)
+export const resendResetCode = async (email) => {
+    try {
+        const response = await axiosInstance.post("/auth/forgot_password", { email });
+        return response.data;
+    } catch (error) {
+        console.error("❌ Resend reset code error:", error.response?.status, error.response?.data);
+        throw error;
+    }
+};
+
+// ✅ Verify reset code
+export const verifyResetCode = async (email, code) => {
+    try {
+        const response = await axiosInstance.post("/auth/verify_code", { email, code });
+        return response.data;
+    } catch (error) {
+        console.error("❌ Verify reset code error:", error.response?.status, error.response?.data);
+        throw error;
+    }
+};
+
+// ✅ Reset password
+export const resetPassword = async (email, newPassword, isVerified = "true") => {
+    try {
+        const response = await axiosInstance.post("/auth/reset_password", {
+            email,
+            new_password: newPassword,
+            is_verified: isVerified
+        });
+        return response.data;
+    } catch (error) {
+        console.error("❌ Reset password error:", error.response?.status, error.response?.data);
+        throw error;
+    }
+};
