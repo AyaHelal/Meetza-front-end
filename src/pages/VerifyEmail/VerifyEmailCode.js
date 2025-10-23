@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
+import { verifyEmail, resendVerificationCode } from "../../API/auth";
 import "../Login/Login.css";
 import "./VerifyEmail.css";
 import { useNavigate, Link } from "react-router-dom";
@@ -14,8 +14,9 @@ export default function VerifyEmailCode() {
     const email = localStorage.getItem("userEmail");
 
     // Debug: Check what's in localStorage
-    console.log("Email from localStorage:", email);
-    console.log("All localStorage items:", { ...localStorage });
+    console.log("🔍 VerifyEmail component loaded");
+    console.log("📧 Email from localStorage:", email);
+    console.log("🗂️ All localStorage items:", Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)}`));
 
     // === handle inputs ===
     const handleChange = (index, value) => {
@@ -49,13 +50,37 @@ export default function VerifyEmailCode() {
 
     // === handle resend code ===
     const handleResend = async () => {
+        // Check if email exists before making API call
+        if (!email) {
+            alert("Email not found. Please try signing up again.");
+            return;
+        }
+
         try {
             setLoading(true);
-            const res = await axios.post("https://meetza-backend.vercel.app/api/auth/resend-code", { email });
-            alert(res.data.message || "Verification code resent!");
+            console.log("📤 Sending resend request for email:", email);
+
+            const res = await resendVerificationCode(email);
+            console.log("📥 Resend response:", res);
+
+            alert(res.message || "Verification code resent successfully!");
         } catch (err) {
-            console.error(err);
-            alert("Error resending code");
+            console.error("❌ Resend error:", err);
+
+            // Handle API errors
+            if (err.response?.status === 404) {
+                alert("Email verification is not available right now. You can proceed to login.");
+                // Optional: redirect to login after a delay
+                setTimeout(() => navigate("/login"), 3000);
+            } else if (err.response?.status === 400) {
+                alert(err.response?.data?.message || "Invalid email address");
+            } else if (err.response?.status === 429) {
+                alert(err.response?.data?.message || "Too many resend attempts");
+            } else if (err.response?.status === 500) {
+                alert(err.response?.data?.message || "Server error during resend");
+            } else {
+                alert(err.response?.data?.message || "Error resending code");
+            }
         } finally {
             setLoading(false);
         }
@@ -74,34 +99,30 @@ export default function VerifyEmailCode() {
 
         try {
             setLoading(true);
-            console.log("Sending verification request:", { email, code: otp });
+            console.log("📤 Sending verification request:", { email, code: otp });
 
-            const res = await axios.post(
-                "https://meetza-backend.vercel.app/api/auth/verify",
-                { email, code: otp },
-                { headers: { "Content-Type": "application/json" } }
-            );
+            const res = await verifyEmail(email, otp);
+            console.log("📥 Verification response:", res);
 
-            console.log("Backend response:", res.data);
-
-            if (res.data.success) {
-                alert("Email verified successfully!");
+            if (res.success) {
+                alert(res.message || "Email verified successfully!");
                 navigate("/login");
             } else {
-                alert(res.data.message || "Invalid verification code");
+                alert(res.message || "Invalid verification code");
             }
         } catch (err) {
-            console.error("Verification error:", err);
-            console.error("Error details:", err.response?.data);
+            console.error("❌ Verification error:", err);
 
+            // Handle API errors
             if (err.response?.status === 404) {
-                alert("API endpoint not found. Please check the backend URL.");
+                alert("Email verification is not available right now. You can proceed to login.");
+                setTimeout(() => navigate("/login"), 3000);
+            } else if (err.response?.status === 400) {
+                alert(err.response?.data?.message || "Invalid verification code");
             } else if (err.response?.status === 500) {
-                alert("Server error. Please try again later.");
-            } else if (err.code === 'NETWORK_ERROR') {
-                alert("Network error. Please check your internet connection.");
+                alert(err.response?.data?.message || "Server error during verification");
             } else {
-                alert(`Error verifying code: ${err.message}`);
+                alert(err.response?.data?.message || "Error verifying email");
             }
         } finally {
             setLoading(false);
