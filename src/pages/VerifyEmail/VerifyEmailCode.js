@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { LogoSection } from "../../components";
 import "../Login/Login.css";
 import "./VerifyEmail.css";
 import { useNavigate, Link } from "react-router-dom";
@@ -118,18 +117,15 @@ export default function VerifyEmailCode() {
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-                <div className="verify-email-logo">
-                    <img
-                        src="/assets/meetza.png"
-                        alt="Meetza"
-                        style={{
-                            maxWidth: '250px',
-                            height: '200px',
-                            margin: '0',
-                            padding: '0',
-                            background: 'transparent'
-                        }}
-                    />
+                <div className="verify-email-logo text-center mb-4">
+                    <motion.h1
+                        className="display-4 fw-bold text-primary mb-2"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        Meetza
+                    </motion.h1>
                 </div>
 
                 <div className="text-center">
