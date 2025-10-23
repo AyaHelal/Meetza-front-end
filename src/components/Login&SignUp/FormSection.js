@@ -15,6 +15,8 @@ const FormSection = ({
     message,
     showCaptcha,
     onForgotPassword,
+    onCaptchaChange,
+    onCaptchaExpired,
     children
 }) => {
 
