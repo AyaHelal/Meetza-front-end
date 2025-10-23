@@ -5,7 +5,7 @@ export const signup = async (userData) => {
     // Transform email field to match backend expectations
     const transformedData = {
         ...userData,
-        Email: userData.email  // Transform email to Email
+        email: userData.email  // Transform Email to email
     };
     delete transformedData.email; // Remove lowercase email
 
@@ -18,7 +18,7 @@ export const login = async (credentials) => {
     // Transform email field to match backend expectations
     const transformedCredentials = {
         ...credentials,
-        Email: credentials.email  // Transform email to Email
+        email: credentials.email  // Transform Email to email
     };
     delete transformedCredentials.email; // Remove lowercase email
 
@@ -29,7 +29,7 @@ export const login = async (credentials) => {
 // ✅ Verify email code
 export const verifyEmail = async (email, code) => {
     try {
-        const response = await axiosInstance.post("/auth/verify", { Email: email, code });
+        const response = await axiosInstance.post("/auth/verify", { email: email, code });
         return response.data;
     } catch (error) {
         console.error("❌ Verify endpoint error:", error.response?.status, error.response?.data);
@@ -40,7 +40,7 @@ export const verifyEmail = async (email, code) => {
 // ✅ Resend verification code
 export const resendVerificationCode = async (email) => {
     try {
-        const response = await axiosInstance.post("/auth/resend-code", { Email: email });
+        const response = await axiosInstance.post("/auth/resend-code", { email: email });
         return response.data;
     } catch (error) {
         console.error("❌ Resend endpoint error:", error.response?.status, error.response?.data);
@@ -51,7 +51,7 @@ export const resendVerificationCode = async (email) => {
 // ✅ Forgot password - send reset code
 export const forgotPassword = async (email) => {
     try {
-        const response = await axiosInstance.post("/auth/forgot_password", { Email: email });
+        const response = await axiosInstance.post("/auth/forgot_password", { email: email });
         return response.data;
     } catch (error) {
         console.error("❌ Forgot password error:", error.response?.status, error.response?.data);
@@ -62,7 +62,7 @@ export const forgotPassword = async (email) => {
 // ✅ Resend reset code (same as forgot password)
 export const resendResetCode = async (email) => {
     try {
-        const response = await axiosInstance.post("/auth/forgot_password", { Email: email });
+        const response = await axiosInstance.post("/auth/forgot_password", { email: email });
         return response.data;
     } catch (error) {
         console.error("❌ Resend reset code error:", error.response?.status, error.response?.data);
@@ -73,7 +73,7 @@ export const resendResetCode = async (email) => {
 // ✅ Verify reset code
 export const verifyResetCode = async (email, code) => {
     try {
-        const response = await axiosInstance.post("/auth/verify_code", { Email: email, code });
+        const response = await axiosInstance.post("/auth/verify_code", { email: email, code });
         return response.data;
     } catch (error) {
         console.error("❌ Verify reset code error:", error.response?.status, error.response?.data);
