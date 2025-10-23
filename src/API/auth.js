@@ -84,23 +84,14 @@ export const verifyResetCode = async (email, code) => {
 // ✅ Reset password
 export const resetPassword = async (email, newPassword, isVerified = "true") => {
     try {
-        const response = await axiosInstance.post(
-            "/auth/reset_password",
-            {
-                email: email,
-                new_password: newPassword,
-                is_verified: isVerified
-            },
-            {
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
+        const response = await axiosInstance.post("/auth/reset_password", {
+            email: email,
+            new_password: newPassword,
+            is_verifyed: isVerified
+        });
         return response.data;
     } catch (error) {
         console.error("❌ Reset password error:", error.response?.status, error.response?.data);
         throw error;
     }
 };
-
