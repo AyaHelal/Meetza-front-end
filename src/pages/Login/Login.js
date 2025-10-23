@@ -43,6 +43,10 @@ const Login = () => {
         if (token) {
             setMessage({ text: "", type: "" }); // Clear any error messages
             console.log('🧹 Cleared error messages - CAPTCHA is now valid');
+            // Hide reCAPTCHA after completion and reset counter
+            setShowCaptcha(false);
+            setFailedAttempts(0);
+            console.log('✅ CAPTCHA completed - hiding reCAPTCHA and resetting counter');
         }
     };
 
@@ -71,6 +75,14 @@ const Login = () => {
             setCaptchaToken('');
         }
     }, [showCaptcha]);
+
+    // Re-show CAPTCHA if token is cleared and we have enough failed attempts
+    useEffect(() => {
+        if (!captchaToken && failedAttempts >= 3 && !showCaptcha) {
+            setShowCaptcha(true);
+            console.log('🔄 Re-showing CAPTCHA after token was cleared');
+        }
+    }, [captchaToken, failedAttempts, showCaptcha]);
 
     // Auto-refresh CAPTCHA after 5 seconds
     useEffect(() => {
@@ -179,6 +191,7 @@ const Login = () => {
                 // Reset failed attempts on successful login (CAPTCHA system)
                 setFailedAttempts(0);
                 setShowCaptcha(false);
+                setCaptchaToken('');
 
                 // Force reset reCAPTCHA widget if it exists
                 if (window.grecaptcha) {
@@ -200,7 +213,7 @@ const Login = () => {
                 setFailedAttempts(newAttempts);
 
                 // Show CAPTCHA after 3 failed attempts (session-based)
-                if (newAttempts >= 3 && !showCaptcha) {
+                if (newAttempts >= 3) {
                     setShowCaptcha(true);
                     setMessage({
                         text: "Too many failed attempts. Please complete the CAPTCHA verification.",
@@ -219,7 +232,7 @@ const Login = () => {
             setFailedAttempts(newAttempts);
 
             // Show CAPTCHA after 3 failed attempts (session-based)
-            if (newAttempts >= 3 && !showCaptcha) {
+            if (newAttempts >= 3) {
                 setShowCaptcha(true);
                 setMessage({
                     text: "Too many failed attempts. Please complete the CAPTCHA verification.",
@@ -241,6 +254,17 @@ const Login = () => {
     const handleSignUpClick = () => navigate('/signup');
     const handleForgotPassword = () => navigate('/forgot-password');
 
+    const handleSkipCaptcha = () => {
+        setShowCaptcha(false);
+        setCaptchaToken('');
+        setFailedAttempts(0);
+        setMessage({
+            text: "CAPTCHA skipped. Please try logging in again.",
+            type: "info"
+        });
+        console.log('⏭️ CAPTCHA skipped - resetting all states');
+    };
+
     return (
         <LayoutWrapper activeTab="signin">
             <LoginLayout
@@ -257,6 +281,8 @@ const Login = () => {
                 onCaptchaChange={onCaptchaChange}
                 onCaptchaExpired={onCaptchaExpired}
                 onForgotPassword={handleForgotPassword}
+                onSkipCaptcha={handleSkipCaptcha}
+                failedAttempts={failedAttempts}
             />
         </LayoutWrapper>
     );

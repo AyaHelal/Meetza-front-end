@@ -13,9 +13,13 @@ export const login = async (credentials) => {
 };
 
 // ✅ Verify email code
-export const verifyEmail = async (email, code) => {
+export const verifyEmail = async (email, code, recaptchaToken = null) => {
     try {
-        const response = await axiosInstance.post("/auth/verify", { email, code });
+        const requestData = { email, code };
+        if (recaptchaToken) {
+            requestData.recaptchaToken = recaptchaToken;
+        }
+        const response = await axiosInstance.post("/auth/verify", requestData);
         return response.data;
     } catch (error) {
         console.error("❌ Verify endpoint error:", error.response?.status, error.response?.data);
