@@ -1,6 +1,6 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
@@ -10,12 +10,13 @@ import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/PageLoader/PageLoader.js';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 
 //manage loader in navigation
 const AppRoutes = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const { user, initializing } = useContext(AuthContext);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -31,13 +32,13 @@ const AppRoutes = () => {
     }
   }, [location]);
 
-  if (loading) {
+  if (loading || initializing) {
     return <PageLoader />;
   }
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to={user ? "/landing" : "/login"} replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />

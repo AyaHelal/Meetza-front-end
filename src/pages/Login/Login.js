@@ -206,6 +206,27 @@ const Login = () => {
                 loginUser(user, token, formData.rememberMe);
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
+                // Store credentials in the browser's Password Manager (optional enhancement)
+                if (
+                    typeof window !== 'undefined' &&
+                    window.PasswordCredential &&
+                    navigator.credentials &&
+                    formData?.email &&
+                    formData?.password
+                ) {
+                    try {
+                        const cred = new window.PasswordCredential({
+                            id: formData.email,
+                            password: formData.password,
+                            name: user?.username || user?.name || formData.email
+                        });
+                        await navigator.credentials.store(cred);
+                        console.log('🔐 Credentials stored in Password Manager');
+                    } catch (e) {
+                        console.log('ℹ️ Skipped credential store:', e?.message || e);
+                    }
+                }
+
                 setTimeout(() => navigate("/landing"), 500);
             } else {
                 // Increment failed attempts on response error

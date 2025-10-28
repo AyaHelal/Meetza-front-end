@@ -38,6 +38,7 @@ return (
         <input
             type="email"
             name={name}
+            autoComplete="username"
             value={value}
             onChange={handleChange}
             className={`form-control border-0 shadow-none ${
