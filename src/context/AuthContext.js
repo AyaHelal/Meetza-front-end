@@ -5,6 +5,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
+    const [initializing, setInitializing] = useState(true);
 
     useEffect(() => {
         try {
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }) => {
             sessionStorage.removeItem("user");
             sessionStorage.removeItem("token");
         }
+        setInitializing(false);
     }, []);
 
     const loginUser = (userData, userToken, rememberMe = false) => {
@@ -64,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loginUser, logoutUser }}>
+        <AuthContext.Provider value={{ user, token, initializing, loginUser, logoutUser }}>
         {children}
         </AuthContext.Provider>
     );

@@ -57,6 +57,7 @@ return (
         <input
         type={showPassword ? "text" : "password"}
         name={name}
+        autoComplete="current-password"
         value={value}
         onChange={handleChange}
         className={`form-control border-0  shadow-none ${

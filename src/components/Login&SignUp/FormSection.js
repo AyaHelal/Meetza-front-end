@@ -134,7 +134,7 @@ const FormSection = ({
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} autoComplete="on">
                 {children ? children : (
                     /* Only show default form fields for signin/signup, not for verification */
                     activeTab !== 'verification' && (
