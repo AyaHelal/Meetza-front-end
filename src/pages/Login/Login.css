@@ -59,6 +59,65 @@
   overflow-x: hidden;
 }
 
+.btn-outline-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Floating logo wrapper */
+.image-wrapper {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.image-wrapper img {
+  pointer-events: auto;
+}
+
+/* Responsive logo container */
+.logo-container {
+  margin-bottom: -55px;
+  margin-top: -152px;
+  padding-bottom: 0;
+}
+
+/* Compact form spacing */
+.text-center.mb-4 {
+  margin-bottom: 1rem !important;
+}
+
+/* Reduce form margins */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.social-buttons{
+  margin-bottom: -94px;
+}
+
+.is-invalid {
+  background-image: none !important;
+}
+
+
+/* Google Login Button Styles */
+.social-login-button {
+  transition: all 0.3s ease;
+  border: 2px solid #e0e0e0 !important;
+}
+
+.social-login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #4285f4 !important;
+  background-color: rgba(66, 133, 244, 0.05) !important;
+  color: #6C757D !important;
+}
+
 /* Ensure form takes full height on large screens */
 @media (min-height: 1024px) {
   .login-page-wrapper {
@@ -153,50 +212,6 @@
     max-width: 100% !important;
     max-height: 100% !important;
   }
-}
-
-.btn-outline-secondary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Floating logo wrapper */
-.image-wrapper {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.image-wrapper img {
-  pointer-events: auto;
-}
-
-/* Responsive logo container */
-.logo-container {
-  margin-bottom: -55px;
-  margin-top: -152px;
-  padding-bottom: 0;
-}
-
-/* Compact form spacing */
-.text-center.mb-4 {
-  margin-bottom: 1rem !important;
-}
-
-/* Reduce form margins */
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.social-buttons{
-  margin-bottom: -94px;
-}
-
-.is-invalid {
-  background-image: none !important;
 }
 
 /* Prevent horizontal scroll on mobile */

@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
-import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts';
+import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts/LoginLayouts.js';
 import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
@@ -178,7 +178,7 @@ const Login = () => {
             const credentials = {
                 email: formData.email,
                 password: formData.password,
-                remember_me: formData.rememberMe, // إضافة remember_me
+                remember_me: formData.rememberMe,
                 ...(showCaptcha && captchaToken && { captchaToken })
             };
 

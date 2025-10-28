@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Row, Col } from 'react-bootstrap';
-import FormSection from './FormSection';
-import ImageSection from './ImageSection';
+import FormSection from '../FormSection';
+import ImageSection from '../ImageSection';
 
 const LoginLayout = ({
     activeTab,

@@ -21,24 +21,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <title>Meetza</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-      <script async defer crossorigin="anonymous"
-      src="https://connect.facebook.net/en_US/sdk.js"></script>
-      <script>
-  function onloadCallback() {
-    if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
-      window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
-        sitekey: 'your-site-key-here',
-        callback: function (token) {
-          window.onCaptchaChange && window.onCaptchaChange(token);
-        },
-        'expired-callback': function () {
-          window.onCaptchaExpired && window.onCaptchaExpired();
-        }
-      });
-    }
-  }
-</script>
-      <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
 
   </head>
   <body>
