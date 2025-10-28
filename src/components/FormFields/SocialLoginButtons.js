@@ -1,160 +1,36 @@
 import { Button } from 'react-bootstrap';
-import { FaFacebook } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
-import { googleLogin, facebookLogin } from '../../API/socialAuth';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = () => {
-    const navigate = useNavigate();
-    const { loginUser } = useContext(AuthContext);
 
-    // Google Login Handler
-    const handleGoogleLogin = async () => {
-        try {
-            if (window.google && window.google.accounts) {
-                window.google.accounts.oauth2.initTokenClient({
-                    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-                    scope: 'email profile',
-                    callback: async (response) => {
-                        if (response.access_token) {
-                            const result = await googleLogin(response.access_token);
-                            if (result.success) {
-                                loginUser(result.user, result.token, true);
-                                navigate('/');
-                            }
-                        }
-                    },
-                }).requestAccessToken();
-            } else {
-                alert('Google OAuth not loaded. Please check your configuration.');
-            }
-        } catch (error) {
-            console.error('Google login error:', error);
-            alert('Google login failed. Please try again.');
-        }
-    };
-
-    // Facebook Login Handler
-const handleFacebookLogin = () => {
-    try {
-        if (window.FB) {
-            window.FB.login((response) => {
-                if (response.authResponse) {
-                    const handleFacebookResponse = async () => {
-                        try {
-                            const result = await facebookLogin(response.authResponse.accessToken);
-                            if (result.success) {
-                                loginUser(result.user, result.token, true);
-                                navigate('/');
-                            }
-                        } catch (error) {
-                            console.error('Facebook login error:', error);
-                            alert('Facebook login failed. Please try again.');
-                        }
-                    };
-
-                    handleFacebookResponse();
-                }
-            }, { scope: 'email' });
-        } else {
-            alert('Facebook SDK not loaded. Please check your configuration.');
-        }
-    } catch (error) {
-        console.error('Facebook login error:', error);
-        alert('Facebook login failed. Please try again.');
-    }
-};
-
-
-    // LinkedIn Login Handler
-    const handleLinkedInLogin = async () => {
-        try {
-            // LinkedIn OAuth implementation
-            // For now, show a message that LinkedIn login is coming soon
-            alert('LinkedIn login is coming soon! Please use Google or Facebook for now.');
-        } catch (error) {
-            console.error('LinkedIn login error:', error);
-            alert('LinkedIn login failed. Please try again.');
-        }
+    // ✅ Google Login via backend redirect
+    const handleGoogleLogin = () => {
+        window.location.href = "https://meetza-backend.vercel.app/api/auth/social/google?role=Member";
     };
 
     return (
         <>
             <p className="text-center text-muted small mb-3">Or continue with</p>
-            <div className="d-flex justify-content-center gap-3 social-buttons">
+            <div className="d-flex justify-content-center">
                 <Button
                     variant="outline-secondary"
-                    className="rounded-circle p-1 border"
+                    className="rounded-pill px-4 py-2 border d-flex align-items-center gap-2 social-login-button"
                     onClick={handleGoogleLogin}
                     style={{
-                        width: '55px',
-                        height: '55px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        minWidth: '200px'
                     }}
                 >
-                    <svg width="40" height="40" viewBox="0 0 24 24">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
                         <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                         <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                         <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                </Button>
-                <Button
-                    variant="outline-secondary"
-                    className="rounded-circle p-1 border"
-                    onClick={handleFacebookLogin}
-                    style={{
-                        width: '55px',
-                        height: '55px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        color: '#1877f2'
-                    }}
-                >
-                    <FaFacebook size={35} />
-                </Button>
-                <Button
-                    variant="outline-secondary"
-                    className="rounded-circle p-1 border"
-                    onClick={handleLinkedInLogin}
-                    style={{
-                        width: '55px',
-                        height: '55px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        color: '#0077b5', // LinkedIn blue color
-                        border: '2px solid #0077b5',
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
-                >
-                    <div style={{
-                        width: '35px',
-                        height: '35px',
-                        borderRadius: '50%',
-                        backgroundColor: '#0077b5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        position: 'relative'
-                    }}>
-                        <span style={{
-                            color: '#ffffff',
-                            fontSize: '18px',
-                            fontWeight: 'bold',
-                            fontFamily: 'Arial, sans-serif'
-                        }}>
-                            in
-                        </span>
-                    </div>
+                    Login with Google
                 </Button>
             </div>
         </>
