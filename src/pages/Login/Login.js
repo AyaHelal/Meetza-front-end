@@ -206,15 +206,7 @@ const Login = () => {
                 loginUser(user, token, formData.rememberMe);
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
-                try {
-                    console.log('[Login] rememberMe:', !!formData.rememberMe);
-                    console.log('[Login] storage after save', {
-                        lsToken: !!localStorage.getItem('token'),
-                        lsUser: !!localStorage.getItem('user'),
-                        ssToken: !!sessionStorage.getItem('token'),
-                        ssUser: !!sessionStorage.getItem('user')
-                    });
-                } catch {}
+                
 
                 // Store credentials in the browser's Password Manager (optional enhancement)
                 if (

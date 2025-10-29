@@ -32,16 +32,7 @@ const AppRoutes = () => {
     }
   }, [location]);
 
-  // Diagnostics for routing decisions
-  useEffect(() => {
-    try {
-      console.log('[AppRoutes] path:', location.pathname, {
-        hasToken: !!token,
-        initializing,
-        loading
-      });
-    } catch {}
-  }, [location.pathname, token, initializing, loading]);
+  
 
   if (loading || initializing) {
     return <PageLoader />;
@@ -49,9 +40,15 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={token ? "/landing" : "/login"} replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/login"
+        element={token ? <Navigate to="/landing" replace /> : <Login />}
+      />
+      <Route
+        path="/signup"
+        element={token ? <Navigate to="/landing" replace /> : <SignUp />}
+      />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />
