@@ -16,7 +16,7 @@ const PageLoader = () => {
         animationData={animationData}
         loop
         autoplay
-        style={{ width: 400, height: 400 }}
+        style={{ width: 380, height: 380 }}
       />
 
       <div className="d-flex mt-4 gap-2">
