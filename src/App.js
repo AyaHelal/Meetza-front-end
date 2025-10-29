@@ -16,7 +16,7 @@ import { useState, useEffect, useContext } from "react";
 const AppRoutes = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const { user, initializing } = useContext(AuthContext);
+  const { token, initializing } = useContext(AuthContext);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -32,13 +32,24 @@ const AppRoutes = () => {
     }
   }, [location]);
 
+  // Diagnostics for routing decisions
+  useEffect(() => {
+    try {
+      console.log('[AppRoutes] path:', location.pathname, {
+        hasToken: !!token,
+        initializing,
+        loading
+      });
+    } catch {}
+  }, [location.pathname, token, initializing, loading]);
+
   if (loading || initializing) {
     return <PageLoader />;
   }
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={user ? "/landing" : "/login"} replace />} />
+      <Route path="/" element={<Navigate to={token ? "/landing" : "/login"} replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
