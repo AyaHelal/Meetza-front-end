@@ -22,12 +22,18 @@ export const AuthProvider = ({ children }) => {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setToken(storedToken);
-                // Determine if it was remembered (from localStorage)
                 const rememberedInLocal = !!localStorage.getItem("token");
                 setIsRemembered(rememberedInLocal);
+                try {
+                    console.log("[AuthContext:init] loaded from", rememberedInLocal ? "localStorage" : "sessionStorage", {
+                        hasUser: !!storedUser,
+                        hasToken: !!storedToken,
+                        isRemembered: rememberedInLocal
+                    });
+                } catch {}
             }
         } catch (error) {
-            console.error("❌ Error parsing stored user:", error);
+            console.error(" Error parsing stored user:", error);
             localStorage.removeItem("user");
             localStorage.removeItem("token");
             sessionStorage.removeItem("user");
@@ -42,6 +48,9 @@ export const AuthProvider = ({ children }) => {
         setToken(userToken);
 
         try {
+            try {
+                console.log("[AuthContext:loginUser] about to store", { rememberMe, hasUser: !!userData, hasToken: !!userToken });
+            } catch {}
             if (rememberMe) {
                 localStorage.setItem("user", JSON.stringify(userData));
                 localStorage.setItem("token", userToken);
@@ -49,6 +58,12 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.removeItem("user");
                 sessionStorage.removeItem("token");
                 setIsRemembered(true);
+                try {
+                    console.log("[AuthContext:loginUser] stored in localStorage", {
+                        user: !!localStorage.getItem("user"),
+                        token: !!localStorage.getItem("token")
+                    });
+                } catch {}
             } else {
                 sessionStorage.setItem("user", JSON.stringify(userData));
                 sessionStorage.setItem("token", userToken);
@@ -56,9 +71,15 @@ export const AuthProvider = ({ children }) => {
                 localStorage.removeItem("user");
                 localStorage.removeItem("token");
                 setIsRemembered(false);
+                try {
+                    console.log("[AuthContext:loginUser] stored in sessionStorage", {
+                        user: !!sessionStorage.getItem("user"),
+                        token: !!sessionStorage.getItem("token")
+                    });
+                } catch {}
             }
         } catch (error) {
-            console.error("❌ Failed to save user/token:", error);
+            console.error(" Failed to save user/token:", error);
         }
     };
 
@@ -71,6 +92,9 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
         setIsRemembered(false);
+        try {
+            console.log("[AuthContext:logoutUser] cleared storages");
+        } catch {}
     };
 
     return (
