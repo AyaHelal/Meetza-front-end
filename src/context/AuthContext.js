@@ -6,6 +6,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [initializing, setInitializing] = useState(true);
+    const [isRemembered, setIsRemembered] = useState(false);
 
     useEffect(() => {
         try {
@@ -21,6 +22,9 @@ export const AuthProvider = ({ children }) => {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setToken(storedToken);
+                // Determine if it was remembered (from localStorage)
+                const rememberedInLocal = !!localStorage.getItem("token");
+                setIsRemembered(rememberedInLocal);
             }
         } catch (error) {
             console.error("❌ Error parsing stored user:", error);
@@ -28,6 +32,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem("token");
             sessionStorage.removeItem("user");
             sessionStorage.removeItem("token");
+            setIsRemembered(false);
         }
         setInitializing(false);
     }, []);
@@ -43,12 +48,14 @@ export const AuthProvider = ({ children }) => {
 
                 sessionStorage.removeItem("user");
                 sessionStorage.removeItem("token");
+                setIsRemembered(true);
             } else {
                 sessionStorage.setItem("user", JSON.stringify(userData));
                 sessionStorage.setItem("token", userToken);
 
                 localStorage.removeItem("user");
                 localStorage.removeItem("token");
+                setIsRemembered(false);
             }
         } catch (error) {
             console.error("❌ Failed to save user/token:", error);
@@ -63,10 +70,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("token");
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
+        setIsRemembered(false);
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, initializing, loginUser, logoutUser }}>
+        <AuthContext.Provider value={{ user, token, initializing, isRemembered, loginUser, logoutUser }}>
         {children}
         </AuthContext.Provider>
     );
