@@ -1,0 +1,72 @@
+/* Page-level background for Landing: same image stacked 3 times vertically */
+.landing-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.landing-content { flex: 1 0 auto; }
+
+/* Provide breathing room so content doesn't touch the very top/bottom */
+.landing-root-padding { padding-top: 1rem; padding-bottom: 0; }
+
+/* Stacked background strips for Landing */
+.bg-section {
+  margin: 3rem 3rem 0 3rem; /* align with footer margins */
+  border-radius: 32px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.bg-section-inner {
+  min-height: clamp(300px, 50vw, 600px);
+}
+
+/* Small phones */
+@media (max-width: 575.98px) {
+  .bg-section { margin: 0.5rem 0.5rem 0 0.5rem; border-radius: 20px; }
+}
+
+/* Small tablets */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .bg-section { margin: 1rem 1rem 0 1rem; }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .bg-section { margin: 1.5rem 1.5rem 0 1.5rem; }
+}
+
+/* Desktop narrow */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .bg-section { margin: 2rem 2rem 0 2rem; }
+
+}
+
+/* Desktop wide */
+@media (min-width: 1200px) {
+  .bg-section { margin: 3rem 3rem 0 3rem; }
+  .page-block { margin: 0 3rem 15rem 3rem; }
+}
+
+/* Generic container that matches footer width for any content (e.g., FeatureCards) */
+.page-block { margin: 0 3rem 20rem 3rem; }
+
+@media (max-width: 575.98px) {
+  .page-block { margin: 0 0.5rem 10rem 0.5rem; }
+}
+
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .page-block { margin: 0 1rem 12rem 1rem; }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .page-block { margin: 0 1.5rem 13rem 1.5rem; }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .page-block { margin: 0 2rem 12rem 2rem; }
+}
