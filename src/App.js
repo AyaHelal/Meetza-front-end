@@ -11,8 +11,6 @@ import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import { useState, useEffect, useContext } from "react";
-
-//manage loader in navigation
 const AppRoutes = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -32,7 +30,7 @@ const AppRoutes = () => {
     }
   }, [location]);
 
-  
+
 
   if (loading || initializing) {
     return <PageLoader />;
