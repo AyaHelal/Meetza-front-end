@@ -37,7 +37,7 @@ export default function HeroSection() {
                     Manage It All.
                 </motion.h1>
                 <motion.p className="lead mt-4 mb-5" variants={item}>Your gate to new experience and the one to organize</motion.p>
-                <motion.div className="d-flex justify-content-center" style={{ gap: '24px' }} variants={item}>
+                <motion.div className="hero-buttons d-flex justify-content-center" style={{ gap: '24px' }} variants={item}>
                     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className="btn btn-lg btn-success mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#00DC85", border: "none", fontSize: '18px' }}
                         onClick={() => navigate('/signup')}
