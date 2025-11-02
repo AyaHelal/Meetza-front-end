@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
         try {
             let storedUser = localStorage.getItem("user");
             let storedToken = localStorage.getItem("token");
+            const rememberFlag = localStorage.getItem("remember");
 
             if (!storedUser || !storedToken) {
                 storedUser = sessionStorage.getItem("user");
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setToken(storedToken);
-                const rememberedInLocal = !!localStorage.getItem("token");
+                const rememberedInLocal = rememberFlag === "true";
                 setIsRemembered(rememberedInLocal);
             }
         } catch (error) {
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }) => {
             if (rememberMe) {
                 localStorage.setItem("user", JSON.stringify(userData));
                 localStorage.setItem("token", userToken);
+                localStorage.setItem("remember", "true");
 
                 sessionStorage.removeItem("user");
                 sessionStorage.removeItem("token");
@@ -54,6 +56,7 @@ export const AuthProvider = ({ children }) => {
 
                 localStorage.removeItem("user");
                 localStorage.removeItem("token");
+                localStorage.setItem("remember", "false");
                 setIsRemembered(false);
             }
         } catch (error) {
@@ -67,6 +70,7 @@ export const AuthProvider = ({ children }) => {
 
         localStorage.removeItem("user");
         localStorage.removeItem("token");
+        localStorage.removeItem("remember");
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
         setIsRemembered(false);

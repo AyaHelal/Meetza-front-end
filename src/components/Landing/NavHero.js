@@ -17,7 +17,7 @@ export default function HeroNav() {
         <div className="container hero-nav-container p-5">
             <nav className="navbar navbar-expand-lg navbar-dark px-4">
                 {/* Logo */}
-                <a className="navbar-brand d-flex align-items-center" href="#" onClick={closeMenu}>
+                <a className="navbar-brand d-flex align-items-center" href="/" onClick={closeMenu}>
                     <img
                         src="/assets/meetza_copy.png"
                         alt="Meetza"
@@ -43,29 +43,22 @@ export default function HeroNav() {
                     {/* Navigation Links */}
                     <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li className="nav-item">
-                            <a className="nav-link active" href="#" onClick={closeMenu}>Discover</a>
+                            <button type="button" className="nav-link btn btn-link p-0 active" onClick={closeMenu}>Discover</button>
                         </li>
                         <li className="nav-item">
-                            <a className="nav-link" href="#" onClick={closeMenu}>Safety</a>
+                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Safety</button>
                         </li>
                         <li className="nav-item">
-                            <a className="nav-link" href="#" onClick={closeMenu}>Support</a>
+                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Support</button>
                         </li>
                         <li className="nav-item">
-                            <a className="nav-link" href="#" onClick={closeMenu}>Blog</a>
+                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Blog</button>
                         </li>
                         <li className="nav-item">
-                            <a className="nav-link" href="#" onClick={closeMenu}>Careers</a>
+                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Careers</button>
                         </li>
                     </ul>
-
-                    <button
-                        className="btn btn-info rounded-3 px-4 hero-login-btn"
-                        style={{ backgroundColor: "#00DC85", color: "white", border: "none" }}
-                        onClick={closeMenu}
-                    >
-                        Login
-                    </button>
+                    {/* Login button removed as requested */}
                 </div>
             </nav>
         </div>

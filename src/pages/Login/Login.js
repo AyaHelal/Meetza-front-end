@@ -206,7 +206,7 @@ const Login = () => {
                 loginUser(user, token, formData.rememberMe);
                 setMessage({ text: response.message || "Login successful!", type: "success" });
 
-                
+
 
                 // Store credentials in the browser's Password Manager (optional enhancement)
                 if (
@@ -229,7 +229,7 @@ const Login = () => {
                     }
                 }
 
-                setTimeout(() => navigate("/landing"), 500);
+                setTimeout(() => navigate("/home"), 500);
             } else {
                 // Increment failed attempts on response error
                 const newAttempts = failedAttempts + 1;
