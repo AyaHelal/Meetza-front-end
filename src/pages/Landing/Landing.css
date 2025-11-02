@@ -4,12 +4,14 @@
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  position: relative;
+  z-index: 2;
 }
 
 .landing-content { flex: 1 0 auto; }
 
 /* Provide breathing room so content doesn't touch the very top/bottom */
-.landing-root-padding { padding-top: 1rem; padding-bottom: 0; }
+.landing-root-padding { padding-top: 0; padding-bottom: 0; }
 
 /* Stacked background strips for Landing */
 .bg-section {
@@ -70,3 +72,23 @@
 @media (min-width: 992px) and (max-width: 1199.98px) {
   .page-block { margin: 0 2rem 12rem 2rem; }
 }
+
+/* Back to top floating button */
+.back-to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: #00dc85;
+  color: #fff;
+  font-size: 20px;
+  line-height: 44px;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 3000;
+}
+.back-to-top:hover { background: #00b870; }

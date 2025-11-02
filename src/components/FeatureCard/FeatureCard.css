@@ -117,9 +117,16 @@
   transform: translateX(-50%);
   width: clamp(80px, 12vw, 140px);
   height: auto;
-  z-index: 3;
+  z-index: 1001; /* above the card wrapper */
   pointer-events: none;
   filter: drop-shadow(0 8px 20px rgba(0,0,0,0.35));
+}
+
+/* Ensure the video card sits above surrounding backgrounds */
+.feature-card.layout-video {
+  position: relative;
+  z-index: 1000;
+  margin: 0;
 }
 
 

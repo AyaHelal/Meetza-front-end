@@ -229,7 +229,7 @@ const Login = () => {
                     }
                 }
 
-                setTimeout(() => navigate("/landing"), 500);
+                setTimeout(() => navigate("/home"), 500);
             } else {
                 // Increment failed attempts on response error
                 const newAttempts = failedAttempts + 1;
