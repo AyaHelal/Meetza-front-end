@@ -74,7 +74,7 @@ function Footer() {
             </div>
 
             <hr className="footer-line" />
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="fl d-flex justify-content-between align-items-center">
                 <img
                     src="/assets/meetza.png"
                     alt="Meetza Logo"
