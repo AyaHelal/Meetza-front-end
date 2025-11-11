@@ -134,6 +134,7 @@ const SignUp = () => {
                     message={message}
                 >
 
+                <form onSubmit={handleSubmit}>
                     {/* Username Field */}
                     <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
                         <User size={32} color="#888" weight="bold" className="me-2" />
@@ -146,6 +147,7 @@ const SignUp = () => {
                                 name="username"
                                 value={formData.username}
                                 onChange={handleInputChange}
+                                autoComplete="username"
                                 className={`form-control border-0 shadow-none ${errors.username ? 'is-invalid' : ''}`}
                                 style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px' }}
                             />
@@ -161,6 +163,7 @@ const SignUp = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         name="email"
+                        autoComplete="email"
                         className="mt-4"
                     />
 
@@ -168,6 +171,7 @@ const SignUp = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         name="password"
+                        autoComplete="new-password"
                         showStrengthIndicator={true}
                     />
 
@@ -185,6 +189,7 @@ const SignUp = () => {
                                         name="confirmPassword"
                                         value={formData.confirmPassword}
                                         onChange={handleInputChange}
+                                        autoComplete="new-password"
                                         className={`form-control border-0 shadow-none ${errors.confirmPassword ? 'is-invalid' : ''}`}
                                         style={{ backgroundColor: "transparent" , paddingBottom: '0px', paddingTop: '0px' }}
                                     />
@@ -240,7 +245,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-
+                </form>
                     <SocialLoginButtons />
                 </FormSection>
             </SignUpLayout>

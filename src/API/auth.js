@@ -27,17 +27,6 @@ export const verifyEmail = async (email, code, recaptchaToken = null) => {
     }
 };
 
-// ✅ Resend verification code
-export const resendVerificationCode = async (email) => {
-    try {
-        const response = await axiosInstance.post("/auth/resend-code", { email });
-        return response.data;
-    } catch (error) {
-        console.error("❌ Resend endpoint error:", error.response?.status, error.response?.data);
-        throw error;
-    }
-};
-
 // ✅ Forgot password - send reset code
 export const forgotPassword = async (email) => {
     try {
