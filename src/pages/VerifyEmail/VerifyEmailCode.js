@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { verifyEmail, resendVerificationCode } from "../../API/auth";
+import { verifyEmail, resendResetCode } from "../../API/auth";
 import "../Login/Login.css";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -59,10 +59,10 @@ export default function VerifyEmailCode() {
             setLoading(true);
             console.log("📤 Sending resend request for email:", email);
 
-            const res = await resendVerificationCode(email);
+            const res = await resendResetCode(email);
             console.log("📥 Resend response:", res);
 
-            alert(res.message || "Verification code resent successfully!");
+            alert("Verification code resent successfully!");
         } catch (err) {
             console.error("❌ Resend error:", err);
 
