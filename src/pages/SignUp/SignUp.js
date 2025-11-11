@@ -69,7 +69,7 @@ const SignUp = () => {
 
         if (name === 'confirmPassword') {
             if (!value.trim()) {
-                setErrors(prev => ({ ...prev, confirmPassword: '' })); // مسح الأيرور لو الحقل فارغ
+                setErrors(prev => ({ ...prev, confirmPassword: '' }));
             } else if (value !== formData.password) {
                 setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
             } else {
@@ -134,7 +134,6 @@ const SignUp = () => {
                     message={message}
                 >
 
-                <form onSubmit={handleSubmit}>
                     {/* Username Field */}
                     <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
                         <User size={32} color="#888" weight="bold" className="me-2" />
@@ -245,7 +244,6 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                </form>
                     <SocialLoginButtons />
                 </FormSection>
             </SignUpLayout>
