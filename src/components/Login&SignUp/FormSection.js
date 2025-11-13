@@ -3,7 +3,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const FormSection = ({
     activeTab,
@@ -21,6 +21,25 @@ const FormSection = ({
     failedAttempts,
     children
 }) => {
+    const formRef = useRef(null);
+
+    // Scroll to show any new elements that might have appeared
+    const scrollToShowNewElements = () => {
+        // Small timeout to allow the DOM to update
+        setTimeout(() => {
+            if (formRef.current) {
+                formRef.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+            }
+        }, 100);
+    };
+
+    // Call scroll handler when children change
+    useEffect(() => {
+        scrollToShowNewElements();
+    }, [children]);
 
     useEffect(() => {
     const loadCaptcha = () => {
@@ -53,30 +72,43 @@ const FormSection = ({
             className="w-100 d-flex flex-column justify-content-center"
             style={{
                 maxWidth: activeTab === 'verification' ? '500px' : '450px',
-                minHeight: '100vh'
+                minHeight: '100vh',
+            overflowY: 'auto'
             }}
         >
-            <div className="text-center mb-0 mt-5">
-                <div className="logo-container">
-                    <img src="/assets/meetza.png" alt="Meetza" style={{
-                        maxWidth: activeTab === 'verification' ? '150px' : '250px',
-                        height: activeTab === 'verification' ? 'auto' : '200px',
-                        margin: '0',
-                        padding: '0',
-                        background: 'transparent'
-                    }} />
+            <div ref={formRef} className="text-center mb-0 mt-5" style={{ marginTop: '1rem' }}>
+                <div className="logo-container" style={{
+                    margin: '0 auto',
+                    padding: '0 0 20px',
+                    width: '100%',
+                    textAlign: 'center'
+                }}>
+                    <img
+                        src="/assets/meetza.png"
+                        alt="Meetza"
+                        style={{
+                            width: activeTab === 'verification' ? '150px' : '200px',
+                            height: 'auto',
+                            maxHeight: '120px',
+                            objectFit: 'contain',
+                            margin: '0 auto',
+                            display: 'block',
+                            padding: '0',
+                            background: 'transparent'
+                        }}
+                    />
                 </div>
 
                 {/* Only show default title for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <>
-                        <h1 className="h2 fw-bold mb-2">Welcome Back</h1>
-                        <p className="text-muted">Please enter your Details as a Member</p>
+                        <h1 className="h2 fw-bold mb-2" style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Welcome Back</h1>
+                        <p className="text-muted" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>Please enter your details as a Member</p>
                     </>
                 )}
             </div>
 
-            <div className="rounded-3 p-1 mb-3" style={{ backgroundColor: '#e0e0e0' }}>
+            <div className="rounded-3 p-1 mb-2" style={{ backgroundColor: '#e0e0e0' }}>
                 {/* Only show tabs for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <div className="d-flex gap-1">

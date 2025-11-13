@@ -1,10 +1,8 @@
 import { motion } from 'framer-motion';
 import { Row, Col } from 'react-bootstrap';
-import ImageSection from './ImageSection';
+import LoginImage from './LoginImage';
 
 const SignUpLayout = ({
-    currentImageIndex,
-    images,
     children
 }) => {
     return (
@@ -18,12 +16,7 @@ const SignUpLayout = ({
             <Row className="g-0">
                 {/* Left Side - Image */}
                 <Col lg={6} className="d-none d-lg-flex align-items-center justify-content-center p-0">
-                    <ImageSection
-                        currentImageIndex={currentImageIndex}
-                        images={images}
-                        initialX={300}
-                        animateX={0}
-                    />
+                    <LoginImage isSignup={true} />
                 </Col>
 
                 {/* Right Side - Content */}
