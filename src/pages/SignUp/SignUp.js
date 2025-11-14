@@ -19,7 +19,8 @@ const SignUp = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        role: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -31,7 +32,7 @@ const SignUp = () => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: type === 'radio' ? value : (type === 'checkbox' ? checked : value)
         }));
 
         // simple validation for username + confirm password
@@ -68,7 +69,7 @@ const SignUp = () => {
                 name: formData.username,
                 email: formData.email,
                 password: formData.password,
-                role: "Member",
+                role: formData.role, // Use the selected role
             };
 
             const response = await signup(userData);
@@ -200,6 +201,37 @@ const SignUp = () => {
                             )}
                         </div>
                     )}
+                    {/* Role Selection */}
+                            <div className="d-flex justify-content-between px-2 py-2">
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        name="role"
+                                        id="memberRole"
+                                        value="Member"
+                                        checked={formData.role === 'Member'}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label className="form-check-label ms-2" htmlFor="memberRole">
+                                        Member
+                                    </label>
+                                </div>
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        name="role"
+                                        id="adminRole"
+                                        value="Administrator"
+                                        checked={formData.role === 'Administrator'}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label className="form-check-label ms-2" htmlFor="adminRole">
+                                        Administrator
+                                    </label>
+                                </div>
+                            </div>
 
                     <Button
                         type="submit"

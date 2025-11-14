@@ -121,7 +121,7 @@
 
 
 @media (max-width: 575.98px) {
-  .footer-inner { flex-direction: column; gap: 1rem; }
+  .footer-inner { flex-direction: column; gap: 1rem; padding-left: 2.4rem}
   .footer-links { grid-template-columns: repeat(2, 1fr); }
 
   .footer-section {
@@ -149,6 +149,11 @@
   .footer-line { margin-top: 2rem; }
 
   .fl { flex-direction: column; gap: 0.75rem; }
+  .footer-logo-container {
+    padding: 1.5rem 1rem;
+    text-align: start;
+    width: 100%;
+}
 }
 
 @media (min-width: 576px) and (max-width: 767.98px) {
