@@ -275,22 +275,6 @@
 }
 
 @media (max-width: 992px) {
-  .layout-video .media-surface {
-  border-radius: 40px;
-  padding: clamp(12px, 1.6vw, 22px);
-  min-height: clamp(241px, 44vw, 600px);
-  max-height: 600px;
-  margin: 0 auto;
-  position: relative;
-  background: linear-gradient(135deg, #214AB8 11%, #1F2120 100%);
-      box-shadow: inset 0 0 0 2px rgba(181, 194, 189, 0.6), 0 10px 30px rgba(0, 0, 0, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  width: 100%;
-  max-width: 800px;
-}
   .layout-video .feature-content.two-col { grid-template-columns: 1fr; }
   .layout-video .feature-col-left { order: -1; }
   .layout-video .top-body {
