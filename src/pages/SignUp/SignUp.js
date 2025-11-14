@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
 import { SignUpLayout } from '../../components/Login&SignUp/SignUpLayout';
@@ -19,39 +19,20 @@ const SignUp = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        role: ''
     });
 
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
     const [message, setMessage] = useState({ text: "", type: "" });
-
-    const images = [
-        '/assets/image 1.png',
-        '/assets/image 2.png',
-        '/assets/image 3.png',
-        '/assets/image 4.png',
-        '/assets/image 5.png'
-    ];
-
-    // Handle image carousel
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentImageIndex((prevIndex) =>
-                prevIndex === images.length - 1 ? 0 : prevIndex + 1
-            );
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [images.length]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: type === 'radio' ? value : (type === 'checkbox' ? checked : value)
         }));
 
         // simple validation for username + confirm password
@@ -88,7 +69,7 @@ const SignUp = () => {
                 name: formData.username,
                 email: formData.email,
                 password: formData.password,
-                role: "Member",
+                role: formData.role, // Use the selected role
             };
 
             const response = await signup(userData);
@@ -121,8 +102,6 @@ const SignUp = () => {
             <SignUpLayout
                 activeTab="signup"
                 setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup')}
-                currentImageIndex={currentImageIndex}
-                images={images}
             >
                 <FormSection
                     activeTab="signup"
@@ -135,8 +114,8 @@ const SignUp = () => {
                 >
 
                     {/* Username Field */}
-                    <div className="d-flex gx-2 mt-3 mb-1 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
-                        <User size={32} color="#888" weight="bold" className="me-2" />
+                    <div className="d-flex gx-2 mt-0 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
+                        <User size={32} color="#888" weight="bold" className="me-2"/>
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
                                 Name
@@ -148,12 +127,12 @@ const SignUp = () => {
                                 onChange={handleInputChange}
                                 autoComplete="username"
                                 className={`form-control border-0 shadow-none ${errors.username ? 'is-invalid' : ''}`}
-                                style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px' }}
+                                style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px'}}
                             />
                         </div>
                     </div>
                     {errors.username && (
-                        <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
+                        <div className="text-danger small mt-0" style={{ fontSize: '0.8rem', paddingLeft: '12px' }}>
                             {errors.username}
                         </div>
                     )}
@@ -163,7 +142,7 @@ const SignUp = () => {
                         onChange={handleInputChange}
                         name="email"
                         autoComplete="email"
-                        className="mt-4"
+                        className="mt-3"
                     />
 
                     <PasswordField
@@ -222,6 +201,37 @@ const SignUp = () => {
                             )}
                         </div>
                     )}
+                    {/* Role Selection */}
+                            <div className="d-flex justify-content-between px-2 py-2">
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        name="role"
+                                        id="memberRole"
+                                        value="Member"
+                                        checked={formData.role === 'Member'}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label className="form-check-label ms-2" htmlFor="memberRole">
+                                        Member
+                                    </label>
+                                </div>
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        name="role"
+                                        id="adminRole"
+                                        value="Administrator"
+                                        checked={formData.role === 'Administrator'}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label className="form-check-label ms-2" htmlFor="adminRole">
+                                        Administrator
+                                    </label>
+                                </div>
+                            </div>
 
                     <Button
                         type="submit"

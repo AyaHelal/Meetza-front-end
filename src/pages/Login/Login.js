@@ -5,9 +5,9 @@ import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts/LoginLay
 import { login } from "../../API/auth.js";
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";
+
 const Login = () => {
     const navigate = useNavigate();
-    const [currentImageIndex] = useState(0);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -20,14 +20,6 @@ const Login = () => {
     const [showCaptcha, setShowCaptcha] = useState(false);
     const [captchaToken, setCaptchaToken] = useState('');
     const { loginUser } = useContext(AuthContext);
-
-    const images = [
-        '/assets/image 1.png',
-        '/assets/image 2.png',
-        '/assets/image 3.png',
-        '/assets/image 4.png',
-        '/assets/image 5.png'
-    ];
 
     // Session-based CAPTCHA system - resets on every page load
     useEffect(() => {
@@ -135,6 +127,24 @@ const Login = () => {
             delete window.onCaptchaExpired;
         };
     }, []);
+
+// Auto-scroll to reCAPTCHA when it becomes visible
+useEffect(() => {
+    if (showCaptcha) {
+        const scrollToCaptcha = () => {
+        const captchaElement = document.querySelector('.g-recaptcha');
+        if (captchaElement) {
+            captchaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            console.log("✅ Scrolled to reCAPTCHA");
+        } else {
+            console.log("❌ reCAPTCHA not found yet, retrying...");
+            setTimeout(scrollToCaptcha, 500); // retry until found
+        }
+        };
+
+        setTimeout(scrollToCaptcha, 300);
+    }
+    }, [showCaptcha]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -297,8 +307,6 @@ const Login = () => {
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
                 isLoading={isLoading}
-                currentImageIndex={currentImageIndex}
-                images={images}
                 message={message}
                 showCaptcha={showCaptcha}
                 onCaptchaChange={onCaptchaChange}

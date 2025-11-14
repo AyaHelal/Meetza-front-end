@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Row, Col } from 'react-bootstrap';
 import FormSection from '../FormSection';
-import ImageSection from '../ImageSection';
+import LoginImage from '../LoginImage';
 
 const LoginLayout = ({
     activeTab,
@@ -10,8 +10,6 @@ const LoginLayout = ({
     handleInputChange,
     handleSubmit,
     isLoading,
-    currentImageIndex,
-    images,
     message,
     showCaptcha,
     onCaptchaChange,
@@ -51,14 +49,9 @@ const LoginLayout = ({
                     </FormSection>
                 </Col>
 
-                {/* Right Side - Illustration */}
-                <Col lg={6} className="d-none d-lg-flex align-items-center justify-content-center p-0">
-                    <ImageSection
-                        currentImageIndex={currentImageIndex}
-                        images={images}
-                        initialX={-300}
-                        animateX={0}
-                    />
+                {/* Right Side - Image */}
+                <Col lg={6} className="d-none d-lg-flex align-items-center justify-content-center p-0 m-0">
+                    <LoginImage isSignup={activeTab === 'signup'} />
                 </Col>
             </Row>
         </motion.div>

@@ -75,17 +75,13 @@ function Footer() {
 
             <hr className="footer-line" />
             <div className="fl d-flex justify-content-between align-items-center">
-                <img
-                    src="/assets/meetza.png"
-                    alt="Meetza Logo"
-                    style={{
-                        maxWidth: '250px',
-                        height: '180px',
-                        margin: '0',
-                        padding: '0',
-                        background: 'transparent'
-                    }}
-                />
+                <div className="footer-logo-container">
+                    <img
+                        src="/assets/meetza.png"
+                        alt="Meetza Logo"
+                        className="footer-logo"
+                    />
+                </div>
             </div>
         </div>
         </footer>

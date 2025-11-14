@@ -22,7 +22,7 @@ const EmailField = ({ value, onChange, name = "email" }) => {
     };
 
     return (
-        <div className="w-100 mt-2 mb-2">
+        <div className="w-100 mt-1 mb-2">
             {/* input container */}
             <div className="d-flex gx-2 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
                 <Envelope size={32} color="#888" weight="bold" className="me-2" />
