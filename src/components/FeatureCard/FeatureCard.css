@@ -275,6 +275,21 @@
 }
 
 @media (max-width: 992px) {
+  .layout-boy .media-surface {
+        min-height: clamp(241px, 44vw, 600px);
+        margin: 0 auto;
+        width: 208px;
+    }
+    .layout-video .media-surface {
+        min-height: clamp(193px, 44vw, 600px);
+        margin: 0 auto;
+        width: 194px;
+    }
+    .layout-calendar .media-surface {
+        min-height: clamp(193px, 44vw, 600px);
+        margin: 0 auto;
+        width: 200px;
+    }
   .layout-video .feature-content.two-col { grid-template-columns: 1fr; }
   .layout-video .feature-col-left { order: -1; }
   .layout-video .top-body {

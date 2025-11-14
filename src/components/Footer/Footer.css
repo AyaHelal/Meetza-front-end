@@ -121,7 +121,7 @@
 
 
 @media (max-width: 575.98px) {
-  .footer-inner { flex-direction: column; gap: 1rem; padding-left: 2.4rem}
+  .footer-inner { flex-direction: column; gap: 1rem; padding-left: 1rem}
   .footer-links { grid-template-columns: repeat(2, 1fr); }
 
   .footer-section {
