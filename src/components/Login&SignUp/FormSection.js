@@ -19,7 +19,8 @@ const FormSection = ({
     onCaptchaExpired,
     onSkipCaptcha,
     failedAttempts,
-    children
+    children,
+    extraFields
 }) => {
     const formRef = useRef(null);
 
@@ -103,7 +104,9 @@ const FormSection = ({
                 {activeTab !== 'verification' && (
                     <>
                         <h1 className="h2 fw-bold mb-2" style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Welcome Back</h1>
-                        <p className="text-muted" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>Please enter your details as a Member</p>
+                        <p className="text-muted" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
+                            {formData?.role ? `Please enter your details as a ${formData.role}` : 'Please enter your details'}
+                        </p>
                     </>
                 )}
             </div>
@@ -167,10 +170,14 @@ const FormSection = ({
             )}
 
             <form onSubmit={handleSubmit} autoComplete="on">
-                {children ? children : (
+                {children ? (
+                    children
+                ) : (
                     /* Only show default form fields for signin/signup, not for verification */
                     activeTab !== 'verification' && (
                         <>
+                            {/* default fields start here (extraFields will be rendered after Remember/Forgot) */}
+
                             <EmailField
                                 value={formData.email}
                                 onChange={handleInputChange}
@@ -210,6 +217,13 @@ const FormSection = ({
                                     Forgot Password ?
                                 </button>
                             </div>
+
+                            {/* render any extra fields (e.g., role radios) under the remember/forgot row */}
+                            {extraFields && (
+                                <div className="mb-2">
+                                    {extraFields}
+                                </div>
+                            )}
 
                             <Button
                                 type="submit"
