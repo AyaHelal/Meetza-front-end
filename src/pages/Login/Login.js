@@ -346,20 +346,6 @@ useEffect(() => {
                                 Administrator
                             </label>
                         </div>
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="radio"
-                                name="role"
-                                id="loginSuperAdminRole"
-                                value="Super-Admin"
-                                checked={formData.role === 'Super-Admin'}
-                                onChange={handleInputChange}
-                            />
-                            <label className="form-check-label ms-2" htmlFor="loginSuperAdminRole">
-                                Super-Admin
-                            </label>
-                        </div>
                     </div>
                 )}
             />
