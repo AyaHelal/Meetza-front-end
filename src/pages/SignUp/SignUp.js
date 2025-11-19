@@ -20,7 +20,7 @@ const SignUp = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: ''
+        role: '' // role must be selected by user via radio
     });
 
     const [errors, setErrors] = useState({});
@@ -63,6 +63,13 @@ const SignUp = () => {
         e.preventDefault();
         e.stopPropagation();
         setIsLoading(true);
+
+        // Require role selection
+        if (!formData.role) {
+            setMessage({ text: "Please select a role before signing up.", type: "error" });
+            setIsLoading(false);
+            return;
+        }
 
         try {
             const userData = {
@@ -202,7 +209,7 @@ const SignUp = () => {
                         </div>
                     )}
                     {/* Role Selection */}
-                            <div className="d-flex justify-content-between px-2 py-2">
+                            <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
                                 <div className="form-check">
                                     <input
                                         className="form-check-input"
@@ -229,6 +236,20 @@ const SignUp = () => {
                                     />
                                     <label className="form-check-label ms-2" htmlFor="adminRole">
                                         Administrator
+                                    </label>
+                                </div>
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        name="role"
+                                        id="superAdminRole"
+                                        value="Super-Admin"
+                                        checked={formData.role === 'Super-Admin'}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label className="form-check-label ms-2" htmlFor="superAdminRole">
+                                        Super-Admin
                                     </label>
                                 </div>
                             </div>

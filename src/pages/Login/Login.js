@@ -11,7 +11,8 @@ const Login = () => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        rememberMe: false
+        rememberMe: false,
+        role: '' // must choose via radio
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -150,7 +151,7 @@ useEffect(() => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: type === 'checkbox' ? checked : (type === 'radio' ? value : value)
         }));
     };
 
@@ -189,6 +190,7 @@ useEffect(() => {
                 email: formData.email,
                 password: formData.password,
                 remember_me: formData.rememberMe,
+                role: formData.role,
                 ...(showCaptcha && captchaToken && { captchaToken })
             };
 
@@ -314,6 +316,52 @@ useEffect(() => {
                 onForgotPassword={handleForgotPassword}
                 onSkipCaptcha={handleSkipCaptcha}
                 failedAttempts={failedAttempts}
+                extraFields={(
+                    <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
+                        <div className="form-check">
+                            <input
+                                className="form-check-input"
+                                type="radio"
+                                name="role"
+                                id="loginMemberRole"
+                                value="Member"
+                                checked={formData.role === 'Member'}
+                                onChange={handleInputChange}
+                            />
+                            <label className="form-check-label ms-2" htmlFor="loginMemberRole">
+                                Member
+                            </label>
+                        </div>
+                        <div className="form-check">
+                            <input
+                                className="form-check-input"
+                                type="radio"
+                                name="role"
+                                id="loginAdminRole"
+                                value="Administrator"
+                                checked={formData.role === 'Administrator'}
+                                onChange={handleInputChange}
+                            />
+                            <label className="form-check-label ms-2" htmlFor="loginAdminRole">
+                                Administrator
+                            </label>
+                        </div>
+                        <div className="form-check">
+                            <input
+                                className="form-check-input"
+                                type="radio"
+                                name="role"
+                                id="loginSuperAdminRole"
+                                value="Super-Admin"
+                                checked={formData.role === 'Super-Admin'}
+                                onChange={handleInputChange}
+                            />
+                            <label className="form-check-label ms-2" htmlFor="loginSuperAdminRole">
+                                Super-Admin
+                            </label>
+                        </div>
+                    </div>
+                )}
             />
         </LayoutWrapper>
     );

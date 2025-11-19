@@ -116,6 +116,62 @@
   color: #6C757D !important;
 }
 
+/* Role radio group styling for sign in / sign up */
+.role-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.role-radio-group .form-check {
+  display: flex;
+  align-items: center;
+}
+
+.role-radio-group .form-check-label {
+  font-weight: 500;
+}
+
+/* Keep radios side-by-side on all sizes, but allow them to shrink. On very small screens reduce spacing and font-size. */
+@media (max-width: 575px) {
+  .role-radio-group {
+    flex-direction: row;
+    flex-wrap: nowrap; /* keep in one row */
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .role-radio-group .form-check {
+    flex: 1 1 0; /* allow shrinking */
+    min-width: 0; /* allow contents to shrink/truncate if needed */
+    display: flex;
+    align-items: center;
+  }
+
+  .role-radio-group .form-check-label {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .role-radio-group .form-check .form-check-input {
+    margin-left: 0;
+    margin-right: 6px;
+    flex: 0 0 auto;
+  }
+
+  /* Slightly reduce overall container padding on very small screens */
+  .role-radio-group { padding-left: 2px; padding-right: 2px; }
+}
+
+/* Ensure default for larger screens stays inline */
+@media (min-width: 576px) {
+  .role-radio-group { flex-wrap: wrap; }
+}
+
 /* Ensure all child elements respect boundaries */
 .container-fluid, .row, .col, [class*="col-"] {
   max-width: 100% !important;
@@ -209,7 +265,7 @@
     display: block;
     margin: 0 auto;
   }
-  
+
   /* Adjust logo size for different screens */
   @media (min-width: 768px) {
     .logo-container img {
@@ -217,7 +273,7 @@
       max-height: 150px;
     }
   }
-  
+
   @media (min-width: 1200px) {
     .logo-container img {
       width: 280px;

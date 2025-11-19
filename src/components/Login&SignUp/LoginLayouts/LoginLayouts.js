@@ -17,7 +17,8 @@ const LoginLayout = ({
     onForgotPassword,
     onSkipCaptcha,
     failedAttempts,
-    children
+    children,
+    extraFields
 }) => {
     return (
         <motion.div
@@ -44,6 +45,7 @@ const LoginLayout = ({
                         onForgotPassword={onForgotPassword}
                         onSkipCaptcha={onSkipCaptcha}
                         failedAttempts={failedAttempts}
+                        extraFields={extraFields}
                     >
                         {children}
                     </FormSection>
