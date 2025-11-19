@@ -20,7 +20,7 @@ const SignUp = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: '' // role must be selected by user via radio
+        role: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -76,7 +76,7 @@ const SignUp = () => {
                 name: formData.username,
                 email: formData.email,
                 password: formData.password,
-                role: formData.role, // Use the selected role
+                role: formData.role,
             };
 
             const response = await signup(userData);
@@ -95,6 +95,9 @@ const SignUp = () => {
             }, 2000);
         } catch (error) {
             console.error("❌ Signup error:", error);
+            console.error('Signup error response status:', error.response?.status);
+            console.error('Signup error response data:', error.response?.data);
+
             setMessage({
                 text: error.response?.data?.message || "Error occurred during signup",
                 type: "error"
@@ -236,20 +239,6 @@ const SignUp = () => {
                                     />
                                     <label className="form-check-label ms-2" htmlFor="adminRole">
                                         Administrator
-                                    </label>
-                                </div>
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="radio"
-                                        name="role"
-                                        id="superAdminRole"
-                                        value="Super-Admin"
-                                        checked={formData.role === 'Super-Admin'}
-                                        onChange={handleInputChange}
-                                    />
-                                    <label className="form-check-label ms-2" htmlFor="superAdminRole">
-                                        Super-Admin
                                     </label>
                                 </div>
                             </div>
