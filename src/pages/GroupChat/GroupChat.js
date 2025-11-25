@@ -10,6 +10,17 @@ export default function GroupChat() {
   const [activeNav, setActiveNav] = useState('messages');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMainChat, setShowMainChat] = useState(false);
+
+  // Add class to body when GroupChat is mounted to prevent global scroll
+  useEffect(() => {
+    document.documentElement.classList.add('group-chat-active');
+    document.body.classList.add('group-chat-active');
+
+    return () => {
+      document.documentElement.classList.remove('group-chat-active');
+      document.body.classList.remove('group-chat-active');
+    };
+  }, []);
   const [messages, setMessages] = useState([
     {
       sender: "Farida Emad",

@@ -4,14 +4,18 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+/* Only apply overflow hidden when GroupChat is active */
+body.group-chat-active {
+  overflow: hidden;
+}
+
+html.group-chat-active,
+body.group-chat-active {
   background-color: #f4f4f4;
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow: hidden;
 }
 
 .home-container {

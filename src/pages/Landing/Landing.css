@@ -35,11 +35,19 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: visible;
   position: relative;
   z-index: 2;
 }
 
 .landing-content { flex: 1 0 auto; }
+
+/* Ensure body and html allow scrolling on landing page */
+body:not(.group-chat-active),
+html:not(.group-chat-active) {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
 /* Provide breathing room so content doesn't touch the very top/bottom */
 .landing-root-padding { padding-top: 0; padding-bottom: 0; }
