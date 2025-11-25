@@ -4,7 +4,7 @@ import { AuthProvider, AuthContext } from './context/AuthContext';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
-import Home from './pages/Home/Home';
+import GroupChat from './pages/GroupChat/GroupChat';
 import VerifyEmailCode from './pages/VerifyEmail/VerifyEmailCode';
 import ForgotPasswordForm from './pages/ForgotPassword/ForgotPasswordForm';
 import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
@@ -60,10 +60,11 @@ const AppRoutes = () => {
       {/* Protected Home: if no token, go to Landing */}
       <Route
         path="/home"
-        element={token ? <Home /> : <Navigate to="/landing" replace />}
+        element={token ? <GroupChat /> : <Navigate to="/landing" replace />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+
   );
 };
 

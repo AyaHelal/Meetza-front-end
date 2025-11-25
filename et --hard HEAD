@@ -1,0 +1,12 @@
+[1mdiff --git a/src/components/Landing/HeroSection.css b/src/components/Landing/HeroSection.css[m
+[1mindex 31fac21..8d5523d 100644[m
+[1m--- a/src/components/Landing/HeroSection.css[m
+[1m+++ b/src/components/Landing/HeroSection.css[m
+[36m@@ -141,7 +141,6 @@[m
+     max-width: 280px;[m
+   }[m
+ }[m
+[31m-[m
+ /* Small Mobile Styles (phones in portrait) */[m
+ @media (max-width: 767.98px) {[m
+   .hero-section {[m
