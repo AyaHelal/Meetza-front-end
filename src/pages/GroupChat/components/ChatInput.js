@@ -1,16 +1,47 @@
-import React from 'react';
-import { Plus, Microphone, PaperPlaneTilt } from '@phosphor-icons/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, Microphone, PaperPlaneTilt, Smiley } from '@phosphor-icons/react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import './ChatInput.css';
 
 const ChatInput = ({ onSendMessage }) => {
-    const [message, setMessage] = React.useState('');
+    const [message, setMessage] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiPickerRef = useRef(null);
+
+    // Close emoji picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+
+        if (showEmojiPicker) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showEmojiPicker]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (message.trim()) {
             onSendMessage(message);
             setMessage('');
+            setShowEmojiPicker(false);
         }
+    };
+
+    const handleEmojiSelect = (emoji) => {
+        setMessage(prev => prev + emoji.native);
+        setShowEmojiPicker(false);
+    };
+
+    const toggleEmojiPicker = () => {
+        setShowEmojiPicker(!showEmojiPicker);
     };
 
     return (
@@ -28,6 +59,20 @@ const ChatInput = ({ onSendMessage }) => {
                 <div className="input-icon input-icon-right">
                     <Microphone size={20} />
                 </div>
+                <div className="input-icon input-icon-right emoji-icon" onClick={toggleEmojiPicker}>
+                    <Smiley size={20} />
+                </div>
+                {showEmojiPicker && (
+                    <div className="emoji-picker-wrapper" ref={emojiPickerRef}>
+                        <Picker
+                            data={data}
+                            onEmojiSelect={handleEmojiSelect}
+                            theme="light"
+                            previewPosition="none"
+                            skinTonePosition="none"
+                        />
+                    </div>
+                )}
                 <button type="submit" className="input-icon send input-icon-right">
                     <PaperPlaneTilt size={18} weight="fill" />
                 </button>
