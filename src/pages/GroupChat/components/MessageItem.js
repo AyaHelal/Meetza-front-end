@@ -4,7 +4,13 @@ import './MessageItem.css';
 const MessageItem = ({ message }) => {
     return (
         <div className="message">
-            <div className="message-avatar">{message.initials}</div>
+            <div className="message-avatar">
+                {message.senderPhoto ? (
+                    <img src={message.senderPhoto} alt={message.sender} className="message-avatar-img" />
+                ) : (
+                    <span>{message.initials}</span>
+                )}
+            </div>
             <div className="message-content">
                 <div className="message-header">
                     <span className="message-sender">{message.sender}</span>

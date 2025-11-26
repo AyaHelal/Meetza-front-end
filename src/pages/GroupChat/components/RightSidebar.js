@@ -6,10 +6,13 @@ import UserStatus from './UserStatus';
 import './RightSidebar.css';
 
 const RightSidebar = ({
+    groupInfo,
     calendarEvents,
     user,
     isMobile,
-    showMainChat
+    showMainChat,
+    expandedSection,
+    setExpandedSection
 }) => {
     return (
         <div className={`right-sidebar px-2 ${isMobile && !showMainChat ? 'mobile-hidden' : ''}`}>
@@ -22,7 +25,7 @@ const RightSidebar = ({
                 </div>
             </div>
             <CalendarSection calendarEvents={calendarEvents} />
-            <GroupInfo />
+            <GroupInfo groupInfo={groupInfo} expandedSection={expandedSection} setExpandedSection={setExpandedSection} />
             <UserStatus user={user} />
         </div>
     );
