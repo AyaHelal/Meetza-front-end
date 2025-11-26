@@ -14,8 +14,11 @@ const ChatsPanel = ({
     const [activeTab, setActiveTab] = React.useState('all');
 
     const filteredChats = groupChats.filter(chat => {
-        const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            chat.subject.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!chat) return false;
+        const chatName = (chat.name || '').toLowerCase();
+        const chatSubject = (chat.subject || '').toLowerCase();
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = chatName.includes(searchLower) || chatSubject.includes(searchLower);
         const matchesTab = activeTab === 'all' || (activeTab === 'unread' && chat.unread > 0);
         return matchesSearch && matchesTab;
     });

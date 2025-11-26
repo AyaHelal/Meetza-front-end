@@ -30,7 +30,14 @@ const AppRoutes = () => {
     }
   }, [location]);
 
-
+  // Show loader when navigating to /home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      setLoading(true);
+      const timer = setTimeout(() => setLoading(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
 
   if (loading || initializing) {
     return <PageLoader />;

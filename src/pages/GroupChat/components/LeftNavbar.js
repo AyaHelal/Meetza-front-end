@@ -1,8 +1,21 @@
-import React from 'react';
-import { House, User, Envelope, CalendarBlank, Bell, GearSix } from '@phosphor-icons/react';
+import React, { useContext } from 'react';
+import { House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut } from '@phosphor-icons/react';
 import './LeftNavbar.css';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
 
 const LeftNavbar = ({ activeNav, setActiveNav }) => {
+  const navigate = useNavigate();
+  const { logoutUser } = useContext(AuthContext);
+
+  const handleLogout = () => {
+    try {
+      logoutUser();
+    } catch (err) {
+      console.warn('Logout error', err);
+    }
+    navigate('/login');
+  };
   return (
     <div className="left-navbar rounded-4 shadow-sm">
       <div className="nav-logo">
@@ -53,6 +66,13 @@ const LeftNavbar = ({ activeNav, setActiveNav }) => {
             onClick={() => setActiveNav('settings')}
           >
             <GearSix size={32} />
+          </div>
+          <div
+            className="nav-icon logout-icon"
+            title="Logout"
+            onClick={handleLogout}
+          >
+            <SignOut size={32} />
           </div>
         </div>
       </div>

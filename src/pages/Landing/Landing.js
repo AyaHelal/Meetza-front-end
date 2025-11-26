@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
 import Footer from "../../components/Footer/Footer";
 import HeroSection from "../../components/Landing/HeroSection";
 import MessagingCardSlider from "../../components/Landing/MessagingCardSlider";
@@ -8,21 +7,7 @@ import "./Landing.css";
 import BackToTop from './BackToTop';
 
 const Landing = () => {
-  const [showTop, setShowTop] = useState(false);
 
-  useEffect(() => {
-    // Enable smooth scrolling for the whole page
-    document.documentElement.style.scrollBehavior = 'smooth';
-    
-    const onScroll = () => setShowTop(window.scrollY > 50);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      document.documentElement.style.scrollBehavior = '';
-    };
-  }, []);
 
   const slideIn = {
     hidden: (dir = 1) => ({ opacity: 0, x: dir * 60 }),
@@ -130,7 +115,7 @@ const Landing = () => {
           </div>
         </main>
       </div>
-      <BackToTop show={showTop} />
+      <BackToTop />
     </>
   );
 };
