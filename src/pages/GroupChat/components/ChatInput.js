@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Microphone, PaperPlaneTilt, Smiley } from '@phosphor-icons/react';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import EmojiPicker from 'emoji-picker-react';
 import './ChatInput.css';
 
 const ChatInput = ({ onSendMessage }) => {
@@ -35,8 +34,8 @@ const ChatInput = ({ onSendMessage }) => {
         }
     };
 
-    const handleEmojiSelect = (emoji) => {
-        setMessage(prev => prev + emoji.native);
+    const handleEmojiClick = (emojiData) => {
+        setMessage(prev => prev + emojiData.emoji);
         setShowEmojiPicker(false);
     };
 
@@ -64,13 +63,7 @@ const ChatInput = ({ onSendMessage }) => {
                 </div>
                 {showEmojiPicker && (
                     <div className="emoji-picker-wrapper" ref={emojiPickerRef}>
-                        <Picker
-                            data={data}
-                            onEmojiSelect={handleEmojiSelect}
-                            theme="light"
-                            previewPosition="none"
-                            skinTonePosition="none"
-                        />
+                        <EmojiPicker onEmojiClick={handleEmojiClick} />
                     </div>
                 )}
                 <button type="submit" className="input-icon send input-icon-right">
@@ -82,4 +75,3 @@ const ChatInput = ({ onSendMessage }) => {
 };
 
 export default ChatInput;
-
