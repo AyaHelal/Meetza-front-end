@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
     baseURL: "https://meetza-backend.vercel.app/api",
-    timeout: 10000,
+    timeout: 30000,
 });
 
 // Automatically attach token if it exists
