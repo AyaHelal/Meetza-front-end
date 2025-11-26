@@ -111,11 +111,11 @@ const SignUp = () => {
         <LayoutWrapper activeTab="signup">
             <SignUpLayout
                 activeTab="signup"
-                setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup')}
+                setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup', { replace: true })}
             >
                 <FormSection
                     activeTab="signup"
-                    setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup')}
+                    setActiveTab={(tab) => navigate(tab === 'signin' ? '/login' : '/signup', { replace: true })}
                     formData={formData}
                     handleInputChange={handleInputChange}
                     handleSubmit={handleSubmit}
@@ -125,7 +125,7 @@ const SignUp = () => {
 
                     {/* Username Field */}
                     <div className="d-flex gx-2 mt-0 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
-                        <User size={32} color="#888" weight="bold" className="me-2"/>
+                        <User size={32} color="#888" weight="bold" className="me-2" />
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
                                 Name
@@ -137,7 +137,7 @@ const SignUp = () => {
                                 onChange={handleInputChange}
                                 autoComplete="username"
                                 className={`form-control border-0 shadow-none ${errors.username ? 'is-invalid' : ''}`}
-                                style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px'}}
+                                style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px' }}
                             />
                         </div>
                     </div>
@@ -179,7 +179,7 @@ const SignUp = () => {
                                         onChange={handleInputChange}
                                         autoComplete="new-password"
                                         className={`form-control border-0 shadow-none ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                                        style={{ backgroundColor: "transparent" , paddingBottom: '0px', paddingTop: '0px' }}
+                                        style={{ backgroundColor: "transparent", paddingBottom: '0px', paddingTop: '0px' }}
                                     />
                                     <Button
                                         type="button"
@@ -212,36 +212,36 @@ const SignUp = () => {
                         </div>
                     )}
                     {/* Role Selection */}
-                            <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="radio"
-                                        name="role"
-                                        id="memberRole"
-                                        value="Member"
-                                        checked={formData.role === 'Member'}
-                                        onChange={handleInputChange}
-                                    />
-                                    <label className="form-check-label ms-2" htmlFor="memberRole">
-                                        Member
-                                    </label>
-                                </div>
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="radio"
-                                        name="role"
-                                        id="adminRole"
-                                        value="Administrator"
-                                        checked={formData.role === 'Administrator'}
-                                        onChange={handleInputChange}
-                                    />
-                                    <label className="form-check-label ms-2" htmlFor="adminRole">
-                                        Administrator
-                                    </label>
-                                </div>
-                            </div>
+                    <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
+                        <div className="form-check">
+                            <input
+                                className="form-check-input"
+                                type="radio"
+                                name="role"
+                                id="memberRole"
+                                value="Member"
+                                checked={formData.role === 'Member'}
+                                onChange={handleInputChange}
+                            />
+                            <label className="form-check-label ms-2" htmlFor="memberRole">
+                                Member
+                            </label>
+                        </div>
+                        <div className="form-check">
+                            <input
+                                className="form-check-input"
+                                type="radio"
+                                name="role"
+                                id="adminRole"
+                                value="Administrator"
+                                checked={formData.role === 'Administrator'}
+                                onChange={handleInputChange}
+                            />
+                            <label className="form-check-label ms-2" htmlFor="adminRole">
+                                Administrator
+                            </label>
+                        </div>
+                    </div>
 
                     <Button
                         type="submit"

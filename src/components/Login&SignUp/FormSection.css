@@ -1,0 +1,13 @@
+@media (min-width: 1441px) {
+  .ff {
+    max-width: 543px !important;
+    transform: scale(0.8) !important;
+    transform-origin: center center;
+  }
+  .font-size-lg {
+    font-size: 32 px !important;
+  }
+  .p-font-size-lg {
+    font-size: 20px !important;
+  }
+}

@@ -129,22 +129,22 @@ const Login = () => {
         };
     }, []);
 
-// Auto-scroll to reCAPTCHA when it becomes visible
-useEffect(() => {
-    if (showCaptcha) {
-        const scrollToCaptcha = () => {
-        const captchaElement = document.querySelector('.g-recaptcha');
-        if (captchaElement) {
-            captchaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            console.log("✅ Scrolled to reCAPTCHA");
-        } else {
-            console.log("❌ reCAPTCHA not found yet, retrying...");
-            setTimeout(scrollToCaptcha, 500); // retry until found
-        }
-        };
+    // Auto-scroll to reCAPTCHA when it becomes visible
+    useEffect(() => {
+        if (showCaptcha) {
+            const scrollToCaptcha = () => {
+                const captchaElement = document.querySelector('.g-recaptcha');
+                if (captchaElement) {
+                    captchaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    console.log("✅ Scrolled to reCAPTCHA");
+                } else {
+                    console.log("❌ reCAPTCHA not found yet, retrying...");
+                    setTimeout(scrollToCaptcha, 500); // retry until found
+                }
+            };
 
-        setTimeout(scrollToCaptcha, 300);
-    }
+            setTimeout(scrollToCaptcha, 300);
+        }
     }, [showCaptcha]);
 
     const handleInputChange = (e) => {
@@ -286,7 +286,7 @@ useEffect(() => {
         }
     };
 
-    const handleSignUpClick = () => navigate('/signup');
+    const handleSignUpClick = () => navigate('/signup', { replace: true });
     const handleForgotPassword = () => navigate('/forgot-password');
 
     const handleSkipCaptcha = () => {
