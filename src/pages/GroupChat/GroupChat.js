@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { io } from 'socket.io-client';
+//import { io } from 'socket.io-client';
 import './GroupChat.css';
 import LeftNavbar from './components/LeftNavbar';
 import ChatsPanel from './components/ChatsPanel';
@@ -8,7 +8,7 @@ import RightSidebar from './components/RightSidebar';
 import axiosInstance from '../../API/axiosInstance';
 import { AuthContext } from '../../context/AuthContext';
 
-const SERVER_URL = "https://meetza-backend.vercel.app";
+//const SERVER_URL = "https://meetza-backend.vercel.app";
 
 export default function GroupChat() {
   const { user } = useContext(AuthContext);
@@ -16,8 +16,8 @@ export default function GroupChat() {
   const [activeNav, setActiveNav] = useState('messages');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMainChat, setShowMainChat] = useState(false);
-  const [socket, setSocket] = useState(null);
-  const [socketStatus, setSocketStatus] = useState('disconnected');
+  //const [socket, setSocket] = useState(null);
+  //const [socketStatus, setSocketStatus] = useState('disconnected');
   const [groupChats, setGroupChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
@@ -85,7 +85,7 @@ export default function GroupChat() {
         const formatted = groupsWithContent.map((g) => ({
           id: g.id,
           name: g.group_name,
-          subject: g.contentName,
+          subject: g.last_message || 'No messages yet',
           avatar: g.group_name?.charAt(0)?.toUpperCase() || 'G',
           avatarImage: g.group_photo || null,
           date: g.last_message_at
@@ -117,7 +117,7 @@ export default function GroupChat() {
       const formattedGroup = {
         id: group.id,
         name: group.group_name || group.name,
-        subject: contentName,
+        subject: group.last_message || 'No messages yet',
         avatar: (group.group_name || group.name || 'G').charAt(0).toUpperCase(),
         avatarImage: group.group_photo || null,
         date: group.last_message_at ? new Date(group.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
@@ -140,7 +140,7 @@ export default function GroupChat() {
   };
 
   // Initialize Socket.IO using websocket-only transport (matches test-socket.js)
-  useEffect(() => {
+  /*useEffect(() => {
     let token = localStorage.getItem('token');
     if (!token) token = sessionStorage.getItem('token');
     if (!token) {
@@ -177,6 +177,17 @@ export default function GroupChat() {
         senderPhoto: msg.sender_photo,
         senderEmail: msg.sender_email
       }]);
+
+      // Update last_message in groupChats list
+      if (msg.group_id) {
+        setGroupChats((prev) =>
+          prev.map((group) =>
+            String(group.id) === String(msg.group_id)
+              ? { ...group, subject: msg.message || 'No messages yet' }
+              : group
+          )
+        );
+      }
     });
 
     newSocket.on('connect_error', (err) => {
@@ -207,7 +218,7 @@ export default function GroupChat() {
       }
       newSocket.disconnect();
     };
-  }, []);
+  }, []);*/
 
   // Reusable function to fetch and format groups
   const refreshGroupsList = async (isInitial = false) => {
@@ -243,7 +254,7 @@ export default function GroupChat() {
         const formattedGroups = groupsWithContent.map((group) => ({
           id: group.id,
           name: group.group_name,
-          subject: group.contentName,
+          subject: group.last_message || 'No messages yet',
           avatar: group.group_name?.charAt(0)?.toUpperCase() || 'G',
           avatarImage: group.group_photo || null,
           date: group.last_message_at
@@ -318,11 +329,11 @@ export default function GroupChat() {
         if (!groupId) return;
 
         // Join group via socket
-        if (socket) {
+        /*if (socket) {
           socket.emit('joinGroup', { groupId }, (ack) => {
             console.log('✅ Joined group:', ack);
           });
-        }
+        }*/
 
         // Fetch messages
         const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
@@ -351,7 +362,7 @@ export default function GroupChat() {
     };
 
     fetchMessagesAndInfo();
-  }, [selectedChat, groupChats, socket]);
+  }, [selectedChat, groupChats /*,socket*/]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -397,7 +408,7 @@ export default function GroupChat() {
     setMessages((prev) => [...prev, newMessage]);
 
     // If socket is connected, send via socket for realtime
-    if (socket && socket.connected) {
+    /*if (socket && socket.connected) {
       try {
         socket.emit('sendMessage', { groupId, message: messageText }, (ack) => {
           console.log('✅ Message sent via socket:', ack);
@@ -406,7 +417,7 @@ export default function GroupChat() {
       } catch (err) {
         console.warn('⚠️ Socket emit failed, falling back to REST POST', err);
       }
-    }
+    }*/
 
     // Fallback: POST message to REST endpoint so messages are persisted
     try {

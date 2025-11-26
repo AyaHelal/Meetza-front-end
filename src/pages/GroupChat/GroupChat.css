@@ -530,7 +530,7 @@ body.group-chat-active {
 
 .chat-input input {
   flex: 1;
-  padding: 10px 50px 10px 50px;
+  padding: 10px 130px 10px 50px;
   border: none;
   background: transparent;
   border-radius: 24px;
@@ -578,12 +578,33 @@ body.group-chat-active {
   height: 32px;
 }
 
-.input-icon.input-icon-right:not(.send) {
+.input-icon.input-icon-right:not(.send):not(.emoji-icon) {
+  right: 92px;
+}
+
+.input-icon.emoji-icon {
   right: 50px;
 }
 
 .input-icon.send:hover {
   background: #1565c0;
+}
+
+/* Emoji Picker */
+.emoji-picker-wrapper {
+  position: absolute;
+  bottom: 60px;
+  right: 50px;
+  z-index: 1000;
+}
+
+.emoji-picker-wrapper em-emoji-picker {
+  --rgb-background: 255, 255, 255;
+  --rgb-color: 0, 0, 0;
+  --rgb-accent: 25, 118, 210;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
 }
 
 /* Arrow icon responsive sizing for screens larger than 1450px */
@@ -1429,6 +1450,20 @@ body.group-chat-active {
     border-radius: 50%;
   }
 
+  .emoji-picker-wrapper {
+    right: 20px;
+    bottom: 70px;
+  }
+
+  .emoji-picker-wrapper em-emoji-picker {
+    width: 280px;
+    max-height: 300px;
+  }
+
+  .input-icon.emoji-icon {
+    right: 82px;
+  }
+
   .message-text {
     font-size: 13px;
     padding: 8px 12px;
@@ -1460,7 +1495,11 @@ body.group-chat-active {
     right: 6px;
   }
 
-  .input-icon.input-icon-right:not(.send) {
+  .input-icon.input-icon-right:not(.send):not(.emoji-icon) {
+    right: 72px;
+  }
+
+  .input-icon.emoji-icon {
     right: 40px;
   }
 
