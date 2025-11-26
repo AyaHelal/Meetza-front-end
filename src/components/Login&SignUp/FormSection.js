@@ -4,7 +4,7 @@ import EmailField from '../../components/FormFields/EmailField';
 import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
 import { useEffect, useRef } from "react";
-
+import "./FormSection.css"
 const FormSection = ({
     activeTab,
     setActiveTab,
@@ -43,38 +43,38 @@ const FormSection = ({
     }, [children]);
 
     useEffect(() => {
-    const loadCaptcha = () => {
-        if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
-            window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
-                sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
-                callback: (token) => {
-                    console.log('Captcha verified:', token);
-                    window.onCaptchaChange && window.onCaptchaChange(token);
-                },
-                'expired-callback': () => {
-                    console.log('Captcha expired');
-                    window.onCaptchaExpired && window.onCaptchaExpired();
-                }
-            });
+        const loadCaptcha = () => {
+            if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
+                window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
+                    sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
+                    callback: (token) => {
+                        console.log('Captcha verified:', token);
+                        window.onCaptchaChange && window.onCaptchaChange(token);
+                    },
+                    'expired-callback': () => {
+                        console.log('Captcha expired');
+                        window.onCaptchaExpired && window.onCaptchaExpired();
+                    }
+                });
+            }
         }
-    }
-    if (window.grecaptcha) {
-        loadCaptcha();
-    } else {
-        window.onloadCallback = loadCaptcha;
-    }
-}, [showCaptcha]);
+        if (window.grecaptcha) {
+            loadCaptcha();
+        } else {
+            window.onloadCallback = loadCaptcha;
+        }
+    }, [showCaptcha]);
 
     return (
         <motion.div
             initial={{ opacity: 0, x: 300 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="w-100 d-flex flex-column justify-content-center"
+            className="w-100 d-flex flex-column justify-content-center ff"
             style={{
                 maxWidth: activeTab === 'verification' ? '500px' : '450px',
                 minHeight: '100vh',
-            overflowY: 'auto'
+                overflowY: 'auto'
             }}
         >
             <div ref={formRef} className="text-center mb-0 mt-5" style={{ marginTop: '1rem' }}>
@@ -103,8 +103,8 @@ const FormSection = ({
                 {/* Only show default title for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <>
-                        <h1 className="h2 fw-bold mb-2" style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Welcome Back</h1>
-                        <p className="text-muted" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
+                        <h1 className="h2 fw-semibold mb-2 font-size-lg" style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Welcome Back</h1>
+                        <p className="text-muted p-font-size-lg" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
                             {formData?.role ? `Please enter your details as a ${formData.role}` : 'Please enter your details'}
                         </p>
                     </>
@@ -147,9 +147,8 @@ const FormSection = ({
 
             {message?.text && (
                 <div
-                    className={`alert d-flex align-items-center justify-content-center text-center ${
-                        message.type === "success" ? "alert-success" : "alert-danger"
-                    }`}
+                    className={`alert d-flex align-items-center justify-content-center text-center ${message.type === "success" ? "alert-success" : "alert-danger"
+                        }`}
                     role="alert"
                     style={{
                         fontSize: "1rem",
@@ -195,15 +194,15 @@ const FormSection = ({
                                 {activeTab === 'signin' && (
                                     <div className="d-flex align-items-center">
                                         <input
-                                        type="checkbox"
-                                        id="rememberMe"
-                                        name="rememberMe"
-                                        checked={formData.rememberMe}
-                                        onChange={handleInputChange}
-                                        style={{ marginRight: "4px" }}
+                                            type="checkbox"
+                                            id="rememberMe"
+                                            name="rememberMe"
+                                            checked={formData.rememberMe}
+                                            onChange={handleInputChange}
+                                            style={{ marginRight: "4px" }}
                                         />
                                         <label htmlFor="rememberMe" className="text-muted small mb-0">
-                                        Remember me
+                                            Remember me
                                         </label>
                                     </div>
                                 )}

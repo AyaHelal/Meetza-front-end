@@ -1,8 +1,8 @@
 /* Completely hide scrollbar but keep functionality */
 html {
-  scrollbar-width:thin; /* Firefox */
-  -ms-overflow-style:inherit; /* IE and Edge */
-  overflow:visible; /* Old Firefox */
+  scrollbar-width: thin; /* Firefox */
+  -ms-overflow-style: inherit; /* IE and Edge */
+  overflow: visible; /* Old Firefox */
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -40,7 +40,9 @@ body::-webkit-scrollbar {
   z-index: 2;
 }
 
-.landing-content { flex: 1 0 auto; }
+.landing-content {
+  flex: 1 0 auto;
+}
 
 /* Ensure body and html allow scrolling on landing page */
 body:not(.group-chat-active),
@@ -50,7 +52,10 @@ html:not(.group-chat-active) {
 }
 
 /* Provide breathing room so content doesn't touch the very top/bottom */
-.landing-root-padding { padding-top: 0; padding-bottom: 0; }
+.landing-root-padding {
+  padding-top: 0;
+  padding-bottom: 0;
+}
 
 /* Stacked background strips for Landing */
 .bg-section {
@@ -68,53 +73,75 @@ html:not(.group-chat-active) {
 
 /* Small phones */
 @media (max-width: 575.98px) {
-  .bg-section { margin: 0.5rem 0.5rem 0 0.5rem; border-radius: 20px; }
+  .bg-section {
+    margin: 0.5rem 0.5rem 0 0.5rem;
+    border-radius: 20px;
+  }
 }
 
 /* Small tablets */
 @media (min-width: 576px) and (max-width: 767.98px) {
-  .bg-section { margin: 1rem 1rem 0 1rem; }
+  .bg-section {
+    margin: 1rem 1rem 0 1rem;
+  }
 }
 
 /* Tablets */
 @media (min-width: 768px) and (max-width: 991.98px) {
-  .bg-section { margin: 1.5rem 1.5rem 0 1.5rem; }
+  .bg-section {
+    margin: 1.5rem 1.5rem 0 1.5rem;
+  }
 }
 
 /* Desktop narrow */
 @media (min-width: 992px) and (max-width: 1199.98px) {
-  .bg-section { margin: 2rem 2rem 0 2rem; }
-
+  .bg-section {
+    margin: 2rem 2rem 0 2rem;
+  }
 }
 
 /* Desktop wide */
 @media (min-width: 1200px) {
-  .bg-section { margin: 3rem 3rem 0 3rem; }
-  .page-block { margin: 0 3rem 15rem 3rem; }
+  .bg-section {
+    margin: 3rem 3rem 0 3rem;
+  }
+  .page-block {
+    margin: 0 3rem 15rem 3rem;
+  }
 }
 
 /* Generic container that matches footer width for any content (e.g., FeatureCards) */
-.page-block { margin: 0 3rem 20rem 3rem; }
+.page-block {
+  margin: 0 3rem 20rem 3rem;
+}
 
 @media (max-width: 575.98px) {
-  .page-block { margin: 0 0.5rem 10rem 0.5rem; }
+  .page-block {
+    margin: 0 0.5rem 10rem 0.5rem;
+  }
 }
 
 @media (min-width: 576px) and (max-width: 767.98px) {
-  .page-block { margin: 0 1rem 12rem 1rem; }
+  .page-block {
+    margin: 0 1rem 12rem 1rem;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) {
-  .page-block { margin: 0 1.5rem 13rem 1.5rem; }
+  .page-block {
+    margin: 0 1.5rem 13rem 1.5rem;
+  }
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
-  .page-block { margin: 0 2rem 12rem 2rem; }
+  .page-block {
+    margin: 0 2rem 12rem 2rem;
+  }
 }
 
 /* Back to top floating button */
 .back-to-top {
-  position: fixed;        /* ثابت على الشاشة */
+  position: fixed; /* ثابت على الشاشة */
   right: 20px;
   bottom: 24px;
   width: 44px;
@@ -126,7 +153,7 @@ html:not(.group-chat-active) {
   font-size: 20px;
   line-height: 44px;
   text-align: center;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   z-index: 999999;
 
@@ -150,7 +177,9 @@ html:not(.group-chat-active) {
 }
 
 /* Optional: force button to always appear even إذا في overflow أو transform على parent */
-html, body, .landing-root, .landing-content {
+html,
+body,
+.landing-root,
+.landing-content {
   transform: none !important;
 }
-
