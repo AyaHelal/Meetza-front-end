@@ -3,6 +3,7 @@ import { House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut } from '@p
 import './LeftNavbar.css';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
+import { UsersThree } from '@phosphor-icons/react';
 
 const LeftNavbar = ({ activeNav, setActiveNav }) => {
   const navigate = useNavigate();
@@ -20,49 +21,55 @@ const LeftNavbar = ({ activeNav, setActiveNav }) => {
     <div className="left-navbar rounded-4 shadow-sm">
       <div className="nav-logo">
         <div className="logo-icon">
-          <img 
-            src="/assets/meetza_logo_1024.png" 
-            alt="logo" 
-            style={{ width: '80px', height: '80px' }} 
+          <img
+            src="/assets/meetza_logo_1024.png"
+            alt="logo"
+            style={{ width: '80px', height: '80px' }}
           />
         </div>
       </div>
       <div className="nav-icons">
         <div className="nav-icons-group-top">
-          <div 
-            className={`nav-icon ${activeNav === 'home' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'home' ? 'active' : ''}`}
             onClick={() => setActiveNav('home')}
           >
             <House size={32} />
           </div>
-          <div 
-            className={`nav-icon ${activeNav === 'profile' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveNav('profile')}
           >
             <User size={32} />
           </div>
-          <div 
-            className={`nav-icon ${activeNav === 'messages' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'messages' ? 'active' : ''}`}
             onClick={() => setActiveNav('messages')}
           >
             <Envelope size={32} />
           </div>
-          <div 
-            className={`nav-icon ${activeNav === 'calendar' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveNav('users')}
+          >
+            <UsersThree size={32} />
+          </div>
+          <div
+            className={`nav-icon ${activeNav === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveNav('calendar')}
           >
             <CalendarBlank size={32} />
           </div>
         </div>
         <div className="nav-icons-group-bottom">
-          <div 
-            className={`nav-icon ${activeNav === 'notifications' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'notifications' ? 'active' : ''}`}
             onClick={() => setActiveNav('notifications')}
           >
             <Bell size={32} />
           </div>
-          <div 
-            className={`nav-icon ${activeNav === 'settings' ? 'active' : ''}`} 
+          <div
+            className={`nav-icon ${activeNav === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveNav('settings')}
           >
             <GearSix size={32} />

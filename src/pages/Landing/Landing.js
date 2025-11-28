@@ -49,12 +49,16 @@ const Landing = () => {
                 topBody="/assets/robotBody1.png"
                 sideText={(
                   <>
-                    <h2>Lorem ipsum enim sit nisl</h2>
+                    <h2>Secure Video Meetings</h2>
                     <p>
-                      Lorem Ipsum Dolor Sit Amet Consectetur. Eleifend Arcu Auctor Placerat In
-                      Feugiat Risus Pretium. Nibh In Pulvinar Vitae Tristique. Lobortis Massa At
-                      Sagittis In Ultrices Fames Massa Vulputate Ante.
+                      Start secure video meetings instantly with your team or patients. Share screens, record sessions, and manage consultations efficiently.
                     </p>
+                    <ul>
+                      <li>HD Video & Audio</li>
+                      <li>Screen Sharing & Recording</li>
+                      <li>Meeting Notes & Summaries</li>
+                    </ul>
+
                   </>
                 )}
               />
@@ -82,11 +86,16 @@ const Landing = () => {
                 topFigure="/assets/robot2.png"
                 sideText={(
                   <>
-                    <h2>Lorem ipsum enim sit nisl</h2>
+                    <h2>Real-Time Group Chat</h2>
                     <p>
-                      Lorem Ipsum Dolor Sit Amet Consectetur. Eleifend Arcu Auctor Placerat In
-                      Feugiat Risus Pretium. Nibh In Pulvinar Vitae Tristique.
+                      Collaborate in real-time with doctors and members. Create group discussions, send files, and stay updated instantly.
                     </p>
+                    <ul>
+                      <li>Private & Group Chats</li>
+                      <li>File Sharing & Attachments</li>
+                      <li>Notifications & Pop-ups</li>
+                    </ul>
+
                   </>
                 )}
               />
@@ -102,7 +111,7 @@ const Landing = () => {
               className="bg-section-inner page-block"
             >
               <FeatureCard
-                title="Lorem ipsum enim sit nisl"
+                title="Meeting Schedule"
                 leftImage="/assets/boy2.png"
                 rightImage="/assets/boy1.png"
                 centerImage="/assets/calender.png"

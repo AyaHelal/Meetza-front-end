@@ -20,18 +20,11 @@ body.group-chat-active {
 
 .home-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
-  max-height: 100vh;
-  max-width: 100vw;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Roboto", sans-serif;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
 /* Left Navigation Bar */
