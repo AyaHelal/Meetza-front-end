@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 //import { io } from 'socket.io-client';
 import './GroupChat.css';
-import LeftNavbar from './components/LeftNavbar';
 import ChatsPanel from './components/ChatsPanel';
 import MainChat from './components/MainChat';
 import RightSidebar from './components/RightSidebar';
@@ -13,7 +12,6 @@ import { AuthContext } from '../../context/AuthContext';
 export default function GroupChat() {
   const { user } = useContext(AuthContext);
   const [selectedChat, setSelectedChat] = useState(null);
-  const [activeNav, setActiveNav] = useState('messages');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMainChat, setShowMainChat] = useState(false);
   //const [socket, setSocket] = useState(null);
@@ -259,13 +257,13 @@ export default function GroupChat() {
           avatarImage: group.group_photo || null,
           date: group.last_message_at
             ? new Date(group.last_message_at).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short'
-              })
+              day: 'numeric',
+              month: 'short'
+            })
             : new Date().toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short'
-              }),
+              day: 'numeric',
+              month: 'short'
+            }),
           unread: 0,
           group_name: group.group_name,
           group_content_id: group.group_content_id,
@@ -470,8 +468,6 @@ export default function GroupChat() {
 
   return (
     <div className="home-container">
-      <LeftNavbar activeNav={activeNav} setActiveNav={setActiveNav} />
-
       <ChatsPanel
         groupChats={groupChats}
         selectedChat={selectedChat}

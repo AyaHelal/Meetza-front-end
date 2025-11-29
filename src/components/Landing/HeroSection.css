@@ -97,6 +97,7 @@
 .hero-button-secondary:hover,
 .hero-button-secondary:active,
 .hero-button-secondary:focus {
+  color: white !important;
   background-color: #005fb8;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 118, 234, 0.4);
@@ -327,8 +328,9 @@
 .hero-login-btn:hover,
 .hero-login-btn:active,
 .hero-login-btn:focus {
+  color: white !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 220, 133, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   outline: none;
 }
 

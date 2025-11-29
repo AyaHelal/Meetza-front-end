@@ -1,0 +1,376 @@
+.groups-page {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  padding: 20px;
+  padding-left: 0;
+  gap: 20px;
+  overflow: hidden;
+}
+
+/* Global scrollbar fix - apply to all scrollable elements in groups page */
+.groups-page * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
+}
+
+.groups-page *::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.groups-page *::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.groups-page *::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+.filter-panel,
+.groups-content {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom WebKit Scrollbar - completely remove arrows */
+.filter-panel::-webkit-scrollbar,
+.groups-content::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+  -webkit-appearance: none;
+}
+
+.filter-panel::-webkit-scrollbar-track,
+.groups-content::-webkit-scrollbar-track {
+  background: transparent !important;
+  -webkit-box-shadow: none !important;
+}
+
+.filter-panel::-webkit-scrollbar-thumb,
+.groups-content::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0 !important;
+  border-radius: 3px !important;
+  -webkit-box-shadow: none !important;
+}
+
+.filter-panel::-webkit-scrollbar-thumb:hover,
+.groups-content::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0 !important;
+}
+
+/* Completely remove all scrollbar buttons/arrows */
+.filter-panel::-webkit-scrollbar-button,
+.groups-content::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.filter-panel::-webkit-scrollbar-button:single-button,
+.groups-content::-webkit-scrollbar-button:single-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.filter-panel::-webkit-scrollbar-button:double-button,
+.groups-content::-webkit-scrollbar-button:double-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.filter-panel::-webkit-scrollbar-button:start:decrement,
+.filter-panel::-webkit-scrollbar-button:end:increment,
+.groups-content::-webkit-scrollbar-button:start:decrement,
+.groups-content::-webkit-scrollbar-button:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.filter-panel::-webkit-scrollbar-button:vertical:start:decrement,
+.filter-panel::-webkit-scrollbar-button:vertical:end:increment,
+.groups-content::-webkit-scrollbar-button:vertical:start:decrement,
+.groups-content::-webkit-scrollbar-button:vertical:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.filter-panel::-webkit-scrollbar-button:horizontal:start:decrement,
+.filter-panel::-webkit-scrollbar-button:horizontal:end:increment,
+.groups-content::-webkit-scrollbar-button:horizontal:start:decrement,
+.groups-content::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.filter-panel::-webkit-scrollbar-corner,
+.groups-content::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+.filter-panel {
+  width: 300px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.filter-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #333;
+}
+
+.search-bar input::placeholder {
+  color: #999;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.filter-title svg {
+  transition: transform 0.2s;
+}
+
+.filter-title svg.expanded {
+  transform: rotate(180deg);
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0076ea;
+  background: transparent;
+  border: 2px solid #000000;
+  border-radius: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+}
+
+.filter-checkbox input[type="checkbox"]:checked {
+  background: transparent;
+  border-color: #000000;
+}
+
+.filter-checkbox input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #0076ea;
+  font-size: 12px;
+  font-weight: bold !important;
+  line-height: 1;
+}
+
+.groups-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom, #e3f2fd 0%, #ffffff 30%);
+  border-radius: 12px;
+  padding: 25px;
+  padding-top: 20px !important;
+}
+
+.groups-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 24px;
+}
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding-bottom: 20px;
+}
+
+.group-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.group-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.group-card-image {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.group-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+}
+
+.group-name-banner {
+  display: inline-block;
+  background: linear-gradient(135deg, #80baf5 0%, #0076ea 100%);
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.group-card-body {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.group-card-instructor {
+  font-size: 14px;
+  color: #888888;
+  margin-bottom: 20px;
+}
+
+.group-join-btn {
+  background: #0076ea;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  align-self: center;
+  width: 100%;
+}
+
+.group-join-btn:hover {
+  background: #005fb8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .groups-page {
+    flex-direction: column;
+    margin: 10px;
+    height: calc(100vh - 20px);
+  }
+
+  .filter-panel {
+    width: 100%;
+    max-height: 300px;
+  }
+
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -38,11 +38,11 @@ export default function HeroSection() {
                 </motion.h1>
                 <motion.p className="lead mt-4 mb-5" variants={item}>Your gate to new experience and the one to organize</motion.p>
                 <motion.div className="hero-buttons d-flex justify-content-center" style={{ gap: '24px' }} variants={item}>
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className="btn btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
+                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className=" hero-login-btn her0-button-primary btn  btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#00DC85", border: "none", fontSize: '18px' }}
                         onClick={() => navigate('/signup')}
                     >Home</motion.button>
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className="btn btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
+                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className=" hero-button-secondary hero-login-btn btn btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#0076EA", border: "none", fontSize: '18px' }}
                         onClick={() => { window.location.href = 'https://meetza-front-end-admin.vercel.app/signup'; }}
                     >Dashboard</motion.button>

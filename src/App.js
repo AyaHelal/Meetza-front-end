@@ -5,11 +5,13 @@ import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
+import Groups from './pages/Groups/Groups';
 import VerifyEmailCode from './pages/VerifyEmail/VerifyEmailCode';
 import ForgotPasswordForm from './pages/ForgotPassword/ForgotPasswordForm';
 import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
+import AppLayout from './components/AppLayout/AppLayout';
 import { useState, useEffect, useContext } from "react";
 const AppRoutes = () => {
   const location = useLocation();
@@ -30,13 +32,21 @@ const AppRoutes = () => {
     }
   }, [location]);
 
-  // Show loader when navigating to /home
+  // Show loader only on initial navigation to /home (not when switching between pages)
   useEffect(() => {
-    if (location.pathname === "/home") {
+    // Only show loader on initial mount or when coming from a different route type
+    const isProtectedRoute = location.pathname === "/home" || location.pathname === "/groups";
+    const wasProtectedRoute = sessionStorage.getItem('lastRoute')?.startsWith('/home') ||
+      sessionStorage.getItem('lastRoute')?.startsWith('/groups');
+
+    if (isProtectedRoute && !wasProtectedRoute && location.pathname === "/home") {
       setLoading(true);
-      const timer = setTimeout(() => setLoading(false), 1500);
+      const timer = setTimeout(() => setLoading(false), 500);
       return () => clearTimeout(timer);
     }
+
+    // Store current route
+    sessionStorage.setItem('lastRoute', location.pathname);
   }, [location.pathname]);
 
   if (loading || initializing) {
@@ -67,7 +77,11 @@ const AppRoutes = () => {
       {/* Protected Home: if no token, go to Landing */}
       <Route
         path="/home"
-        element={token ? <GroupChat /> : <Navigate to="/landing" replace />}
+        element={token ? <AppLayout><GroupChat /></AppLayout> : <Navigate to="/landing" replace />}
+      />
+      <Route
+        path="/groups"
+        element={token ? <AppLayout><Groups /></AppLayout> : <Navigate to="/landing" replace />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
