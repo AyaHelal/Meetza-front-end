@@ -3,10 +3,12 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import { categorizeResources } from './utils';
+import { deleteMessage, updateMessage } from '../../../API/auth';
 import './MainChat.css';
+import { smartToast } from "../../../API/toastManager";
 
 const MainChat = ({
-    messages,
+    messages: initialMessages,
     chatTitle,
     isMobile,
     showMainChat,
@@ -14,13 +16,15 @@ const MainChat = ({
     onSendMessage,
     expandedSection,
     groupInfo,
-    setExpandedSection
+    setExpandedSection,
+    user
 }) => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
+    const [messages, setMessages] = useState(initialMessages || []);
 
     // Check if user is at the bottom of the chat
     const checkIfAtBottom = () => {
@@ -58,14 +62,14 @@ const MainChat = ({
     useEffect(() => {
         const currentMessagesLength = messages.length;
         const prevMessagesLength = prevMessagesLengthRef.current;
-        
+
         // Only auto-scroll if:
         // 1. New messages were added (length increased)
         // 2. User is at the bottom
         if (currentMessagesLength > prevMessagesLength && isUserAtBottom) {
             scrollToBottom(true);
         }
-        
+
         prevMessagesLengthRef.current = currentMessagesLength;
     }, [messages, isUserAtBottom]);
 
@@ -79,6 +83,11 @@ const MainChat = ({
         }
     }, [showMainChat, isMobile]);
 
+    // Update messages state when initialMessages prop changes
+    useEffect(() => {
+        setMessages(initialMessages || []);
+    }, [initialMessages]);
+
     const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
 
     const handlePhotoClick = (photo) => {
@@ -89,12 +98,32 @@ const MainChat = ({
         setModalPhoto(null);
     };
 
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await deleteMessage(messageId);
+            setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+        } catch (error) {
+            smartToast.error('Failed to delete message:', error);
+        }
+    };
+
+    const handleEditMessage = async (messageId, newText) => {
+        try {
+            await updateMessage(messageId, newText);
+            setMessages(prevMessages => prevMessages.map(msg =>
+                msg.id === messageId ? { ...msg, text: newText } : msg
+            ));
+        } catch (error) {
+            smartToast.error('Failed to edit message:', error);
+        }
+    };
+
     // Get file name with extension for download
     const getDownloadFileName = (item) => {
         // Helper function to get extension from file_type (most reliable)
         const getExtensionFromFileType = (fileType) => {
             if (!fileType) return null;
-            
+
             const typeMap = {
                 'application/pdf': 'pdf',
                 'application/msword': 'doc',
@@ -109,12 +138,12 @@ const MainChat = ({
                 'application/x-rar-compressed': 'rar',
                 'application/x-zip-compressed': 'zip'
             };
-            
+
             // Check typeMap first
             if (typeMap[fileType]) {
                 return typeMap[fileType];
             }
-            
+
             // Try to extract from MIME type (e.g., "application/pdf" -> "pdf")
             const parts = fileType.split('/');
             if (parts.length === 2) {
@@ -124,7 +153,7 @@ const MainChat = ({
                     return subtype;
                 }
             }
-            
+
             return null;
         };
 
@@ -151,11 +180,11 @@ const MainChat = ({
 
         // Priority: file_type > file_url > file_name
         let extension = getExtensionFromFileType(item.file_type);
-        
+
         if (!extension) {
             extension = getExtensionFromUrl(item.file_url);
         }
-        
+
         if (!extension) {
             extension = getExtensionFromFileName(item.file_name);
         }
@@ -176,7 +205,7 @@ const MainChat = ({
                     const urlPath = item.file_url.split('?')[0].split('#')[0];
                     const urlParts = urlPath.split('/');
                     const lastPart = urlParts[urlParts.length - 1];
-                    
+
                     if (lastPart && lastPart.includes('.')) {
                         // URL already has filename with extension
                         return lastPart;
@@ -289,7 +318,12 @@ const MainChat = ({
                                                 <div className="date-separator">{msgDate}</div>
                                             </div>
                                         )}
-                                        <MessageItem message={msg} />
+                                        <MessageItem
+                                            message={msg}
+                                            onDeleteMessage={handleDeleteMessage}
+                                            onEditMessage={handleEditMessage}
+                                            currentUser={user}
+                                        />
                                     </React.Fragment>
                                 );
                             })}
