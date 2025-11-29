@@ -1,1 +1,124 @@
-/* ChatInput styles are in GroupChat.css */
+/* Existing styles */
+.chat-input {
+    position: relative;
+    background: #fff;
+    border-top: 1px solid #e9ecef;
+    padding: 10px;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 5px 0px;
+}
+
+.input-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #495057;
+    transition: background-color 0.2s;
+}
+
+.input-icon:hover {
+    background-color: #e9ecef;
+}
+
+.input-icon-left {
+    margin-right: 5px;
+}
+
+.input-icon-right {
+    margin-left: 5px;
+}
+
+.emoji-icon {
+    position: relative;
+}
+
+.emoji-picker-wrapper {
+    position: absolute;
+    bottom: 60px;
+    right: 10px;
+    z-index: 1000;
+}
+
+.attachment-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+    margin-bottom: 8px;
+    min-width: 150px;
+}
+
+.attachment-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    width: 100%;
+}
+
+.attachment-menu button:hover {
+    background-color: #f5f5f5;
+}
+
+.attachment-menu button span {
+    font-size: 14px;
+    color: #333;
+}
+
+.attachment-button {
+    position: relative;
+    cursor: pointer;
+}
+
+
+
+/* Input field */
+input[type="text"] {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+/* Send button */
+.send {
+    background: #00dc85;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.send:hover {
+    background: #00c878;
+}
