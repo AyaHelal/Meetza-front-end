@@ -1,4 +1,4 @@
- * {
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -158,12 +158,12 @@ body.group-chat-active {
 
 .chats-search input {
   width: 100%;
-  padding: 10px 15px 10px 40px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 14px;
-  outline: none;
-  background: #ffffff;
+  padding: 10px 15px 10px 40px !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  outline: none !important;
+  background: #ffffff !important;
 }
 
 .chats-search input:focus {
@@ -172,9 +172,11 @@ body.group-chat-active {
 
 .chats-search .search-icon {
   position: absolute;
-  left: 30px;
+  left: 38px;
   color: #999999;
+  font-weight: 700 !important;
   pointer-events: none;
+  z-index: 1;
 }
 
 .chats-tabs {
@@ -351,8 +353,10 @@ body.group-chat-active {
 .chat-header {
   padding: 15px 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .chat-header h3 {
@@ -360,12 +364,25 @@ body.group-chat-active {
   font-weight: 600;
   color: #000000;
   margin: 0;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-header:has(.back-to-chat-btn) h3 {
+  flex: 0 1 auto;
+  margin-left: 0;
+  min-width: 0;
 }
 
 .chat-header-actions {
   display: flex;
   gap: 15px;
   align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .join-meeting-btn {
@@ -437,7 +454,7 @@ body.group-chat-active {
 
 .date-separator {
   text-align: center;
-  color: #666666;
+  color: #999;
   font-size: 12px;
   padding: 8px 16px;
   background: #e8e8e8;
@@ -449,6 +466,16 @@ body.group-chat-active {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+}
+
+/* Messages from other users - align to left */
+.message-other {
+  justify-content: flex-start;
+}
+
+/* Messages from current user - align to right, no avatar */
+.message-own {
+  justify-content: flex-end;
 }
 
 .message-avatar {
@@ -475,6 +502,15 @@ body.group-chat-active {
 
 .message-content {
   flex: 1;
+  max-width: 70%;
+}
+
+/* For own messages, align content to the right */
+.message-own .message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 75%;
 }
 
 .message-header {
@@ -482,6 +518,10 @@ body.group-chat-active {
   gap: 10px;
   align-items: center;
   margin-bottom: 4px;
+}
+
+.message-header-own {
+  justify-content: flex-end;
 }
 
 .message-sender {
@@ -505,6 +545,16 @@ body.group-chat-active {
   display: inline-block;
   max-width: 100%;
   word-wrap: break-word;
+}
+
+/* Own messages have different background color */
+.message-own .message-text {
+  background: #1976d2;
+  color: #ffffff;
+}
+
+.message-own .message-time {
+  color: #999;
 }
 
 .chat-input {
@@ -1571,7 +1621,7 @@ body.group-chat-active {
 
   .chats-search input {
     font-size: 13px;
-    padding: 8px 12px 8px 35px;
+    padding: 8px 12px 8px 40px;
   }
 
   .tab {
@@ -1654,103 +1704,103 @@ body.group-chat-active {
 
 /* Expanded section styles */
 .expanded-section {
-    padding: 1rem;
-    margin-bottom: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 .expanded-section h4 {
-    margin: 0 0 1rem 0;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
 }
 
 .expanded-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .expanded-items.expanded-links {
-    flex-direction: column;
-    flex-wrap: nowrap;
+  flex-direction: column;
+  flex-wrap: nowrap;
 }
 
 .expanded-item {
-    flex: 0 0 auto;
-    max-width: 120px;
+  flex: 0 0 auto;
+  max-width: 120px;
 }
 
 .expanded-links .expanded-item {
-    max-width: 100%;
-    width: 100%;
+  max-width: 100%;
+  width: 100%;
 }
 
 .expanded-photo {
-    width: 100%;
-    height: 120px;
-    border-radius: 8px;
-    object-fit: cover;
-    cursor: pointer;
-    transition: transform 0.2s ease;
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .expanded-photo:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 .expanded-item a {
-    display: block;
-    padding: 0.5rem;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #007bff;
-    word-break: break-all;
-    font-size: 0.9rem;
+  display: block;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #007bff;
+  word-break: break-all;
+  font-size: 0.9rem;
 }
 
 .expanded-item a:hover {
-    background: #f0f0f0;
+  background: #f0f0f0;
 }
 
 .expanded-item a.link-item {
-    width: 100%;
-    margin-bottom: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
 }
 
 /* Modal for enlarged photo */
 .photo-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
 .photo-modal img {
-    max-width: 90%;
-    max-height: 90%;
-    border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
 }
 
 .photo-modal-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 10px;
-    border-radius: 50%;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
 }
 
 /* Back button (no border/outline) - applies across viewports */
@@ -1765,6 +1815,8 @@ body.group-chat-active {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .back-to-chats-btn:focus,
@@ -1776,7 +1828,7 @@ body.group-chat-active {
 
 /* Back to chat button (no border/outline) */
 .back-to-chat-btn {
-  background: transparent !important;
+  background: #1976d2 !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -1787,10 +1839,15 @@ body.group-chat-active {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  border-radius: 50%;
+  color: #ffffff !important;
+  font-size: 24px;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .back-to-chat-btn:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
+  background: #1565c0 !important;
   border-radius: 50%;
 }
 

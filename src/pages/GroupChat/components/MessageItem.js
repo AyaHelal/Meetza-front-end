@@ -128,4 +128,3 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 };
 
 export default MessageItem;
-
