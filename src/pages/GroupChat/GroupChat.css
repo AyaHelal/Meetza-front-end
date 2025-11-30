@@ -1693,9 +1693,12 @@ body.group-chat-active {
 }
 
 .chats-list::-webkit-scrollbar-track,
-.chat-messages::-webkit-scrollbar-track,
 .right-sidebar::-webkit-scrollbar-track {
   background: #f1f1f1;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .chats-list::-webkit-scrollbar-thumb,

@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { deleteMessage } from '../../../API/auth';
-import { smartToast } from '../../../API/toastManager';
 import '../GroupChat.css';
 
 const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail }) => {
@@ -8,24 +6,33 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(message.text);
+
+    // Update editText when message.text changes (e.g., after successful edit)
+    useEffect(() => {
+        setEditText(message.text);
+    }, [message.text]);
     const messageRef = useRef(null);
     const menuRef = useRef(null);
 
+    // Determine ownership: prefer `currentUserEmail` prop (from MainChat), fallback to `currentUser` object
+    const resolvedCurrentEmail = currentUserEmail || currentUser?.email || currentUser?.user_email || null;
+    const messageEmail = message.senderEmail || message.sender_email || null;
+    const emailMatch = messageEmail && resolvedCurrentEmail && messageEmail.toLowerCase() === resolvedCurrentEmail.toLowerCase();
+    const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
+    const isOwnMessage = emailMatch || nameMatch;
+
     const handleRightClick = (e) => {
+        // Only show context menu for own messages
+        if (!isOwnMessage) {
+            return;
+        }
         e.preventDefault();
         setMenuPosition({ x: e.clientX, y: e.clientY });
         setShowContextMenu(true);
     };
 
-    const handleDelete = async () => {
-        try {
-            await deleteMessage(groupId, message.id);
-            smartToast.success('Message deleted successfully');
-            onDeleteMessage(message.id); // Update local state
-        } catch (error) {
-            smartToast.error('Failed to delete message');
-            console.error('Error deleting message:', error);
-        }
+    const handleDelete = () => {
+        onDeleteMessage(message.id);
         setShowContextMenu(false);
     };
 
@@ -35,8 +42,13 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     };
 
     const handleEditSubmit = () => {
-        if (editText.trim() && editText !== message.text) {
-            onEditMessage(message.id, editText.trim());
+        const trimmedText = editText.trim();
+        if (trimmedText && trimmedText !== message.text) {
+            onEditMessage(message.id, trimmedText);
+        } else if (!trimmedText) {
+            // If empty, cancel the edit
+            handleEditCancel();
+            return;
         }
         setIsEditing(false);
     };
@@ -54,13 +66,6 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         }
     };
 
-    // Determine ownership: prefer `currentUserEmail` prop (from MainChat), fallback to `currentUser` object
-    const resolvedCurrentEmail = currentUserEmail || currentUser?.email || currentUser?.user_email || null;
-    const messageEmail = message.senderEmail || message.sender_email || null;
-    const emailMatch = messageEmail && resolvedCurrentEmail && messageEmail.toLowerCase() === resolvedCurrentEmail.toLowerCase();
-    const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
-    const isOwnMessage = emailMatch || nameMatch;
-
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -75,7 +80,11 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     }, []);
 
     return (
-        <div className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`} ref={messageRef} onContextMenu={handleRightClick}>
+        <div
+            className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`}
+            ref={messageRef}
+            onContextMenu={isOwnMessage ? handleRightClick : undefined}
+        >
             {!isOwnMessage && (
                 <div className="message-avatar">
                     {message.senderPhoto ? (
@@ -109,11 +118,11 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                             className="edit-input"
                         />
                     ) : (
-                        message.text
+                        message.text || ''
                     )}
                 </div>
             </div>
-            {showContextMenu && (
+            {showContextMenu && isOwnMessage && (
                 <div
                     className="context-menu"
                     ref={menuRef}
