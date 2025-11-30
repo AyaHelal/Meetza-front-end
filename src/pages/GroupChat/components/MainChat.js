@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
 import { deleteMessage, updateMessage } from '../../../API/auth';
 import './MainChat.css';
@@ -17,9 +18,8 @@ const MainChat = ({
     expandedSection,
     groupInfo,
     setExpandedSection,
-    user
+    currentUserEmail
 }) => {
-    const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
@@ -280,12 +280,14 @@ const MainChat = ({
             <div className="chat-header">
                 {isMobile && (
                     <button className="back-to-chats-btn" onClick={onBackToChats}>
-                        ←
+                        <ArrowLeft size={24} />
+
                     </button>
                 )}
                 {expandedSection && (
                     <button className="back-to-chat-btn" onClick={() => setExpandedSection(null)}>
-                        ←
+                        <ArrowLeft size={24} />
+
                     </button>
                 )}
                 <h3>{chatTitle}</h3>
@@ -322,7 +324,7 @@ const MainChat = ({
                                             message={msg}
                                             onDeleteMessage={handleDeleteMessage}
                                             onEditMessage={handleEditMessage}
-                                            currentUser={user}
+                                             currentUserEmail={currentUserEmail}
                                         />
                                     </React.Fragment>
                                 );

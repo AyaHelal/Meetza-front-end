@@ -171,9 +171,7 @@ const Groups = () => {
                         <div key={group.id} className="group-card">
                             <div className="group-card-image">
                                 <img src={group.image} alt={group.title} />
-                                {/* <div className="group-card-overlay">
-                                    <span className="group-name-banner">GRACIE ABRAMS</span>
-                                </div> */}
+                              
                             </div>
                             <div className="group-card-body">
                                 <div className="group-card-title">Title</div>
