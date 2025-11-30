@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
 import { deleteMessage, updateMessage } from '../../../API/auth';
 import './MainChat.css';
@@ -58,14 +59,11 @@ const MainChat = ({
         };
     }, []);
 
-    // Auto-scroll when new messages arrive (only if user was at bottom)
     useEffect(() => {
         const currentMessagesLength = messages.length;
         const prevMessagesLength = prevMessagesLengthRef.current;
 
-        // Only auto-scroll if:
-        // 1. New messages were added (length increased)
-        // 2. User is at the bottom
+
         if (currentMessagesLength > prevMessagesLength && isUserAtBottom) {
             scrollToBottom(true);
         }
@@ -285,7 +283,7 @@ const MainChat = ({
                 )}
                 {expandedSection && (
                     <button className="back-to-chat-btn" onClick={() => setExpandedSection(null)}>
-                        ←
+                        <ArrowLeft size={20} />
                     </button>
                 )}
                 <h3>{chatTitle}</h3>
@@ -322,7 +320,7 @@ const MainChat = ({
                                             message={msg}
                                             onDeleteMessage={handleDeleteMessage}
                                             onEditMessage={handleEditMessage}
-                                            currentUser={currentUserEmail}
+                                            currentUserEmail={currentUserEmail}
                                         />
                                     </React.Fragment>
                                 );
