@@ -386,6 +386,21 @@ export default function GroupChat() {
     setShowMainChat(false);
   };
 
+  const handleMessageEdited = (messageId, newText) => {
+    // Update the last message in the chats panel if this is the last message
+    if (selectedChat !== null && groupChats[selectedChat]) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.id === messageId) {
+        setGroupChats(prev => prev.map((chat, index) => {
+          if (index === selectedChat) {
+            return { ...chat, subject: newText };
+          }
+          return chat;
+        }));
+      }
+    }
+  };
+
   const handleSendMessage = async (messageText) => {
     if (selectedChat === null) return;
 
@@ -404,6 +419,14 @@ export default function GroupChat() {
       _optimistic: true
     };
     setMessages((prev) => [...prev, newMessage]);
+
+    // Update chats panel with new last message
+    setGroupChats(prev => prev.map((chat, index) => {
+      if (index === selectedChat) {
+        return { ...chat, subject: messageText };
+      }
+      return chat;
+    }));
 
     // If socket is connected, send via socket for realtime
     /*if (socket && socket.connected) {
@@ -487,6 +510,8 @@ export default function GroupChat() {
         groupInfo={groupInfo}
         setExpandedSection={setExpandedSection}
         currentUserEmail={user?.email}
+        groupId={selectedChatData?.id}
+        onMessageEdited={handleMessageEdited}
       />
 
       <RightSidebar

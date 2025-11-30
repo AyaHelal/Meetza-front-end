@@ -18,7 +18,9 @@ const MainChat = ({
     expandedSection,
     groupInfo,
     setExpandedSection,
-    currentUserEmail
+    currentUserEmail,
+    groupId,
+    onMessageEdited
 }) => {
     const messagesContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -26,6 +28,8 @@ const MainChat = ({
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
     const [messages, setMessages] = useState(initialMessages || []);
+    const recentlyEditedRef = useRef(new Set()); // Track recently edited message IDs
+    const skipNextUpdateRef = useRef(false); // Flag to skip the next update
 
     // Check if user is at the bottom of the chat
     const checkIfAtBottom = () => {
@@ -36,14 +40,12 @@ const MainChat = ({
         return isAtBottom;
     };
 
-    // Auto-scroll to bottom when new messages arrive (only if user is at bottom)
     const scrollToBottom = (force = false) => {
         if (force || isUserAtBottom) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     };
 
-    // Handle scroll event to detect if user scrolled up
     useEffect(() => {
         const container = messagesContainerRef.current;
         if (!container) return;
@@ -82,8 +84,74 @@ const MainChat = ({
     }, [showMainChat, isMobile]);
 
     // Update messages state when initialMessages prop changes
+    // But preserve recently edited messages and don't remove messages that exist locally
     useEffect(() => {
-        setMessages(initialMessages || []);
+        // Skip update if flag is set or if we have recently edited messages
+        if (skipNextUpdateRef.current || recentlyEditedRef.current.size > 0) {
+            if (skipNextUpdateRef.current) {
+                skipNextUpdateRef.current = false;
+            }
+            return;
+        }
+
+        if (!initialMessages || initialMessages.length === 0) {
+            // Only clear if we don't have recent edits
+            setMessages(prevMessages => {
+                if (!prevMessages || prevMessages.length === 0) {
+                    return [];
+                }
+                const hasRecentEdits = prevMessages.some(msg =>
+                    recentlyEditedRef.current.has(msg.id) ||
+                    (msg._lastEdited && (Date.now() - msg._lastEdited < 15000))
+                );
+                return hasRecentEdits ? prevMessages : [];
+            });
+            return;
+        }
+
+        setMessages(prevMessages => {
+            // If we have no previous messages, just use the new ones
+            if (!prevMessages || prevMessages.length === 0) {
+                return initialMessages;
+            }
+
+            // Check if we should skip update due to recent edits
+            const hasRecentEdits = prevMessages.some(msg =>
+                recentlyEditedRef.current.has(msg.id) ||
+                (msg._lastEdited && (Date.now() - msg._lastEdited < 15000))
+            );
+
+            if (hasRecentEdits) {
+                return prevMessages; // Keep current messages
+            }
+
+            // Create maps for quick lookup
+            const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
+            const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
+
+            // Start with all new messages, but preserve edited ones
+            const merged = initialMessages.map(newMsg => {
+                const prevMsg = prevMap.get(newMsg.id);
+                const wasRecentlyEdited = recentlyEditedRef.current.has(newMsg.id) ||
+                    (prevMsg?._lastEdited && (Date.now() - prevMsg._lastEdited < 15000));
+
+                if (prevMsg && wasRecentlyEdited && prevMsg.text) {
+                    return { ...newMsg, ...prevMsg, text: prevMsg.text, _lastEdited: prevMsg._lastEdited };
+                }
+                return newMsg;
+            });
+
+            // Add any locally edited messages that aren't in the new list
+            prevMessages.forEach(prevMsg => {
+                const wasRecentlyEdited = recentlyEditedRef.current.has(prevMsg.id) ||
+                    (prevMsg._lastEdited && (Date.now() - prevMsg._lastEdited < 15000));
+                if (wasRecentlyEdited && !newMap.has(prevMsg.id)) {
+                    merged.push(prevMsg);
+                }
+            });
+
+            return merged;
+        });
     }, [initialMessages]);
 
     const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
@@ -97,22 +165,74 @@ const MainChat = ({
     };
 
     const handleDeleteMessage = async (messageId) => {
+        if (!groupId) {
+            smartToast.error('Group ID is missing');
+            return;
+        }
         try {
-            await deleteMessage(messageId);
+            const response = await deleteMessage(groupId, messageId);
+            console.log("Delete message response:", response);
             setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+            smartToast.success('Message deleted successfully');
         } catch (error) {
-            smartToast.error('Failed to delete message:', error);
+            smartToast.error('Failed to delete message');
+            console.error('Error deleting message:', error);
         }
     };
 
     const handleEditMessage = async (messageId, newText) => {
+        if (!groupId) {
+            smartToast.error('Group ID is missing');
+            return;
+        }
+        if (!newText || !newText.trim()) {
+            return; // Don't update if text is empty
+        }
+
+        const trimmedText = newText.trim();
+
         try {
-            await updateMessage(messageId, newText);
-            setMessages(prevMessages => prevMessages.map(msg =>
-                msg.id === messageId ? { ...msg, text: newText } : msg
-            ));
+            // Mark as recently edited and skip next update
+            recentlyEditedRef.current.add(messageId);
+            skipNextUpdateRef.current = true;
+
+            // Update local state optimistically first
+            setMessages(prevMessages => prevMessages.map(msg => {
+                if (msg.id === messageId) {
+                    return { ...msg, text: trimmedText, _lastEdited: Date.now() };
+                }
+                return msg;
+            }));
+
+            // Remove from recently edited set after 20 seconds (longer to prevent overwrites)
+            setTimeout(() => {
+                recentlyEditedRef.current.delete(messageId);
+            }, 20000);
+
+            const response = await updateMessage(groupId, messageId, trimmedText);
+            console.log("Update message response:", response);
+
+            // The backend returns {success: true, message: 'Message updated successfully'}
+            // It doesn't return the updated message text, so we keep our optimistic update
+            // The optimistic update already has the correct text (trimmedText)
+            // No need to update again since we already set it optimistically
+
+            // Notify parent to update chats panel
+            if (onMessageEdited) {
+                onMessageEdited(messageId, trimmedText);
+            }
         } catch (error) {
-            smartToast.error('Failed to edit message:', error);
+            // Revert on error
+            setMessages(prevMessages => prevMessages.map(msg => {
+                if (msg.id === messageId) {
+                    // Find original text from initialMessages if available
+                    const originalMsg = initialMessages?.find(m => m.id === messageId);
+                    return { ...msg, text: originalMsg?.text || msg.text };
+                }
+                return msg;
+            }));
+            smartToast.error('Failed to edit message');
+            console.error('Error updating message:', error);
         }
     };
 
@@ -318,6 +438,7 @@ const MainChat = ({
                                         )}
                                         <MessageItem
                                             message={msg}
+                                            groupId={groupId}
                                             onDeleteMessage={handleDeleteMessage}
                                             onEditMessage={handleEditMessage}
                                             currentUserEmail={currentUserEmail}
