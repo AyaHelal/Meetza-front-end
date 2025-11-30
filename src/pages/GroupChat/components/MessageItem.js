@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { deleteMessage } from '../../../API/auth';
 import { smartToast } from '../../../API/toastManager';
-import './MessageItem.css';
+import '../GroupChat.css';
 
-const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser }) => {
+const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail }) => {
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
@@ -54,10 +54,10 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         }
     };
 
-    // Determine ownership: compare emails (fallback to name == "You")
-    const currentUserEmail = currentUser?.email || currentUser?.user_email || null;
+    // Determine ownership: prefer `currentUserEmail` prop (from MainChat), fallback to `currentUser` object
+    const resolvedCurrentEmail = currentUserEmail || currentUser?.email || currentUser?.user_email || null;
     const messageEmail = message.senderEmail || message.sender_email || null;
-    const emailMatch = messageEmail && currentUserEmail && messageEmail.toLowerCase() === currentUserEmail.toLowerCase();
+    const emailMatch = messageEmail && resolvedCurrentEmail && messageEmail.toLowerCase() === resolvedCurrentEmail.toLowerCase();
     const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
     const isOwnMessage = emailMatch || nameMatch;
 

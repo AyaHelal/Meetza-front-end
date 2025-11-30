@@ -17,7 +17,7 @@ const MainChat = ({
     expandedSection,
     groupInfo,
     setExpandedSection,
-    user
+    currentUserEmail
 }) => {
     const messagesContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -322,7 +322,7 @@ const MainChat = ({
                                             message={msg}
                                             onDeleteMessage={handleDeleteMessage}
                                             onEditMessage={handleEditMessage}
-                                            currentUser={user}
+                                            currentUser={currentUserEmail}
                                         />
                                     </React.Fragment>
                                 );
