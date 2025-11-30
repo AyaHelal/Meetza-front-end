@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
 import './MainChat.css';
 
@@ -14,7 +15,8 @@ const MainChat = ({
     onSendMessage,
     expandedSection,
     groupInfo,
-    setExpandedSection
+    setExpandedSection,
+    currentUserEmail
 }) => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -58,14 +60,14 @@ const MainChat = ({
     useEffect(() => {
         const currentMessagesLength = messages.length;
         const prevMessagesLength = prevMessagesLengthRef.current;
-        
+
         // Only auto-scroll if:
         // 1. New messages were added (length increased)
         // 2. User is at the bottom
         if (currentMessagesLength > prevMessagesLength && isUserAtBottom) {
             scrollToBottom(true);
         }
-        
+
         prevMessagesLengthRef.current = currentMessagesLength;
     }, [messages, isUserAtBottom]);
 
@@ -94,7 +96,7 @@ const MainChat = ({
         // Helper function to get extension from file_type (most reliable)
         const getExtensionFromFileType = (fileType) => {
             if (!fileType) return null;
-            
+
             const typeMap = {
                 'application/pdf': 'pdf',
                 'application/msword': 'doc',
@@ -109,12 +111,12 @@ const MainChat = ({
                 'application/x-rar-compressed': 'rar',
                 'application/x-zip-compressed': 'zip'
             };
-            
+
             // Check typeMap first
             if (typeMap[fileType]) {
                 return typeMap[fileType];
             }
-            
+
             // Try to extract from MIME type (e.g., "application/pdf" -> "pdf")
             const parts = fileType.split('/');
             if (parts.length === 2) {
@@ -124,7 +126,7 @@ const MainChat = ({
                     return subtype;
                 }
             }
-            
+
             return null;
         };
 
@@ -151,11 +153,11 @@ const MainChat = ({
 
         // Priority: file_type > file_url > file_name
         let extension = getExtensionFromFileType(item.file_type);
-        
+
         if (!extension) {
             extension = getExtensionFromUrl(item.file_url);
         }
-        
+
         if (!extension) {
             extension = getExtensionFromFileName(item.file_name);
         }
@@ -176,7 +178,7 @@ const MainChat = ({
                     const urlPath = item.file_url.split('?')[0].split('#')[0];
                     const urlParts = urlPath.split('/');
                     const lastPart = urlParts[urlParts.length - 1];
-                    
+
                     if (lastPart && lastPart.includes('.')) {
                         // URL already has filename with extension
                         return lastPart;
@@ -251,12 +253,14 @@ const MainChat = ({
             <div className="chat-header">
                 {isMobile && (
                     <button className="back-to-chats-btn" onClick={onBackToChats}>
-                        ←
+                        <ArrowLeft size={24} />
+
                     </button>
                 )}
                 {expandedSection && (
                     <button className="back-to-chat-btn" onClick={() => setExpandedSection(null)}>
-                        ←
+                        <ArrowLeft size={24} />
+
                     </button>
                 )}
                 <h3>{chatTitle}</h3>
@@ -289,7 +293,7 @@ const MainChat = ({
                                                 <div className="date-separator">{msgDate}</div>
                                             </div>
                                         )}
-                                        <MessageItem message={msg} />
+                                        <MessageItem message={msg} currentUserEmail={currentUserEmail} />
                                     </React.Fragment>
                                 );
                             })}

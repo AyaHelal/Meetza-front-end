@@ -486,6 +486,7 @@ export default function GroupChat() {
         expandedSection={expandedSection}
         groupInfo={groupInfo}
         setExpandedSection={setExpandedSection}
+        currentUserEmail={user?.email}
       />
 
       <RightSidebar
