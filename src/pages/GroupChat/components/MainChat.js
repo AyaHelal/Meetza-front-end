@@ -4,10 +4,12 @@ import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
+import { deleteMessage, updateMessage } from '../../../API/auth';
 import './MainChat.css';
+import { smartToast } from "../../../API/toastManager";
 
 const MainChat = ({
-    messages,
+    messages: initialMessages,
     chatTitle,
     isMobile,
     showMainChat,
@@ -18,11 +20,11 @@ const MainChat = ({
     setExpandedSection,
     currentUserEmail
 }) => {
-    const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
+    const [messages, setMessages] = useState(initialMessages || []);
 
     // Check if user is at the bottom of the chat
     const checkIfAtBottom = () => {
@@ -81,6 +83,11 @@ const MainChat = ({
         }
     }, [showMainChat, isMobile]);
 
+    // Update messages state when initialMessages prop changes
+    useEffect(() => {
+        setMessages(initialMessages || []);
+    }, [initialMessages]);
+
     const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
 
     const handlePhotoClick = (photo) => {
@@ -89,6 +96,26 @@ const MainChat = ({
 
     const closeModal = () => {
         setModalPhoto(null);
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await deleteMessage(messageId);
+            setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+        } catch (error) {
+            smartToast.error('Failed to delete message:', error);
+        }
+    };
+
+    const handleEditMessage = async (messageId, newText) => {
+        try {
+            await updateMessage(messageId, newText);
+            setMessages(prevMessages => prevMessages.map(msg =>
+                msg.id === messageId ? { ...msg, text: newText } : msg
+            ));
+        } catch (error) {
+            smartToast.error('Failed to edit message:', error);
+        }
     };
 
     // Get file name with extension for download
@@ -293,7 +320,12 @@ const MainChat = ({
                                                 <div className="date-separator">{msgDate}</div>
                                             </div>
                                         )}
-                                        <MessageItem message={msg} currentUserEmail={currentUserEmail} />
+                                        <MessageItem
+                                            message={msg}
+                                            onDeleteMessage={handleDeleteMessage}
+                                            onEditMessage={handleEditMessage}
+                                             currentUserEmail={currentUserEmail}
+                                        />
                                     </React.Fragment>
                                 );
                             })}

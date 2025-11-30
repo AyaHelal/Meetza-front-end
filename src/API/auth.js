@@ -74,3 +74,25 @@ export const resetPassword = async (email, newPassword, isVerified = "true") => 
         throw error;
     }
 };
+
+// ✅ Delete message
+export const deleteMessage = async (groupId, messageId) => {
+    try {
+        const response = await axiosInstance.delete(`/chat/groups/${groupId}/messages/${messageId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        throw error;
+    }
+};
+
+// ✅ Update message
+export const updateMessage = async (groupId, messageId, newText) => {
+    try {
+        const response = await axiosInstance.put(`/chat/groups/${groupId}/messages/${messageId}`, { text: newText });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating message:', error);
+        throw error;
+    }
+};
