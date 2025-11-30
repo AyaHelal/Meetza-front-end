@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MagnifyingGlass, Funnel, CaretDown } from '@phosphor-icons/react';
+import { getGroups } from '../../API/auth';
+import { smartToast } from '../../API/toastManager';
 import './Groups.css';
 
 const Groups = () => {
@@ -8,64 +10,9 @@ const Groups = () => {
     const [selectedSemesters, setSelectedSemesters] = useState(['2nd semester']);
     const [expandedYear, setExpandedYear] = useState(true);
     const [expandedSemester, setExpandedSemester] = useState(true);
-
-    // Mock data for groups
-    const groups = [
-        {
-            id: 1,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 2,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 3,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 4,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 5,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 6,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 7,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 8,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        },
-        {
-            id: 9,
-            title: "Title",
-            instructor: "Dr Hassan Eslam",
-            image: "/assets/grp-poster.png"
-        }
-    ];
+    const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
 
     const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
     const semesters = ['1st semester', '2nd semester'];
@@ -95,6 +42,45 @@ const Groups = () => {
             document.documentElement.classList.remove('group-chat-active');
             document.body.classList.remove('group-chat-active');
         };
+    }, []);
+
+    // Fetch groups data
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const groupsData = await getGroups();
+                const storedUser =
+                localStorage.getItem("user") ||
+                sessionStorage.getItem("user");
+                const userInfo = storedUser ? JSON.parse(storedUser) : null;
+                const currentUserId = userInfo?.id;
+                const rawRole = (userInfo?.role || 'Member').toString().toLowerCase();
+                const isAdminRole = rawRole.includes('administrator');
+                const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
+
+
+                const payload = groupsData?.data ?? groupsData;
+                const resolvedGroups = Array.isArray(payload)
+                    ? payload
+                    : Array.isArray(payload?.groups)
+                        ? payload.groups
+                        : [];
+
+                const visibleGroups = isAdminRole && currentUserId
+                    ? resolvedGroups.filter(group => group.administrator_id === currentUserId)
+                    : resolvedGroups;
+
+                setGroups(visibleGroups);
+                setUserRole(normalizedRole);
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                smartToast.error('Failed to load groups. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchGroups();
     }, []);
 
     return (
@@ -166,21 +152,42 @@ const Groups = () => {
 
             <div className="groups-content">
                 <h1 className="groups-title">Groups</h1>
-                <div className="groups-grid">
-                    {groups.map((group) => (
-                        <div key={group.id} className="group-card">
-                            <div className="group-card-image">
-                                <img src={group.image} alt={group.title} />
-                              
+                {loading ? (
+                    <div className="loading-container">
+                        <p>Loading groups...</p>
+                    </div>
+                ) : (
+                    <div className="groups-grid">
+                        {groups.map((group) => (
+                            <div key={group.id} className="group-card">
+                                <div className="group-card-image">
+                                    <img
+                                        src={group.group_photo || group.photo || "/assets/grp-poster.png"}
+                                        alt={group.name || group.title || 'Group'}
+                                        onError={(event) => {
+                                            event.target.onerror = null;
+                                            event.target.src = "/assets/grp-poster.png";
+                                        }}
+                                    />
+                                    {/* <div className="group-card-overlay">
+                                        <span className="group-name-banner">GRACIE ABRAMS</span>
+                                    </div> */}
+                                </div>
+                                <div className="group-card-body">
+                                    <div className="group-card-title">{group.name || group.title || group.group_name || group.content_name}</div>
+                                    {userRole === 'Member' && (
+                                        <>
+                                            <div className="group-card-instructor">
+                                                {`Dr. ${group.administrator?.name || group.administrator_name || 'Unknown'}`}
+                                            </div>
+                                            <button className="group-join-btn py-2 w-50 align-items-center">Join</button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                            <div className="group-card-body">
-                                <div className="group-card-title">Title</div>
-                                <div className="group-card-instructor">{group.instructor}</div>
-                                <button className="group-join-btn py-2 w-50 align-items-center">Join</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

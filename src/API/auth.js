@@ -96,3 +96,14 @@ export const updateMessage = async (groupId, messageId, newText) => {
         throw error;
     }
 };
+
+// ✅ Get all groups
+export const getGroups = async () => {
+    try {
+        const response = await axiosInstance.get('/group');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching groups:', error);
+        throw error;
+    }
+};
