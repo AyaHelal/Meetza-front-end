@@ -14,7 +14,7 @@ const Groups = () => {
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
 
-    const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
+    const years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
     const semesters = ['1st semester', '2nd semester'];
 
     const handleYearToggle = (year) => {
@@ -50,8 +50,8 @@ const Groups = () => {
             try {
                 const groupsData = await getGroups();
                 const storedUser =
-                localStorage.getItem("user") ||
-                sessionStorage.getItem("user");
+                    localStorage.getItem("user") ||
+                    sessionStorage.getItem("user");
                 const userInfo = storedUser ? JSON.parse(storedUser) : null;
                 const currentUserId = userInfo?.id;
                 const rawRole = (userInfo?.role || 'Member').toString().toLowerCase();
