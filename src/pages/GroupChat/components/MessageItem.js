@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { deleteMessage } from '../../../API/auth';
+import { smartToast } from '../../../API/toastManager';
 import './MessageItem.css';
 
 const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser }) => {
@@ -15,8 +17,15 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         setShowContextMenu(true);
     };
 
-    const handleDelete = () => {
-        onDeleteMessage(message.id);
+    const handleDelete = async () => {
+        try {
+            await deleteMessage(groupId, message.id);
+            smartToast.success('Message deleted successfully');
+            onDeleteMessage(message.id); // Update local state
+        } catch (error) {
+            smartToast.error('Failed to delete message');
+            console.error('Error deleting message:', error);
+        }
         setShowContextMenu(false);
     };
 
@@ -45,6 +54,13 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         }
     };
 
+    // Determine ownership: compare emails (fallback to name == "You")
+    const currentUserEmail = currentUser?.email || currentUser?.user_email || null;
+    const messageEmail = message.senderEmail || message.sender_email || null;
+    const emailMatch = messageEmail && currentUserEmail && messageEmail.toLowerCase() === currentUserEmail.toLowerCase();
+    const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
+    const isOwnMessage = emailMatch || nameMatch;
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -59,19 +75,28 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     }, []);
 
     return (
-        <div className="message" ref={messageRef} onContextMenu={handleRightClick}>
-            <div className="message-avatar">
-                {message.senderPhoto ? (
-                    <img src={message.senderPhoto} alt={message.sender} className="message-avatar-img" />
-                ) : (
-                    <span>{message.initials}</span>
-                )}
-            </div>
-            <div className="message-content">
-                <div className="message-header">
-                    <span className="message-sender">{message.sender}</span>
-                    <span className="message-time">{message.time}</span>
+        <div className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`} ref={messageRef} onContextMenu={handleRightClick}>
+            {!isOwnMessage && (
+                <div className="message-avatar">
+                    {message.senderPhoto ? (
+                        <img src={message.senderPhoto} alt={message.sender} className="message-avatar-img" />
+                    ) : (
+                        <span>{message.initials}</span>
+                    )}
                 </div>
+            )}
+            <div className="message-content">
+                {!isOwnMessage && (
+                    <div className="message-header">
+                        <span className="message-sender">{message.sender}</span>
+                        <span className="message-time">{message.time}</span>
+                    </div>
+                )}
+                {isOwnMessage && (
+                    <div className="message-header message-header-own">
+                        <span className="message-time">{message.time}</span>
+                    </div>
+                )}
                 <div className="message-text">
                     {isEditing ? (
                         <input

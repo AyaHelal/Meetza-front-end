@@ -19,8 +19,8 @@ const MainChat = ({
     setExpandedSection,
     user
 }) => {
-    const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const messagesEndRef = useRef(null);
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
