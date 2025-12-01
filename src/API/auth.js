@@ -89,7 +89,7 @@ export const deleteMessage = async (groupId, messageId) => {
 // ✅ Update message
 export const updateMessage = async (groupId, messageId, newText) => {
     try {
-        const response = await axiosInstance.put(`/chat/groups/${groupId}/messages/${messageId}`, { text: newText });
+        const response = await axiosInstance.put(`/chat/groups/${groupId}/messages/${messageId}/update`, { text: newText });
         return response.data;
     } catch (error) {
         console.error('Error updating message:', error);
