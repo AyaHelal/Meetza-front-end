@@ -4,7 +4,7 @@ import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
-import { deleteMessage, updateMessage } from '../../../API/auth';
+import { deleteMessage, updateMessage ,getMessages} from '../../../API/auth';
 import './MainChat.css';
 import { smartToast } from "../../../API/toastManager";
 
@@ -27,7 +27,7 @@ const MainChat = ({
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
-    const [messages, setMessages] = useState(initialMessages || []);
+    const [messages, setMessages] = useState(Array.isArray(initialMessages) ? initialMessages : []);
     const recentlyEditedRef = useRef(new Set()); // Track recently edited message IDs
     const skipNextUpdateRef = useRef(false); // Flag to skip the next update
 
@@ -86,73 +86,33 @@ const MainChat = ({
     // Update messages state when initialMessages prop changes
     // But preserve recently edited messages and don't remove messages that exist locally
     useEffect(() => {
-        // Skip update if flag is set or if we have recently edited messages
-        if (skipNextUpdateRef.current || recentlyEditedRef.current.size > 0) {
-            if (skipNextUpdateRef.current) {
-                skipNextUpdateRef.current = false;
+    if (!initialMessages) return;
+
+    setMessages(prevMessages => {
+        const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
+        const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
+
+        const merged = initialMessages.map(newMsg => {
+            const prevMsg = prevMap.get(newMsg.id);
+            if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
+                return prevMsg; // Keep local edit
             }
-            return;
-        }
-
-        if (!initialMessages || initialMessages.length === 0) {
-            // Only clear if we don't have recent edits
-            setMessages(prevMessages => {
-                if (!prevMessages || prevMessages.length === 0) {
-                    return [];
-                }
-                const hasRecentEdits = prevMessages.some(msg =>
-                    recentlyEditedRef.current.has(msg.id) ||
-                    (msg._lastEdited && (Date.now() - msg._lastEdited < 15000))
-                );
-                return hasRecentEdits ? prevMessages : [];
-            });
-            return;
-        }
-
-        setMessages(prevMessages => {
-            // If we have no previous messages, just use the new ones
-            if (!prevMessages || prevMessages.length === 0) {
-                return initialMessages;
-            }
-
-            // Check if we should skip update due to recent edits
-            const hasRecentEdits = prevMessages.some(msg =>
-                recentlyEditedRef.current.has(msg.id) ||
-                (msg._lastEdited && (Date.now() - msg._lastEdited < 15000))
-            );
-
-            if (hasRecentEdits) {
-                return prevMessages; // Keep current messages
-            }
-
-            // Create maps for quick lookup
-            const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
-            const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
-
-            // Start with all new messages, but preserve edited ones
-            const merged = initialMessages.map(newMsg => {
-                const prevMsg = prevMap.get(newMsg.id);
-                const wasRecentlyEdited = recentlyEditedRef.current.has(newMsg.id) ||
-                    (prevMsg?._lastEdited && (Date.now() - prevMsg._lastEdited < 15000));
-
-                if (prevMsg && wasRecentlyEdited && prevMsg.text) {
-                    return { ...newMsg, ...prevMsg, text: prevMsg.text, _lastEdited: prevMsg._lastEdited };
-                }
-                return newMsg;
-            });
-
-            // Add any locally edited messages that aren't in the new list
-            prevMessages.forEach(prevMsg => {
-                const wasRecentlyEdited = recentlyEditedRef.current.has(prevMsg.id) ||
-                    (prevMsg._lastEdited && (Date.now() - prevMsg._lastEdited < 15000));
-                if (wasRecentlyEdited && !newMap.has(prevMsg.id)) {
-                    merged.push(prevMsg);
-                }
-            });
-
-            return merged;
+            return newMsg;
         });
-    }, [initialMessages]);
+
+        // Keep any local edited messages not yet returned from server
+        prevMessages.forEach(prevMsg => {
+            if (recentlyEditedRef.current.has(prevMsg.id) && !newMap.has(prevMsg.id)) {
+                merged.push(prevMsg);
+            }
+        });
+
+        return merged;
+    });
+}, [initialMessages]);
+
+
+
 
     const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
 
@@ -180,61 +140,50 @@ const MainChat = ({
         }
     };
 
-    const handleEditMessage = async (messageId, newText) => {
-        if (!groupId) {
-            smartToast.error('Group ID is missing');
-            return;
-        }
-        if (!newText || !newText.trim()) {
-            return; // Don't update if text is empty
-        }
 
-        const trimmedText = newText.trim();
+const handleEditMessage = async (messageId, newText) => {
+    if (!groupId) return;
+    if (!newText || !newText.trim()) return;
 
-        try {
-            // Mark as recently edited and skip next update
-            recentlyEditedRef.current.add(messageId);
-            skipNextUpdateRef.current = true;
+    const trimmedText = newText.trim();
 
-            // Update local state optimistically first
-            setMessages(prevMessages => prevMessages.map(msg => {
+    try {
+        // Keep message locally as edited
+        recentlyEditedRef.current.add(messageId);
+        skipNextUpdateRef.current = true;
+
+        setMessages(prevMessages =>
+            prevMessages.map(msg =>
+                msg.id === messageId ? { ...msg, text: trimmedText } : msg
+            )
+        );
+
+        // Send to server
+        await updateMessage(groupId, messageId, trimmedText);
+        smartToast.success('Message updated successfully');
+
+        if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+
+        // No timeout! Keep in recentlyEditedRef permanently until component unmount
+    } catch (error) {
+        // revert if server fails
+        setMessages(prevMessages =>
+            prevMessages.map(msg => {
                 if (msg.id === messageId) {
-                    return { ...msg, text: trimmedText, _lastEdited: Date.now() };
-                }
-                return msg;
-            }));
-
-            // Remove from recently edited set after 20 seconds (longer to prevent overwrites)
-            setTimeout(() => {
-                recentlyEditedRef.current.delete(messageId);
-            }, 20000);
-
-            const response = await updateMessage(groupId, messageId, trimmedText);
-            console.log("Update message response:", response);
-
-            // The backend returns {success: true, message: 'Message updated successfully'}
-            // It doesn't return the updated message text, so we keep our optimistic update
-            // The optimistic update already has the correct text (trimmedText)
-            // No need to update again since we already set it optimistically
-
-            // Notify parent to update chats panel
-            if (onMessageEdited) {
-                onMessageEdited(messageId, trimmedText);
-            }
-        } catch (error) {
-            // Revert on error
-            setMessages(prevMessages => prevMessages.map(msg => {
-                if (msg.id === messageId) {
-                    // Find original text from initialMessages if available
                     const originalMsg = initialMessages?.find(m => m.id === messageId);
                     return { ...msg, text: originalMsg?.text || msg.text };
                 }
                 return msg;
-            }));
-            smartToast.error('Failed to edit message');
-            console.error('Error updating message:', error);
-        }
-    };
+            })
+        );
+        smartToast.error('Failed to edit message');
+        console.error(error);
+    }
+};
+
+
+
+
 
     // Get file name with extension for download
     const getDownloadFileName = (item) => {
@@ -424,7 +373,8 @@ const MainChat = ({
                         </div>
                     ) : (
                         <>
-                            {messages.map((msg, index) => {
+                            {Array.isArray(messages) && messages.length > 0 ? (
+                            messages.map((msg, index) => {
                                 const msgDate = msg.date || new Date(msg.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                                 const prevDate = index > 0 ? (messages[index - 1].date || new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : null;
                                 const showSeparator = index === 0 || prevDate !== msgDate;
@@ -445,7 +395,12 @@ const MainChat = ({
                                         />
                                     </React.Fragment>
                                 );
-                            })}
+                            })
+                            ) : (
+                                <div className="no-messages-container">
+                                    <img src="/assets/GroupChat.png" alt="No messages" className="no-messages-image" />
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </>
                     )

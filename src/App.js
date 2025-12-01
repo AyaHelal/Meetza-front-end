@@ -13,6 +13,8 @@ import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
 import { useState, useEffect, useContext } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,17 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
         <AppRoutes />
       </Router>
     </AuthProvider>

@@ -370,6 +370,14 @@
   background: #005fb8;
 }
 
+.group-join-btn.joined {
+  background-color: #b0b0b0;
+  color: #ffffff;
+  cursor: not-allowed;
+  border: none;
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
   .groups-page {
