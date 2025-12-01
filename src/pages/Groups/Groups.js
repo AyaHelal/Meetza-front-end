@@ -3,19 +3,32 @@ import { MagnifyingGlass, Funnel, CaretDown } from '@phosphor-icons/react';
 import { getGroups } from '../../API/auth';
 import { smartToast } from '../../API/toastManager';
 import './Groups.css';
+import api from '../../API/axiosInstance';
 
 const Groups = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedYears, setSelectedYears] = useState(['3rd Year']);
-    const [selectedSemesters, setSelectedSemesters] = useState(['2nd semester']);
+    const [selectedYears, setSelectedYears] = useState([1]);
+    const [selectedSemesters, setSelectedSemesters] = useState(['Spring']);
     const [expandedYear, setExpandedYear] = useState(true);
     const [expandedSemester, setExpandedSemester] = useState(true);
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
+    const [joinedGroups, setJoinedGroups] = useState([]);
 
-    const years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-    const semesters = ['1st semester', '2nd semester'];
+
+    const years = [
+    { label: '1st Year', value: 1 },
+    { label: '2nd Year', value: 2 },
+    { label: '3rd Year', value: 3 },
+    { label: '4th Year', value: 4 },
+    ];
+
+    const semesters = [
+    { label: 'Fall', value: 'Fall' },
+    { label: 'Spring', value: 'Spring' },
+    { label: 'Summer', value: 'Summer' },
+    ];
 
     const handleYearToggle = (year) => {
         setSelectedYears(prev =>
@@ -33,6 +46,12 @@ const Groups = () => {
         );
     };
 
+    useEffect(() => {
+    const savedJoinedGroups = JSON.parse(localStorage.getItem("joinedGroups")) || [];
+    setJoinedGroups(savedJoinedGroups);
+}, []);
+
+
     // Add class to body when Groups is mounted
     useEffect(() => {
         document.documentElement.classList.add('group-chat-active');
@@ -45,43 +64,119 @@ const Groups = () => {
     }, []);
 
     // Fetch groups data
-    useEffect(() => {
-        const fetchGroups = async () => {
-            try {
-                const groupsData = await getGroups();
-                const storedUser =
-                    localStorage.getItem("user") ||
-                    sessionStorage.getItem("user");
-                const userInfo = storedUser ? JSON.parse(storedUser) : null;
-                const currentUserId = userInfo?.id;
-                const rawRole = (userInfo?.role || 'Member').toString().toLowerCase();
-                const isAdminRole = rawRole.includes('administrator');
-                const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
+        useEffect(() => {
+    const fetchGroups = async () => {
+        try {
+        setLoading(true);
+
+        let allResults = [];
+
+        if (selectedYears.length > 0 && selectedSemesters.length > 0) {
+            const requests = [];
+
+            selectedYears.forEach((year) => {
+            selectedSemesters.forEach((semester) => {
+                requests.push(getGroups(year, semester));
+            });
+            });
+
+            const responses = await Promise.all(requests);
+
+            allResults = responses.flatMap(res =>
+            Array.isArray(res?.data) ? res.data : res
+            );
+
+        } else {
+            const groupsData = await getGroups();
+            allResults = Array.isArray(groupsData?.data)
+            ? groupsData.data
+            : groupsData;
+        }
+
+        const uniqueGroups = allResults.filter(
+            (group, index, self) =>
+            index === self.findIndex(g => g.id === group.id)
+        );
+
+        const storedUser =
+            localStorage.getItem("user") ||
+            sessionStorage.getItem("user");
+
+        const userInfo = storedUser ? JSON.parse(storedUser) : null;
+        const currentUserId = userInfo?.id;
+
+        const rawRole = (userInfo?.role || 'Member')
+            .toString()
+            .toLowerCase();
+
+        const isAdminRole = rawRole.includes('administrator');
+        const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
+
+        const visibleGroups =
+            isAdminRole && currentUserId
+            ? uniqueGroups.filter(
+                group => group.administrator_id === currentUserId
+                )
+            : uniqueGroups;
+
+        setGroups(visibleGroups);
+        setUserRole(normalizedRole);
+
+        } catch (error) {
+        console.error('Error fetching groups:', error);
+        smartToast.error('Failed to load groups. Please try again.');
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    fetchGroups();
+    }, [selectedYears, selectedSemesters]);
+
+    const handleJoinGroup = async (groupId) => {
+    try {
+        const storedUser =
+            JSON.parse(localStorage.getItem("user")) ||
+            JSON.parse(sessionStorage.getItem("user"));
+
+        if (!storedUser?.id) {
+            smartToast.error("You must be logged in to join a group");
+            return;
+        }
+
+        const response = await api.post("/group-membership/", {
+            group_id: groupId,
+            member_id: storedUser.id
+        });
+
+        setJoinedGroups((prev) => {
+            const updated = [...prev, groupId];
+            localStorage.setItem("joinedGroups", JSON.stringify(updated));
+            return updated;
+        });
+
+        smartToast.success("Joined successfully!");
+        console.log("Joined Group Response:", response.data);
+
+    } catch (error) {
+        console.error("Join Error:", error);
+        smartToast.error(
+            error.response?.data?.message || error.message || "Failed to join group"
+        );
+    }
+};
 
 
-                const payload = groupsData?.data ?? groupsData;
-                const resolvedGroups = Array.isArray(payload)
-                    ? payload
-                    : Array.isArray(payload?.groups)
-                        ? payload.groups
-                        : [];
 
-                const visibleGroups = isAdminRole && currentUserId
-                    ? resolvedGroups.filter(group => group.administrator_id === currentUserId)
-                    : resolvedGroups;
+    const filteredGroups =
+    searchQuery.length >= 3
+        ? groups.filter(group =>
+            (group.name || group.title || group.group_name || "")
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase())
+        )
+        : groups;
 
-                setGroups(visibleGroups);
-                setUserRole(normalizedRole);
-            } catch (error) {
-                console.error('Error fetching groups:', error);
-                smartToast.error('Failed to load groups. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchGroups();
-    }, []);
 
     return (
         <div className="groups-page">
@@ -112,13 +207,13 @@ const Groups = () => {
                     {expandedYear && (
                         <div className="filter-options">
                             {years.map((year) => (
-                                <label key={year} className="filter-checkbox">
+                                <label key={year.value} className="filter-checkbox">
                                     <input
                                         type="checkbox"
-                                        checked={selectedYears.includes(year)}
-                                        onChange={() => handleYearToggle(year)}
+                                        checked={selectedYears.includes(year.value)}
+                                        onChange={() => handleYearToggle(year.value)}
                                     />
-                                    <span style={{ color: '#000000' }}>{year}</span>
+                                    <span style={{ color: '#000000' }}>{year.label}</span>
                                 </label>
                             ))}
                         </div>
@@ -136,13 +231,13 @@ const Groups = () => {
                     {expandedSemester && (
                         <div className="filter-options">
                             {semesters.map((semester) => (
-                                <label key={semester} className="filter-checkbox">
+                                <label key={semester.value} className="filter-checkbox">
                                     <input
                                         type="checkbox"
-                                        checked={selectedSemesters.includes(semester)}
-                                        onChange={() => handleSemesterToggle(semester)}
+                                        checked={selectedSemesters.includes(semester.value)}
+                                        onChange={() => handleSemesterToggle(semester.value)}
                                     />
-                                    <span style={{ color: '#000000' }}>{semester}</span>
+                                    <span style={{ color: '#000000' }}>{semester.label}</span>
                                 </label>
                             ))}
                         </div>
@@ -158,8 +253,8 @@ const Groups = () => {
                     </div>
                 ) : (
                     <div className="groups-grid">
-                        {groups.map((group) => (
-                            <div key={group.id} className="group-card">
+                        {filteredGroups.map((group,index) => (
+                            <div key={group.id || group.name || index} className="group-card">
                                 <div className="group-card-image">
                                     <img
                                         src={group.group_photo || group.photo || "/assets/grp-poster.png"}
@@ -178,9 +273,17 @@ const Groups = () => {
                                     {userRole === 'Member' && (
                                         <>
                                             <div className="group-card-instructor">
-                                                {`Dr. ${group.administrator?.name || group.administrator_name || 'Unknown'}`}
+                                                {`Dr. ${group.admin?.name || group.admin_name || 'Unknown'}`}
                                             </div>
-                                            <button className="group-join-btn py-2 w-50 align-items-center">Join</button>
+                                            <button
+                                            className={`group-join-btn py-2 w-50 align-items-center ${
+                                                joinedGroups.includes(group.id) ? "joined" : ""
+                                            }`}
+                                            onClick={() => handleJoinGroup(group.id)}
+                                            disabled={joinedGroups.includes(group.id)}
+                                            >
+                                            {joinedGroups.includes(group.id) ? "Joined" : "Join"}
+                                            </button>
                                         </>
                                     )}
                                 </div>

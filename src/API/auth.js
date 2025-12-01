@@ -98,12 +98,30 @@ export const updateMessage = async (groupId, messageId, newText) => {
 };
 
 // ✅ Get all groups
-export const getGroups = async () => {
+export const getGroups = async (year, semester) => {
     try {
-        const response = await axiosInstance.get('/group');
+        let url = "/group";
+
+        if (year && semester) {
+        url += `?year=${year}&semester=${semester}`;
+        }
+
+        const response = await axiosInstance.get(url);
         return response.data;
     } catch (error) {
         console.error('Error fetching groups:', error);
         throw error;
     }
 };
+
+
+export const getMessages = async (groupId) => {
+    try {
+        const response = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+    }
+};
+
