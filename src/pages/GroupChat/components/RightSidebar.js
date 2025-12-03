@@ -119,7 +119,6 @@ const RightSidebar = ({
                 memberCount={memberCount}
             />
             <UserStatus user={user} />
-        </div>
         </>
     );
 };
