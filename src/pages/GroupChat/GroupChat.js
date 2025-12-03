@@ -1,11 +1,164 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 //import { io } from 'socket.io-client';
 import './GroupChat.css';
 import ChatsPanel from './components/ChatsPanel';
 import MainChat from './components/MainChat';
 import RightSidebar from './components/RightSidebar';
+import { categorizeResources, categorizeMediaItems } from './components/utils';
+
 import axiosInstance from '../../API/axiosInstance';
 import { AuthContext } from '../../context/AuthContext';
+import { smartToast } from '../../API/toastManager';
+
+const MEDIA_TYPE_MAP = {
+  image: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'],
+  video: ['mp4', 'mov', 'webm', 'mkv'],
+  audio: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm']
+};
+
+const MIME_EXTENSION_MAP = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'text/plain': 'txt',
+  'text/csv': 'csv',
+  'application/zip': 'zip',
+  'application/x-rar-compressed': 'rar',
+  'audio/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/ogg': 'ogg',
+  'audio/wav': 'wav',
+  'video/webm': 'webm',
+  'video/mp4': 'mp4'
+};
+
+const deriveExtensionFromMime = (mime) => {
+  if (!mime) return '';
+  const cleanMime = mime.split(';')[0]?.trim().toLowerCase();
+  if (MIME_EXTENSION_MAP[cleanMime]) {
+    return MIME_EXTENSION_MAP[cleanMime];
+  }
+  if (cleanMime.includes('/')) {
+    const subtype = cleanMime.split('/')[1];
+    if (subtype === 'plain') return 'txt';
+    if (subtype) {
+      return subtype;
+    }
+  }
+  return '';
+};
+
+const extractExtension = (mediaItem) => {
+  const fromName = mediaItem?.file_name?.split('.').pop();
+  if (fromName) {
+    return fromName.toLowerCase();
+  }
+
+  const url = mediaItem?.media_url || mediaItem?.file_url || '';
+  if (!url) return '';
+  const cleanUrl = url.split('?')[0];
+  if (cleanUrl.includes('.')) {
+    return cleanUrl.split('.').pop().toLowerCase();
+  }
+  const mimeExt = deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
+  return mimeExt || '';
+};
+
+const deriveMediaTypeFromExtension = (extension) => {
+  if (!extension) return 'document';
+  if (MEDIA_TYPE_MAP.image.includes(extension)) return 'image';
+  if (MEDIA_TYPE_MAP.video.includes(extension)) return 'video';
+  if (MEDIA_TYPE_MAP.audio.includes(extension)) return 'audio';
+  return 'document';
+};
+
+const deriveFileName = (mediaItem) => {
+  const extension = extractExtension(mediaItem) || deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
+
+  const ensureExtension = (name) => {
+    if (!name) return '';
+    const trimmed = name.trim();
+    if (!trimmed) return '';
+    if (trimmed.includes('.') && trimmed.split('.').pop().length <= 6) {
+      return trimmed;
+    }
+    if (extension) {
+      return `${trimmed}.${extension}`;
+    }
+    return trimmed;
+  };
+
+  if (mediaItem?.file_name) {
+    const normalized = ensureExtension(mediaItem.file_name);
+    if (normalized) return normalized;
+  }
+
+  const url = mediaItem?.media_url || mediaItem?.file_url;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      const candidate = decodeURIComponent(parsed.pathname.split('/').pop() || '');
+      if (candidate) {
+        if (candidate.includes('.') || !extension) {
+          return candidate;
+        }
+        return `${candidate}.${extension}`;
+      }
+    } catch (err) {
+      const fallback = url.split('?')[0].split('/').pop();
+      if (fallback) {
+        if (fallback.includes('.') || !extension) {
+          return fallback;
+        }
+        return `${fallback}.${extension}`;
+      }
+    }
+  }
+
+  if (extension) {
+    return `document.${extension}`;
+  }
+  return 'document';
+};
+
+const normalizeMediaItems = (mediaItems, messageId) => {
+  if (!Array.isArray(mediaItems)) return [];
+  return mediaItems.map((item, index) => {
+    const mediaUrl = item?.media_url || item?.file_url || '';
+    const extension = extractExtension(item);
+
+    const declaredType = typeof item?.media_type === 'string'
+      ? item.media_type
+      : (typeof item?.file_type === 'string' ? item.file_type : '');
+
+    let normalizedType = declaredType?.toLowerCase() || '';
+    if (normalizedType.startsWith('image')) {
+      normalizedType = 'image';
+    } else if (normalizedType.startsWith('video')) {
+      normalizedType = 'video';
+    } else if (normalizedType.startsWith('audio') || normalizedType === 'voice' || normalizedType === 'voice_note') {
+      normalizedType = 'audio';
+    } else if (!normalizedType || normalizedType === 'file' || normalizedType === 'document') {
+      normalizedType = deriveMediaTypeFromExtension(extension);
+    } else {
+      normalizedType = deriveMediaTypeFromExtension(extension) || 'document';
+    }
+
+    return {
+      ...item,
+      id: item?.id || `${messageId || 'msg'}-media-${index}`,
+      media_url: mediaUrl,
+      file_url: mediaUrl,
+      file_name: deriveFileName(item),
+      media_type: normalizedType
+    };
+  });
+};
 
 //const SERVER_URL = "https://meetza-backend.vercel.app";
 
@@ -20,7 +173,96 @@ export default function GroupChat() {
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [expandedSection, setExpandedSection] = useState(null);
+  const [activeInfoSection, setActiveInfoSection] = useState(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  const formatMessage = useCallback((msg) => ({
+    id: msg.id,
+    sender: msg.sender_name,
+    initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
+    time: new Date(msg.created_at).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }),
+    text: msg.message,
+    date: new Date(msg.created_at).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }),
+    senderPhoto: msg.sender_photo,
+    senderEmail: msg.sender_email,
+    media: normalizeMediaItems(msg.media, msg.id),
+    is_read: msg.is_read,
+    read_at: msg.read_at
+  }), []);
+
+  const deriveMediaCategory = useCallback((file, fallbackCategory) => {
+    if (fallbackCategory && fallbackCategory !== 'file') {
+      return fallbackCategory;
+    }
+    const mime = file?.type || '';
+    if (mime.startsWith('image')) return 'image';
+    if (mime.startsWith('video')) return 'video';
+    if (mime.startsWith('audio')) return 'audio';
+    return 'document';
+  }, []);
+
+   const extractLinksFromMessages = (messages = []) => {
+    console.log('Processing messages for links:', messages);
+    const links = [];
+    messages?.forEach(msg => {
+        // Skip if message is deleted or has media (we only want plain text messages with links)
+        if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
+            console.log('Skipping message (deleted or has media):', msg.id, {
+                is_deleted: msg.is_deleted,
+                has_media: msg.media?.length > 0
+            });
+            return;
+        }
+        
+        if (msg.message) {
+            console.log('Checking message for URLs:', {
+                id: msg.id,
+                message: msg.message
+            });
+            const urlRegex = /https?:\/\/[^\s<>,;]+/g;
+            const urls = msg.message.match(urlRegex) || [];
+            console.log('Found URLs:', urls);
+            
+            urls.forEach(url => {
+                try {
+                    const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+                    const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+                    
+                    if (!isFileUrl) {
+                        const urlObj = new URL(cleanUrl);
+                        const linkData = {
+                            id: `link-${msg.id}-${cleanUrl}`,
+                            media_url: cleanUrl,
+                            file_name: urlObj.hostname.replace('www.', ''),
+                            original_url: cleanUrl,
+                            created_at: msg.created_at,
+                            sender_name: msg.sender_name,
+                            message_id: msg.id,
+                            isLink: true,
+                            is_downloadable: false
+                        };
+                        console.log('Adding link:', linkData);
+                        links.push(linkData);
+                    } else {
+                        console.log('Skipping file URL:', cleanUrl);
+                    }
+                } catch (e) {
+                    console.warn('Invalid URL:', url, e);
+                }
+            });
+        }
+    });
+    console.log('Extracted links:', links);
+    return links;
+};
 
   // Add class to body when GroupChat is mounted
   useEffect(() => {
@@ -87,8 +329,14 @@ export default function GroupChat() {
           avatar: g.group_name?.charAt(0)?.toUpperCase() || 'G',
           avatarImage: g.group_photo || null,
           date: g.last_message_at
-            ? new Date(g.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-            : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+            ? new Date(g.last_message_at).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short'
+            })
+            : new Date().toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short'
+            }),
           unread: 0,
           group_name: g.group_name,
           group_content_id: g.group_content_id,
@@ -336,16 +584,7 @@ export default function GroupChat() {
         // Fetch messages
         const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
         if (messagesResponse.data.success) {
-          const formattedMessages = messagesResponse.data.data.map((msg) => ({
-            id: msg.id,
-            sender: msg.sender_name,
-            initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
-            time: new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-            text: msg.message,
-            date: new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            senderPhoto: msg.sender_photo,
-            senderEmail: msg.sender_email
-          }));
+          const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
           setMessages(formattedMessages);
         }
 
@@ -401,92 +640,168 @@ export default function GroupChat() {
     }
   };
 
-  const handleSendMessage = async (messageText) => {
-    if (selectedChat === null) return;
+  const handleSendMessage = async ({ text, file, mediaCategory }) => {
+    if (selectedChat === null) return false;
 
     const groupId = groupChats[selectedChat]?.id;
-    if (!groupId) return;
+    if (!groupId) return false;
 
-    // Optimistic UI: show message locally immediately
-    const newMessage = {
+    const trimmedText = text?.trim() || '';
+    if (!trimmedText && !file) {
+      return false;
+    }
+
+    const tempId = `temp-${Date.now()}`;
+    let localMediaUrl = null;
+    const normalizedType = file ? deriveMediaCategory(file, mediaCategory) : null;
+
+    const optimisticMessage = {
+      id: tempId,
       sender: user?.name || "You",
       initials: user?.name?.charAt(0)?.toUpperCase() || 'ME',
       time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-      text: messageText,
+      text: trimmedText,
       date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       senderPhoto: user?.photo || null,
       senderEmail: user?.email || null,
-      _optimistic: true
+      media: []
     };
-    setMessages((prev) => [...prev, newMessage]);
 
-    // Update chats panel with new last message
+    if (file) {
+      localMediaUrl = URL.createObjectURL(file);
+      const originalName = file.name || 'attachment';
+      optimisticMessage.media = [{
+        id: `${tempId}-media`,
+        media_url: localMediaUrl,
+        media_type: normalizedType || 'document',
+        isLocal: true,
+        file_name: originalName
+      }];
+    }
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+
+    const previewLabel = trimmedText || (file ? 'Media attachment' : '');
     setGroupChats(prev => prev.map((chat, index) => {
       if (index === selectedChat) {
-        return { ...chat, subject: messageText };
+        return { ...chat, subject: previewLabel || chat.subject };
       }
       return chat;
     }));
 
-    // If socket is connected, send via socket for realtime
-    /*if (socket && socket.connected) {
-      try {
-        socket.emit('sendMessage', { groupId, message: messageText }, (ack) => {
-          console.log('✅ Message sent via socket:', ack);
-        });
-        return;
-      } catch (err) {
-        console.warn('⚠️ Socket emit failed, falling back to REST POST', err);
+    const formData = new FormData();
+    if (trimmedText) {
+      formData.append('message', trimmedText);
+    }
+    if (file) {
+      formData.append('media', file);
+      if (normalizedType) {
+        formData.append('media_type', normalizedType);
       }
-    }*/
+      if (file.type) {
+        formData.append('file_mime', file.type);
+      }
+      if (file.name) {
+        formData.append('file_name', file.name);
+      }
+    }
 
-    // Fallback: POST message to REST endpoint so messages are persisted
+    setIsSendingMessage(true);
     try {
-      const res = await axiosInstance.post(`/chat/groups/${groupId}/messages`, { message: messageText });
-      console.log('✅ Message POST fallback response:', res?.data);
-      // Optionally we could replace/update the optimistic message with server one using res.data
+      const res = await axiosInstance.post(`/chat/groups/${groupId}/messages`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res?.data?.success && res.data.data) {
+        const formattedMessage = formatMessage(res.data.data);
+        setMessages((prev) => prev.map((msg) => (msg.id === tempId ? formattedMessage : msg)));
+        return true;
+      }
+      throw new Error('Failed to send message');
     } catch (err) {
       console.error('❌ REST fallback failed to send message:', err);
-      // You may choose to mark the optimistic message as unsent here or queue for retry
+      smartToast.error(err?.response?.data?.message || 'Failed to send message');
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      return false;
+    } finally {
+      if (localMediaUrl) {
+        URL.revokeObjectURL(localMediaUrl);
+      }
+      setIsSendingMessage(false);
     }
   };
 
   const selectedChatData = selectedChat !== null ? groupChats[selectedChat] : null;
-  const chatTitle = selectedChatData ? selectedChatData.group_name : "Group Chat";
+  const chatTitle = selectedChatData ? selectedChatData.group_name : 'Group Chat';
+
+  const rawContentResources = useMemo(() => groupInfo?.content?.resources || [], [groupInfo]);
+  const contentResources = useMemo(() => categorizeResources(rawContentResources), [rawContentResources]);
+
+  const mediaArray = useMemo(() => {
+    if (groupInfo?.group?.group_media) return groupInfo.group.group_media;
+    return groupInfo?.group_media || [];
+  }, [groupInfo]);
+
+  const groupMediaItems = useMemo(() => categorizeMediaItems(mediaArray), [mediaArray]);
+
+    const mediaSummary = useMemo(() => {
+    const summary = {
+        images: groupMediaItems?.images || [],
+        videos: groupMediaItems?.videos || [],
+        audio: groupMediaItems?.audio || [],
+        files: groupMediaItems?.files || [],
+        links: extractLinksFromMessages(messages)
+    };
+    console.log('Media summary:', summary);
+    return summary;
+}, [messages, groupMediaItems]);
+
+    
+  const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
   const calendarEvents = [
     {
-      month: "Sep",
-      day: "25",
-      online: "Online",
-      type: "Group Meeting",
-      startTime: "8:25",
-      startPeriod: "AM",
-      endTime: "10:20",
-      endPeriod: "AM",
-      avatars: ["M", "A"]
+      month: 'Sep',
+      day: '25',
+      online: 'Online',
+      type: 'Group Meeting',
+      startTime: '8:25',
+      startPeriod: 'AM',
+      endTime: '10:20',
+      endPeriod: 'AM',
+      avatars: ['M', 'A']
     },
     {
-      month: "Sep",
-      day: "26",
-      online: "Online",
-      type: "Group Meeting",
-      startTime: "8:25",
-      startPeriod: "AM",
-      endTime: "10:20",
-      endPeriod: "AM",
-      avatars: ["M", "A"]
+      month: 'Sep',
+      day: '26',
+      online: 'Online',
+      type: 'Group Meeting',
+      startTime: '8:25',
+      startPeriod: 'AM',
+      endTime: '10:20',
+      endPeriod: 'AM',
+      avatars: ['M', 'A']
     }
   ];
 
   const currentUser = {
-    name: user?.name || "User",
-    initials: user?.name?.charAt(0)?.toUpperCase() || "U",
-    status: "Online"
+    name: user?.name || 'User',
+    initials: user?.name?.charAt(0)?.toUpperCase() || 'U',
+    status: 'Online'
+  };
+
+  const handleToggleInfoSection = (section) => {
+    setActiveInfoSection((prev) => (prev === section ? null : section));
   };
 
   if (loading) {
-    return <div className="home-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading groups...</div>;
+    return (
+      <div
+        className="home-container"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        Loading groups...
+      </div>
+    );
   }
 
   return (
@@ -499,20 +814,27 @@ export default function GroupChat() {
         showMainChat={showMainChat}
       />
 
-      <MainChat
-        messages={messages}
-        chatTitle={chatTitle}
-        isMobile={isMobile}
-        showMainChat={showMainChat}
-        onBackToChats={handleBackToChats}
-        onSendMessage={handleSendMessage}
-        expandedSection={expandedSection}
-        groupInfo={groupInfo}
-        setExpandedSection={setExpandedSection}
-        currentUserEmail={user?.email}
-        groupId={selectedChatData?.id}
-        onMessageEdited={handleMessageEdited}
-      />
+      {selectedChatData ? (
+        <MainChat
+          messages={messages}
+          chatTitle={chatTitle}
+          isMobile={isMobile}
+          showMainChat={showMainChat}
+          onBackToChats={handleBackToChats}
+          onSendMessage={handleSendMessage}
+          activeSection={activeInfoSection}
+          onCloseSection={() => setActiveInfoSection(null)}
+          contentResources={contentResources}
+          groupMediaItems={groupMediaItems}
+          groupMembers={groupMembers}
+          currentUserEmail={user?.email}
+          groupId={selectedChatData?.id}
+          onMessageEdited={handleMessageEdited}
+          isSendingMessage={isSendingMessage}
+        />
+      ) : (
+        <div className="main-chat-placeholder">Select a group chat to get started.</div>
+      )}
 
       <RightSidebar
         groupInfo={groupInfo}
@@ -520,8 +842,11 @@ export default function GroupChat() {
         user={currentUser}
         isMobile={isMobile}
         showMainChat={showMainChat}
-        expandedSection={expandedSection}
-        setExpandedSection={setExpandedSection}
+        activeSection={activeInfoSection}
+        onSelectSection={handleToggleInfoSection}
+        contentSummary={contentResources}
+        mediaSummary={mediaSummary}
+        memberCount={groupMembers.length}
       />
     </div>
   );

@@ -11,8 +11,11 @@ const RightSidebar = ({
     user,
     isMobile,
     showMainChat,
-    expandedSection,
-    setExpandedSection
+    activeSection,
+    onSelectSection,
+    contentSummary,
+    mediaSummary,
+    memberCount
 }) => {
     return (
         <div className={`right-sidebar px-2 ${isMobile && !showMainChat ? 'mobile-hidden' : ''}`}>
@@ -25,7 +28,14 @@ const RightSidebar = ({
                 </div>
             </div>
             <CalendarSection calendarEvents={calendarEvents} />
-            <GroupInfo groupInfo={groupInfo} expandedSection={expandedSection} setExpandedSection={setExpandedSection} />
+            <GroupInfo
+                groupInfo={groupInfo}
+                activeSection={activeSection}
+                onSelectSection={onSelectSection}
+                contentSummary={contentSummary}
+                mediaSummary={mediaSummary}
+                memberCount={memberCount}
+            />
             <UserStatus user={user} />
         </div>
     );

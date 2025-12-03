@@ -1,34 +1,77 @@
 import React from 'react';
-import { Image, Link, File, ArrowDown } from '@phosphor-icons/react';
-import { categorizeResources } from './utils';
+import { Image, Users, ArrowDown } from '@phosphor-icons/react';
 import './GroupInfo.css';
 
-const GroupInfo = ({ groupInfo, expandedSection, setExpandedSection }) => {
+const GroupInfo = ({
+    groupInfo,
+    activeSection,
+    onSelectSection,
+    contentSummary,
+    mediaSummary,
+    memberCount
+}) => {
+    const contentCount = (contentSummary?.photos?.length || 0)
+        + (contentSummary?.links?.length || 0)
+        + (contentSummary?.documents?.length || 0);
 
-    const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
+    const mediaCount = (mediaSummary?.images?.length || 0)
+        + (mediaSummary?.videos?.length || 0)
+        + (mediaSummary?.audio?.length || 0)
+        + (mediaSummary?.files?.length || 0);
+
+    const membersTotal = typeof memberCount === 'number'
+        ? memberCount
+        : (groupInfo?.members?.length || 0);
 
     const infoItems = [
-        { icon: Image, label: 'Photos', count: photos.length, key: 'photos' },
-        { icon: Link, label: 'Links', count: links.length, key: 'links' },
-        { icon: File, label: 'Documents', count: documents.length, key: 'documents' }
+        {
+            icon: Image,
+            label: 'Contents',
+            key: 'contents',
+            count: contentCount
+        },
+        {
+            icon: Image,
+            label: 'Media',
+            key: 'media',
+            count: mediaCount
+        },
+        {
+            icon: Users,
+            label: 'Members',
+            key: 'members',
+            count: membersTotal
+        }
     ];
 
     const handleItemClick = (key) => {
-        setExpandedSection(expandedSection === key ? null : key);
+        if (onSelectSection) {
+            onSelectSection(key);
+        }
     };
 
     return (
         <div className="group-info shadow-sm rounded-4 p-3">
             <h4>Group Chat Info</h4>
+
             {infoItems.map((item, index) => {
                 const IconComponent = item.icon;
-                const isExpanded = expandedSection === item.key;
+                const isExpanded = activeSection === item.key;
+
                 return (
-                    <div key={index} className="info-item" onClick={() => handleItemClick(item.key)}>
+                    <div
+                        key={index}
+                        className="info-item"
+                        onClick={() => handleItemClick(item.key)}
+                    >
                         <span className="info-icon">
                             <IconComponent size={24} />
                         </span>
-                        <span>{item.label} ({item.count})</span>
+
+                        <span>
+                            {item.label} ({item.count})
+                        </span>
+
                         <span className={`info-arrow ${isExpanded ? 'rotated' : ''}`}>
                             <ArrowDown size={32} />
                         </span>
@@ -40,4 +83,3 @@ const GroupInfo = ({ groupInfo, expandedSection, setExpandedSection }) => {
 };
 
 export default GroupInfo;
-

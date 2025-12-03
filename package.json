@@ -16,6 +16,7 @@
     "emoji-picker-react": "^4.16.1",
     "framer-motion": "^12.23.22",
     "lottie-react": "^2.4.1",
+    "lucide-react": "^0.555.0",
     "phosphor-react": "^1.4.1",
     "react": "^19.2.0",
     "react-bootstrap": "^2.10.10",

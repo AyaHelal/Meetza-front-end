@@ -562,6 +562,74 @@ body.group-chat-active {
   text-align: left;
 }
 
+.message-media-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.message-media {
+  border-radius: 12px;
+  max-width: 240px;
+  width: 100%;
+  background: #f5f5f5;
+  padding: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.message-own .message-media {
+  align-self: flex-end;
+}
+
+.message-other .message-media {
+  align-self: flex-start;
+}
+
+.message-media-image {
+  cursor: pointer;
+  object-fit: cover;
+  height: 180px;
+}
+
+.message-media-video {
+  max-height: 220px;
+}
+
+.message-media-audio {
+  padding: 8px;
+}
+
+.message-media-doc {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f0f4ff;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.message-media-doc-badge {
+  background: #1976d2;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 46px;
+  text-align: center;
+}
+
+.message-media-doc-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d1d1d;
+}
+
 .message-own .message-time {
   color: #999;
 }
@@ -1716,6 +1784,14 @@ body.group-chat-active {
 
 /* Expanded section styles */
 .expanded-section {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+}
+
+.expanded-section1{
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -1727,8 +1803,34 @@ body.group-chat-active {
   color: #333;
 }
 
-.expanded-items {
+.expanded-section1 h4{
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.tabs-header{
   display: flex;
+  gap:1rem;
+}
+
+.tab-item{
+  border: none;
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  background: #f0f0f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.tab-item.active{
+  background: #1976d2;
+  color: white;
+}
+.tab-item:hover{
+  background: #d0d0d0;
+}
+.expanded-items {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
