@@ -78,7 +78,14 @@ const MainChat = ({
         });
     };
 
-    const [messages, setMessages] = useState(Array.isArray(initialMessages) ? formatMessages(initialMessages) : []);
+    const [messages, setMessages] = useState(() => {
+        if (!Array.isArray(initialMessages)) {
+            console.warn('initialMessages is not an array:', initialMessages);
+            return [];
+        }
+        console.log('Initial messages count:', initialMessages.length);
+        return formatMessages(initialMessages);
+    });
 
     // Check if user is at the bottom of the chat
     const checkIfAtBottom = () => {
@@ -131,13 +138,15 @@ const MainChat = ({
     }, [showMainChat, isMobile]);
 
     useEffect(() => {
-        if (!initialMessages) return;
+        if (!initialMessages || !Array.isArray(initialMessages)) return;
 
         setMessages(prevMessages => {
             const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
             const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
 
-            const merged = formatMessages(initialMessages).map(newMsg => {
+            const formattedNew = formatMessages(initialMessages);
+            
+            const merged = formattedNew.map(newMsg => {
                 const prevMsg = prevMap.get(newMsg.id);
                 if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
                     return prevMsg;
@@ -660,6 +669,16 @@ const MainChat = ({
                 </div>
             </div>
             <div className="chat-messages" ref={messagesContainerRef}>
+                {(() => {
+                    console.log('Render check:', {
+                        activeSection,
+                        expandedSection,
+                        groupId,
+                        messagesLength: messages.length,
+                        messagesArray: Array.isArray(messages)
+                    });
+                    return null;
+                })()}
                 {(activeSection || expandedSection) ? (
                     renderExpandedSection()
                 ) : !groupId ? (
@@ -702,6 +721,7 @@ const MainChat = ({
                                                 currentUserEmail={currentUserEmail}
                                                 onMediaClick={handlePhotoClick}
                                             />
+                                            {/* Debug: {JSON.stringify({ id: msg.id, hasText: !!msg.text, hasMessage: !!msg.message })} */}
                                         </React.Fragment>
                                     );
                                 })
