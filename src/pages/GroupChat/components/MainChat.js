@@ -672,7 +672,7 @@ const handlePhotoClick = (item) => {
                     )
                 )}
             </div>
-           {!activeSection &&!expandedSection && groupId  <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />}
+           {!activeSection &&!expandedSection && groupId && ( <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />)}
             {modalPhoto && (
     <div className="photo-modal" onClick={closeModal}>
         <div className="modal-content" onClick={e => e.stopPropagation()}>
