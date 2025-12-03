@@ -1159,9 +1159,14 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         showMainChat={showMainChat}
         onBackToChats={handleBackToChats}
         onSendMessage={handleSendMessage}
+        activeSection={activeInfoSection}
+        onCloseSection={() => setActiveInfoSection(null)}
         expandedSection={expandedSection}
         groupInfo={groupInfo}
         setExpandedSection={setExpandedSection}
+        contentResources={contentResources}
+        groupMediaItems={groupMediaItems}
+        groupMembers={groupMembers}
         currentUserEmail={user?.email}
         groupId={selectedChatData?.id}
         onMessageEdited={handleMessageEdited}
