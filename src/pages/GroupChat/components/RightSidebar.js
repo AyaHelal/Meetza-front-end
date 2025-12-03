@@ -15,7 +15,7 @@ const RightSidebar = ({
     onSelectSection,
     contentSummary,
     mediaSummary,
-    memberCount
+    memberCount,
     expandedSection,
     setExpandedSection,
     showMobile,
@@ -119,7 +119,6 @@ const RightSidebar = ({
                 memberCount={memberCount}
             />
             <UserStatus user={user} />
-        </div>
         </>
     );
 };

@@ -18,6 +18,7 @@ const MainChat = ({
     onBackToChats,
     onSendMessage,
     activeSection,
+	expandedSection,
     onCloseSection,
     contentResources,
     groupMediaItems,
@@ -25,7 +26,7 @@ const MainChat = ({
     currentUserEmail,
     groupId,
     onMessageEdited,
-    isSendingMessage = false
+    isSendingMessage = false,
     onGroupNameClick
 }) => {
     const messagesContainerRef = useRef(null);
@@ -672,7 +673,7 @@ const handlePhotoClick = (item) => {
                     )
                 )}
             </div>
-           {!activeSection &&!expandedSection && groupId  <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />}
+           {!activeSection &&!expandedSection && groupId && ( <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />)}
             {modalPhoto && (
     <div className="photo-modal" onClick={closeModal}>
         <div className="modal-content" onClick={e => e.stopPropagation()}>
