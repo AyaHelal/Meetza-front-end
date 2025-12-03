@@ -17,7 +17,7 @@ const GroupInfo = ({
     const mediaCount = (mediaSummary?.images?.length || 0)
         + (mediaSummary?.videos?.length || 0)
         + (mediaSummary?.audio?.length || 0)
-        + (mediaSummary?.files?.length || 0);
+        + (mediaSummary?.files?.length || 0)
         + (mediaSummary?.links?.length || 0);
 
     const membersTotal = typeof memberCount === 'number'
