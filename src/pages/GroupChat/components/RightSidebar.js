@@ -11,16 +11,16 @@ const RightSidebar = ({
     user,
     isMobile,
     showMainChat,
-    activeSection,
-    onSelectSection,
-    contentSummary,
-    mediaSummary,
-    memberCount,
     expandedSection,
     setExpandedSection,
     showMobile,
     onCloseMobile,
-    onOpenSidebar
+    onOpenSidebar,
+    activeSection,
+    onSelectSection,
+    contentSummary,
+    mediaSummary,
+    memberCount
 }) => {
     const sidebarRef = useRef(null);
     const touchStartX = useRef(0);
@@ -106,22 +106,20 @@ const RightSidebar = ({
                     </div>
                 </div>
                 <CalendarSection calendarEvents={calendarEvents} />
-                <GroupInfo groupInfo={groupInfo} expandedSection={expandedSection} setExpandedSection={setExpandedSection} />
+                <GroupInfo
+                    groupInfo={groupInfo}
+                    expandedSection={expandedSection}
+                    setExpandedSection={setExpandedSection}
+                    activeSection={activeSection}
+                    onSelectSection={onSelectSection}
+                    contentSummary={contentSummary}
+                    mediaSummary={mediaSummary}
+                    memberCount={memberCount}
+                />
                 <UserStatus user={user} />
             </div>
-            <CalendarSection calendarEvents={calendarEvents} />
-            <GroupInfo
-                groupInfo={groupInfo}
-                activeSection={activeSection}
-                onSelectSection={onSelectSection}
-                contentSummary={contentSummary}
-                mediaSummary={mediaSummary}
-                memberCount={memberCount}
-            />
-            <UserStatus user={user} />
         </>
     );
 };
 
 export default RightSidebar;
-
