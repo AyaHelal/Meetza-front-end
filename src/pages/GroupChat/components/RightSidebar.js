@@ -11,15 +11,11 @@ const RightSidebar = ({
     user,
     isMobile,
     showMainChat,
-
-    // من النسخة الجديدة
     expandedSection,
     setExpandedSection,
     showMobile,
     onCloseMobile,
     onOpenSidebar,
-
-    // من النسخة القديمة
     activeSection,
     onSelectSection,
     contentSummary,
@@ -65,7 +61,6 @@ const RightSidebar = ({
 
     return (
         <>
-            {/* Overlay للموبايل */}
             {isMobile && showMobile && (
                 <div
                     className="right-sidebar-overlay"
@@ -80,7 +75,6 @@ const RightSidebar = ({
                     ${isMobile && showMobile ? 'mobile-visible' : ''}
                 `}
             >
-                {/* Header للموبايل */}
                 {isMobile && showMobile && (
                     <div className="right-sidebar-mobile-header">
                         <div className="logo-section">
@@ -103,7 +97,6 @@ const RightSidebar = ({
                     </div>
                 )}
 
-                {/* Video Section */}
                 <div className="video-sessions mt-2">
                     <div className="video-banner">
                         <span className="play-icon">
