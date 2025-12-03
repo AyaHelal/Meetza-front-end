@@ -44,9 +44,11 @@ const RightSidebar = ({
             const diffX = touchCurrentX - touchStartX.current;
             const diffY = touchCurrentY - touchStartY.current;
 
+            // Only handle horizontal swipe (ignore vertical scrolling)
             if (Math.abs(diffX) > Math.abs(diffY) && diffX > 50) {
+                // Swipe right to close
                 e.preventDefault();
-                onCloseMobile?.();
+                onCloseMobile();
             }
         };
 
@@ -61,27 +63,26 @@ const RightSidebar = ({
 
     return (
         <>
+            {/* Overlay for mobile */}
             {isMobile && showMobile && (
                 <div
                     className="right-sidebar-overlay"
                     onClick={onCloseMobile}
                 />
             )}
-
             <div
                 ref={sidebarRef}
-                className={`right-sidebar px-2
-                    ${isMobile && !showMainChat && !showMobile ? 'mobile-hidden' : ''}
-                    ${isMobile && showMobile ? 'mobile-visible' : ''}
-                `}
+                className={`right-sidebar px-2 ${isMobile && !showMainChat && !showMobile ? 'mobile-hidden' : ''} ${isMobile && showMobile ? 'mobile-visible' : ''}`}
             >
                 {isMobile && showMobile && (
                     <div className="right-sidebar-mobile-header">
                         <div className="logo-section">
                             <div className="logo-icon">
-                                <img src="/assets/ss.png" alt="logo" />
+                                <img
+                                    src="/assets/ss.png"
+                                    alt="logo"
+                                />
                             </div>
-
                             {onOpenSidebar && (
                                 <button
                                     className="hamburger-menu"
@@ -96,7 +97,6 @@ const RightSidebar = ({
                         </div>
                     </div>
                 )}
-
                 <div className="video-sessions mt-2">
                     <div className="video-banner">
                         <span className="play-icon">
@@ -105,9 +105,7 @@ const RightSidebar = ({
                         <span>Video Sessions</span>
                     </div>
                 </div>
-
                 <CalendarSection calendarEvents={calendarEvents} />
-
                 <GroupInfo
                     groupInfo={groupInfo}
                     expandedSection={expandedSection}
@@ -118,7 +116,6 @@ const RightSidebar = ({
                     mediaSummary={mediaSummary}
                     memberCount={memberCount}
                 />
-
                 <UserStatus user={user} />
             </div>
         </>
