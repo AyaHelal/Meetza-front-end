@@ -18,6 +18,7 @@ const MainChat = ({
     onBackToChats,
     onSendMessage,
     activeSection,
+	expandedSection,
     onCloseSection,
     contentResources,
     groupMediaItems,
