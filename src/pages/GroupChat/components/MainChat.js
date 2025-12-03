@@ -1,12 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowLeft } from '@phosphor-icons/react';
+import { deleteMessage, updateMessage ,getMessages} from '../../../API/auth';
 import { categorizeResources } from './utils';
-import { deleteMessage, updateMessage, getMessages } from '../../../API/auth';
 import './MainChat.css';
 import { smartToast } from "../../../API/toastManager";
+import '../GroupChat.css';
+import { UserCheck,File } from "lucide-react";
+
 
 const MainChat = ({
     messages: initialMessages,
@@ -15,12 +17,15 @@ const MainChat = ({
     showMainChat,
     onBackToChats,
     onSendMessage,
-    expandedSection,
-    groupInfo,
-    setExpandedSection,
+    activeSection,
+    onCloseSection,
+    contentResources,
+    groupMediaItems,
+    groupMembers,
     currentUserEmail,
     groupId,
     onMessageEdited,
+    isSendingMessage = false
     onGroupNameClick
 }) => {
     const messagesContainerRef = useRef(null);
@@ -28,9 +33,49 @@ const MainChat = ({
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
-    const [messages, setMessages] = useState(Array.isArray(initialMessages) ? initialMessages : []);
+    const [messages, setMessages] = useState(Array.isArray(initialMessages) ? formatMessages(initialMessages) : []);
     const recentlyEditedRef = useRef(new Set()); // Track recently edited message IDs
     const skipNextUpdateRef = useRef(false); // Flag to skip the next update
+    const [contentTab, setContentTab] = useState('media');
+    const [mediaTab, setMediaTab] = useState('media');
+
+    // Function to format messages and add link media items
+    const formatMessages = (msgs) => {
+        return msgs.map(msg => {
+            const formattedMsg = { ...msg };
+            const media = Array.isArray(msg.media) ? [...msg.media] : [];
+
+            if (msg.message) {
+                const urlRegex = /https?:\/\/[^\s<>,;]+/g;
+                const urls = msg.message.match(urlRegex) || [];
+
+                urls.forEach((url, index) => {
+                    try {
+                        const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+                        const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+
+                        if (!isFileUrl) {
+                            const hostname = new URL(cleanUrl).hostname.replace('www.', '');
+                            const linkMediaItem = {
+                                id: `link-${msg.id}-${index}`,
+                                media_url: cleanUrl,
+                                file_name: hostname,
+                                media_type: 'link',
+                                created_at: msg.created_at,
+                                sender_name: msg.sender_name
+                            };
+                            media.push(linkMediaItem);
+                        }
+                    } catch (e) {
+                        console.warn('Invalid URL in message:', url, e);
+                    }
+                });
+            }
+
+            formattedMsg.media = media;
+            return formattedMsg;
+        });
+    };
 
     // Check if user is at the bottom of the chat
     const checkIfAtBottom = () => {
@@ -111,14 +156,94 @@ const MainChat = ({
         });
     }, [initialMessages]);
 
+    useEffect(() => {
+        setContentTab('media');
+        setMediaTab('media');
+    }, [activeSection]);
 
+    const members = Array.isArray(groupMembers) ? groupMembers : [];
 
+    // Extract links from messages
+    // First, update the message links extraction to be more strict
+// Replace the existing messageLinks useMemo with this:
+const messageLinks = useMemo(() => {
+    const links = [];
 
-    const { photos, links, documents } = categorizeResources(groupInfo?.content?.resources);
+    // Use messages instead of initialMessages for real-time updates
+    messages?.forEach(msg => {
+        if (msg.is_deleted || !msg.message) return;
 
-    const handlePhotoClick = (photo) => {
-        setModalPhoto(photo);
-    };
+        const urlRegex = /https?:\/\/[^\s<>,;]+/g;
+        const urls = msg.message.match(urlRegex) || [];
+
+        urls.forEach(url => {
+            try {
+                const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+                const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+
+                if (!isFileUrl) {
+                    const domain = new URL(cleanUrl).hostname.replace('www.', '');
+                    links.push({
+                        id: `msg-${msg.id}-${cleanUrl}`,
+                        media_url: cleanUrl,
+                        file_name: domain,
+                        original_url: cleanUrl,
+                        created_at: msg.created_at,
+                        sender_name: msg.sender_name,
+                        message_id: msg.id,
+                        isLink: true
+                    });
+                }
+            } catch (e) {
+                console.warn('Invalid URL in message:', url, e);
+            }
+        });
+    });
+
+    return links;
+}, [messages]); // Changed from initialMessages to messages
+
+// Then update the media tab resources to only include direct links
+const mediaTabResources = useMemo(() => ({
+    photos: [
+        ...(groupMediaItems?.images || []),
+        ...(groupMediaItems?.videos || [])
+    ],
+    links: messageLinks, // Only include direct message links
+    documents: [
+        ...(groupMediaItems?.files || []),
+        ...(groupMediaItems?.audio || [])
+    ]
+}), [groupMediaItems, messageLinks]);
+
+// Update the photo click handler to handle both media items and message attachments
+const handlePhotoClick = (item) => {
+    console.log('Clicked item:', item); // For debugging
+
+    // If it's a direct link (from messages)
+    if (item.isLink) {
+        window.open(item.media_url, '_blank');
+    }
+    // If it's a media item (from group media)
+    else {
+        const url = item.media_url || item.file_url;
+        const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
+                       item.media_type?.startsWith('image') ||
+                       item.file_type?.startsWith('image/');
+
+        const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url) ||
+                       item.media_type?.startsWith('video') ||
+                       item.file_type?.startsWith('video/');
+
+        const mediaItem = {
+            media_url: url,
+            file_name: item.file_name || 'Media',
+            media_type: isImage ? 'image' : isVideo ? 'video' : 'file'
+        };
+
+        setModalPhoto(mediaItem);
+    }
+};
 
     const closeModal = () => {
         setModalPhoto(null);
@@ -289,57 +414,178 @@ const MainChat = ({
         }
     };
 
-    const renderExpandedSection = () => {
-        if (!expandedSection) return null;
-
-        let items = [];
-        let title = '';
-
-        switch (expandedSection) {
-            case 'photos':
-                items = photos;
-                title = 'Photos';
-                break;
-            case 'links':
-                items = links;
-                title = 'Links';
-                break;
-            case 'documents':
-                items = documents;
-                title = 'Documents';
-                break;
-            default:
-                return null;
-        }
+    const renderMembersSection = () => {
+        const sortedMembers = [...members].sort((a, b) => {
+            if (a.role === 'Administrator' && b.role !== 'Administrator') return -1;
+            if (a.role !== 'Administrator' && b.role === 'Administrator') return 1;
+            return 0;
+        });
 
         return (
-            <div className="expanded-section">
-                <h4>{title}</h4>
-                <div className={`expanded-items ${expandedSection === 'links' ? 'expanded-links' : ''}`}>
-                    {items.length === 0 ? (
-                        <p>No {title.toLowerCase()} available.</p>
-                    ) : (
-                        items.map((item, index) => (
-                            <div key={index} className="expanded-item">
-                                {expandedSection === 'photos' && (
-                                    <img src={item.file_url} alt={item.file_name || 'Photo'} className="expanded-photo" onClick={() => handlePhotoClick(item)} />
-                                )}
-                                {expandedSection === 'links' && (
-                                    <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="link-item">
-                                        {item.file_url}
-                                    </a>
-                                )}
-                                {expandedSection === 'documents' && (
-                                    <a href={item.file_url} download={getDownloadFileName(item)} target="_blank" rel="noopener noreferrer">
-                                        {item.file_name || getDownloadFileName(item)}
-                                    </a>
-                                )}
+            <div className="expanded-section1">
+                <h4>Members</h4>
+                <div className="members-list">
+                    {sortedMembers.map((member) => (
+                        <div key={member.id} className="member-item">
+                            {member.user_photo ? (
+                                <img
+                                    src={member.user_photo}
+                                    alt={member.name}
+                                    className="member-avatar"
+                                />
+                            ) : (
+                                <div
+                                    className="rounded-3 d-flex align-items-center justify-content-center"
+                                    style={{
+                                        width: 50,
+                                        height: 50,
+                                        background: "linear-gradient(135deg, #0076EA, #00DC85)",
+                                        color: "white",
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    <UserCheck size={28} />
+                                </div>
+                            )}
+
+                            <div>
+                                <h5>{member.name}</h5>
+                                <p>{member.email}</p>
                             </div>
-                        ))
-                    )}
+                            <span
+                                className="member-role"
+                                style={{
+                                    fontWeight: member.role === 'Administrator' ? 'bold' : 'normal',
+                                    color: member.role === 'Administrator' ? 'blue' : 'black'
+                                }}
+                            >
+                                {member.role}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
+    };
+
+    const renderResourceGrid = (items = []) => (
+    <div className="expanded-items">
+        {items.length === 0 && <p className="empty-state">No items yet.</p>}
+        {items.map((item, index) => {
+            const url = item.media_url || item.file_url;
+            const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
+                          item.media_type?.startsWith('image') ||
+                          item.file_type?.startsWith('image/');
+
+            return (
+                <div
+                    key={item.id || index}
+                    className="media-item"
+                    onClick={() => handlePhotoClick(item)}
+                >
+                    {isImage ? (
+                        <img
+                            src={url}
+                            className="expanded-photo"
+                            alt={item.file_name || 'media'}
+                        />
+                    ) : (
+                        <div className="media-placeholder">
+                            <File size={24} />
+                            <span>{item.file_name || 'Media'}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        })}
+    </div>
+);
+
+    const renderLinkList = (items = []) => {
+    console.log('Rendering links:', items);
+    return (
+        <div className="expanded-items">
+            {items.length === 0 && <p className="empty-state">No links yet.</p>}
+            {items.map((item, index) => (
+                <a
+                    key={item.id || index}
+                    href={item.media_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-item"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        console.log('Opening link:', item.media_url);
+                        window.open(item.media_url, '_blank', 'noopener,noreferrer');
+                    }}
+                >
+                    <span className="link-title">{item.file_name}</span>
+                    <span className="link-url" title={item.original_url || item.media_url}>
+                        {item.original_url || item.media_url}
+                    </span>
+                </a>
+            ))}
+        </div>
+    );
+};
+
+    const renderDocumentList = (items = []) => (
+        <div className="expanded-items">
+            {items.length === 0 && <p className="empty-state">No documents yet.</p>}
+            {items.map((item, index) => (
+                item.media_type === 'audio' ? (
+                    <div key={item.id || index} className="document-item audio-item">
+                        <audio controls src={item.media_url || item.file_url} />
+                        <span>{item.file_name || 'Audio'}</span>
+                    </div>
+                ) : (
+                    <a
+                        key={item.id || index}
+                        href={item.file_url || item.media_url}
+                        download
+                        className="document-item"
+                    >
+                        {item.file_name || 'Document'}
+                    </a>
+                )
+            ))}
+        </div>
+    );
+
+    const renderTabbedSection = (source, tabValue, onTabChange) => (
+        <div className="expanded-section">
+            <div className="tabs-header">
+                <button
+                    className={`tab-item ${tabValue === 'media' ? 'active' : ''}`}
+                    onClick={() => onTabChange('media')}
+                >
+                    Media
+                </button>
+                <button
+                    className={`tab-item ${tabValue === 'links' ? 'active' : ''}`}
+                    onClick={() => onTabChange('links')}
+                >
+                    Links
+                </button>
+                <button
+                    className={`tab-item ${tabValue === 'documents' ? 'active' : ''}`}
+                    onClick={() => onTabChange('documents')}
+                >
+                    Documents
+                </button>
+            </div>
+
+            {tabValue === 'media' && renderResourceGrid(source?.photos)}
+            {tabValue === 'links' && renderLinkList(source?.links)}
+            {tabValue === 'documents' && renderDocumentList(source?.documents)}
+        </div>
+    );
+
+    const renderExpandedSection = () => {
+        if (!activeSection) return null;
+        if (activeSection === 'members') return renderMembersSection();
+        if (activeSection === 'media') return renderTabbedSection(mediaTabResources, mediaTab, setMediaTab);
+        return renderTabbedSection(contentResources, contentTab, setContentTab);
     };
 
     return (
@@ -350,8 +596,8 @@ const MainChat = ({
                         <ArrowLeft size={20} />
                     </button>
                 )}
-                {expandedSection && (
-                    <button className="back-to-chat-btn" onClick={() => setExpandedSection(null)}>
+                {activeSection && (
+                    <button className="back-to-chat-btn" onClick={onCloseSection}>
                         <ArrowLeft size={20} />
                     </button>
                 )}
@@ -369,7 +615,7 @@ const MainChat = ({
                 </div>
             </div>
             <div className="chat-messages" ref={messagesContainerRef}>
-                {expandedSection ? (
+                {activeSection ? (
                     renderExpandedSection()
                 ) : !groupId ? (
                     <>
@@ -393,28 +639,29 @@ const MainChat = ({
                     ) : (
                         <>
                             {Array.isArray(messages) && messages.length > 0 ? (
-                                messages.map((msg, index) => {
-                                    const msgDate = msg.date || new Date(msg.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                                    const prevDate = index > 0 ? (messages[index - 1].date || new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : null;
-                                    const showSeparator = index === 0 || prevDate !== msgDate;
+                            messages.map((msg, index) => {
+                                const msgDate = msg.date || new Date(msg.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                                const prevDate = index > 0 ? (messages[index - 1].date || new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : null;
+                                const showSeparator = index === 0 || prevDate !== msgDate;
 
-                                    return (
-                                        <React.Fragment key={msg.id || index}>
-                                            {showSeparator && (
-                                                <div className="date-separator-wrapper">
-                                                    <div className="date-separator">{msgDate}</div>
-                                                </div>
-                                            )}
-                                            <MessageItem
-                                                message={msg}
-                                                groupId={groupId}
-                                                onDeleteMessage={handleDeleteMessage}
-                                                onEditMessage={handleEditMessage}
-                                                currentUserEmail={currentUserEmail}
-                                            />
-                                        </React.Fragment>
-                                    );
-                                })
+                                return (
+                                    <React.Fragment key={msg.id || index}>
+                                        {showSeparator && (
+                                            <div className="date-separator-wrapper">
+                                                <div className="date-separator">{msgDate}</div>
+                                            </div>
+                                        )}
+                                        <MessageItem
+                                            message={msg}
+                                            groupId={groupId}
+                                            onDeleteMessage={handleDeleteMessage}
+                                            onEditMessage={handleEditMessage}
+                                            currentUserEmail={currentUserEmail}
+                                            onMediaClick={handlePhotoClick}
+                                        />
+                                    </React.Fragment>
+                                );
+                            })
                             ) : (
                                 <div className="no-messages-container">
                                     <img src="/assets/GroupChat.png" alt="No messages" className="no-messages-image" />
@@ -425,14 +672,39 @@ const MainChat = ({
                     )
                 )}
             </div>
-            {!expandedSection && groupId && <ChatInput onSendMessage={onSendMessage} />}
+           {!activeSection &&!expandedSection && groupId  <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />}
             {modalPhoto && (
-                <div className="photo-modal" onClick={closeModal}>
-                    <img src={modalPhoto.file_url} alt={modalPhoto.file_name || 'Photo'} />
+    <div className="photo-modal" onClick={closeModal}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
 
-                    <button className="photo-modal-close" onClick={closeModal}>×</button>
-                </div>
-            )}
+	    <button className="photo-modal-close" onClick={closeModal}>×</button>
+
+            {modalPhoto.media_type?.startsWith('image') ? (
+                <img
+                    src={modalPhoto.file_url || modalPhoto.media_url}
+                    alt={modalPhoto.file_name || 'Photo'}
+                    style={{ maxWidth: '100%', maxHeight: '80vh' }}
+                />
+            ) : modalPhoto.media_type?.startsWith('video') ? (
+                <video
+                    controls
+                    src={modalPhoto.media_url}
+                    style={{ maxWidth: '100%', maxHeight: '80vh' }}
+                />
+            ) : (
+                <a
+                    href={modalPhoto.media_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'blue', textDecoration: 'underline' }}
+                >
+                    Open {modalPhoto.file_name || 'file'}
+                </a>
+
+)}
+        </div>
+    </div>
+)}
         </div>
     );
 };

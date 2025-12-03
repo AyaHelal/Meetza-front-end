@@ -1,1 +1,97 @@
 /* MainChat styles are in GroupChat.css */
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    }
+
+    .member-item {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f6f6f6;
+    }
+
+    .member-item h5{
+        font-size: 1.2rem;
+    }
+
+    .member-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    }
+
+    .member-role {
+    margin-left: auto;
+    font-size: 12px;
+    color: #888;
+    }
+
+
+.media-item:hover {
+    transform: scale(1.02);
+}
+
+.media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    text-align: center;
+    color: #666;
+}
+
+.media-placeholder svg {
+    color: #999;
+}
+
+/* Update the modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    border-radius: 8px;
+    max-width: 90%;
+    max-height: 90%;
+    position: relative;
+}
+
+.modal-content img,
+.modal-content video {
+    max-width: 100%;
+    max-height: 80vh;
+    display: block;
+    margin: 0 auto;
+}
+
+.close {
+    position: absolute;
+    top: -70px;
+    right: -40px;
+    font-size: 70px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #666;
+}
+
+.close:hover {
+    color: red;
+}
+

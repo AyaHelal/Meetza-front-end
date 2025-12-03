@@ -11,6 +11,11 @@ const RightSidebar = ({
     user,
     isMobile,
     showMainChat,
+    activeSection,
+    onSelectSection,
+    contentSummary,
+    mediaSummary,
+    memberCount
     expandedSection,
     setExpandedSection,
     showMobile,
@@ -104,6 +109,17 @@ const RightSidebar = ({
                 <GroupInfo groupInfo={groupInfo} expandedSection={expandedSection} setExpandedSection={setExpandedSection} />
                 <UserStatus user={user} />
             </div>
+            <CalendarSection calendarEvents={calendarEvents} />
+            <GroupInfo
+                groupInfo={groupInfo}
+                activeSection={activeSection}
+                onSelectSection={onSelectSection}
+                contentSummary={contentSummary}
+                mediaSummary={mediaSummary}
+                memberCount={memberCount}
+            />
+            <UserStatus user={user} />
+        </div>
         </>
     );
 };

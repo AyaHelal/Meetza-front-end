@@ -16,18 +16,17 @@ const Groups = () => {
     const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
     const [joinedGroups, setJoinedGroups] = useState([]);
 
-
     const years = [
-    { label: '1st Year', value: 1 },
-    { label: '2nd Year', value: 2 },
-    { label: '3rd Year', value: 3 },
-    { label: '4th Year', value: 4 },
+        { label: '1st Year', value: 1 },
+        { label: '2nd Year', value: 2 },
+        { label: '3rd Year', value: 3 },
+        { label: '4th Year', value: 4 },
     ];
 
     const semesters = [
-    { label: 'Fall', value: 'Fall' },
-    { label: 'Spring', value: 'Spring' },
-    { label: 'Summer', value: 'Summer' },
+        { label: 'Fall', value: 'Fall' },
+        { label: 'Spring', value: 'Spring' },
+        { label: 'Summer', value: 'Summer' },
     ];
 
     const handleYearToggle = (year) => {
@@ -46,12 +45,6 @@ const Groups = () => {
         );
     };
 
-    useEffect(() => {
-    const savedJoinedGroups = JSON.parse(localStorage.getItem("joinedGroups")) || [];
-    setJoinedGroups(savedJoinedGroups);
-}, []);
-
-
     // Add class to body when Groups is mounted
     useEffect(() => {
         document.documentElement.classList.add('group-chat-active');
@@ -63,120 +56,126 @@ const Groups = () => {
         };
     }, []);
 
-    // Fetch groups data
-        useEffect(() => {
-    const fetchGroups = async () => {
-        try {
-        setLoading(true);
+    // Fetch groups and membership
+    useEffect(() => {
+        const fetchGroupsAndMembership = async () => {
+            try {
+                setLoading(true);
 
-        let allResults = [];
+                let allResults = [];
 
-        if (selectedYears.length > 0 && selectedSemesters.length > 0) {
-            const requests = [];
+                if (selectedYears.length > 0 && selectedSemesters.length > 0) {
+                    const requests = [];
+                    selectedYears.forEach((year) => {
+                        selectedSemesters.forEach((semester) => {
+                            requests.push(getGroups(year, semester));
+                        });
+                    });
+                    const responses = await Promise.all(requests);
+                    allResults = responses.flatMap(res =>
+                        Array.isArray(res?.data) ? res.data : res
+                    );
+                } else {
+                    const groupsData = await getGroups();
+                    allResults = Array.isArray(groupsData?.data)
+                        ? groupsData.data
+                        : groupsData;
+                }
 
-            selectedYears.forEach((year) => {
-            selectedSemesters.forEach((semester) => {
-                requests.push(getGroups(year, semester));
-            });
-            });
+                // إزالة التكرارات
+                const uniqueGroups = allResults.filter(
+                    (group, index, self) =>
+                        index === self.findIndex(g => (g.group_id || g.id) === (group.group_id || group.id))
+                );
 
-            const responses = await Promise.all(requests);
+                const storedUser =
+                    localStorage.getItem("user") ||
+                    sessionStorage.getItem("user");
+                const userInfo = storedUser ? JSON.parse(storedUser) : null;
+                const currentUserId = userInfo?.id;
 
-            allResults = responses.flatMap(res =>
-            Array.isArray(res?.data) ? res.data : res
-            );
+                const rawRole = (userInfo?.role || 'Member')
+                    .toString()
+                    .toLowerCase();
+                const isAdminRole = rawRole.includes('administrator');
+                const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
 
-        } else {
-            const groupsData = await getGroups();
-            allResults = Array.isArray(groupsData?.data)
-            ? groupsData.data
-            : groupsData;
-        }
+                const visibleGroups = isAdminRole && currentUserId
+                    ? uniqueGroups.filter(
+                        group => group.administrator_id === currentUserId
+                    )
+                    : uniqueGroups;
 
-        const uniqueGroups = allResults.filter(
-            (group, index, self) =>
-            index === self.findIndex(g => g.id === group.id)
-        );
+                setGroups(visibleGroups);
+                setUserRole(normalizedRole);
 
-        const storedUser =
-            localStorage.getItem("user") ||
-            sessionStorage.getItem("user");
+                // تحقق العضويات مباشرة
+                if (currentUserId) {
+                    const updatedJoinedGroups = await Promise.all(
+                        visibleGroups.map(async (group) => {
+                            const groupId = group.group_id || group.id;
+                            if (!groupId) return null;
+                            try {
+                                const res = await api.get(`/chat/groups/${groupId}/info`);
+                                const members = res.data?.data?.members || [];
+                                return members.some(member => member.id === currentUserId)
+                                    ? groupId
+                                    : null;
+                            } catch (err) {
+                                console.error('Membership check error:', err);
+                                return null;
+                            }
+                        })
+                    );
+                    setJoinedGroups(updatedJoinedGroups.filter(id => id !== null));
+                }
 
-        const userInfo = storedUser ? JSON.parse(storedUser) : null;
-        const currentUserId = userInfo?.id;
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                smartToast.error('Failed to load groups. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        const rawRole = (userInfo?.role || 'Member')
-            .toString()
-            .toLowerCase();
-
-        const isAdminRole = rawRole.includes('administrator');
-        const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
-
-        const visibleGroups =
-            isAdminRole && currentUserId
-            ? uniqueGroups.filter(
-                group => group.administrator_id === currentUserId
-                )
-            : uniqueGroups;
-
-        setGroups(visibleGroups);
-        setUserRole(normalizedRole);
-
-        } catch (error) {
-        console.error('Error fetching groups:', error);
-        smartToast.error('Failed to load groups. Please try again.');
-        } finally {
-        setLoading(false);
-        }
-    };
-
-    fetchGroups();
+        fetchGroupsAndMembership();
     }, [selectedYears, selectedSemesters]);
 
     const handleJoinGroup = async (groupId) => {
-    try {
-        const storedUser =
-            JSON.parse(localStorage.getItem("user")) ||
-            JSON.parse(sessionStorage.getItem("user"));
+        try {
+            const storedUser =
+                JSON.parse(localStorage.getItem("user")) ||
+                JSON.parse(sessionStorage.getItem("user"));
 
-        if (!storedUser?.id) {
-            smartToast.error("You must be logged in to join a group");
-            return;
+            if (!storedUser?.id) {
+                smartToast.error("You must be logged in to join a group");
+                return;
+            }
+
+            await api.post("/group-membership/", {
+                group_id: groupId,
+                member_id: storedUser.id
+            });
+
+            setJoinedGroups(prev => [...prev, groupId]);
+            smartToast.success("Joined successfully!");
+
+        } catch (error) {
+            console.error("Join Error:", error);
+            smartToast.error(
+                error.response?.data?.message || error.message || "Failed to join group"
+            );
         }
-
-        const response = await api.post("/group-membership/", {
-            group_id: groupId,
-            member_id: storedUser.id
-        });
-
-        setJoinedGroups((prev) => {
-            const updated = [...prev, groupId];
-            localStorage.setItem("joinedGroups", JSON.stringify(updated));
-            return updated;
-        });
-
-        smartToast.success("Joined successfully!");
-        console.log("Joined Group Response:", response.data);
-
-    } catch (error) {
-        console.error("Join Error:", error);
-        smartToast.error(
-            error.response?.data?.message || error.message || "Failed to join group"
-        );
-    }
-};
-
-
+    };
 
     const filteredGroups =
-    searchQuery.length >= 3
-        ? groups.filter(group =>
-            (group.name || group.title || group.group_name || "")
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase())
-        )
-        : groups;
-
+        searchQuery.length >= 3
+            ? groups.filter(group =>
+                (group.name || group.title || group.group_name || "")
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase())
+            )
+            : groups;
 
     return (
         <div className="groups-page">
@@ -253,42 +252,42 @@ const Groups = () => {
                     </div>
                 ) : (
                     <div className="groups-grid">
-                        {filteredGroups.map((group,index) => (
-                            <div key={group.id || group.name || index} className="group-card">
-                                <div className="group-card-image">
-                                    <img
-                                        src={group.group_photo || group.photo || "/assets/grp-poster.png"}
-                                        alt={group.name || group.title || 'Group'}
-                                        onError={(event) => {
-                                            event.target.onerror = null;
-                                            event.target.src = "/assets/grp-poster.png";
-                                        }}
-                                    />
-                                    {/* <div className="group-card-overlay">
-                                        <span className="group-name-banner">GRACIE ABRAMS</span>
-                                    </div> */}
+                        {filteredGroups.map((group,index) => {
+                            const groupId = group.group_id || group.id;
+                            return (
+                                <div key={groupId || group.name || index} className="group-card">
+                                    <div className="group-card-image">
+                                        <img
+                                            src={group.group_photo || group.photo || "/assets/grp-poster.png"}
+                                            alt={group.name || group.title || 'Group'}
+                                            onError={(event) => {
+                                                event.target.onerror = null;
+                                                event.target.src = "/assets/grp-poster.png";
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="group-card-body">
+                                        <div className="group-card-title">{group.name || group.title || group.group_name || group.content_name}</div>
+                                        {userRole === 'Member' && groupId && (
+                                            <>
+                                                <div className="group-card-instructor">
+                                                    {`Dr. ${group.admin?.name || group.admin_name || 'Unknown'}`}
+                                                </div>
+                                                <button
+                                                    className={`group-join-btn py-2 w-50 align-items-center ${
+                                                        joinedGroups.includes(groupId) ? "joined" : ""
+                                                    }`}
+                                                    onClick={() => handleJoinGroup(groupId)}
+                                                    disabled={joinedGroups.includes(groupId)}
+                                                >
+                                                    {joinedGroups.includes(groupId) ? "Joined" : "Join"}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="group-card-body">
-                                    <div className="group-card-title">{group.name || group.title || group.group_name || group.content_name}</div>
-                                    {userRole === 'Member' && (
-                                        <>
-                                            <div className="group-card-instructor">
-                                                {`Dr. ${group.admin?.name || group.admin_name || 'Unknown'}`}
-                                            </div>
-                                            <button
-                                            className={`group-join-btn py-2 w-50 align-items-center ${
-                                                joinedGroups.includes(group.id) ? "joined" : ""
-                                            }`}
-                                            onClick={() => handleJoinGroup(group.id)}
-                                            disabled={joinedGroups.includes(group.id)}
-                                            >
-                                            {joinedGroups.includes(group.id) ? "Joined" : "Join"}
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -297,4 +296,3 @@ const Groups = () => {
 };
 
 export default Groups;
-
