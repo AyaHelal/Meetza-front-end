@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
-//import { io } from 'socket.io-client';
 import './GroupChat.css';
 import ChatsPanel from './components/ChatsPanel';
 import MainChat from './components/MainChat';
 import RightSidebar from './components/RightSidebar';
 import { categorizeResources, categorizeMediaItems } from './components/utils';
-
 import axiosInstance from '../../API/axiosInstance';
 import { AuthContext } from '../../context/AuthContext';
 import { smartToast } from '../../API/toastManager';
+
+//const SERVER_URL = "https://meetza-backend.vercel.app";
 
 const MEDIA_TYPE_MAP = {
   image: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'],
@@ -58,7 +58,6 @@ const extractExtension = (mediaItem) => {
   if (fromName) {
     return fromName.toLowerCase();
   }
-
   const url = mediaItem?.media_url || mediaItem?.file_url || '';
   if (!url) return '';
   const cleanUrl = url.split('?')[0];
@@ -79,7 +78,6 @@ const deriveMediaTypeFromExtension = (extension) => {
 
 const deriveFileName = (mediaItem) => {
   const extension = extractExtension(mediaItem) || deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
-
   const ensureExtension = (name) => {
     if (!name) return '';
     const trimmed = name.trim();
@@ -131,7 +129,6 @@ const normalizeMediaItems = (mediaItems, messageId) => {
   return mediaItems.map((item, index) => {
     const mediaUrl = item?.media_url || item?.file_url || '';
     const extension = extractExtension(item);
-
     const declaredType = typeof item?.media_type === 'string'
       ? item.media_type
       : (typeof item?.file_type === 'string' ? item.file_type : '');
@@ -160,8 +157,6 @@ const normalizeMediaItems = (mediaItems, messageId) => {
   });
 };
 
-//const SERVER_URL = "https://meetza-backend.vercel.app";
-
 export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
   const { user } = useContext(AuthContext);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -174,9 +169,28 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedSection, setExpandedSection] = useState(null);
   const [activeInfoSection, setActiveInfoSection] = useState(null);
+  const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
+  // Add class to body when GroupChat is mounted
+  useEffect(() => {
+    document.documentElement.classList.add('group-chat-active');
+    document.body.classList.add('group-chat-active');
+
+    return () => {
+      document.documentElement.classList.remove('group-chat-active');
+      document.body.classList.remove('group-chat-active');
+    };
+  }, []);
+  const openedGroupsRef = React.useRef(new Set());
+  const fetchingRef = React.useRef(false);
+  const lastFetchedGroupIdRef = React.useRef(null);
+  // Track recently viewed chats (groupId -> timestamp) to preserve unread = 0
+  const recentlyViewedRef = React.useRef(new Map());
+
+  // Format message with media support
   const formatMessage = useCallback((msg) => ({
     id: msg.id,
     sender: msg.sender_name,
@@ -186,6 +200,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
       minute: '2-digit',
       hour12: true
     }),
+    message: msg.message,
     text: msg.message,
     date: new Date(msg.created_at).toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -210,78 +225,57 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
     return 'document';
   }, []);
 
-   const extractLinksFromMessages = (messages = []) => {
+  const extractLinksFromMessages = (messages = []) => {
     console.log('Processing messages for links:', messages);
     const links = [];
     messages?.forEach(msg => {
-        // Skip if message is deleted or has media (we only want plain text messages with links)
-        if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
-            console.log('Skipping message (deleted or has media):', msg.id, {
-                is_deleted: msg.is_deleted,
-                has_media: msg.media?.length > 0
-            });
-            return;
-        }
-        
-        if (msg.message) {
-            console.log('Checking message for URLs:', {
-                id: msg.id,
-                message: msg.message
-            });
-            const urlRegex = /https?:\/\/[^\s<>,;]+/g;
-            const urls = msg.message.match(urlRegex) || [];
-            console.log('Found URLs:', urls);
-            
-            urls.forEach(url => {
-                try {
-                    const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
-                    const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
-                    
-                    if (!isFileUrl) {
-                        const urlObj = new URL(cleanUrl);
-                        const linkData = {
-                            id: `link-${msg.id}-${cleanUrl}`,
-                            media_url: cleanUrl,
-                            file_name: urlObj.hostname.replace('www.', ''),
-                            original_url: cleanUrl,
-                            created_at: msg.created_at,
-                            sender_name: msg.sender_name,
-                            message_id: msg.id,
-                            isLink: true,
-                            is_downloadable: false
-                        };
-                        console.log('Adding link:', linkData);
-                        links.push(linkData);
-                    } else {
-                        console.log('Skipping file URL:', cleanUrl);
-                    }
-                } catch (e) {
-                    console.warn('Invalid URL:', url, e);
-                }
-            });
-        }
+      // Skip if message is deleted or has media (we only want plain text messages with links)
+      if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
+        console.log('Skipping message (deleted or has media):', msg.id, {
+          is_deleted: msg.is_deleted,
+          has_media: msg.media?.length > 0
+        });
+        return;
+      }
+      if (msg.message) {
+        console.log('Checking message for URLs:', {
+          id: msg.id,
+          message: msg.message
+        });
+        const urlRegex = /https?:\/\/[^\s<>,;]+/g;
+        const urls = msg.message.match(urlRegex) || [];
+        console.log('Found URLs:', urls);
+        urls.forEach(url => {
+          try {
+            const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+            const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+            if (!isFileUrl) {
+              const urlObj = new URL(cleanUrl);
+              const linkData = {
+                id: `link-${msg.id}-${cleanUrl}`,
+                media_url: cleanUrl,
+                file_name: urlObj.hostname.replace('www.', ''),
+                original_url: cleanUrl,
+                created_at: msg.created_at,
+                sender_name: msg.sender_name,
+                message_id: msg.id,
+                isLink: true,
+                is_downloadable: false
+              };
+              console.log('Adding link:', linkData);
+              links.push(linkData);
+            } else {
+              console.log('Skipping file URL:', cleanUrl);
+            }
+          } catch (e) {
+            console.warn('Invalid URL:', url, e);
+          }
+        });
+      }
     });
     console.log('Extracted links:', links);
     return links;
-};
-  const [expandedSection, setExpandedSection] = useState(null);
-  const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
-
-  // Add class to body when GroupChat is mounted
-  useEffect(() => {
-    document.documentElement.classList.add('group-chat-active');
-    document.body.classList.add('group-chat-active');
-
-    return () => {
-      document.documentElement.classList.remove('group-chat-active');
-      document.body.classList.remove('group-chat-active');
-    };
-  }, []);
-  const openedGroupsRef = React.useRef(new Set());
-  const fetchingRef = React.useRef(false);
-  const lastFetchedGroupIdRef = React.useRef(null);
-  // Track recently viewed chats (groupId -> timestamp) to preserve unread = 0
-  const recentlyViewedRef = React.useRef(new Map());
+  };
 
   // Define group event handler outside socket effect so it can be referenced in cleanup
   /* eslint-disable-next-line no-unused-vars */
@@ -670,14 +664,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
         if (messagesResponse.data.success) {
           const newMessages = messagesResponse.data.data.map((msg) => ({
-            id: msg.id,
-            sender: msg.sender_name,
-            initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
-            time: new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-            text: msg.message,
-            date: new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            senderPhoto: msg.sender_photo,
-            senderEmail: msg.sender_email,
+            ...formatMessage(msg),
             created_at: msg.created_at // Keep original timestamp for comparison
           }));
 
@@ -747,7 +734,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
     return () => {
       clearInterval(messagePollInterval);
     };
-  }, [selectedChat, groupChats, isMobile, showMainChat]);
+  }, [selectedChat, groupChats, isMobile, showMainChat, formatMessage]);
 
   // Get current groupId from selected chat (memoized to prevent unnecessary re-runs)
   const currentGroupId = useMemo(() => {
@@ -809,16 +796,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         try {
           const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
           if (messagesResponse.data.success) {
-            const formattedMessages = messagesResponse.data.data.map((msg) => ({
-              id: msg.id,
-              sender: msg.sender_name,
-              initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
-              time: new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-              text: msg.message,
-              date: new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-              senderPhoto: msg.sender_photo,
-              senderEmail: msg.sender_email
-            }));
+            const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
             setMessages(formattedMessages);
             // mark group as opened so subsequent openings aren't treated as "first open"
             try { openedGroupsRef.current.add(String(groupId)); } catch (_) { }
@@ -870,7 +848,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
     fetchMessagesAndInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChat, currentGroupId, isMobile, showMainChat]); // currentGroupId is memoized from groupChats
+  }, [selectedChat, currentGroupId, isMobile, showMainChat, formatMessage]); // currentGroupId is memoized from groupChats
 
   useEffect(() => {
     const handleResize = () => {
@@ -1074,13 +1052,13 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         formData.append('file_name', file.name);
       }
     }
-    // Realtime socket emit disabled — messages are sent through REST POST
 
     setIsSendingMessage(true);
     try {
       const res = await axiosInstance.post(`/chat/groups/${groupId}/messages`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
       if (res?.data?.success && res.data.data) {
         const formattedMessage = formatMessage(res.data.data);
         setMessages((prev) => prev.map((msg) => (msg.id === tempId ? formattedMessage : msg)));
@@ -1101,7 +1079,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
   };
 
   const selectedChatData = selectedChat !== null ? groupChats[selectedChat] : null;
-  const chatTitle = selectedChatData ? selectedChatData.group_name : 'Group Chat';
+  const chatTitle = selectedChatData ? selectedChatData.group_name : "Group Chat";
 
   const rawContentResources = useMemo(() => groupInfo?.content?.resources || [], [groupInfo]);
   const contentResources = useMemo(() => categorizeResources(rawContentResources), [rawContentResources]);
@@ -1113,80 +1091,67 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
   const groupMediaItems = useMemo(() => categorizeMediaItems(mediaArray), [mediaArray]);
 
-    const mediaSummary = useMemo(() => {
+  const mediaSummary = useMemo(() => {
     const summary = {
-        images: groupMediaItems?.images || [],
-        videos: groupMediaItems?.videos || [],
-        audio: groupMediaItems?.audio || [],
-        files: groupMediaItems?.files || [],
-        links: extractLinksFromMessages(messages)
+      images: groupMediaItems?.images || [],
+      videos: groupMediaItems?.videos || [],
+      audio: groupMediaItems?.audio || [],
+      files: groupMediaItems?.files || [],
+      links: extractLinksFromMessages(messages)
     };
     console.log('Media summary:', summary);
     return summary;
-}, [messages, groupMediaItems]);
+  }, [messages, groupMediaItems]);
 
-    
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
   const calendarEvents = [
     {
-      month: 'Sep',
-      day: '25',
-      online: 'Online',
-      type: 'Group Meeting',
-      startTime: '8:25',
-      startPeriod: 'AM',
-      endTime: '10:20',
-      endPeriod: 'AM',
-      avatars: ['M', 'A']
+      month: "Sep",
+      day: "25",
+      online: "Online",
+      type: "Group Meeting",
+      startTime: "8:25",
+      startPeriod: "AM",
+      endTime: "10:20",
+      endPeriod: "AM",
+      avatars: ["M", "A"]
     },
     {
-      month: 'Sep',
-      day: '26',
-      online: 'Online',
-      type: 'Group Meeting',
-      startTime: '8:25',
-      startPeriod: 'AM',
-      endTime: '10:20',
-      endPeriod: 'AM',
-      avatars: ['M', 'A']
+      month: "Sep",
+      day: "26",
+      online: "Online",
+      type: "Group Meeting",
+      startTime: "8:25",
+      startPeriod: "AM",
+      endTime: "10:20",
+      endPeriod: "AM",
+      avatars: ["M", "A"]
     }
   ];
 
   const currentUser = {
-    name: user?.name || 'User',
-    initials: user?.name?.charAt(0)?.toUpperCase() || 'U',
-    status: 'Online'
-  };
-
-  const handleToggleInfoSection = (section) => {
-    setActiveInfoSection((prev) => (prev === section ? null : section));
+    name: user?.name || "User",
+    initials: user?.name?.charAt(0)?.toUpperCase() || "U",
+    status: "Online"
   };
 
   if (loading) {
-    return (
-      <div
-        className="home-container"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
-        Loading groups...
-      </div>
-    );
+    return <div className="home-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading groups...</div>;
   }
 
   return (
-  <div className="home-container">
-    <ChatsPanel
-      groupChats={groupChats}
-      selectedChat={selectedChat}
-      onChatSelect={handleChatSelect}
-      isMobile={isMobile}
-      showMainChat={showMainChat}
-      activeNav={activeNav}
-      setActiveNav={setActiveNav}
-    />
+    <div className="home-container">
+      <ChatsPanel
+        groupChats={groupChats}
+        selectedChat={selectedChat}
+        onChatSelect={handleChatSelect}
+        isMobile={isMobile}
+        showMainChat={showMainChat}
+        activeNav={activeNav}
+        setActiveNav={setActiveNav}
+      />
 
-    {selectedChatData ? (
       <MainChat
         messages={messages}
         chatTitle={chatTitle}
@@ -1197,44 +1162,34 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         expandedSection={expandedSection}
         groupInfo={groupInfo}
         setExpandedSection={setExpandedSection}
-        activeSection={activeInfoSection}
-        onCloseSection={() => setActiveInfoSection(null)}
-        contentResources={contentResources}
-        groupMediaItems={groupMediaItems}
-        groupMembers={groupMembers}
         currentUserEmail={user?.email}
         groupId={selectedChatData?.id}
         onMessageEdited={handleMessageEdited}
         onGroupNameClick={isMobile ? () => setShowRightSidebarMobile(true) : undefined}
         isSendingMessage={isSendingMessage}
       />
-    ) : (
-      <div className="main-chat-placeholder">Select a group chat to get started.</div>
-    )}
 
-    <RightSidebar
-      groupInfo={groupInfo}
-      calendarEvents={calendarEvents}
-      user={currentUser}
-      isMobile={isMobile}
-      showMainChat={showMainChat}
-      expandedSection={expandedSection}
-      setExpandedSection={setExpandedSection}
-      activeSection={activeInfoSection}
-      onSelectSection={handleToggleInfoSection}
-      contentSummary={contentResources}
-      mediaSummary={mediaSummary}
-      memberCount={groupMembers.length}
-      showMobile={showRightSidebarMobile}
-      onCloseMobile={() => setShowRightSidebarMobile(false)}
-      onOpenSidebar={() => {
-        setShowRightSidebarMobile(false); // Close right sidebar first
-        // Small delay to ensure right sidebar closes before main sidebar opens
-        setTimeout(() => {
-          if (onOpenSidebar) onOpenSidebar(); // Then open main sidebar
-        }, 100);
-      }}
-    />
-  </div>
-);
+      <RightSidebar
+        groupInfo={groupInfo}
+        calendarEvents={calendarEvents}
+        user={currentUser}
+        isMobile={isMobile}
+        showMainChat={showMainChat}
+        activeSection={activeInfoSection}
+        onSelectSection={setActiveInfoSection}
+        contentSummary={contentResources}
+        mediaSummary={mediaSummary}
+        memberCount={groupMembers.length}
+        showMobile={showRightSidebarMobile}
+        onCloseMobile={() => setShowRightSidebarMobile(false)}
+        onOpenSidebar={() => {
+          setShowRightSidebarMobile(false); // Close right sidebar first
+          // Small delay to ensure right sidebar closes before main sidebar opens
+          setTimeout(() => {
+            if (onOpenSidebar) onOpenSidebar(); // Then open main sidebar
+          }, 100);
+        }}
+      />
+    </div>
+  );
 }
