@@ -4,7 +4,7 @@ import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import { ArrowLeft } from '@phosphor-icons/react';
 import { categorizeResources } from './utils';
-import { deleteMessage, updateMessage ,getMessages} from '../../../API/auth';
+import { deleteMessage, updateMessage, getMessages } from '../../../API/auth';
 import './MainChat.css';
 import { smartToast } from "../../../API/toastManager";
 
@@ -20,7 +20,8 @@ const MainChat = ({
     setExpandedSection,
     currentUserEmail,
     groupId,
-    onMessageEdited
+    onMessageEdited,
+    onGroupNameClick
 }) => {
     const messagesContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -83,33 +84,32 @@ const MainChat = ({
         }
     }, [showMainChat, isMobile]);
 
-    // Update messages state when initialMessages prop changes
     // But preserve recently edited messages and don't remove messages that exist locally
     useEffect(() => {
-    if (!initialMessages) return;
+        if (!initialMessages) return;
 
-    setMessages(prevMessages => {
-        const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
-        const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
+        setMessages(prevMessages => {
+            const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
+            const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
 
-        const merged = initialMessages.map(newMsg => {
-            const prevMsg = prevMap.get(newMsg.id);
-            if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
-                return prevMsg; // Keep local edit
-            }
-            return newMsg;
+            const merged = initialMessages.map(newMsg => {
+                const prevMsg = prevMap.get(newMsg.id);
+                if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
+                    return prevMsg; // Keep local edit
+                }
+                return newMsg;
+            });
+
+            // Keep any local edited messages not yet returned from server
+            prevMessages.forEach(prevMsg => {
+                if (recentlyEditedRef.current.has(prevMsg.id) && !newMap.has(prevMsg.id)) {
+                    merged.push(prevMsg);
+                }
+            });
+
+            return merged;
         });
-
-        // Keep any local edited messages not yet returned from server
-        prevMessages.forEach(prevMsg => {
-            if (recentlyEditedRef.current.has(prevMsg.id) && !newMap.has(prevMsg.id)) {
-                merged.push(prevMsg);
-            }
-        });
-
-        return merged;
-    });
-}, [initialMessages]);
+    }, [initialMessages]);
 
 
 
@@ -141,45 +141,45 @@ const MainChat = ({
     };
 
 
-const handleEditMessage = async (messageId, newText) => {
-    if (!groupId) return;
-    if (!newText || !newText.trim()) return;
+    const handleEditMessage = async (messageId, newText) => {
+        if (!groupId) return;
+        if (!newText || !newText.trim()) return;
 
-    const trimmedText = newText.trim();
+        const trimmedText = newText.trim();
 
-    try {
-        // Keep message locally as edited
-        recentlyEditedRef.current.add(messageId);
-        skipNextUpdateRef.current = true;
+        try {
+            // Keep message locally as edited
+            recentlyEditedRef.current.add(messageId);
+            skipNextUpdateRef.current = true;
 
-        setMessages(prevMessages =>
-            prevMessages.map(msg =>
-                msg.id === messageId ? { ...msg, text: trimmedText } : msg
-            )
-        );
+            setMessages(prevMessages =>
+                prevMessages.map(msg =>
+                    msg.id === messageId ? { ...msg, text: trimmedText } : msg
+                )
+            );
 
-        // Send to server
-        await updateMessage(groupId, messageId, trimmedText);
-        smartToast.success('Message updated successfully');
+            // Send to server
+            await updateMessage(groupId, messageId, trimmedText);
+            smartToast.success('Message updated successfully');
 
-        if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+            if (onMessageEdited) onMessageEdited(messageId, trimmedText);
 
-        // No timeout! Keep in recentlyEditedRef permanently until component unmount
-    } catch (error) {
-        // revert if server fails
-        setMessages(prevMessages =>
-            prevMessages.map(msg => {
-                if (msg.id === messageId) {
-                    const originalMsg = initialMessages?.find(m => m.id === messageId);
-                    return { ...msg, text: originalMsg?.text || msg.text };
-                }
-                return msg;
-            })
-        );
-        smartToast.error('Failed to edit message');
-        console.error(error);
-    }
-};
+            // No timeout! Keep in recentlyEditedRef permanently until component unmount
+        } catch (error) {
+            // revert if server fails
+            setMessages(prevMessages =>
+                prevMessages.map(msg => {
+                    if (msg.id === messageId) {
+                        const originalMsg = initialMessages?.find(m => m.id === messageId);
+                        return { ...msg, text: originalMsg?.text || msg.text };
+                    }
+                    return msg;
+                })
+            );
+            smartToast.error('Failed to edit message');
+            console.error(error);
+        }
+    };
 
 
 
@@ -347,7 +347,7 @@ const handleEditMessage = async (messageId, newText) => {
             <div className="chat-header">
                 {isMobile && (
                     <button className="back-to-chats-btn" onClick={onBackToChats}>
-                        ←
+                        <ArrowLeft size={20} />
                     </button>
                 )}
                 {expandedSection && (
@@ -355,7 +355,12 @@ const handleEditMessage = async (messageId, newText) => {
                         <ArrowLeft size={20} />
                     </button>
                 )}
-                <h3>{chatTitle}</h3>
+                <h3
+                    onClick={onGroupNameClick}
+                    style={onGroupNameClick ? { cursor: 'pointer' } : {}}
+                >
+                    {chatTitle}
+                </h3>
                 <div className="chat-header-actions">
                     <button className="join-meeting-btn">Join Meeting</button>
                     <div className="search-icon-header">
@@ -366,36 +371,50 @@ const handleEditMessage = async (messageId, newText) => {
             <div className="chat-messages" ref={messagesContainerRef}>
                 {expandedSection ? (
                     renderExpandedSection()
+                ) : !groupId ? (
+                    <>
+                        <div className="no-messages-container">
+                            <img src="/assets/GroupChat.png"
+                                alt="No chat selected" className="no-messages-image" />
+                            <p className="no-messages-text fw-semibold mt-3">No chats selected yet!</p>
+                        </div>
+                        <p style={{ color: '#888888', textAlign: 'center', marginTop: 'auto', padding: '1rem' }}>
+                            Select chat to start a conversation
+                        </p>
+                    </>
                 ) : (
                     messages.length === 0 ? (
                         <div className="no-messages-container">
-                            <img src="/assets/GroupChat.png" alt="No messages" className="no-messages-image" />
+
+                            <img src="/assets/GroupChat.png"
+                                alt="No messages" className="no-messages-image" />
+
                         </div>
                     ) : (
                         <>
                             {Array.isArray(messages) && messages.length > 0 ? (
-                            messages.map((msg, index) => {
-                                const msgDate = msg.date || new Date(msg.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                                const prevDate = index > 0 ? (messages[index - 1].date || new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : null;
-                                const showSeparator = index === 0 || prevDate !== msgDate;
+                                messages.map((msg, index) => {
+                                    const msgDate = msg.date || new Date(msg.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                                    const prevDate = index > 0 ? (messages[index - 1].date || new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : null;
+                                    const showSeparator = index === 0 || prevDate !== msgDate;
 
-                                return (
-                                    <React.Fragment key={msg.id || index}>
-                                        {showSeparator && (
-                                            <div className="date-separator-wrapper">
-                                                <div className="date-separator">{msgDate}</div>
-                                            </div>
-                                        )}
-                                        <MessageItem
-                                            message={msg}
-                                            groupId={groupId}
-                                            onDeleteMessage={handleDeleteMessage}
-                                            onEditMessage={handleEditMessage}
-                                            currentUserEmail={currentUserEmail}
-                                        />
-                                    </React.Fragment>
-                                );
-                            })
+                                    return (
+                                        <React.Fragment key={msg.id || index}>
+                                            {showSeparator && (
+                                                <div className="date-separator-wrapper">
+                                                    <div className="date-separator">{msgDate}</div>
+                                                </div>
+                                            )}
+                                            <MessageItem
+                                                message={msg}
+                                                groupId={groupId}
+                                                onDeleteMessage={handleDeleteMessage}
+                                                onEditMessage={handleEditMessage}
+                                                currentUserEmail={currentUserEmail}
+                                            />
+                                        </React.Fragment>
+                                    );
+                                })
                             ) : (
                                 <div className="no-messages-container">
                                     <img src="/assets/GroupChat.png" alt="No messages" className="no-messages-image" />
@@ -406,10 +425,11 @@ const handleEditMessage = async (messageId, newText) => {
                     )
                 )}
             </div>
-            {!expandedSection && <ChatInput onSendMessage={onSendMessage} />}
+            {!expandedSection && groupId && <ChatInput onSendMessage={onSendMessage} />}
             {modalPhoto && (
                 <div className="photo-modal" onClick={closeModal}>
                     <img src={modalPhoto.file_url} alt={modalPhoto.file_name || 'Photo'} />
+
                     <button className="photo-modal-close" onClick={closeModal}>×</button>
                 </div>
             )}
