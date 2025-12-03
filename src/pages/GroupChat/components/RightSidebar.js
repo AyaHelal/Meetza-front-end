@@ -15,7 +15,7 @@ const RightSidebar = ({
     onSelectSection,
     contentSummary,
     mediaSummary,
-    memberCount
+    memberCount,
     expandedSection,
     setExpandedSection,
     showMobile,
