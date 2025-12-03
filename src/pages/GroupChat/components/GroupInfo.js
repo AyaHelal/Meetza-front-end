@@ -46,7 +46,12 @@ const GroupInfo = ({
 
     const handleItemClick = (key) => {
         if (onSelectSection) {
-            onSelectSection(key);
+            // Toggle: if clicking the same section that's already active, close it
+            if (activeSection === key) {
+                onSelectSection(null);
+            } else {
+                onSelectSection(key);
+            }
         }
     };
 
