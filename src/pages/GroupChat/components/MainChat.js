@@ -25,7 +25,7 @@ const MainChat = ({
     currentUserEmail,
     groupId,
     onMessageEdited,
-    isSendingMessage = false
+    isSendingMessage = false,
     onGroupNameClick
 }) => {
     const messagesContainerRef = useRef(null);
