@@ -1237,3 +1237,4 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
     />
   </div>
 );
+}
