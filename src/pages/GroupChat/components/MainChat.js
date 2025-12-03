@@ -39,7 +39,6 @@ const MainChat = ({
     const skipNextUpdateRef = useRef(false); // Flag to skip the next update
     const [contentTab, setContentTab] = useState('media');
     const [mediaTab, setMediaTab] = useState('media');
-	const [expandedSection, setExpandedSection] = useState(null);
 
     // Function to format messages and add link media items
     const formatMessages = (msgs) => {
