@@ -1175,67 +1175,65 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
   }
 
   return (
-    <div className="home-container">
-      <ChatsPanel
-        groupChats={groupChats}
-        selectedChat={selectedChat}
-        onChatSelect={handleChatSelect}
+  <div className="home-container">
+    <ChatsPanel
+      groupChats={groupChats}
+      selectedChat={selectedChat}
+      onChatSelect={handleChatSelect}
+      isMobile={isMobile}
+      showMainChat={showMainChat}
+      activeNav={activeNav}
+      setActiveNav={setActiveNav}
+    />
+
+    {selectedChatData ? (
+      <MainChat
+        messages={messages}
+        chatTitle={chatTitle}
         isMobile={isMobile}
         showMainChat={showMainChat}
-        activeNav={activeNav}
-        setActiveNav={setActiveNav}
-      />
-
-      {selectedChatData ? (
-        <MainChat
-          messages={messages}
-          chatTitle={chatTitle}
-          isMobile={isMobile}
-          showMainChat={showMainChat}
-          onBackToChats={handleBackToChats}
-          onSendMessage={handleSendMessage}
-	        expandedSection={expandedSection}
-          groupInfo={groupInfo}
-          setExpandedSection={setExpandedSection}
-          activeSection={activeInfoSection}
-          onCloseSection={() => setActiveInfoSection(null)}
-          contentResources={contentResources}
-          groupMediaItems={groupMediaItems}
-          groupMembers={groupMembers}
-          currentUserEmail={user?.email}
-          groupId={selectedChatData?.id}
-          onMessageEdited={handleMessageEdited}
-          isSendingMessage={isSendingMessage}
-          onGroupNameClick={isMobile ? () => setShowRightSidebarMobile(true) : undefined}
-        />
-      ) : (
-        <div className="main-chat-placeholder">Select a group chat to get started.</div>
-      )}
-
-
-      <RightSidebar
-        groupInfo={groupInfo}
-        calendarEvents={calendarEvents}
-        user={currentUser}
-        isMobile={isMobile}
-        showMainChat={showMainChat}
-        activeSection={activeInfoSection}
-        onSelectSection={handleToggleInfoSection}
-        contentSummary={contentResources}
-        mediaSummary={mediaSummary}
-        memberCount={groupMembers.length}
+        onBackToChats={handleBackToChats}
+        onSendMessage={handleSendMessage}
         expandedSection={expandedSection}
+        groupInfo={groupInfo}
         setExpandedSection={setExpandedSection}
-        showMobile={showRightSidebarMobile}
-        onCloseMobile={() => setShowRightSidebarMobile(false)}
-        onOpenSidebar={() => {
-          setShowRightSidebarMobile(false); // Close right sidebar first
-          // Small delay to ensure right sidebar closes before main sidebar opens
-          setTimeout(() => {
-            if (onOpenSidebar) onOpenSidebar(); // Then open main sidebar
-          }, 100);
-        }}
+        activeSection={activeInfoSection}
+        onCloseSection={() => setActiveInfoSection(null)}
+        contentResources={contentResources}
+        groupMediaItems={groupMediaItems}
+        groupMembers={groupMembers}
+        currentUserEmail={user?.email}
+        groupId={selectedChatData?.id}
+        onMessageEdited={handleMessageEdited}
+        onGroupNameClick={isMobile ? () => setShowRightSidebarMobile(true) : undefined}
+        isSendingMessage={isSendingMessage}
       />
-    </div>
-  );
-}
+    ) : (
+      <div className="main-chat-placeholder">Select a group chat to get started.</div>
+    )}
+
+    <RightSidebar
+      groupInfo={groupInfo}
+      calendarEvents={calendarEvents}
+      user={currentUser}
+      isMobile={isMobile}
+      showMainChat={showMainChat}
+      expandedSection={expandedSection}
+      setExpandedSection={setExpandedSection}
+      activeSection={activeInfoSection}
+      onSelectSection={handleToggleInfoSection}
+      contentSummary={contentResources}
+      mediaSummary={mediaSummary}
+      memberCount={groupMembers.length}
+      showMobile={showRightSidebarMobile}
+      onCloseMobile={() => setShowRightSidebarMobile(false)}
+      onOpenSidebar={() => {
+        setShowRightSidebarMobile(false); // Close right sidebar first
+        // Small delay to ensure right sidebar closes before main sidebar opens
+        setTimeout(() => {
+          if (onOpenSidebar) onOpenSidebar(); // Then open main sidebar
+        }, 100);
+      }}
+    />
+  </div>
+);
