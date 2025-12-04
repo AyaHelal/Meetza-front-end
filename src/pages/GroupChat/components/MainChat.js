@@ -94,9 +94,23 @@ const MainChat = ({
         return isAtBottom;
     };
 
-    const scrollToBottom = (force = false) => {
+    const scrollToBottom = (force = false, instant = false) => {
+        if (!messagesContainerRef.current) return;
+
         if (force || isUserAtBottom) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            const container = messagesContainerRef.current;
+            if (instant) {
+                // Instant scroll - set scrollTop directly (no animation)
+                // Use requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+            } else {
+                // Smooth scroll for new messages
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
         }
     };
 
@@ -128,10 +142,16 @@ const MainChat = ({
 
     useEffect(() => {
         if (showMainChat || !isMobile) {
-            setTimeout(() => {
-                scrollToBottom(true);
-                setIsUserAtBottom(true);
-            }, 100);
+            // Use instant scroll on initial load to avoid animation
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (messagesContainerRef.current) {
+                        const container = messagesContainerRef.current;
+                        container.scrollTop = container.scrollHeight;
+                        setIsUserAtBottom(true);
+                    }
+                });
+            });
         }
     }, [showMainChat, isMobile]);
 
@@ -140,6 +160,19 @@ const MainChat = ({
 
         const formattedNew = formatMessages(initialMessages);
         setMessages(formattedNew);
+
+        // Scroll to bottom instantly when messages are loaded (no animation)
+        // Use multiple requestAnimationFrame to ensure DOM is fully rendered
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (messagesContainerRef.current) {
+                    const container = messagesContainerRef.current;
+                    // Force instant scroll by directly setting scrollTop
+                    container.scrollTop = container.scrollHeight;
+                    setIsUserAtBottom(true);
+                }
+            });
+        });
     }, [initialMessages]);
 
     useEffect(() => {
@@ -257,13 +290,13 @@ const MainChat = ({
         const trimmedText = newText.trim();
 
         try {
-            // Step 1: Call the edit API
+            // Call the edit API
             await updateMessage(groupId, messageId, trimmedText);
 
-            // Step 2: Fetch all messages from the server using GET /chat/groups/{groupId}/messages
+            //  Fetch all messages from the server using GET /chat/groups/{groupId}/messages
             const response = await getMessages(groupId);
 
-            // Step 3: Format the messages (including media and links)
+            // Format the messages (including media and links)
             let fetchedMessages = [];
             if (response && response.messages && Array.isArray(response.messages)) {
                 fetchedMessages = response.messages;
@@ -274,7 +307,7 @@ const MainChat = ({
             // Format messages with media and links
             const formattedMessages = formatMessages(fetchedMessages);
 
-            // Step 4: Update messages state with fresh data from server
+            // Update messages state with fresh data from server
             setMessages(formattedMessages);
 
             smartToast.success('Message updated successfully');

@@ -453,6 +453,7 @@ body.group-chat-active {
   gap: 15px;
   min-height: 0;
   align-items: stretch;
+  scroll-behavior: auto; /* Disable smooth scrolling */
 }
 
 .no-messages-container {
