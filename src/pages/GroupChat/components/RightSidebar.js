@@ -115,6 +115,8 @@ const RightSidebar = ({
                     contentSummary={contentSummary}
                     mediaSummary={mediaSummary}
                     memberCount={memberCount}
+                    isMobile={isMobile}
+                    onCloseMobile={onCloseMobile}
                 />
                 <UserStatus user={user} />
             </div>

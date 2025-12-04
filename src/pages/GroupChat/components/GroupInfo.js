@@ -8,7 +8,9 @@ const GroupInfo = ({
     onSelectSection,
     contentSummary,
     mediaSummary,
-    memberCount
+    memberCount,
+    isMobile,
+    onCloseMobile
 }) => {
     const contentCount = (contentSummary?.photos?.length || 0)
         + (contentSummary?.links?.length || 0)

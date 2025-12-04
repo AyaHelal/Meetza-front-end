@@ -145,7 +145,7 @@ const MainChat = ({
             const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
 
             const formattedNew = formatMessages(initialMessages);
-            
+
             const merged = formattedNew.map(newMsg => {
                 const prevMsg = prevMap.get(newMsg.id);
                 if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
@@ -221,8 +221,8 @@ const MainChat = ({
     }), [groupMediaItems, messageLinks]);
 
     // Legacy support for groupInfo-based resources (from first file)
-    const { photos, links, documents } = groupInfo?.content?.resources ? 
-        categorizeResources(groupInfo.content.resources) : 
+    const { photos, links, documents } = groupInfo?.content?.resources ?
+        categorizeResources(groupInfo.content.resources) :
         { photos: [], links: [], documents: [] };
 
     const handlePhotoClick = (item) => {
@@ -235,12 +235,12 @@ const MainChat = ({
 
         const url = item.media_url || item.file_url;
         const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
-                       item.media_type?.startsWith('image') ||
-                       item.file_type?.startsWith('image/');
+            item.media_type?.startsWith('image') ||
+            item.file_type?.startsWith('image/');
 
         const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url) ||
-                       item.media_type?.startsWith('video') ||
-                       item.file_type?.startsWith('video/');
+            item.media_type?.startsWith('video') ||
+            item.file_type?.startsWith('video/');
 
         const mediaItem = {
             media_url: url,
@@ -454,8 +454,8 @@ const MainChat = ({
             {items.map((item, index) => {
                 const url = item.media_url || item.file_url;
                 const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
-                              item.media_type?.startsWith('image') ||
-                              item.file_type?.startsWith('image/');
+                    item.media_type?.startsWith('image') ||
+                    item.file_type?.startsWith('image/');
 
                 return (
                     <div
@@ -484,7 +484,7 @@ const MainChat = ({
     const renderLinkList = (items = []) => {
         console.log('Rendering links:', items);
         return (
-            <div className="expanded-items">
+            <div className="expanded-items expanded-links">
                 {items.length === 0 && <p className="empty-state">No links yet.</p>}
                 {items.map((item, index) => (
                     <a
@@ -509,30 +509,46 @@ const MainChat = ({
         );
     };
 
-    const renderDocumentList = (items = []) => (
-        <div className="expanded-items">
-            {items.length === 0 && <p className="empty-state">No documents yet.</p>}
-            {items.map((item, index) => (
-                item.media_type === 'audio' ? (
-                    <div key={item.id || index} className="document-item audio-item">
-                        <audio controls src={item.media_url || item.file_url} />
-                        <span>{item.file_name || 'Audio'}</span>
-                    </div>
-                ) : (
-                    <a
-                        key={item.id || index}
-                        href={item.file_url || item.media_url}
-                        download={getDownloadFileName(item)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="document-item"
-                    >
-                        {item.file_name || getDownloadFileName(item)}
-                    </a>
-                )
-            ))}
-        </div>
-    );
+    const renderDocumentList = (items = []) => {
+        const getFileExtension = (fileName) => {
+            if (!fileName) return 'FILE';
+            const parts = fileName.split('.');
+            if (parts.length > 1) {
+                const ext = parts[parts.length - 1].toUpperCase();
+                return ext.length <= 4 ? ext : 'FILE';
+            }
+            return 'FILE';
+        };
+
+        return (
+            <div className="expanded-items documents-grid">
+                {items.length === 0 && <p className="empty-state">No documents yet.</p>}
+                {items.map((item, index) => (
+                    item.media_type === 'audio' ? (
+                        <div key={item.id || index} className="document-item audio-item">
+                            <audio controls src={item.media_url || item.file_url} />
+                            <span>{item.file_name || 'Audio'}</span>
+                        </div>
+                    ) : (
+                        <a
+                            key={item.id || index}
+                            href={item.file_url || item.media_url}
+                            download={getDownloadFileName(item)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="document-item document-square"
+                            title={item.file_name || getDownloadFileName(item)}
+                        >
+                            <div className="document-icon">
+                                <span className="document-extension">{getFileExtension(item.file_name || getDownloadFileName(item))}</span>
+                            </div>
+                            <div className="document-name">{item.file_name || getDownloadFileName(item)}</div>
+                        </a>
+                    )
+                ))}
+            </div>
+        );
+    };
 
     const renderTabbedSection = (source, tabValue, onTabChange) => (
         <div className="expanded-section">
@@ -597,11 +613,11 @@ const MainChat = ({
                         items.map((item, index) => (
                             <div key={index} className="expanded-item">
                                 {expandedSection === 'photos' && (
-                                    <img 
-                                        src={item.file_url} 
-                                        alt={item.file_name || 'Photo'} 
-                                        className="expanded-photo" 
-                                        onClick={() => handlePhotoClick(item)} 
+                                    <img
+                                        src={item.file_url}
+                                        alt={item.file_name || 'Photo'}
+                                        className="expanded-photo"
+                                        onClick={() => handlePhotoClick(item)}
                                     />
                                 )}
                                 {expandedSection === 'links' && (
@@ -610,10 +626,10 @@ const MainChat = ({
                                     </a>
                                 )}
                                 {expandedSection === 'documents' && (
-                                    <a 
-                                        href={item.file_url} 
-                                        download={getDownloadFileName(item)} 
-                                        target="_blank" 
+                                    <a
+                                        href={item.file_url}
+                                        download={getDownloadFileName(item)}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                     >
                                         {item.file_name || getDownloadFileName(item)}
@@ -634,7 +650,7 @@ const MainChat = ({
             if (activeSection === 'media') return renderTabbedSection(mediaTabResources, mediaTab, setMediaTab);
             return renderTabbedSection(contentResources, contentTab, setContentTab);
         }
-        
+
         // Legacy support for old expandedSection
         return renderLegacyExpandedSection();
     };
@@ -642,17 +658,17 @@ const MainChat = ({
     return (
         <div className={`main-chat rounded-4 shadow-sm ${isMobile && !showMainChat ? 'mobile-hidden' : ''}`}>
             <div className="chat-header">
-                {isMobile && (
-                    <button className="back-to-chats-btn" onClick={onBackToChats}>
-                        <ArrowLeft size={20} />
-                    </button>
-                )}
-                {(activeSection || expandedSection) && (
-                    <button 
-                        className="back-to-chat-btn" 
+                {/* Show section back button if viewing a section, otherwise show mobile back button */}
+                {(activeSection || expandedSection) ? (
+                    <button
+                        className="back-to-chat-btn"
                         onClick={onCloseSection || (() => setExpandedSection && setExpandedSection(null))}
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={20} color="white" />
+                    </button>
+                ) : isMobile && (
+                    <button className="back-to-chats-btn" onClick={onBackToChats}>
+                        <ArrowLeft size={20} color="white" />
                     </button>
                 )}
                 <h3

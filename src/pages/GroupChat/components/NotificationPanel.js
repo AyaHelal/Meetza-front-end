@@ -1,0 +1,156 @@
+import React, { useState, useEffect, useRef } from 'react';
+import axiosInstance from '../../../API/axiosInstance';
+import './NotificationPanel.css';
+
+const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMobile = false }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const panelRef = useRef(null);
+
+  // Close panel when clicking outside (desktop only)
+  useEffect(() => {
+    if (isMobile) return; // Don't handle click outside on mobile full-page
+    
+    const handleClickOutside = (event) => {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        // Check if click is not on the bell icon
+        if (!event.target.closest('.nav-icon.notification-icon')) {
+          onClose();
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose, isMobile]);
+
+  // Fetch notifications when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+      markAllAsRead();
+    }
+  }, [isOpen]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/notification');
+      console.log('Notification API response:', response.data);
+      
+      // Handle different response formats
+      let notificationsData = [];
+      if (response.data) {
+        if (response.data.success && response.data.data) {
+          notificationsData = Array.isArray(response.data.data) ? response.data.data : [];
+        } else if (Array.isArray(response.data)) {
+          notificationsData = response.data;
+        } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
+          notificationsData = response.data.notifications;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          notificationsData = response.data.data;
+        }
+      }
+      
+      console.log('Parsed notifications:', notificationsData);
+      setNotifications(notificationsData);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      console.error('Error response:', error.response?.data);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const response = await axiosInstance.put('/notification/mark-all-as-read');
+      console.log('Mark all as read response:', response.data);
+      // Refresh unread count after marking as read
+      if (onNotificationRead) {
+        // Add a small delay to ensure server has processed the request
+        setTimeout(() => {
+          onNotificationRead();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      console.error('Error response:', error.response?.data);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      ref={panelRef}
+      className={`notification-panel ${isMobile ? 'mobile-full-page' : ''}`}
+      style={isMobile ? {} : (position ? { 
+        top: position.top,
+        left: position.left,
+        right: position.right,
+        bottom: position.bottom
+      } : {})}
+    >
+      <div className="notification-panel-header">
+        <h3>Notifications</h3>
+        <button className="notification-close-btn" onClick={onClose}>×</button>
+      </div>
+      <div className="notification-panel-content">
+        {loading ? (
+          <div className="notification-loading">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="notification-empty">No notifications</div>
+        ) : (
+          <div className="notification-list">
+            {notifications.map((notification) => (
+              <div 
+                key={notification.id || notification.notification_id} 
+                className={`notification-item ${notification.is_read ? 'read' : 'unread'}`}
+              >
+                <div className="notification-content">
+                  <div className="notification-title">
+                    {notification.title || notification.message || 'Notification'}
+                  </div>
+                  {notification.description && (
+                    <div className="notification-description">
+                      {notification.description}
+                    </div>
+                  )}
+                  <div className="notification-time">
+                    {formatDate(notification.created_at || notification.createdAt || notification.timestamp)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default NotificationPanel;
+

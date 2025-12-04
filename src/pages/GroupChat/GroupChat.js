@@ -326,23 +326,37 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           })
         );
 
-        const formatted = groupsWithContent.map((g) => ({
-          id: g.id,
-          name: g.group_name,
-          subject: g.last_message || 'No messages yet',
-          avatar: g.group_name?.charAt(0)?.toUpperCase() || 'G',
-          avatarImage: g.group_photo || null,
-          date: g.last_message_at
-            ? new Date(g.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-            : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-
-          unread: g.unread ?? g.unread_count ?? g.unreadCount ?? 0,
-          group_name: g.group_name,
-          group_content_id: g.group_content_id,
-          contentName: g.contentName
-        }));
-
-        setGroupChats(formatted);
+        setGroupChats((prev) => {
+          const formatted = groupsWithContent.map((g) => {
+            const prevGroup = prev.find(p => String(p.id) === String(g.id));
+            let subject = g.last_message || 'No messages yet';
+            
+            // Preserve media preview if it exists and API doesn't have last_message
+            if (prevGroup && prevGroup.subject && 
+                (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
+                 prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
+                 prevGroup.subject.startsWith('📄')) && 
+                !g.last_message) {
+              subject = prevGroup.subject;
+            }
+            
+            return {
+              id: g.id,
+              name: g.group_name,
+              subject: subject,
+              avatar: g.group_name?.charAt(0)?.toUpperCase() || 'G',
+              avatarImage: g.group_photo || null,
+              date: g.last_message_at
+                ? new Date(g.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+              unread: g.unread ?? g.unread_count ?? g.unreadCount ?? 0,
+              group_name: g.group_name,
+              group_content_id: g.group_content_id,
+              contentName: g.contentName
+            };
+          });
+          return formatted;
+        });
         return;
       }
 
@@ -359,10 +373,21 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         }
       }
 
+      // Preserve media preview from previous state if API doesn't have last_message
+      const prevGroup = groupChats.find(p => String(p.id) === String(group.id));
+      let subject = group.last_message || 'No messages yet';
+      if (prevGroup && prevGroup.subject && 
+          (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
+           prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
+           prevGroup.subject.startsWith('📄')) && 
+          !group.last_message) {
+        subject = prevGroup.subject;
+      }
+
       const formattedGroup = {
         id: group.id,
         name: group.group_name || group.name,
-        subject: group.last_message || 'No messages yet',
+        subject: subject,
         avatar: (group.group_name || group.name || 'G').charAt(0).toUpperCase(),
         avatarImage: group.group_photo || null,
         date: group.last_message_at ? new Date(group.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
@@ -442,29 +467,88 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
         // Format groups to match ChatItem component structure and include unread counts
         // We'll attempt to fetch per-group unread counts from the server for each group.
-        const formattedGroups = await Promise.all(groupsWithContent.map(async (group) => ({
-          // return a properly formed object for each group
-          id: group.id,
-          name: group.group_name,
-          subject: group.last_message || 'No messages yet',
-          avatar: group.group_name?.charAt(0)?.toUpperCase() || 'G',
-          avatarImage: group.group_photo || null,
-          date: group.last_message_at
-            ? new Date(group.last_message_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            })
-            : new Date().toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            }),
-          // default value until we fetch per-group unread count
-          unread: (group.unread ?? group.unread_count ?? group.unreadCount) ?? 0,
-          group_name: group.group_name,
-          group_content_id: group.group_content_id,
-          contentName: group.contentName
-
-        })));
+        // Fetch last message only on initial load to avoid flickering
+        const formattedGroups = await Promise.all(groupsWithContent.map(async (group) => {
+          // Get previous group to preserve media previews
+          const prevGroup = groupChats.find(p => String(p.id) === String(group.id));
+          let lastMessagePreview = group.last_message || 'No messages yet';
+          
+          // Only fetch last message on initial load or if we don't have a media preview
+          const hasMediaPreview = prevGroup?.subject && 
+            (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
+             prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
+             prevGroup.subject.startsWith('📄'));
+          
+          // If we have a media preview and API has last_message, use API's value (it might be newer)
+          // If API doesn't have last_message, keep the media preview
+          if (hasMediaPreview && !group.last_message) {
+            lastMessagePreview = prevGroup.subject;
+          } else if (isInitial || (!hasMediaPreview && !group.last_message)) {
+            // Only fetch on initial load or when we need to get media preview
+            try {
+              const lastMsgResponse = await axiosInstance.get(`/chat/groups/${group.id}/messages?limit=1`);
+              if (lastMsgResponse.data.success && lastMsgResponse.data.data && lastMsgResponse.data.data.length > 0) {
+                const lastMsg = lastMsgResponse.data.data[0];
+                const formattedMsg = formatMessage(lastMsg);
+                
+                // If message has text, use it
+                if (formattedMsg.message || formattedMsg.text) {
+                  lastMessagePreview = formattedMsg.message || formattedMsg.text;
+                } 
+                // If no text but has media, show media preview
+                else if (formattedMsg.media && formattedMsg.media.length > 0) {
+                  const firstMedia = formattedMsg.media[0];
+                  if (firstMedia.media_type === 'image' || firstMedia.media_type?.startsWith('image')) {
+                    lastMessagePreview = '📷 Photo';
+                  } else if (firstMedia.media_type === 'video' || firstMedia.media_type?.startsWith('video')) {
+                    lastMessagePreview = '🎥 Video';
+                  } else if (firstMedia.media_type === 'audio' || firstMedia.media_type?.startsWith('audio')) {
+                    lastMessagePreview = '🎵 Audio';
+                  } else if (firstMedia.media_type === 'link') {
+                    try {
+                      const url = new URL(firstMedia.media_url || firstMedia.file_url);
+                      lastMessagePreview = `🔗 ${url.hostname.replace('www.', '')}`;
+                    } catch {
+                      lastMessagePreview = '🔗 Link';
+                    }
+                  } else {
+                    const fileName = firstMedia.file_name || 'Document';
+                    lastMessagePreview = `📄 ${fileName}`;
+                  }
+                }
+              }
+            } catch (err) {
+              // Silently fail - use default last_message from group or preserve media preview
+              if (hasMediaPreview) {
+                lastMessagePreview = prevGroup.subject;
+              }
+              console.debug('Could not fetch last message for group', group.id, err);
+            }
+          }
+          
+          return {
+            // return a properly formed object for each group
+            id: group.id,
+            name: group.group_name,
+            subject: lastMessagePreview,
+            avatar: group.group_name?.charAt(0)?.toUpperCase() || 'G',
+            avatarImage: group.group_photo || null,
+            date: group.last_message_at
+              ? new Date(group.last_message_at).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short'
+              })
+              : new Date().toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short'
+              }),
+            // default value until we fetch per-group unread count
+            unread: (group.unread ?? group.unread_count ?? group.unreadCount) ?? 0,
+            group_name: group.group_name,
+            group_content_id: group.group_content_id,
+            contentName: group.contentName
+          };
+        }));
 
         // If the server did not return unread in the initial payload, fetch unread-count per group.
         // We'll try to fetch counts for groups which have a falsy unread value (0 or undefined) ONLY when the server didn't provide a value.
@@ -571,8 +655,40 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
             return formattedGroups;
           }
 
-          // If selected chat was deleted, we'll handle below; otherwise restore by id
-          return formattedGroups;
+          // Merge with previous state to preserve locally set subjects (like media previews)
+          return formattedGroups.map(newGroup => {
+            const prevGroup = prev.find(p => String(p.id) === String(newGroup.id));
+            
+            // If previous subject is a media preview (starts with emoji)
+            const prevIsMediaPreview = prevGroup?.subject && 
+              (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
+               prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
+               prevGroup.subject.startsWith('📄'));
+            
+            // If new subject is also a media preview, use it (it's from fresh fetch)
+            const newIsMediaPreview = newGroup.subject && 
+              (newGroup.subject.startsWith('📷') || newGroup.subject.startsWith('🎥') || 
+               newGroup.subject.startsWith('🎵') || newGroup.subject.startsWith('🔗') || 
+               newGroup.subject.startsWith('📄'));
+            
+            // If new subject has text (not empty, not "No messages yet"), always use it
+            if (newGroup.subject && newGroup.subject !== 'No messages yet' && !newIsMediaPreview) {
+              return newGroup;
+            }
+            
+            // If new subject is a media preview, use it (fresh fetch)
+            if (newIsMediaPreview) {
+              return newGroup;
+            }
+            
+            // If new subject is "No messages yet" but we have a media preview, keep the preview
+            if (prevIsMediaPreview && (!newGroup.subject || newGroup.subject === 'No messages yet')) {
+              return { ...newGroup, subject: prevGroup.subject };
+            }
+            
+            // Fallback: use new subject if it exists, otherwise keep previous, otherwise "No messages yet"
+            return { ...newGroup, subject: newGroup.subject || prevGroup?.subject || 'No messages yet' };
+          });
         });
 
         // After state update, restore selectedChat index to the position of the same group id
@@ -718,9 +834,44 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
           lastKnownMessageIds = currentMessageIds;
           setMessages(newMessages);
-          setGroupChats(prev => prev.map(g =>
-            String(g.id) === String(groupId) ? { ...g, unread: 0 } : g
-          ));
+          
+          // Update chat subject with last message preview (including media)
+          if (newMessages.length > 0) {
+            const lastMsg = newMessages[newMessages.length - 1];
+            let previewText = lastMsg.message || lastMsg.text || '';
+            
+            // If no text but has media, show media preview
+            if (!previewText && lastMsg.media && lastMsg.media.length > 0) {
+              const firstMedia = lastMsg.media[0];
+              if (firstMedia.media_type === 'image' || firstMedia.media_type?.startsWith('image')) {
+                previewText = '📷 Photo';
+              } else if (firstMedia.media_type === 'video' || firstMedia.media_type?.startsWith('video')) {
+                previewText = '🎥 Video';
+              } else if (firstMedia.media_type === 'audio' || firstMedia.media_type?.startsWith('audio')) {
+                previewText = '🎵 Audio';
+              } else if (firstMedia.media_type === 'link') {
+                try {
+                  const url = new URL(firstMedia.media_url || firstMedia.file_url);
+                  previewText = `🔗 ${url.hostname.replace('www.', '')}`;
+                } catch {
+                  previewText = '🔗 Link';
+                }
+              } else {
+                const fileName = firstMedia.file_name || 'Document';
+                previewText = `📄 ${fileName}`;
+              }
+            }
+            
+            setGroupChats(prev => prev.map(g =>
+              String(g.id) === String(groupId) 
+                ? { ...g, unread: 0, subject: previewText || g.subject } 
+                : g
+            ));
+          } else {
+            setGroupChats(prev => prev.map(g =>
+              String(g.id) === String(groupId) ? { ...g, unread: 0 } : g
+            ));
+          }
         }
       } catch (error) {
         // Only log non-400/404 errors
@@ -798,6 +949,41 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           if (messagesResponse.data.success) {
             const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
             setMessages(formattedMessages);
+            
+            // Update chat subject with last message preview (including media)
+            if (formattedMessages.length > 0) {
+              const lastMsg = formattedMessages[formattedMessages.length - 1];
+              let previewText = lastMsg.message || lastMsg.text || '';
+              
+              // If no text but has media, show media preview
+              if (!previewText && lastMsg.media && lastMsg.media.length > 0) {
+                const firstMedia = lastMsg.media[0];
+                if (firstMedia.media_type === 'image' || firstMedia.media_type?.startsWith('image')) {
+                  previewText = '📷 Photo';
+                } else if (firstMedia.media_type === 'video' || firstMedia.media_type?.startsWith('video')) {
+                  previewText = '🎥 Video';
+                } else if (firstMedia.media_type === 'audio' || firstMedia.media_type?.startsWith('audio')) {
+                  previewText = '🎵 Audio';
+                } else if (firstMedia.media_type === 'link') {
+                  try {
+                    const url = new URL(firstMedia.media_url || firstMedia.file_url);
+                    previewText = `🔗 ${url.hostname.replace('www.', '')}`;
+                  } catch {
+                    previewText = '🔗 Link';
+                  }
+                } else {
+                  const fileName = firstMedia.file_name || 'Document';
+                  previewText = `📄 ${fileName}`;
+                }
+              }
+              
+              setGroupChats(prev => prev.map(g =>
+                String(g.id) === String(groupId) 
+                  ? { ...g, subject: previewText || g.subject } 
+                  : g
+              ));
+            }
+            
             // mark group as opened so subsequent openings aren't treated as "first open"
             try { openedGroupsRef.current.add(String(groupId)); } catch (_) { }
           }
@@ -1181,7 +1367,14 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         isMobile={isMobile}
         showMainChat={showMainChat}
         activeSection={activeInfoSection}
-        onSelectSection={setActiveInfoSection}
+        onSelectSection={(section) => {
+          setActiveInfoSection(section);
+          // On mobile, close the right sidebar and show main chat when a section is selected
+          if (isMobile && section) {
+            setShowRightSidebarMobile(false);
+            setShowMainChat(true);
+          }
+        }}
         contentSummary={contentResources}
         mediaSummary={mediaSummary}
         memberCount={groupMembers.length}
