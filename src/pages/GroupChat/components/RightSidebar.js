@@ -2,7 +2,6 @@ import React, { useRef, useEffect } from 'react';
 import { YoutubeLogo, List } from '@phosphor-icons/react';
 import CalendarSection from './CalendarSection';
 import GroupInfo from './GroupInfo';
-import UserStatus from './UserStatus';
 import './RightSidebar.css';
 
 const RightSidebar = ({
@@ -118,7 +117,7 @@ const RightSidebar = ({
                     isMobile={isMobile}
                     onCloseMobile={onCloseMobile}
                 />
-                <UserStatus user={user} />
+                {/* UserStatus is now in AppLayout as fixed component */}
             </div>
         </>
     );

@@ -330,16 +330,16 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           const formatted = groupsWithContent.map((g) => {
             const prevGroup = prev.find(p => String(p.id) === String(g.id));
             let subject = g.last_message || 'No messages yet';
-            
+
             // Preserve media preview if it exists and API doesn't have last_message
-            if (prevGroup && prevGroup.subject && 
-                (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
-                 prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
-                 prevGroup.subject.startsWith('📄')) && 
-                !g.last_message) {
+            if (prevGroup && prevGroup.subject &&
+              (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') ||
+                prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') ||
+                prevGroup.subject.startsWith('📄')) &&
+              !g.last_message) {
               subject = prevGroup.subject;
             }
-            
+
             return {
               id: g.id,
               name: g.group_name,
@@ -376,11 +376,11 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
       // Preserve media preview from previous state if API doesn't have last_message
       const prevGroup = groupChats.find(p => String(p.id) === String(group.id));
       let subject = group.last_message || 'No messages yet';
-      if (prevGroup && prevGroup.subject && 
-          (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
-           prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
-           prevGroup.subject.startsWith('📄')) && 
-          !group.last_message) {
+      if (prevGroup && prevGroup.subject &&
+        (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') ||
+          prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') ||
+          prevGroup.subject.startsWith('📄')) &&
+        !group.last_message) {
         subject = prevGroup.subject;
       }
 
@@ -472,13 +472,13 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           // Get previous group to preserve media previews
           const prevGroup = groupChats.find(p => String(p.id) === String(group.id));
           let lastMessagePreview = group.last_message || 'No messages yet';
-          
+
           // Only fetch last message on initial load or if we don't have a media preview
-          const hasMediaPreview = prevGroup?.subject && 
-            (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
-             prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
-             prevGroup.subject.startsWith('📄'));
-          
+          const hasMediaPreview = prevGroup?.subject &&
+            (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') ||
+              prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') ||
+              prevGroup.subject.startsWith('📄'));
+
           // If we have a media preview and API has last_message, use API's value (it might be newer)
           // If API doesn't have last_message, keep the media preview
           if (hasMediaPreview && !group.last_message) {
@@ -490,11 +490,11 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
               if (lastMsgResponse.data.success && lastMsgResponse.data.data && lastMsgResponse.data.data.length > 0) {
                 const lastMsg = lastMsgResponse.data.data[0];
                 const formattedMsg = formatMessage(lastMsg);
-                
+
                 // If message has text, use it
                 if (formattedMsg.message || formattedMsg.text) {
                   lastMessagePreview = formattedMsg.message || formattedMsg.text;
-                } 
+                }
                 // If no text but has media, show media preview
                 else if (formattedMsg.media && formattedMsg.media.length > 0) {
                   const firstMedia = formattedMsg.media[0];
@@ -525,7 +525,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
               console.debug('Could not fetch last message for group', group.id, err);
             }
           }
-          
+
           return {
             // return a properly formed object for each group
             id: group.id,
@@ -658,34 +658,34 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           // Merge with previous state to preserve locally set subjects (like media previews)
           return formattedGroups.map(newGroup => {
             const prevGroup = prev.find(p => String(p.id) === String(newGroup.id));
-            
+
             // If previous subject is a media preview (starts with emoji)
-            const prevIsMediaPreview = prevGroup?.subject && 
-              (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') || 
-               prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') || 
-               prevGroup.subject.startsWith('📄'));
-            
+            const prevIsMediaPreview = prevGroup?.subject &&
+              (prevGroup.subject.startsWith('📷') || prevGroup.subject.startsWith('🎥') ||
+                prevGroup.subject.startsWith('🎵') || prevGroup.subject.startsWith('🔗') ||
+                prevGroup.subject.startsWith('📄'));
+
             // If new subject is also a media preview, use it (it's from fresh fetch)
-            const newIsMediaPreview = newGroup.subject && 
-              (newGroup.subject.startsWith('📷') || newGroup.subject.startsWith('🎥') || 
-               newGroup.subject.startsWith('🎵') || newGroup.subject.startsWith('🔗') || 
-               newGroup.subject.startsWith('📄'));
-            
+            const newIsMediaPreview = newGroup.subject &&
+              (newGroup.subject.startsWith('📷') || newGroup.subject.startsWith('🎥') ||
+                newGroup.subject.startsWith('🎵') || newGroup.subject.startsWith('🔗') ||
+                newGroup.subject.startsWith('📄'));
+
             // If new subject has text (not empty, not "No messages yet"), always use it
             if (newGroup.subject && newGroup.subject !== 'No messages yet' && !newIsMediaPreview) {
               return newGroup;
             }
-            
+
             // If new subject is a media preview, use it (fresh fetch)
             if (newIsMediaPreview) {
               return newGroup;
             }
-            
+
             // If new subject is "No messages yet" but we have a media preview, keep the preview
             if (prevIsMediaPreview && (!newGroup.subject || newGroup.subject === 'No messages yet')) {
               return { ...newGroup, subject: prevGroup.subject };
             }
-            
+
             // Fallback: use new subject if it exists, otherwise keep previous, otherwise "No messages yet"
             return { ...newGroup, subject: newGroup.subject || prevGroup?.subject || 'No messages yet' };
           });
@@ -834,12 +834,12 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
           lastKnownMessageIds = currentMessageIds;
           setMessages(newMessages);
-          
+
           // Update chat subject with last message preview (including media)
           if (newMessages.length > 0) {
             const lastMsg = newMessages[newMessages.length - 1];
             let previewText = lastMsg.message || lastMsg.text || '';
-            
+
             // If no text but has media, show media preview
             if (!previewText && lastMsg.media && lastMsg.media.length > 0) {
               const firstMedia = lastMsg.media[0];
@@ -861,10 +861,10 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
                 previewText = `📄 ${fileName}`;
               }
             }
-            
+
             setGroupChats(prev => prev.map(g =>
-              String(g.id) === String(groupId) 
-                ? { ...g, unread: 0, subject: previewText || g.subject } 
+              String(g.id) === String(groupId)
+                ? { ...g, unread: 0, subject: previewText || g.subject }
                 : g
             ));
           } else {
@@ -949,12 +949,12 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
           if (messagesResponse.data.success) {
             const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
             setMessages(formattedMessages);
-            
+
             // Update chat subject with last message preview (including media)
             if (formattedMessages.length > 0) {
               const lastMsg = formattedMessages[formattedMessages.length - 1];
               let previewText = lastMsg.message || lastMsg.text || '';
-              
+
               // If no text but has media, show media preview
               if (!previewText && lastMsg.media && lastMsg.media.length > 0) {
                 const firstMedia = lastMsg.media[0];
@@ -976,14 +976,14 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
                   previewText = `📄 ${fileName}`;
                 }
               }
-              
+
               setGroupChats(prev => prev.map(g =>
-                String(g.id) === String(groupId) 
-                  ? { ...g, subject: previewText || g.subject } 
+                String(g.id) === String(groupId)
+                  ? { ...g, subject: previewText || g.subject }
                   : g
               ));
             }
-            
+
             // mark group as opened so subsequent openings aren't treated as "first open"
             try { openedGroupsRef.current.add(String(groupId)); } catch (_) { }
           }
@@ -1317,8 +1317,11 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
   ];
 
   const currentUser = {
+    id: user?.id,
     name: user?.name || "User",
     initials: user?.name?.charAt(0)?.toUpperCase() || "U",
+    photo: user?.photo || user?.user_photo,
+    user_photo: user?.user_photo || user?.photo,
     status: "Online"
   };
 

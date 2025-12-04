@@ -15,6 +15,8 @@ const ChatsPanel = ({
 }) => {
     const [searchQuery, setSearchQuery] = React.useState('');
     const [activeTab, setActiveTab] = React.useState('all');
+    const [unreadGroups, setUnreadGroups] = React.useState([]);
+    const [loadingUnread, setLoadingUnread] = React.useState(false);
 
     // local cache of per-group unread counts fetched from API
     const [unreadMap, setUnreadMap] = React.useState({});
@@ -117,6 +119,46 @@ const ChatsPanel = ({
         })();
     }, [groupChats, unreadMap, selectedChat]);
 
+    // Fetch unread groups from API when unread tab is active
+    React.useEffect(() => {
+        if (activeTab === 'unread') {
+            const fetchUnreadGroups = async () => {
+                setLoadingUnread(true);
+                try {
+                    const response = await axiosInstance.get('/chat/groups/unread');
+                    console.log('Unread groups API response:', response.data);
+                    
+                    // Handle different response formats
+                    let groupsData = [];
+                    if (response.data) {
+                        if (response.data.success && response.data.data) {
+                            groupsData = Array.isArray(response.data.data) ? response.data.data : [];
+                        } else if (Array.isArray(response.data)) {
+                            groupsData = response.data;
+                        } else if (response.data.groups && Array.isArray(response.data.groups)) {
+                            groupsData = response.data.groups;
+                        } else if (response.data.data && Array.isArray(response.data.data)) {
+                            groupsData = response.data.data;
+                        }
+                    }
+                    
+                    console.log('Parsed unread groups:', groupsData);
+                    setUnreadGroups(groupsData);
+                } catch (error) {
+                    console.error('Error fetching unread groups:', error);
+                    setUnreadGroups([]);
+                } finally {
+                    setLoadingUnread(false);
+                }
+            };
+            
+            fetchUnreadGroups();
+        } else {
+            // Clear unread groups when switching to 'all' tab
+            setUnreadGroups([]);
+        }
+    }, [activeTab]);
+
     // Build view model merging server-provided unread and locally fetched unreadMap
     // Prefer server-provided parent value unless the per-group unreadMap returns a positive count
     const mergedChats = groupChats.map((c, index) => {
@@ -142,14 +184,16 @@ const ChatsPanel = ({
         return { ...c, unread };
     });
 
-    const filteredChats = mergedChats.filter(chat => {
+    // Use unread groups from API when unread tab is active, otherwise use mergedChats
+    const chatsToDisplay = activeTab === 'unread' ? unreadGroups : mergedChats;
+
+    const filteredChats = chatsToDisplay.filter(chat => {
         if (!chat) return false;
-        const chatName = (chat.name || '').toLowerCase();
+        const chatName = (chat.name || chat.group_name || '').toLowerCase();
         const chatSubject = (chat.subject || '').toLowerCase();
         const searchLower = searchQuery.toLowerCase();
         const matchesSearch = chatName.includes(searchLower) || chatSubject.includes(searchLower);
-        const matchesTab = activeTab === 'all' || (activeTab === 'unread' && chat.unread > 0);
-        return matchesSearch && matchesTab;
+        return matchesSearch;
     });
 
 
@@ -183,21 +227,61 @@ const ChatsPanel = ({
                     </button>
                 </div>
                 <div className="chats-list">
-                    {filteredChats.length === 0 ? (
+                    {loadingUnread && activeTab === 'unread' ? (
+                        <div className="no-chats-container">
+                            <p>Loading unread groups...</p>
+                        </div>
+                    ) : filteredChats.length === 0 ? (
                         <div className="no-chats-container">
                             <img src="/assets/GroupChat.png" alt="No chats" className="no-chats-image" />
                         </div>
                     ) : (
                         filteredChats.map((chat, index) => {
-                            const originalIndex = groupChats.findIndex(g => String(g.id) === String(chat.id));
+                            // Find the original index in groupChats array
+                            const chatId = chat.id || chat.group_id;
+                            const originalIndex = groupChats.findIndex(g => String(g.id) === String(chatId));
+                            
+                            // Format date properly
+                            let formattedDate = '';
+                            const dateField = chat.date || chat.last_message_at || chat.last_message_time || chat.updated_at;
+                            if (dateField) {
+                                try {
+                                    const dateObj = new Date(dateField);
+                                    if (!isNaN(dateObj.getTime())) {
+                                        formattedDate = dateObj.toLocaleDateString('en-GB', {
+                                            day: 'numeric',
+                                            month: 'short'
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.warn('Error formatting date:', e);
+                                }
+                            }
+                            
+                            // Format chat data to match ChatItem expected structure
+                            const formattedChat = {
+                                ...chat,
+                                name: chat.name || chat.group_name,
+                                subject: chat.subject || chat.last_message || '',
+                                avatar: chat.avatar || (chat.name || chat.group_name)?.charAt(0)?.toUpperCase() || 'G',
+                                avatarImage: chat.avatarImage || chat.group_photo || chat.photo,
+                                date: formattedDate || chat.date || '',
+                                unread: chat.unread ?? chat.unread_count ?? chat.unreadCount ?? 0
+                            };
+                            
                             return (
                                 <ChatItem
-                                    key={originalIndex}
-                                    chat={chat}
-                                    isActive={selectedChat === originalIndex}
+                                    key={chatId || index}
+                                    chat={formattedChat}
+                                    isActive={selectedChat === originalIndex && originalIndex !== -1}
                                     onClick={() => {
-                                        onChatSelect(originalIndex, { fromPanel: true, unreadCount: Number(chat.unread || 0) });
-                                        setUnreadMap(prev => ({ ...prev, [String(chat.id)]: 0 }));
+                                        if (originalIndex !== -1) {
+                                            onChatSelect(originalIndex, { fromPanel: true, unreadCount: Number(formattedChat.unread || 0) });
+                                            setUnreadMap(prev => ({ ...prev, [String(chatId)]: 0 }));
+                                        } else {
+                                            // If chat not found in groupChats, we might need to refresh the list
+                                            console.warn('Chat not found in groupChats, ID:', chatId);
+                                        }
                                     }}
                                 />
                             );

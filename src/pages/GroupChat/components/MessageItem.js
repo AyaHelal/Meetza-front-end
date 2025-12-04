@@ -69,20 +69,18 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
         };
     }, [mediaUrl]);
 
-    // Generate waveform data (simulated - in production, you'd analyze the audio)
+    // Generate waveform data immediately (simulated - in production, you'd analyze the audio)
     useEffect(() => {
-        if (duration && duration > 0) {
-            // Generate random waveform bars for visualization
-            const bars = 50;
-            const data = Array.from({ length: bars }, () => Math.random() * 100);
-            setWaveformData(data);
-        }
-    }, [duration]);
+        // Generate waveform immediately, don't wait for duration
+        const bars = 50;
+        const data = Array.from({ length: bars }, () => Math.random() * 100);
+        setWaveformData(data);
+    }, [mediaUrl]); // Generate when mediaUrl changes, not when duration loads
 
     const togglePlayPause = () => {
         const audio = audioRef.current;
         if (!audio) return;
-        
+
         if (isPlaying) {
             audio.pause();
         } else {
@@ -96,12 +94,12 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
     const handleWaveformClick = (e) => {
         const audio = audioRef.current;
         if (!audio || !duration) return;
-        
+
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, clickX / rect.width));
         const newTime = percentage * duration;
-        
+
         audio.currentTime = newTime;
     };
 
@@ -117,7 +115,7 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
 
     return (
         <div className={`whatsapp-voice-message ${isOwnMessage ? 'voice-own' : 'voice-other'}`}>
-            <audio 
+            <audio
                 ref={audioRef}
                 preload="metadata"
                 crossOrigin="anonymous"
@@ -128,7 +126,7 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
                 <source src={mediaUrl} type="audio/mpeg" />
                 <source src={mediaUrl} type="audio/ogg" />
             </audio>
-            
+
             {error ? (
                 <div className="audio-error">
                     <span>{error}</span>
@@ -142,7 +140,7 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
                 </div>
             ) : (
                 <div className="voice-message-content">
-                    <button 
+                    <button
                         className="voice-play-btn"
                         onClick={togglePlayPause}
                         disabled={isLoading}
@@ -154,7 +152,7 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
                             <Play size={16} weight="fill" />
                         )}
                     </button>
-                    
+
                     <div className="voice-waveform-container" onClick={handleWaveformClick}>
                         <div className="voice-playback-indicator" style={{ left: `${progressPercentage}%` }} />
                         <div className="voice-waveform">
@@ -170,11 +168,18 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
                                     );
                                 })
                             ) : (
-                                <div className="waveform-loading">Loading waveform...</div>
+                                // Show default waveform bars even if data not loaded yet
+                                Array.from({ length: 50 }, (_, index) => (
+                                    <div
+                                        key={index}
+                                        className="waveform-bar"
+                                        style={{ height: `${Math.random() * 100}%` }}
+                                    />
+                                ))
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="voice-time-info">
                         <span className="voice-current-time">{formatTime(isPlaying ? currentTime : duration || 0)}</span>
                     </div>
@@ -192,16 +197,16 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
     const isLinkMessage = message.message && /^https?:\/\/\S+$/i.test(message.message.trim());
     const finalMedia =
-  message.media?.length > 0
-    ? message.media
-    : isLinkMessage
-    ? [
-        {
-          media_type: 'link',
-          media_url: message.message,
-        },
-      ]
-    : [];
+        message.media?.length > 0
+            ? message.media
+            : isLinkMessage
+                ? [
+                    {
+                        media_type: 'link',
+                        media_url: message.message,
+                    },
+                ]
+                : [];
 
 
 
@@ -359,7 +364,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
                     if (type === 'audio') {
                         return (
-                            <AudioPlayer 
+                            <AudioPlayer
                                 key={key}
                                 mediaUrl={mediaUrl}
                                 mediaItem={mediaItem}
@@ -372,11 +377,11 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         // Extract domain name from URL
                         let domainName = '';
                         let displayUrl = mediaUrl;
-                        
+
                         try {
                             const urlObj = new URL(mediaUrl);
                             domainName = urlObj.hostname.replace('www.', '');
-                            
+
                             // Truncate URL if too long (WhatsApp style - show first part)
                             if (mediaUrl.length > 60) {
                                 displayUrl = mediaUrl.substring(0, 57) + '...';
@@ -405,21 +410,75 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                     }
 
                     const fileName = getFileNameFromMedia(mediaItem);
+
+                    // Ensure file name has proper extension
+                    const ensureFileExtension = (name, mediaItem) => {
+                        if (!name) return 'document';
+
+                        // If name already has extension, return as is
+                        if (name.includes('.') && name.split('.').pop().length <= 6) {
+                            return name;
+                        }
+
+                        // Try to get extension from file_name, URL, or media_type
+                        const extension = getExtension(mediaItem);
+                        if (extension) {
+                            // Remove any existing extension and add the correct one
+                            const nameWithoutExt = name.split('.')[0];
+                            return `${nameWithoutExt}.${extension}`;
+                        }
+
+                        return name;
+                    };
+
+                    const finalFileName = ensureFileExtension(fileName, mediaItem);
+
+                    const handleDownload = async (e) => {
+                        e.preventDefault();
+                        try {
+                            const response = await fetch(mediaUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+                                }
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to download file');
+                            }
+
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = finalFileName;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                        } catch (error) {
+                            console.error('Error downloading file:', error);
+                            // Fallback to opening in new tab
+                            window.open(mediaUrl, '_blank');
+                        }
+                    };
+
                     return (
                         <a
                             key={key}
                             href={mediaUrl}
                             className="message-media message-media-doc"
+                            onClick={handleDownload}
                             target="_blank"
                             rel="noopener noreferrer"
-                            download={fileName}
-                            title={fileName}
+                            download={finalFileName}
+                            title={finalFileName}
                         >
-                            <FileIconPlaceholder name={fileName} />
+                            <FileIconPlaceholder name={finalFileName} />
                             <div className="message-media-doc-text">
                                 <span className="message-media-doc-meta">
                                     <span className="doc-meta-separator">•</span>
-                                    <span className="doc-meta-type">{fileName}</span>
+                                    <span className="doc-meta-type">{finalFileName}</span>
                                 </span>
                             </div>
                         </a>
@@ -480,21 +539,21 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                 )}
                 {!isLinkMessage && message.message && (
                     <div className="message-text">
-                    {isEditing ? (
-                        <input
-                        type="text"
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        onBlur={handleEditSubmit}
-                        onKeyDown={handleKeyDown}
-                        autoFocus
-                        className="edit-input"
-                        />
-                    ) : (
-                        message.message || ''
-                    )}
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                onBlur={handleEditSubmit}
+                                onKeyDown={handleKeyDown}
+                                autoFocus
+                                className="edit-input"
+                            />
+                        ) : (
+                            message.message || ''
+                        )}
                     </div>
-  )}
+                )}
 
                 {renderMedia()}
             </div>

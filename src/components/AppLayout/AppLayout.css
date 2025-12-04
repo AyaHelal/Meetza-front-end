@@ -250,3 +250,31 @@
     font-weight: 500;
   }
 }
+
+/* Fixed UserStatus - Sticky on all pages */
+.fixed-user-status {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.fixed-user-status .user-status {
+  pointer-events: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+}
+
+@media (max-width: 768px) {
+  .fixed-user-status {
+    bottom: 15px;
+    right: 15px;
+    left: auto;
+  }
+
+  .fixed-user-status .user-status {
+    min-width: 180px;
+    padding: 6px 10px;
+  }
+}

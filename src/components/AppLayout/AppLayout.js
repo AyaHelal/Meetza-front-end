@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { List, X, House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut, UsersThree } from '@phosphor-icons/react';
 import LeftNavbar from '../../pages/GroupChat/components/LeftNavbar';
+import UserStatus from '../../pages/GroupChat/components/UserStatus';
 import { AuthContext } from '../../context/AuthContext';
 import axiosInstance from '../../API/axiosInstance';
 import './AppLayout.css';
@@ -255,6 +256,11 @@ const AppLayout = ({ children }) => {
           setActiveNav: handleNavClick,
           onOpenSidebar: () => setIsSidebarOpen(true)
         })}
+      </div>
+
+      {/* Fixed UserStatus on all pages */}
+      <div className="fixed-user-status">
+        <UserStatus user={user} />
       </div>
     </div>
   );
