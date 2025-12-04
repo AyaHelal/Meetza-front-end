@@ -115,6 +115,29 @@ body.group-chat-active {
   height: 32px;
 }
 
+.nav-icon.notification-icon {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ff4444;
+  color: #ffffff;
+  border-radius: 10px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* Responsive icon size: 24px for screens 1450px and above */
 @media (min-width: 1450px) {
   .nav-icon svg {
@@ -566,8 +589,8 @@ body.group-chat-active {
 .message-media-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 0;
+  margin-top: 0;
   width: 100%;
 }
 
@@ -578,6 +601,25 @@ body.group-chat-active {
   background: #f5f5f5;
   padding: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Audio messages should appear inside message bubble like text */
+.message-media.message-media-audio-wrapper {
+  background: #e8e8e8;
+  padding: 10px 14px;
+  border-radius: 18px;
+  box-shadow: none;
+  max-width: 100%;
+}
+
+.message-own .message-media.message-media-audio-wrapper {
+  background: #1976d2;
+  align-self: flex-end;
+}
+
+.message-other .message-media.message-media-audio-wrapper {
+  background: #e8e8e8;
+  align-self: flex-start;
 }
 
 .message-own .message-media {
@@ -598,8 +640,315 @@ body.group-chat-active {
   max-height: 220px;
 }
 
+/* WhatsApp-style Voice Message */
+.whatsapp-voice-message {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  min-width: 200px;
+  max-width: 300px;
+  border-radius: 8px;
+}
+
+.voice-own {
+  background: #1976d2;
+}
+
+.voice-other {
+  background: #e8e8e8;
+}
+
+.voice-message-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.voice-play-btn {
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  color: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: none;
+}
+
+.voice-own .voice-play-btn {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.voice-other .voice-play-btn {
+  color: #25d366;
+}
+
+.voice-play-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.voice-play-btn:active {
+  transform: scale(0.95);
+}
+
+.voice-play-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.voice-waveform-container {
+  flex: 1;
+  position: relative;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.voice-playback-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #25d366;
+  z-index: 2;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(37, 211, 102, 0.6);
+}
+
+.voice-own .voice-playback-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+
+.voice-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 4px 0;
+}
+
+.waveform-bar {
+  flex: 1;
+  min-width: 2px;
+  background: #25d366;
+  border-radius: 1px;
+  transition: background 0.2s ease;
+  opacity: 0.6;
+}
+
+.voice-own .waveform-bar {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.voice-other .waveform-bar {
+  background: #25d366;
+}
+
+.waveform-bar.played {
+  opacity: 1;
+}
+
+.voice-own .waveform-bar.played {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.voice-other .waveform-bar.played {
+  background: #25d366;
+}
+
+.waveform-loading {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  width: 100%;
+}
+
+.voice-time-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 45px;
+}
+
+.voice-current-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.voice-own .voice-current-time {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.voice-other .voice-current-time {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Legacy styles for backward compatibility */
+.message-media-audio-wrapper {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.message-media.message-media-audio-wrapper {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  max-width: 100%;
+}
+
+.message-media-audio-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.audio-duration {
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .message-media-audio {
-  padding: 8px;
+  width: 100%;
+  max-width: 280px;
+  height: 32px;
+}
+
+.audio-loading {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.audio-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #dc3545;
+  padding: 4px 0;
+}
+
+.audio-error button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.audio-error button:hover {
+  background: #c82333;
+}
+
+.message-media-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 18px;
+  overflow: hidden;
+  max-width: 100%;
+  margin-top: 0;
+  /* WhatsApp style - fits within message bubble, rounded like message */
+}
+
+/* When link is below text, remove top border radius to connect with text bubble */
+.message-text + .message-media-list .message-media-link {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+.message-link-preview {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.message-link-info {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.message-link-domain {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8696a0;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.message-link-url {
+  font-size: 14px;
+  color: #53bdeb;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.message-media-link:hover .message-link-url {
+  text-decoration: underline;
+}
+
+/* For other messages - light background, matches message-text background */
+.message-other .message-media-link {
+  background: #e8e8e8;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.message-other .message-link-domain {
+  color: #8696a0;
+}
+
+.message-other .message-link-url {
+  color: #53bdeb;
+}
+
+/* For own messages - blend with blue bubble */
+.message-own .message-media-link {
+  background: #1976d2;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message-own .message-link-domain {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-own .message-link-url {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .message-media-doc {
@@ -1514,6 +1863,21 @@ body.group-chat-active {
     gap: 10px;
   }
 
+  .chat-header.section-header {
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .chat-header.section-header h3 {
+    flex: 1;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
   .back-to-chats-btn {
     background: transparent;
     border: none;
@@ -2124,10 +2488,10 @@ body.group-chat-active {
 /* Expanded section styles */
 .expanded-section {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   padding: 1rem;
   margin-bottom: 1rem;
-
+  width: 100%;
 }
 
 .expanded-section1{
@@ -2151,7 +2515,11 @@ body.group-chat-active {
 
 .tabs-header{
   display: flex;
-  gap:1rem;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
 }
 
 .tab-item{
@@ -2170,8 +2538,18 @@ body.group-chat-active {
   background: #d0d0d0;
 }
 .expanded-items {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.expanded-items.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .expanded-items.expanded-links {
@@ -2221,6 +2599,120 @@ body.group-chat-active {
 .expanded-item a.link-item {
   width: 100%;
   margin-bottom: 0.5rem;
+}
+
+.link-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.link-item:hover {
+  background: #f5f5f5;
+}
+
+.link-title {
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.link-url {
+  font-size: 0.85rem;
+  color: #666;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.document-item:hover {
+  background: #f5f5f5;
+}
+
+.document-item.document-square {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  width: 100%;
+  height: 140px;
+  margin-bottom: 0;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.document-square .document-icon {
+  width: 80px;
+  height: 80px;
+  background: #f0f4ff;
+  border: 2px solid #1976d2;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.document-square .document-extension {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1976d2;
+  text-align: center;
+}
+
+.document-square .document-name {
+  font-size: 12px;
+  color: #333;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
+.document-square:hover {
+  background: #f0f4ff;
+  border-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-item.audio-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.document-item.audio-item audio {
+  width: 100%;
 }
 
 /* Modal for enlarged photo */

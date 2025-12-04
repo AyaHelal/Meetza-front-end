@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { List, X, House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut, UsersThree } from '@phosphor-icons/react';
 import LeftNavbar from '../../pages/GroupChat/components/LeftNavbar';
 import { AuthContext } from '../../context/AuthContext';
+import axiosInstance from '../../API/axiosInstance';
 import './AppLayout.css';
 
 const AppLayout = ({ children }) => {
@@ -12,6 +13,8 @@ const AppLayout = ({ children }) => {
   const [activeNav, setActiveNav] = useState('messages');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   // Update activeNav based on current route
   useEffect(() => {
@@ -31,6 +34,65 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Fetch unread notification count
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axiosInstance.get('/notification/unread-count');
+      let count = 0;
+      const data = response.data;
+
+      if (data !== null && data !== undefined) {
+        if (typeof data === 'number') {
+          count = data;
+        } else if (data.success && typeof data.unreadCount === 'number') {
+          count = data.unreadCount;
+        } else if (data.success && data.data !== undefined) {
+          if (typeof data.data === 'number') {
+            count = data.data;
+          } else if (data.data && typeof data.data.count === 'number') {
+            count = data.data.count;
+          } else if (data.data && typeof data.data.unread_count === 'number') {
+            count = data.data.unread_count;
+          } else if (data.data && typeof data.data.unreadCount === 'number') {
+            count = data.data.unreadCount;
+          }
+        } else if (data.data !== undefined) {
+          if (typeof data.data === 'number') {
+            count = data.data;
+          } else if (data.data && typeof data.data.count === 'number') {
+            count = data.data.count;
+          } else if (data.data && typeof data.data.unread_count === 'number') {
+            count = data.data.unread_count;
+          } else if (data.data && typeof data.data.unreadCount === 'number') {
+            count = data.data.unreadCount;
+          }
+        } else if (typeof data.unreadCount === 'number') {
+          count = data.unreadCount;
+        } else if (typeof data.count === 'number') {
+          count = data.count;
+        } else if (typeof data.unread_count === 'number') {
+          count = data.unread_count;
+        } else if (typeof data.unread === 'number') {
+          count = data.unread;
+        }
+      }
+
+      count = Number(count) || 0;
+      setUnreadNotificationCount(count);
+    } catch (error) {
+      console.error('Error fetching unread notification count:', error);
+    }
+  };
+
   // Handle navigation from LeftNavbar
   const handleNavClick = (nav) => {
     // Only navigate if we're not already on that route
@@ -46,6 +108,27 @@ const AppLayout = ({ children }) => {
     }
     setIsSidebarOpen(false);
     // Add other navigation handlers as needed
+  };
+
+  // Handle notification bell click
+  const handleNotificationBellClick = () => {
+    setShowNotificationPanel(true);
+    setIsSidebarOpen(false);
+    // Refresh count when opening
+    fetchUnreadCount();
+  };
+
+  // Handle notification panel close - refresh count
+  const handleNotificationPanelClose = () => {
+    setShowNotificationPanel(false);
+    setTimeout(() => {
+      fetchUnreadCount();
+    }, 300);
+  };
+
+  // Handle notification read - refresh count
+  const handleNotificationRead = () => {
+    fetchUnreadCount();
   };
 
   const handleLogout = () => {
@@ -64,13 +147,18 @@ const AppLayout = ({ children }) => {
     { icon: Envelope, label: 'Message', nav: 'messages' },
     { icon: UsersThree, label: 'Groups', nav: 'users' },
     { icon: CalendarBlank, label: 'Calendar', nav: 'calendar' },
-    { icon: Bell, label: 'Notifications', nav: 'notifications' },
     { icon: GearSix, label: 'Settings', nav: 'settings' },
   ];
 
   return (
     <div className="app-layout">
-      <LeftNavbar activeNav={activeNav} setActiveNav={handleNavClick} />
+      <LeftNavbar 
+        activeNav={activeNav} 
+        setActiveNav={handleNavClick}
+        externalNotificationPanelOpen={isMobile ? showNotificationPanel : undefined}
+        onExternalNotificationPanelClose={handleNotificationPanelClose}
+        onNotificationRead={handleNotificationRead}
+      />
 
       {/* Mobile Header - Static on all pages */}
       {isMobile && (
@@ -83,12 +171,26 @@ const AppLayout = ({ children }) => {
 
               />
             </div>
-            <button
-              className="hamburger-menu"
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <List size={32} weight="bold" />
-            </button>
+            <div className="mobile-header-actions">
+              <button
+                className="notification-bell-mobile"
+                onClick={handleNotificationBellClick}
+                title="Notifications"
+              >
+                <Bell size={28} weight="regular" />
+                {unreadNotificationCount > 0 && (
+                  <span className="notification-badge-mobile">
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                )}
+              </button>
+              <button
+                className="hamburger-menu"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <List size={32} weight="bold" />
+              </button>
+            </div>
           </div>
         </div>
       )}

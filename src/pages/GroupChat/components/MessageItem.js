@@ -1,5 +1,188 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Play, Pause } from '@phosphor-icons/react';
 import '../GroupChat.css';
+
+// WhatsApp-style Audio Player Component with waveform
+const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
+    const audioRef = useRef(null);
+    const [duration, setDuration] = useState(null);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [waveformData, setWaveformData] = useState([]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const updateTime = () => setCurrentTime(audio.currentTime);
+        const updateDuration = () => {
+            if (audio.duration && isFinite(audio.duration)) {
+                setDuration(audio.duration);
+                setIsLoading(false);
+            }
+        };
+        const handleLoadedMetadata = () => {
+            if (audio.duration && isFinite(audio.duration)) {
+                setDuration(audio.duration);
+                setIsLoading(false);
+            }
+        };
+        const handleCanPlay = () => {
+            setIsLoading(false);
+            if (audio.duration && isFinite(audio.duration)) {
+                setDuration(audio.duration);
+            }
+        };
+        const handlePlay = () => setIsPlaying(true);
+        const handlePause = () => setIsPlaying(false);
+        const handleError = (e) => {
+            console.error('Audio playback error:', e);
+            setError('Failed to load audio');
+            setIsLoading(false);
+        };
+        const handleLoadStart = () => setIsLoading(true);
+
+        // Try to load metadata
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+        audio.addEventListener('durationchange', updateDuration);
+        audio.addEventListener('timeupdate', updateTime);
+        audio.addEventListener('canplay', handleCanPlay);
+        audio.addEventListener('play', handlePlay);
+        audio.addEventListener('pause', handlePause);
+        audio.addEventListener('error', handleError);
+        audio.addEventListener('loadstart', handleLoadStart);
+
+        // Force load metadata
+        audio.load();
+
+        return () => {
+            audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            audio.removeEventListener('durationchange', updateDuration);
+            audio.removeEventListener('timeupdate', updateTime);
+            audio.removeEventListener('canplay', handleCanPlay);
+            audio.removeEventListener('play', handlePlay);
+            audio.removeEventListener('pause', handlePause);
+            audio.removeEventListener('error', handleError);
+            audio.removeEventListener('loadstart', handleLoadStart);
+        };
+    }, [mediaUrl]);
+
+    // Generate waveform data (simulated - in production, you'd analyze the audio)
+    useEffect(() => {
+        if (duration && duration > 0) {
+            // Generate random waveform bars for visualization
+            const bars = 50;
+            const data = Array.from({ length: bars }, () => Math.random() * 100);
+            setWaveformData(data);
+        }
+    }, [duration]);
+
+    const togglePlayPause = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            audio.play().catch(err => {
+                console.error('Play error:', err);
+                setError('Failed to play audio');
+            });
+        }
+    };
+
+    const handleWaveformClick = (e) => {
+        const audio = audioRef.current;
+        if (!audio || !duration) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+        const newTime = percentage * duration;
+        
+        audio.currentTime = newTime;
+    };
+
+    const formatTime = (seconds) => {
+        if (!seconds || !isFinite(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
+    const mimeType = mediaItem?.media_type || mediaItem?.file_type || mediaItem?.file_mime || 'audio/webm';
+
+    return (
+        <div className={`whatsapp-voice-message ${isOwnMessage ? 'voice-own' : 'voice-other'}`}>
+            <audio 
+                ref={audioRef}
+                preload="metadata"
+                crossOrigin="anonymous"
+                style={{ display: 'none' }}
+            >
+                <source src={mediaUrl} type={mimeType} />
+                <source src={mediaUrl} type="audio/webm" />
+                <source src={mediaUrl} type="audio/mpeg" />
+                <source src={mediaUrl} type="audio/ogg" />
+            </audio>
+            
+            {error ? (
+                <div className="audio-error">
+                    <span>{error}</span>
+                    <button onClick={() => {
+                        setError(null);
+                        setIsLoading(true);
+                        if (audioRef.current) {
+                            audioRef.current.load();
+                        }
+                    }}>Retry</button>
+                </div>
+            ) : (
+                <div className="voice-message-content">
+                    <button 
+                        className="voice-play-btn"
+                        onClick={togglePlayPause}
+                        disabled={isLoading}
+                        aria-label={isPlaying ? 'Pause' : 'Play'}
+                    >
+                        {isPlaying ? (
+                            <Pause size={16} weight="fill" />
+                        ) : (
+                            <Play size={16} weight="fill" />
+                        )}
+                    </button>
+                    
+                    <div className="voice-waveform-container" onClick={handleWaveformClick}>
+                        <div className="voice-playback-indicator" style={{ left: `${progressPercentage}%` }} />
+                        <div className="voice-waveform">
+                            {waveformData.length > 0 ? (
+                                waveformData.map((height, index) => {
+                                    const isPlayed = (index / waveformData.length) * 100 < progressPercentage;
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`waveform-bar ${isPlayed ? 'played' : ''}`}
+                                            style={{ height: `${height}%` }}
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <div className="waveform-loading">Loading waveform...</div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="voice-time-info">
+                        <span className="voice-current-time">{formatTime(isPlaying ? currentTime : duration || 0)}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail, onMediaClick }) => {
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -176,17 +359,32 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
                     if (type === 'audio') {
                         return (
-                            <div key={key} className="message-media message-media-audio-wrapper">
-                                <div className="message-media-audio-label">Voice note</div>
-                                <audio className="message-media-audio" controls preload="metadata">
-                                    <source src={mediaUrl} type={mediaItem.media_type || mediaItem.file_type || 'audio/mpeg'} />
-                                    Your browser does not support the audio element.
-                                </audio>
-                            </div>
+                            <AudioPlayer 
+                                key={key}
+                                mediaUrl={mediaUrl}
+                                mediaItem={mediaItem}
+                                isOwnMessage={isOwnMessage}
+                            />
                         );
                     }
 
                     if (mediaItem.media_type === 'link') {
+                        // Extract domain name from URL
+                        let domainName = '';
+                        let displayUrl = mediaUrl;
+                        
+                        try {
+                            const urlObj = new URL(mediaUrl);
+                            domainName = urlObj.hostname.replace('www.', '');
+                            
+                            // Truncate URL if too long (WhatsApp style - show first part)
+                            if (mediaUrl.length > 60) {
+                                displayUrl = mediaUrl.substring(0, 57) + '...';
+                            }
+                        } catch (e) {
+                            domainName = 'Link';
+                        }
+
                         return (
                             <a
                                 key={key}
@@ -196,7 +394,12 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                                 rel="noopener noreferrer"
                                 title={mediaUrl}
                             >
-                               🔗 {mediaUrl}
+                                <div className="message-link-preview">
+                                    <div className="message-link-info">
+                                        <div className="message-link-domain">{domainName}</div>
+                                        <div className="message-link-url">{displayUrl}</div>
+                                    </div>
+                                </div>
                             </a>
                         );
                     }
@@ -292,7 +495,6 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                     )}
                     </div>
   )}
-
 
                 {renderMedia()}
             </div>

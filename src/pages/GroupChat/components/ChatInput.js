@@ -88,14 +88,21 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
     const stopRecording = (discard = false) => {
         if (!mediaRecorderRef.current) {
             discardRecordingRef.current = false;
+            setRecording(false);
             return;
         }
         discardRecordingRef.current = discard;
         const recorder = mediaRecorderRef.current;
-        if (recorder.state !== 'inactive') {
+        if (recorder.state === 'recording') {
+            recorder.stop();
+        } else if (recorder.state === 'paused') {
             recorder.stop();
         } else {
-            recorder.stream?.getTracks().forEach(track => track.stop());
+            // Already stopped or inactive
+            const stream = recorder.stream;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
             mediaRecorderRef.current = null;
             discardRecordingRef.current = false;
             setRecording(false);
@@ -195,6 +202,26 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         }
     };
 
+    const getSupportedMimeType = () => {
+        const types = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/ogg',
+            'audio/mp4',
+            'audio/mpeg',
+            'audio/wav'
+        ];
+        
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        // Fallback - let browser decide
+        return '';
+    };
+
     const startRecording = async () => {
         if (recording) {
             return;
@@ -203,10 +230,23 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
             setRecordingError('Voice recording is not supported in this browser');
             return;
         }
+        if (typeof MediaRecorder === 'undefined') {
+            setRecordingError('MediaRecorder is not supported in this browser');
+            return;
+        }
         setRecordingError(null);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
+            });
+            
+            const mimeType = getSupportedMimeType();
+            const options = mimeType ? { mimeType } : {};
+            const recorder = new MediaRecorder(stream, options);
             mediaRecorderRef.current = recorder;
             audioChunksRef.current = [];
 
@@ -216,24 +256,97 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                 }
             };
 
-            recorder.onstop = () => {
+            recorder.onerror = (event) => {
+                console.error('MediaRecorder error:', event);
+                setRecordingError('Recording error occurred');
+                stopRecording(true);
+            };
+
+            recorder.onstop = async () => {
                 stream.getTracks().forEach(track => track.stop());
                 const shouldDiscard = discardRecordingRef.current;
                 discardRecordingRef.current = false;
-                if (!shouldDiscard) {
-                    const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                    const audioFile = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-                    handleFileSelection(audioFile, 'audio');
+                if (!shouldDiscard && audioChunksRef.current.length > 0) {
+                    try {
+                        // Wait a bit to ensure all data is available
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        // Use the actual MIME type from recorder or fallback
+                        const actualMimeType = recorder.mimeType || 'audio/webm';
+                        
+                        // Ensure we have all chunks
+                        if (audioChunksRef.current.length === 0) {
+                            setRecordingError('No audio data recorded');
+                            setRecording(false);
+                            return;
+                        }
+                        
+                        const blob = new Blob(audioChunksRef.current, { type: actualMimeType });
+                        
+                        // Verify blob has content
+                        if (blob.size === 0) {
+                            setRecordingError('Recording is empty');
+                            setRecording(false);
+                            return;
+                        }
+                        
+                        // Determine file extension based on MIME type
+                        let extension = 'webm';
+                        if (actualMimeType.includes('ogg')) extension = 'ogg';
+                        else if (actualMimeType.includes('mp4')) extension = 'm4a';
+                        else if (actualMimeType.includes('mpeg')) extension = 'mp3';
+                        else if (actualMimeType.includes('wav')) extension = 'wav';
+                        
+                        const audioFile = new File([blob], `voice-${Date.now()}.${extension}`, { 
+                            type: actualMimeType,
+                            lastModified: Date.now()
+                        });
+                        
+                        console.log('Audio recording created:', {
+                            size: audioFile.size,
+                            type: audioFile.type,
+                            name: audioFile.name,
+                            chunks: audioChunksRef.current.length
+                        });
+                        
+                        // Verify the file can be read
+                        const testUrl = URL.createObjectURL(blob);
+                        const testAudio = new Audio(testUrl);
+                        testAudio.addEventListener('loadedmetadata', () => {
+                            console.log('Audio metadata loaded, duration:', testAudio.duration);
+                            URL.revokeObjectURL(testUrl);
+                        });
+                        testAudio.addEventListener('error', (e) => {
+                            console.error('Audio validation error:', e);
+                            URL.revokeObjectURL(testUrl);
+                        });
+                        testAudio.load();
+                        
+                        handleFileSelection(audioFile, 'audio');
+                    } catch (error) {
+                        console.error('Error creating audio file:', error);
+                        setRecordingError('Failed to create audio file: ' + error.message);
+                    }
+                } else if (!shouldDiscard) {
+                    console.warn('No audio chunks available after recording');
+                    setRecordingError('Recording was too short or empty');
                 }
                 mediaRecorderRef.current = null;
                 setRecording(false);
             };
 
-            recorder.start();
+            // Start recording with timeslice to ensure data is available
+            recorder.start(1000); // Collect data every second
             setRecording(true);
         } catch (error) {
             console.error('Microphone error', error);
-            setRecordingError('Microphone access denied');
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                setRecordingError('Microphone access denied. Please allow microphone access.');
+            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                setRecordingError('No microphone found. Please connect a microphone.');
+            } else {
+                setRecordingError('Failed to start recording: ' + error.message);
+            }
             setRecording(false);
         }
     };
@@ -261,7 +374,10 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                         ) : previewType === 'video' ? (
                             <video src={previewUrl} controls />
                         ) : previewType === 'audio' ? (
-                            <audio src={previewUrl} controls />
+                            <div className="audio-preview-wrapper">
+                                <audio src={previewUrl} controls />
+                                <span className="audio-ready-label">Voice note ready to send</span>
+                            </div>
                         ) : (
                             <div className="preview-fallback">
                                 <FileIcon size={20} />

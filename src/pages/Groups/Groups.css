@@ -280,9 +280,30 @@
 
 .groups-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
   padding-bottom: 20px;
+}
+
+/* Large screens - 4 cards per row */
+@media (min-width: 1400px) {
+  .groups-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Medium-large screens - 3 cards per row */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .groups-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Medium screens - 2 cards per row */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .groups-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .group-card {
