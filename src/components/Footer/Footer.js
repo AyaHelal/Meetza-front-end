@@ -13,7 +13,6 @@ function Footer() {
         <div className="container">
             <div className="footer-inner">
                 <div className="footer-left">
-                    <div className="lang-select">English</div>
                     <div className="social-icons d-flex gap-4">
                         <FaXTwitter />
                         <FaInstagram />

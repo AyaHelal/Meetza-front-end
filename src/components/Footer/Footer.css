@@ -141,7 +141,7 @@
     gap: .75rem;
     width: 100%;
     margin-inline: auto;
-    padding-left: 75px;
+    padding-left: 85px;
     margin-bottom: 1rem;
   }
   .social-icons svg { font-size: 22px; }
@@ -161,7 +161,7 @@
   .footer-inner { gap: 1.25rem; }
   .footer-links { grid-template-columns: repeat(2, 1fr); }
   .footer-line { margin-top: 2.5rem; }
-  .social-icons { display: flex; justify-content: center !important; align-items: center; padding-left: 0; margin-bottom: 1rem; gap: .75rem; width: 100%; margin-inline: auto; }
+  .social-icons { display: flex; justify-content: center !important; align-items: center; margin-bottom: 1rem; gap: .75rem; width: 100%; margin-inline: auto; }
   .social-icons svg { font-size: 22px; }
 }
 

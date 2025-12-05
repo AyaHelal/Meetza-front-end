@@ -174,7 +174,7 @@
     flex: 1 1 0; /* allow shrinking */
     min-width: 0; /* allow contents to shrink/truncate if needed */
     display: flex;
-    align-items: center;
+    align-items: start;
   }
 
   .role-radio-group .form-check-label {
@@ -186,7 +186,7 @@
 
   .role-radio-group .form-check .form-check-input {
     margin-left: 0;
-    margin-right: 6px;
+    margin-right: 0;
     flex: 0 0 auto;
   }
 
