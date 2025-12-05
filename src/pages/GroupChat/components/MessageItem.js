@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from '@phosphor-icons/react';
 import '../GroupChat.css';
@@ -291,6 +292,13 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
             if (declaredType.startsWith('audio') || declaredType === 'voice') return 'audio';
             if (declaredType === 'document' || declaredType === 'file') return 'document';
             if (declaredType === 'link') return 'link';
+            // Handle generic 'media' type by checking MIME type
+            if (declaredType === 'media') {
+                const mimeType = mediaItem?.file_mime || mediaItem?.file_type || '';
+                if (mimeType.startsWith('video/')) return 'video';
+                if (mimeType.startsWith('audio/')) return 'audio';
+                if (mimeType.startsWith('image/')) return 'image';
+            }
         }
 
         const extension = getExtension(mediaItem);
@@ -356,7 +364,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                     if (type === 'video') {
                         return (
                             <video key={key} className="message-media message-media-video" controls preload="metadata">
-                                <source src={mediaUrl} type={mediaItem.media_type || mediaItem.file_type || 'video/mp4'} />
+                                <source src={mediaUrl} type={mediaItem.file_mime || mediaItem.file_type || 'video/mp4'} />
                                 Your browser does not support the video tag.
                             </video>
                         );

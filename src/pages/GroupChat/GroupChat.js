@@ -140,6 +140,18 @@ const normalizeMediaItems = (mediaItems, messageId) => {
       normalizedType = 'video';
     } else if (normalizedType.startsWith('audio') || normalizedType === 'voice' || normalizedType === 'voice_note') {
       normalizedType = 'audio';
+    } else if (normalizedType === 'media') {
+      // Handle generic 'media' type by checking MIME type
+      const mimeType = item?.file_mime || item?.file_type || '';
+      if (mimeType.startsWith('video/')) {
+        normalizedType = 'video';
+      } else if (mimeType.startsWith('audio/')) {
+        normalizedType = 'audio';
+      } else if (mimeType.startsWith('image/')) {
+        normalizedType = 'image';
+      } else {
+        normalizedType = deriveMediaTypeFromExtension(extension) || 'document';
+      }
     } else if (!normalizedType || normalizedType === 'file' || normalizedType === 'document') {
       normalizedType = deriveMediaTypeFromExtension(extension);
     } else {
@@ -220,8 +232,8 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
     }
     const mime = file?.type || '';
     if (mime.startsWith('image')) return 'image';
-    if (mime.startsWith('video')) return 'video';
-    if (mime.startsWith('audio')) return 'audio';
+    if (mime.startsWith('video')) return mime; // Return full MIME type for videos
+    if (mime.startsWith('audio')) return mime; // Return full MIME type for audio
     return 'document';
   }, []);
 
