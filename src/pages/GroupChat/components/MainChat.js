@@ -35,8 +35,6 @@ const MainChat = ({
     const [modalPhoto, setModalPhoto] = useState(null);
     const [isUserAtBottom, setIsUserAtBottom] = useState(true);
     const prevMessagesLengthRef = useRef(0);
-    const recentlyEditedRef = useRef(new Set());
-    const skipNextUpdateRef = useRef(false);
     const [contentTab, setContentTab] = useState('media');
     const [mediaTab, setMediaTab] = useState('media');
 
@@ -96,9 +94,23 @@ const MainChat = ({
         return isAtBottom;
     };
 
-    const scrollToBottom = (force = false) => {
+    const scrollToBottom = (force = false, instant = false) => {
+        if (!messagesContainerRef.current) return;
+
         if (force || isUserAtBottom) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            const container = messagesContainerRef.current;
+            if (instant) {
+                // Instant scroll - set scrollTop directly (no animation)
+                // Use requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+            } else {
+                // Smooth scroll for new messages
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
         }
     };
 
@@ -130,37 +142,36 @@ const MainChat = ({
 
     useEffect(() => {
         if (showMainChat || !isMobile) {
-            setTimeout(() => {
-                scrollToBottom(true);
-                setIsUserAtBottom(true);
-            }, 100);
+            // Use instant scroll on initial load to avoid animation
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (messagesContainerRef.current) {
+                        const container = messagesContainerRef.current;
+                        container.scrollTop = container.scrollHeight;
+                        setIsUserAtBottom(true);
+                    }
+                });
+            });
         }
     }, [showMainChat, isMobile]);
 
     useEffect(() => {
         if (!initialMessages || !Array.isArray(initialMessages)) return;
 
-        setMessages(prevMessages => {
-            const prevMap = new Map(prevMessages.map(msg => [msg.id, msg]));
-            const newMap = new Map(initialMessages.map(msg => [msg.id, msg]));
+        const formattedNew = formatMessages(initialMessages);
+        setMessages(formattedNew);
 
-            const formattedNew = formatMessages(initialMessages);
-
-            const merged = formattedNew.map(newMsg => {
-                const prevMsg = prevMap.get(newMsg.id);
-                if (prevMsg && recentlyEditedRef.current.has(newMsg.id)) {
-                    return prevMsg;
-                }
-                return newMsg;
-            });
-
-            prevMessages.forEach(prevMsg => {
-                if (recentlyEditedRef.current.has(prevMsg.id) && !newMap.has(prevMsg.id)) {
-                    merged.push(prevMsg);
+        // Scroll to bottom instantly when messages are loaded (no animation)
+        // Use multiple requestAnimationFrame to ensure DOM is fully rendered
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (messagesContainerRef.current) {
+                    const container = messagesContainerRef.current;
+                    // Force instant scroll by directly setting scrollTop
+                    container.scrollTop = container.scrollHeight;
+                    setIsUserAtBottom(true);
                 }
             });
-
-            return merged;
         });
     }, [initialMessages]);
 
@@ -279,31 +290,33 @@ const MainChat = ({
         const trimmedText = newText.trim();
 
         try {
-            recentlyEditedRef.current.add(messageId);
-            skipNextUpdateRef.current = true;
-
-            setMessages(prevMessages =>
-                prevMessages.map(msg =>
-                    msg.id === messageId ? { ...msg, text: trimmedText, message: trimmedText } : msg
-                )
-            );
-
+            // Call the edit API
             await updateMessage(groupId, messageId, trimmedText);
+
+            //  Fetch all messages from the server using GET /chat/groups/{groupId}/messages
+            const response = await getMessages(groupId);
+
+            // Format the messages (including media and links)
+            let fetchedMessages = [];
+            if (response && response.messages && Array.isArray(response.messages)) {
+                fetchedMessages = response.messages;
+            } else if (Array.isArray(response)) {
+                fetchedMessages = response;
+            }
+
+            // Format messages with media and links
+            const formattedMessages = formatMessages(fetchedMessages);
+
+            // Update messages state with fresh data from server
+            setMessages(formattedMessages);
+
             smartToast.success('Message updated successfully');
 
+            // Call the callback if provided
             if (onMessageEdited) onMessageEdited(messageId, trimmedText);
         } catch (error) {
-            setMessages(prevMessages =>
-                prevMessages.map(msg => {
-                    if (msg.id === messageId) {
-                        const originalMsg = initialMessages?.find(m => m.id === messageId);
-                        return { ...msg, text: originalMsg?.text || msg.text, message: originalMsg?.message || msg.message };
-                    }
-                    return msg;
-                })
-            );
             smartToast.error('Failed to edit message');
-            console.error(error);
+            console.error('Error editing message:', error);
         }
     };
 
@@ -530,20 +543,58 @@ const MainChat = ({
                             <span>{item.file_name || 'Audio'}</span>
                         </div>
                     ) : (
-                        <a
-                            key={item.id || index}
-                            href={item.file_url || item.media_url}
-                            download={getDownloadFileName(item)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="document-item document-square"
-                            title={item.file_name || getDownloadFileName(item)}
-                        >
-                            <div className="document-icon">
-                                <span className="document-extension">{getFileExtension(item.file_name || getDownloadFileName(item))}</span>
-                            </div>
-                            <div className="document-name">{item.file_name || getDownloadFileName(item)}</div>
-                        </a>
+                        (() => {
+                            const fileName = getDownloadFileName(item);
+                            const fileUrl = item.file_url || item.media_url;
+
+                            const handleDownload = async (e) => {
+                                e.preventDefault();
+                                try {
+                                    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                    const response = await fetch(fileUrl, {
+                                        method: 'GET',
+                                        headers: token ? {
+                                            'Authorization': `Bearer ${token}`
+                                        } : {}
+                                    });
+
+                                    if (!response.ok) {
+                                        throw new Error('Failed to download file');
+                                    }
+
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(url);
+                                } catch (error) {
+                                    console.error('Error downloading file:', error);
+                                    // Fallback to opening in new tab
+                                    window.open(fileUrl, '_blank');
+                                }
+                            };
+
+                            return (
+                                <a
+                                    key={item.id || index}
+                                    href={fileUrl}
+                                    onClick={handleDownload}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="document-item document-square"
+                                    title={fileName}
+                                >
+                                    <div className="document-icon">
+                                        <span className="document-extension">{getFileExtension(fileName)}</span>
+                                    </div>
+                                    <div className="document-name">{fileName}</div>
+                                </a>
+                            );
+                        })()
                     )
                 ))}
             </div>
