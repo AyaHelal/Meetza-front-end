@@ -189,7 +189,7 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
     );
 };
 
-const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail, onMediaClick }) => {
+const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail, onMediaClick, userRole }) => {
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
@@ -226,8 +226,8 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     const isOwnMessage = emailMatch || nameMatch;
 
     const handleRightClick = (e) => {
-        // Only show context menu for own messages
-        if (!isOwnMessage) {
+        // Show context menu for own messages or if user is Administrator
+        if (!isOwnMessage && userRole !== 'Administrator') {
             return;
         }
         e.preventDefault();
@@ -514,7 +514,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         <div
             className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`}
             ref={messageRef}
-            onContextMenu={isOwnMessage ? handleRightClick : undefined}
+            onContextMenu={(isOwnMessage || userRole === 'Administrator') ? handleRightClick : undefined}
         >
             {!isOwnMessage && (
                 <div className="message-avatar">
@@ -557,13 +557,13 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
                 {renderMedia()}
             </div>
-            {showContextMenu && isOwnMessage && (
+            {showContextMenu && (isOwnMessage || userRole === 'Administrator') && (
                 <div
                     className="context-menu"
                     ref={menuRef}
                     style={{ left: menuPosition.x, top: menuPosition.y }}
                 >
-                    <button onClick={handleEdit}>Edit</button>
+                    {isOwnMessage && <button onClick={handleEdit}>Edit</button>}
                     <button onClick={handleDelete}>Delete</button>
                 </div>
             )}

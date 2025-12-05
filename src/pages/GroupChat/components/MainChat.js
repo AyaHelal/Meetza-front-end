@@ -28,7 +28,8 @@ const MainChat = ({
     groupId,
     onMessageEdited,
     isSendingMessage = false,
-    onGroupNameClick
+    onGroupNameClick,
+    userRole
 }) => {
     const messagesContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -787,6 +788,7 @@ const MainChat = ({
                                                 onEditMessage={handleEditMessage}
                                                 currentUserEmail={currentUserEmail}
                                                 onMediaClick={handlePhotoClick}
+                                                userRole={userRole}
                                             />
                                             {/* Debug: {JSON.stringify({ id: msg.id, hasText: !!msg.text, hasMessage: !!msg.message })} */}
                                         </React.Fragment>

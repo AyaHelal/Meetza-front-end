@@ -1291,6 +1291,13 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
+  const userRole = useMemo(() => {
+    const currentUserEmail = user?.email;
+    if (!currentUserEmail || !groupMembers.length) return null;
+    const member = groupMembers.find(m => m.email === currentUserEmail);
+    return member?.role || null;
+  }, [user?.email, groupMembers]);
+
   const calendarEvents = [
     {
       month: "Sep",
@@ -1361,6 +1368,7 @@ export default function GroupChat({ activeNav, setActiveNav, onOpenSidebar }) {
         onMessageEdited={handleMessageEdited}
         onGroupNameClick={isMobile ? () => setShowRightSidebarMobile(true) : undefined}
         isSendingMessage={isSendingMessage}
+        userRole={userRole}
       />
 
       <RightSidebar
