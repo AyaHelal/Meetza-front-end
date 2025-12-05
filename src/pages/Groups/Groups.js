@@ -60,29 +60,38 @@ const Groups = () => {
     useEffect(() => {
         const fetchGroupsAndMembership = async () => {
             try {
-                setLoading(true);
-
                 let allResults = [];
 
-                if (selectedYears.length > 0 && selectedSemesters.length > 0) {
-                    const requests = [];
-                    selectedYears.forEach((year) => {
-                        selectedSemesters.forEach((semester) => {
-                            requests.push(getGroups(year, semester));
-                        });
-                    });
-                    const responses = await Promise.all(requests);
-                    allResults = responses.flatMap(res =>
-                        Array.isArray(res?.data) ? res.data : res
-                    );
-                } else {
-                    const groupsData = await getGroups();
-                    allResults = Array.isArray(groupsData?.data)
-                        ? groupsData.data
-                        : groupsData;
+                const params = new URLSearchParams();
+
+                // Year selected
+                if (selectedYears.length > 0) {
+                params.append("year", selectedYears[0]);
                 }
 
-                // إزالة التكرارات
+                // Semester selected
+                if (selectedSemesters.length > 0) {
+                params.append("semester", selectedSemesters[0]);
+                }
+
+                // Final request
+                let groupsResponse;
+
+                if (params.toString()) {
+                groupsResponse = await api.get(`/group?${params.toString()}`);
+                } else {
+                groupsResponse = await api.get(`/group`);
+                }
+
+                // Extract data
+                allResults = Array.isArray(groupsResponse?.data?.data)
+                ? groupsResponse.data.data
+                : Array.isArray(groupsResponse?.data)
+                    ? groupsResponse.data
+                    : groupsResponse;
+
+
+
                 const uniqueGroups = allResults.filter(
                     (group, index, self) =>
                         index === self.findIndex(g => (g.group_id || g.id) === (group.group_id || group.id))
@@ -109,7 +118,6 @@ const Groups = () => {
                 setGroups(visibleGroups);
                 setUserRole(normalizedRole);
 
-                // تحقق العضويات مباشرة
                 if (currentUserId) {
                     const updatedJoinedGroups = await Promise.all(
                         visibleGroups.map(async (group) => {

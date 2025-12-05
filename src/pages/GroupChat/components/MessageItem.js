@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from '@phosphor-icons/react';
 import '../GroupChat.css';
@@ -189,11 +190,11 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
     );
 };
 
-const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail, onMediaClick }) => {
+const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, currentUser, currentUserEmail, onMediaClick, userRole }) => {
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
-    const [editText, setEditText] = useState(message.text || '');
+    const [editText, setEditText] = useState(message.message || message.text || '');
 
     const isLinkMessage = message.message && /^https?:\/\/\S+$/i.test(message.message.trim());
     const finalMedia =
@@ -210,10 +211,10 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
 
 
-    // Update editText when message.text changes (e.g., after successful edit)
+    // Update editText when message changes (e.g., after successful edit)
     useEffect(() => {
-        setEditText(message.text);
-    }, [message.text]);
+        setEditText(message.message || message.text || '');
+    }, [message.message, message.text]);
 
     const messageRef = useRef(null);
     const menuRef = useRef(null);
@@ -226,8 +227,8 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     const isOwnMessage = emailMatch || nameMatch;
 
     const handleRightClick = (e) => {
-        // Only show context menu for own messages
-        if (!isOwnMessage) {
+        // Show context menu for own messages or if user is Administrator
+        if (!isOwnMessage && userRole !== 'Administrator') {
             return;
         }
         e.preventDefault();
@@ -247,7 +248,8 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
     const handleEditSubmit = () => {
         const trimmedText = editText.trim();
-        if (trimmedText && trimmedText !== message.text) {
+        const currentText = message.message || message.text || '';
+        if (trimmedText && trimmedText !== currentText) {
             onEditMessage(message.id, trimmedText);
         } else if (!trimmedText) {
             // If empty, cancel the edit
@@ -258,7 +260,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     };
 
     const handleEditCancel = () => {
-        setEditText(message.text);
+        setEditText(message.message || message.text || '');
         setIsEditing(false);
     };
 
@@ -291,6 +293,13 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
             if (declaredType.startsWith('audio') || declaredType === 'voice') return 'audio';
             if (declaredType === 'document' || declaredType === 'file') return 'document';
             if (declaredType === 'link') return 'link';
+            // Handle generic 'media' type by checking MIME type
+            if (declaredType === 'media') {
+                const mimeType = mediaItem?.file_mime || mediaItem?.file_type || '';
+                if (mimeType.startsWith('video/')) return 'video';
+                if (mimeType.startsWith('audio/')) return 'audio';
+                if (mimeType.startsWith('image/')) return 'image';
+            }
         }
 
         const extension = getExtension(mediaItem);
@@ -356,7 +365,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                     if (type === 'video') {
                         return (
                             <video key={key} className="message-media message-media-video" controls preload="metadata">
-                                <source src={mediaUrl} type={mediaItem.media_type || mediaItem.file_type || 'video/mp4'} />
+                                <source src={mediaUrl} type={mediaItem.file_mime || mediaItem.file_type || 'video/mp4'} />
                                 Your browser does not support the video tag.
                             </video>
                         );
@@ -514,7 +523,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         <div
             className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`}
             ref={messageRef}
-            onContextMenu={isOwnMessage ? handleRightClick : undefined}
+            onContextMenu={(isOwnMessage || userRole === 'Administrator') ? handleRightClick : undefined}
         >
             {!isOwnMessage && (
                 <div className="message-avatar">
@@ -537,7 +546,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         <span className="message-time">{message.time}</span>
                     </div>
                 )}
-                {!isLinkMessage && message.message && (
+                {!isLinkMessage && (message.message || message.text) && (
                     <div className="message-text">
                         {isEditing ? (
                             <input
@@ -550,20 +559,20 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                                 className="edit-input"
                             />
                         ) : (
-                            message.message || ''
+                            message.message || message.text || ''
                         )}
                     </div>
                 )}
 
                 {renderMedia()}
             </div>
-            {showContextMenu && isOwnMessage && (
+            {showContextMenu && (isOwnMessage || userRole === 'Administrator') && (
                 <div
                     className="context-menu"
                     ref={menuRef}
                     style={{ left: menuPosition.x, top: menuPosition.y }}
                 >
-                    <button onClick={handleEdit}>Edit</button>
+                    {isOwnMessage && <button onClick={handleEdit}>Edit</button>}
                     <button onClick={handleDelete}>Delete</button>
                 </div>
             )}
