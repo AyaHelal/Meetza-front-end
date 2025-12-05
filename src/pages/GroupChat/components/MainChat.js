@@ -291,30 +291,54 @@ const MainChat = ({
         const trimmedText = newText.trim();
 
         try {
-            // Call the edit API
-            await updateMessage(groupId, messageId, trimmedText);
+            // Call the edit API - PUT /chat/groups/{groupId}/messages/{messageId}
+            const response = await updateMessage(groupId, messageId, trimmedText);
 
-            //  Fetch all messages from the server using GET /chat/groups/{groupId}/messages
-            const response = await getMessages(groupId);
-
-            // Format the messages (including media and links)
-            let fetchedMessages = [];
-            if (response && response.messages && Array.isArray(response.messages)) {
-                fetchedMessages = response.messages;
-            } else if (Array.isArray(response)) {
-                fetchedMessages = response;
+            // The API should return the updated message object
+            let updatedMessage = null;
+            if (response && response.data) {
+                updatedMessage = response.data;
+            } else if (response && typeof response === 'object') {
+                updatedMessage = response;
             }
 
-            // Format messages with media and links
-            const formattedMessages = formatMessages(fetchedMessages);
+            if (updatedMessage && updatedMessage.id) {
+                // Find the original message to preserve all its properties
+                const originalMessage = messages.find(msg => msg.id === messageId);
 
-            // Update messages state with fresh data from server
-            setMessages(formattedMessages);
+                // Create updated message with new text, preserving all other properties
+                // Handle both 'message' and 'text' properties to ensure compatibility
+                const messageWithNewText = {
+                    ...originalMessage,
+                    ...updatedMessage,
+                    message: trimmedText,
+                    text: trimmedText // Ensure both message and text are set
+                };
 
-            smartToast.success('Message updated successfully');
+                // If the API response has 'text' instead of 'message', use that
+                if (updatedMessage.text && !updatedMessage.message) {
+                    messageWithNewText.message = updatedMessage.text;
+                } else if (updatedMessage.message && !updatedMessage.text) {
+                    messageWithNewText.text = updatedMessage.message;
+                }
 
-            // Call the callback if provided
-            if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+                // Format the updated message with media and links
+                const formattedUpdatedMessage = formatMessages([messageWithNewText])[0];
+
+                // Update only the specific message in the local state
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        msg.id === messageId ? formattedUpdatedMessage : msg
+                    )
+                );
+
+                smartToast.success('Message updated successfully');
+
+                // Call the callback if provided
+                if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+            } else {
+                throw new Error('Invalid response from update API');
+            }
         } catch (error) {
             smartToast.error('Failed to edit message');
             console.error('Error editing message:', error);

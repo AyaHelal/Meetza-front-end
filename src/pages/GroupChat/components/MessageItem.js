@@ -194,7 +194,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
-    const [editText, setEditText] = useState(message.text || '');
+    const [editText, setEditText] = useState(message.message || message.text || '');
 
     const isLinkMessage = message.message && /^https?:\/\/\S+$/i.test(message.message.trim());
     const finalMedia =
@@ -211,10 +211,10 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
 
 
-    // Update editText when message.text changes (e.g., after successful edit)
+    // Update editText when message changes (e.g., after successful edit)
     useEffect(() => {
-        setEditText(message.text);
-    }, [message.text]);
+        setEditText(message.message || message.text || '');
+    }, [message.message, message.text]);
 
     const messageRef = useRef(null);
     const menuRef = useRef(null);
@@ -248,7 +248,8 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
     const handleEditSubmit = () => {
         const trimmedText = editText.trim();
-        if (trimmedText && trimmedText !== message.text) {
+        const currentText = message.message || message.text || '';
+        if (trimmedText && trimmedText !== currentText) {
             onEditMessage(message.id, trimmedText);
         } else if (!trimmedText) {
             // If empty, cancel the edit
@@ -259,7 +260,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     };
 
     const handleEditCancel = () => {
-        setEditText(message.text);
+        setEditText(message.message || message.text || '');
         setIsEditing(false);
     };
 
@@ -545,7 +546,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         <span className="message-time">{message.time}</span>
                     </div>
                 )}
-                {!isLinkMessage && message.message && (
+                {!isLinkMessage && (message.message || message.text) && (
                     <div className="message-text">
                         {isEditing ? (
                             <input
@@ -558,7 +559,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                                 className="edit-input"
                             />
                         ) : (
-                            message.message || ''
+                            message.message || message.text || ''
                         )}
                     </div>
                 )}
