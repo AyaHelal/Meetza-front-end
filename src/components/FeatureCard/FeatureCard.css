@@ -14,7 +14,7 @@
 
 .feature-outer {
   border-radius: 60px;
-  padding: 2rem 5rem 1rem 5rem;
+      padding: 2rem 2rem 1rem 2rem;
   position: relative;
   border: 1.5px solid rgba(255,255,255,0.35);
   /* Outer shadow: subtle edge glow + deep drop shadow */
@@ -161,7 +161,7 @@
 .feature-content.two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  gap: 2rem;
   align-items: center;
   width: 100%;
   max-width: 1400px;
@@ -190,7 +190,7 @@
 /* Layout: Video (media left, text right) */
 .layout-video .feature-frame { background: transparent; box-shadow: none; padding: 0; }
 .layout-video .feature-content.two-col { grid-template-columns: 1.3fr 1fr; align-items: center; }
-.layout-video .feature-text h2 { font-weight: 600; line-height: 1.15; font-size: clamp(2rem, 4.5vw, 3.4rem); margin: 0 0 0.75rem 2rem; }
+.layout-video .feature-text h2 { font-weight: 600; line-height: 1.15; font-size: clamp(1.6rem, 4.5vw, 3.4rem); margin: 0 0 0.75rem 2rem; }
 .layout-video .feature-text p { color: rgba(255,255,255,0.9); font-size: clamp(0.95rem, 1.3vw, 1.05rem); line-height: 1.7; margin: 0 0 0 2rem; }
 .layout-video .media-surface {
   border-radius: 40px;
@@ -223,7 +223,7 @@
 .layout-boy .feature-text .h2 {
   font-weight: 400px;
   line-height: 1.15;
-  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  font-size: clamp(1.7rem, 4.2vw, 3.2rem);
   margin: 0 0 0.75rem 0;
 }
 
@@ -277,13 +277,20 @@
 @media (max-width: 992px) {
   .layout-boy .media-surface {
         min-height: clamp(241px, 44vw, 600px);
-        margin: 0 auto;
-        width: 208px;
+        align-items: center;
+        width: 350px;
+    }
+    .layout-boy .feature-center-img{
+      max-width: 270px;
     }
     .layout-video .media-surface {
         min-height: clamp(193px, 44vw, 600px);
-        margin: 0 auto;
-        width: 194px;
+        align-items: center;
+        width: 350px;
+    }
+    .layout-video .feature-center-img{
+      margin: 0.5rem 0;
+      max-width: 270px;
     }
     .layout-calendar .media-surface {
         min-height: clamp(193px, 44vw, 600px);
@@ -317,10 +324,13 @@
   .feature-frame { height: calc(100% - 90px); min-height: unset; }
   .layout-boy .feature-text h2,
   .layout-boy .feature-text .h2 {
-    font-weight: 400px;
+    font-weight: 500px;
     line-height: 1.15;
-    font-size: clamp(2.4rem, 4.8vw, 3.6rem);
+    font-size: clamp(0, 4.8vw, 3.6rem);
     margin: 0 0 0.75rem 0;
+  }
+  .layout-boy .feature-text p {
+    font-size: 20px;
   }
   /* Vertical centering for the custom layout on desktop */
   .layout-boy .feature-inner { min-height: clamp(520px, 54vw, 660px); display: flex; align-items: center; padding-top: 4rem; }
@@ -350,12 +360,16 @@
     pointer-events: none;
     filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
 }
-.layout-video .feature-text h2 { text-align: center; padding-right: 2rem;}
-.layout-video .feature-text p {text-align: center; padding-right: 2rem;}
-.layout-boy .feature-text h2,
-.layout-boy .feature-text .h2 {text-align: center;}
 
-.layout-boy .feature-text p {text-align: center;}
+.layout-video .feature-text h2 { text-align: start; width: 100%; font-size: clamp(1.4rem, 4.5vw, 3.4rem); margin-left: 0;}
+.layout-video .feature-text p {text-align: start; width: 100%; margin-left: 0; font-size: 1rem;}
+.layout-video .feature-text ul {padding-left: 2rem;}
+.layout-video .feature-text li { width: 215px; }
+
+.layout-boy .feature-text h2,
+.layout-boy .feature-text .h2 {text-align: start; font-size: clamp(2rem, 4.5vw, 3.4rem);}
+
+.layout-boy .feature-text p {text-align: start; font-size: 1.1rem;}
 }
 
 @media (min-width: 576px) and (max-width: 767.98px) {
@@ -393,5 +407,5 @@
   pointer-events: none;
   filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
 }
-.layout-video .feature-content.two-col { margin-top: 4rem;}
+.layout-video .feature-content.two-col { margin-top: 4rem; width: 100%;}
 }

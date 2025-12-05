@@ -1,3 +1,6 @@
+.button-submit{
+  width: 100%;
+}
 @media (min-width: 1441px) {
   .ff {
     max-width: 543px !important;
@@ -9,5 +12,12 @@
   }
   .p-font-size-lg {
     font-size: 20px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .button-submit{
+    width: 80%;
+    margin-left: 2.7rem;
   }
 }

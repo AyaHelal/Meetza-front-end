@@ -11,6 +11,7 @@ import PasswordField from '../../components/FormFields/PasswordField';
 import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import '../Login/Login.css';
+import '../../components/Login&SignUp/FormSection.css';
 
 const SignUp = () => {
     const navigate = useNavigate();
@@ -247,7 +248,7 @@ const SignUp = () => {
                         type="submit"
                         variant="primary"
                         disabled={isLoading}
-                        className="w-100 py-3 mb-3 position-relative"
+                        className=" py-3 mb-3 position-relative button-submit"
                         style={{
                             borderRadius: '12px',
                             fontSize: '1.1rem',
