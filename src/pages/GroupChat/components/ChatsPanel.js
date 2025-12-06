@@ -21,6 +21,12 @@ const ChatsPanel = ({
     // local cache of per-group unread counts fetched from API
     const [unreadMap, setUnreadMap] = React.useState({});
     const fetchingRef = React.useRef(false);
+    const endpointExistsRef = React.useRef(true); // Track if unread-count endpoint exists
+
+    // Cache for last message previews (for media messages)
+    const [messagePreviews, setMessagePreviews] = React.useState({});
+    const fetchingPreviewsRef = React.useRef(false);
+    const fetchedPreviewsRef = React.useRef(new Set()); // Track which groups have been fetched
 
     // Fetch unread counts for group IDs that don't already have a non-zero value in the parent
     React.useEffect(() => {
@@ -59,6 +65,13 @@ const ChatsPanel = ({
         }
         console.debug('ChatsPanel: will fetch unread-count for ids', idsToFetch);
         if (fetchingRef.current) return; // avoid parallel fetches
+
+        // Skip if endpoint doesn't exist (we got 404s before)
+        if (!endpointExistsRef.current) {
+            console.debug('ChatsPanel: Skipping unread-count fetch - endpoint returns 404');
+            return;
+        }
+
         fetchingRef.current = true;
 
         (async () => {
@@ -78,7 +91,10 @@ const ChatsPanel = ({
                                     Object.defineProperty(res, 'status', { value: res2.status, configurable: true });
                                 }
                             } catch (e2) {
-                                console.warn('ChatsPanel: cache-bust retry failed', id, e2?.response?.status || e2.message || e2);
+                                // Silently handle cache-bust retry failures
+                                if (e2?.response?.status !== 404) {
+                                    console.warn('ChatsPanel: cache-bust retry failed', id, e2?.response?.status || e2.message || e2);
+                                }
                             }
                         }
                         const payload = res?.data;
@@ -97,6 +113,13 @@ const ChatsPanel = ({
                         console.log(`ChatsPanel: Unread count for group ${id}:`, { payload, parsedCount: c });
                         return { id, count: c };
                     } catch (e) {
+                        // Silently handle 404 errors (endpoint might not exist)
+                        if (e?.response?.status === 404) {
+                            // Mark endpoint as not existing if we get 404
+                            endpointExistsRef.current = false;
+                        } else if (e?.response?.status !== 404) {
+                            console.warn(`ChatsPanel: Error fetching unread-count for group ${id}:`, e?.response?.status || e?.message);
+                        }
                         return { id, count: 0 };
                     }
                 }));
@@ -127,7 +150,7 @@ const ChatsPanel = ({
                 try {
                     const response = await axiosInstance.get('/chat/groups/unread');
                     console.log('Unread groups API response:', response.data);
-                    
+
                     // Handle different response formats
                     let groupsData = [];
                     if (response.data) {
@@ -141,7 +164,7 @@ const ChatsPanel = ({
                             groupsData = response.data.data;
                         }
                     }
-                    
+
                     console.log('Parsed unread groups:', groupsData);
                     setUnreadGroups(groupsData);
                 } catch (error) {
@@ -151,7 +174,7 @@ const ChatsPanel = ({
                     setLoadingUnread(false);
                 }
             };
-            
+
             fetchUnreadGroups();
         } else {
             // Clear unread groups when switching to 'all' tab
@@ -159,12 +182,115 @@ const ChatsPanel = ({
         }
     }, [activeTab]);
 
-    // Build view model merging server-provided unread and locally fetched unreadMap
+    // Fetch last message for groups that don't have last_message or subject
+    React.useEffect(() => {
+        if (!groupChats || groupChats.length === 0) return;
+        if (fetchingPreviewsRef.current) return;
+
+        // Find groups that need preview fetching (have last_message_at but no last_message/subject)
+        const groupsToFetch = groupChats.filter(chat => {
+            const chatIdStr = String(chat.id);
+            const hasDate = chat.last_message_at || chat.date || chat.last_message_time;
+            const hasMessage = chat.last_message && chat.last_message.trim();
+            const hasSubject = chat.subject && chat.subject.trim() &&
+                chat.subject !== 'No messages yet' &&
+                chat.subject !== 'Media attachment';
+            const alreadyFetched = fetchedPreviewsRef.current.has(chatIdStr);
+
+            return hasDate && !hasMessage && !hasSubject && !alreadyFetched;
+        });
+
+        if (groupsToFetch.length === 0) return;
+
+        fetchingPreviewsRef.current = true;
+        console.log('📥 Fetching last messages for groups:', groupsToFetch.map(g => g.id));
+
+        (async () => {
+            try {
+                const results = await Promise.allSettled(
+                    groupsToFetch.map(async (chat) => {
+                        try {
+                            const res = await axiosInstance.get(`/chat/groups/${chat.id}/messages?limit=1`);
+                            if (res?.data?.success && res.data.data && res.data.data.length > 0) {
+                                const lastMsg = res.data.data[0];
+
+                                // Check if message has text
+                                if (lastMsg.message && lastMsg.message.trim()) {
+                                    return { id: chat.id, preview: lastMsg.message };
+                                }
+
+                                // Check if message has media
+                                if (lastMsg.media && Array.isArray(lastMsg.media) && lastMsg.media.length > 0) {
+                                    const media = lastMsg.media[0];
+                                    const mediaType = media?.media_type || media?.file_type || '';
+                                    const mediaUrl = media?.media_url || media?.file_url || '';
+
+                                    let preview = '📎 Attachment';
+
+                                    if (mediaType) {
+                                        const type = String(mediaType).toLowerCase();
+                                        if (type.includes('image') || type === 'photo') {
+                                            preview = '📷 Photo';
+                                        } else if (type.includes('video')) {
+                                            preview = '🎥 Video';
+                                        } else if (type.includes('audio') || type === 'voice' || type === 'voice_note') {
+                                            preview = '🎤 Audio';
+                                        } else if (type.includes('file') || type === 'document') {
+                                            preview = '📄 Document';
+                                        }
+                                    } else if (mediaUrl) {
+                                        // Try to determine from URL extension
+                                        const urlMatch = mediaUrl.match(/\.([a-z0-9]+)(\?|$)/i);
+                                        const extension = urlMatch ? urlMatch[1].toLowerCase() : '';
+
+                                        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'avif'].includes(extension)) {
+                                            preview = '📷 Photo';
+                                        } else if (['mp4', 'mov', 'webm', 'mkv', 'avi'].includes(extension)) {
+                                            preview = '🎥 Video';
+                                        } else if (['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm'].includes(extension)) {
+                                            preview = '🎤 Audio';
+                                        } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'].includes(extension)) {
+                                            preview = '📄 Document';
+                                        }
+                                    }
+
+                                    return { id: chat.id, preview };
+                                }
+                            }
+                            return { id: chat.id, preview: null };
+                        } catch (err) {
+                            console.warn(`⚠️ Failed to fetch last message for group ${chat.id}:`, err);
+                            return { id: chat.id, preview: null };
+                        }
+                    })
+                );
+
+                const newPreviews = {};
+                results.forEach(result => {
+                    if (result.status === 'fulfilled' && result.value) {
+                        const chatIdStr = String(result.value.id);
+                        fetchedPreviewsRef.current.add(chatIdStr);
+                        if (result.value.preview) {
+                            newPreviews[chatIdStr] = result.value.preview;
+                        }
+                    }
+                });
+
+                if (Object.keys(newPreviews).length > 0) {
+                    setMessagePreviews(prev => ({ ...prev, ...newPreviews }));
+                }
+            } catch (e) {
+                console.warn('Error fetching message previews:', e);
+            } finally {
+                fetchingPreviewsRef.current = false;
+            }
+        })();
+    }, [groupChats]); // Removed messagePreviews from dependencies to avoid infinite loop
+
     // Prefer server-provided parent value unless the per-group unreadMap returns a positive count
     const mergedChats = groupChats.map((c, index) => {
         const parentVal = Number(c.unread ?? c.unread_count ?? c.unreadCount ?? 0);
         const fetched = Number(unreadMap[String(c.id)] ?? 0);
-        // If this chat is currently selected, set unread to 0 (user is viewing it)
         const isCurrentlySelected = selectedChat === index;
         // Only set to 0 if currently selected, otherwise show actual unread count from server
         // This allows new messages to show unread count even if chat was viewed recently
@@ -240,7 +366,7 @@ const ChatsPanel = ({
                             // Find the original index in groupChats array
                             const chatId = chat.id || chat.group_id;
                             const originalIndex = groupChats.findIndex(g => String(g.id) === String(chatId));
-                            
+
                             // Format date properly
                             let formattedDate = '';
                             const dateField = chat.date || chat.last_message_at || chat.last_message_time || chat.updated_at;
@@ -257,18 +383,21 @@ const ChatsPanel = ({
                                     console.warn('Error formatting date:', e);
                                 }
                             }
-                            
+
+                            // Get preview from cache if available
+                            const cachedPreview = messagePreviews[String(chatId)];
+
                             // Format chat data to match ChatItem expected structure
                             const formattedChat = {
                                 ...chat,
                                 name: chat.name || chat.group_name,
-                                subject: chat.subject || chat.last_message || '',
+                                subject: cachedPreview || chat.subject || chat.last_message || 'No messages yet',
                                 avatar: chat.avatar || (chat.name || chat.group_name)?.charAt(0)?.toUpperCase() || 'G',
                                 avatarImage: chat.avatarImage || chat.group_photo || chat.photo,
                                 date: formattedDate || chat.date || '',
                                 unread: chat.unread ?? chat.unread_count ?? chat.unreadCount ?? 0
                             };
-                            
+
                             return (
                                 <ChatItem
                                     key={chatId || index}

@@ -1777,7 +1777,6 @@ body.group-chat-active {
     height: calc(100vh - 80px);
     min-height: calc(100vh - 80px);
     margin: 0;
-    margin-top: 32px;
     border-radius: 0;
     border-right: none;
     border-bottom: none;
@@ -1919,16 +1918,14 @@ body.group-chat-active {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    margin: 40px;
     border-radius: 0;
-    height: calc(
-      100vh - 80px - 100px
-    ); /* Full height minus top offset and space for fixed UserStatus */
-    width: 85%;
+    height: calc(100vh - 80px - 100px) !important;
+    /* Full height minus top offset and space for fixed UserStatus */
     position: fixed;
-    top: 80px;
-    left: 0;
-    right: 0;
+    top: 93px;
+    left: 2%;
+    right: 2%;
+    width: auto;
     z-index: 997;
   }
 
@@ -2008,51 +2005,34 @@ body.group-chat-active {
     width: 100vw;
     height: 100vh;
     z-index: 1001;
-    background: white;
+    background: #f4f4f4;
     margin: 0;
     border-radius: 0;
     padding: 0;
+    padding-bottom: 100px; /* Space for fixed UserStatus component */
     overflow-y: auto;
     flex-direction: column;
+    justify-content: flex-start;
   }
 
   .right-sidebar-mobile-header {
     position: sticky;
     top: 0;
-    background: white;
-    z-index: 10;
+    z-index: 1002;
   }
 
-  .right-sidebar-mobile-header .logo-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-  }
-
-  .right-sidebar-mobile-header .logo-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .right-sidebar-mobile-header .hamburger-menu {
-    background: none;
-    border: none;
-    padding: 8px;
-    cursor: pointer;
-    color: #333;
-    border-radius: 8px;
-    transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .right-sidebar-mobile-header .mobile-header {
     position: relative;
-    z-index: 10;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1002;
   }
 
-  .right-sidebar-mobile-header .hamburger-menu:hover {
-    background-color: #f5f5f5;
+  .right-sidebar-mobile-header .mobile-header .mobile-header-actions button {
+    position: relative;
+    z-index: 1003;
+    pointer-events: auto;
   }
 
   .right-sidebar.mobile-visible .px-2 {
@@ -2075,13 +2055,22 @@ body.group-chat-active {
   .video-sessions {
     min-width: 200px;
     flex-shrink: 0;
+    margin-top: 0px !important;
   }
 
-  .calendar-section,
+  .calendar-section {
+    min-width: 250px;
+    margin-right: 15px;
+    flex: 1;
+    min-height: 300px;
+    overflow-y: auto;
+  }
+
   .group-info {
     min-width: 250px;
     margin-right: 15px;
     flex-shrink: 0;
+    margin-top: auto;
   }
 
   .user-status {
@@ -2476,7 +2465,7 @@ body.group-chat-active {
   }
 
   .chats-header h2 {
-    font-size: 14px;
+    font-size: 18px;
   }
 
   .chats-search input {
@@ -2506,6 +2495,9 @@ body.group-chat-active {
     height: calc(
       100vh - 80px - 100px
     ); /* Full height minus top offset and space for fixed UserStatus */
+    left: 3%;
+    right: 3%;
+    width: auto;
   }
 
   .chat-header h3 {
@@ -2660,6 +2652,177 @@ body.group-chat-active {
 
 .expanded-photo:hover {
   transform: scale(1.05);
+}
+
+.video-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+}
+
+.expanded-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.video-play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  transition: background 0.2s;
+}
+
+.video-thumbnail:hover .video-play-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.video-thumbnail:hover .expanded-video {
+  transform: scale(1.05);
+}
+
+/* Voice Note Card Style in Media Section */
+.voice-note-card {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border: 2px solid #e0e6ed;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.voice-note-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: #25d366;
+  background: linear-gradient(135deg, #ffffff 0%, #e8f5e9 100%);
+}
+
+.voice-note-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.voice-note-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+}
+
+.voice-note-icon-wrapper svg {
+  color: white;
+}
+
+.voice-note-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.voice-note-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #25d366;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.voice-note-filename {
+  font-size: 11px;
+  color: #4a5568;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-note-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 40px;
+  margin: 4px 0;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+
+.voice-note-bar {
+  width: 3px;
+  background: linear-gradient(to top, #25d366, #20ba5a);
+  border-radius: 2px;
+  animation: voiceWave 1.5s ease-in-out infinite;
+  min-height: 8px;
+}
+
+@keyframes voiceWave {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.voice-note-card:hover .voice-note-bar {
+  animation-duration: 0.8s;
+}
+
+.voice-note-play-button {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);
+  transition: all 0.2s ease;
+}
+
+.voice-note-play-button svg {
+  color: white;
+  margin-left: 2px;
+}
+
+.voice-note-card:hover .voice-note-play-button {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.5);
 }
 
 .expanded-item a {

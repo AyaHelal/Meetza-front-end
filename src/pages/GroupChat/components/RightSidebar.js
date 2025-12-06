@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
-import { YoutubeLogo, List } from '@phosphor-icons/react';
+import { YoutubeLogo } from '@phosphor-icons/react';
 import CalendarSection from './CalendarSection';
 import GroupInfo from './GroupInfo';
+import MobileHeader from '../../../components/MobileHeader/MobileHeader';
 import './RightSidebar.css';
 
 const RightSidebar = ({
@@ -15,6 +16,8 @@ const RightSidebar = ({
     showMobile,
     onCloseMobile,
     onOpenSidebar,
+    onOpenNotifications,
+    unreadNotificationCount = 0,
     activeSection,
     onSelectSection,
     contentSummary,
@@ -75,25 +78,11 @@ const RightSidebar = ({
             >
                 {isMobile && showMobile && (
                     <div className="right-sidebar-mobile-header">
-                        <div className="logo-section">
-                            <div className="logo-icon">
-                                <img
-                                    src="/assets/ss.png"
-                                    alt="logo"
-                                />
-                            </div>
-                            {onOpenSidebar && (
-                                <button
-                                    className="hamburger-menu"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onOpenSidebar();
-                                    }}
-                                >
-                                    <List size={32} weight="bold" />
-                                </button>
-                            )}
-                        </div>
+                        <MobileHeader
+                            onOpenNotifications={onOpenNotifications}
+                            onOpenSidebar={onOpenSidebar}
+                            unreadNotificationCount={unreadNotificationCount}
+                        />
                     </div>
                 )}
                 <div className="video-sessions mt-2">

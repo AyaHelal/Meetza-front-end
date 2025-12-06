@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
-import { MagnifyingGlass, ArrowLeft } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowLeft, Microphone, Play } from '@phosphor-icons/react';
 import { deleteMessage, updateMessage, getMessages } from '../../../API/auth';
 import { categorizeResources } from './utils';
 import './MainChat.css';
@@ -222,13 +222,14 @@ const MainChat = ({
 
     const mediaTabResources = useMemo(() => ({
         photos: [
-            ...(groupMediaItems?.images || []),
+            ...(groupMediaItems?.images || [])
+        ],
+        videos: [
             ...(groupMediaItems?.videos || [])
         ],
         links: messageLinks,
         documents: [
-            ...(groupMediaItems?.files || []),
-            ...(groupMediaItems?.audio || [])
+            ...(groupMediaItems?.files || [])
         ]
     }), [groupMediaItems, messageLinks]);
 
@@ -494,6 +495,14 @@ const MainChat = ({
                 const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
                     item.media_type?.startsWith('image') ||
                     item.file_type?.startsWith('image/');
+                const isVideo = /\.(mp4|webm|ogg|mov|mkv|avi)$/i.test(url) ||
+                    item.media_type?.startsWith('video') ||
+                    item.file_type?.startsWith('video/');
+                const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(url) ||
+                    item.media_type?.startsWith('audio') ||
+                    item.media_type === 'voice' ||
+                    item.media_type === 'voice_note' ||
+                    item.file_type?.startsWith('audio/');
 
                 return (
                     <div
@@ -507,6 +516,48 @@ const MainChat = ({
                                 className="expanded-photo"
                                 alt={item.file_name || 'media'}
                             />
+                        ) : isVideo ? (
+                            <div className="video-thumbnail">
+                                <video
+                                    src={url}
+                                    className="expanded-video"
+                                    preload="metadata"
+                                >
+                                    Your browser does not support the video tag.
+                                </video>
+                                <div className="video-play-overlay">
+                                    <svg width="48" height="48" viewBox="0 0 48 48" fill="white" opacity="0.9">
+                                        <path d="M18 32V16l12 8-12 8z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        ) : isAudio ? (
+                            <div className="voice-note-card">
+                                <div className="voice-note-header">
+                                    <div className="voice-note-icon-wrapper">
+                                        <Microphone size={20} weight="fill" />
+                                    </div>
+                                    <div className="voice-note-title">
+                                        <span className="voice-note-label">Voice Note</span>
+                                        <span className="voice-note-filename">{item.file_name || 'Recording'}</span>
+                                    </div>
+                                </div>
+                                <div className="voice-note-waveform">
+                                    {Array.from({ length: 40 }, (_, i) => (
+                                        <div
+                                            key={i}
+                                            className="voice-note-bar"
+                                            style={{
+                                                height: `${20 + Math.random() * 60}%`,
+                                                animationDelay: `${i * 0.05}s`
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="voice-note-play-button">
+                                    <Play size={16} weight="fill" />
+                                </div>
+                            </div>
                         ) : (
                             <div className="media-placeholder">
                                 <File size={24} />
@@ -649,7 +700,10 @@ const MainChat = ({
                 </button>
             </div>
 
-            {tabValue === 'media' && renderResourceGrid(source?.photos)}
+            {tabValue === 'media' && renderResourceGrid([
+                ...(source?.photos || []),
+                ...(source?.videos || [])
+            ])}
             {tabValue === 'links' && renderLinkList(source?.links)}
             {tabValue === 'documents' && renderDocumentList(source?.documents)}
         </div>
@@ -743,7 +797,26 @@ const MainChat = ({
                         <ArrowLeft size={20} color="white" />
                     </button>
                 ) : isMobile && (
-                    <button className="back-to-chats-btn" onClick={onBackToChats}>
+                    <button
+                        className="back-to-chats-btn"
+                        onClick={(e) => {
+                            console.log('🔵 Back button clicked (onClick)', { onBackToChats: !!onBackToChats, isMobile });
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onBackToChats) {
+                                onBackToChats();
+                            }
+                        }}
+                        onTouchEnd={(e) => {
+                            console.log('🔵 Back button touched (onTouchEnd)', { onBackToChats: !!onBackToChats, isMobile });
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onBackToChats) {
+                                onBackToChats();
+                            }
+                        }}
+                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    >
                         <ArrowLeft size={20} color="white" />
                     </button>
                 )}
