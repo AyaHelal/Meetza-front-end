@@ -2,8 +2,9 @@ import { Button } from 'react-bootstrap';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = () => {
-    const apiBase = process.env.REACT_APP_API_URL || '';
-    const googleAuthUrl = `${apiBase}/auth/social/google?role=Member`;
+    //const apiBase = process.env.REACT_APP_API_URL || '';
+    //const googleAuthUrl = `${apiBase}/auth/social/google?role=Member`;
+    const googleAuthUrl = 'https://m72j9ht0-3000.uks1.devtunnels.ms/api/auth/social/google?role=Member';
 
     // ✅ Google Login via backend redirect
     const handleGoogleLogin = () => {
