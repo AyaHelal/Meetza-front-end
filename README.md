@@ -1,4 +1,4 @@
-# ![Logo](public\android-chrome-512x512.png) Meetza
+# ![Logo](public\assets\meetza_logo_1024.png) Meetza
 
 A comprehensive React-based platform designed for group communication and collaboration. Meetza enables users to connect through secure video meetings, real-time group chat, and efficient group management tools. Currently built as an educational project, it can be adapted for any type of organization in the future.
 
