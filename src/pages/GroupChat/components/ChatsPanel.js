@@ -46,11 +46,14 @@ const ChatsPanel = ({
                 // Always fetch for currently selected chat to ensure fresh data
                 if (isCurrentlySelected) return true;
 
-                // if we already have a cached positive count, skip (unless it's the selected chat)
-                if (unreadMap[str] && Number(unreadMap[str]) > 0) return false;
-                // if parent already has a positive unread; prefer parent value
-                if (parent && Number(parent.unread) > 0) return false;
-                return true;
+                // Always fetch unread counts to detect new messages, even if we have cached values
+                // This ensures we get fresh data when new messages arrive
+                // Only skip if parent has a positive unread AND we have a matching cached value
+                // (to avoid unnecessary requests when we already have fresh data)
+                if (parent && Number(parent.unread) > 0 && unreadMap[str] && Number(unreadMap[str]) === Number(parent.unread)) {
+                    return false; // We already have matching fresh data
+                }
+                return true; // Fetch to get fresh data
             });
 
         if (idsToFetch.length === 0) return;
@@ -78,12 +81,28 @@ const ChatsPanel = ({
             try {
                 const results = await Promise.allSettled(idsToFetch.map(async (id) => {
                     try {
-                        const res = await axiosInstance.get(`/chat/groups/${id}/unread-count`);
-                        // If server returns 304 Not Modified there may be no body; try once to bypass caches
+                        // Always use cache-busting to ensure we get fresh data, especially for new messages
+                        const cacheBuster = Date.now();
+                        const res = await axiosInstance.get(`/chat/groups/${id}/unread-count`, { 
+                            params: { _cacheBust: cacheBuster }, 
+                            headers: { 
+                                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                'Pragma': 'no-cache',
+                                'Expires': '0'
+                            } 
+                        });
+                        // If server returns 304 Not Modified, try again with a new cache buster
                         if (res && res.status === 304) {
-                            console.debug('ChatsPanel: unread-count 304 for', id, '- retrying with cacheBuster');
+                            console.debug('ChatsPanel: unread-count 304 for', id, '- retrying with new cacheBuster');
                             try {
-                                const res2 = await axiosInstance.get(`/chat/groups/${id}/unread-count`, { params: { _cacheBust: Date.now() }, headers: { 'Cache-Control': 'no-cache' } });
+                                const res2 = await axiosInstance.get(`/chat/groups/${id}/unread-count`, { 
+                                    params: { _cacheBust: Date.now() }, 
+                                    headers: { 
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                        'Pragma': 'no-cache',
+                                        'Expires': '0'
+                                    } 
+                                });
                                 if (res2 && res2.status === 200) {
                                     console.debug('ChatsPanel: unread-count cache-bust success for', id, res2.data);
                                     // Use res2 as the response
@@ -128,8 +147,13 @@ const ChatsPanel = ({
                     const next = { ...prev };
                     results.forEach(r => {
                         if (r.status === 'fulfilled' && r.value) {
-                            console.log('ChatsPanel: updating unreadMap', r.value.id, 'from', prev[String(r.value.id)], 'to', r.value.count);
-                            next[String(r.value.id)] = r.value.count;
+                            const groupIdStr = String(r.value.id);
+                            const newCount = r.value.count;
+                            // Always update unreadMap with the latest value from API
+                            // The merging logic will handle whether to show it or not
+                            // This allows new messages to show badges even if chat was previously read
+                            console.log('ChatsPanel: updating unreadMap', r.value.id, 'from', prev[groupIdStr], 'to', newCount);
+                            next[groupIdStr] = newCount;
                         }
                     });
                     return next;
@@ -141,6 +165,20 @@ const ChatsPanel = ({
             }
         })();
     }, [groupChats, unreadMap, selectedChat]);
+
+    // Clear unreadMap for currently selected chat to ensure badge disappears immediately
+    React.useEffect(() => {
+        if (selectedChat !== null && groupChats[selectedChat]) {
+            const selectedChatId = String(groupChats[selectedChat].id);
+            setUnreadMap(prev => {
+                if (prev[selectedChatId] > 0) {
+                    console.log(`ChatsPanel: Clearing unreadMap for selected chat ${selectedChatId}`);
+                    return { ...prev, [selectedChatId]: 0 };
+                }
+                return prev;
+            });
+        }
+    }, [selectedChat, groupChats]);
 
     // Fetch unread groups from API when unread tab is active
     React.useEffect(() => {
@@ -292,9 +330,31 @@ const ChatsPanel = ({
         const parentVal = Number(c.unread ?? c.unread_count ?? c.unreadCount ?? 0);
         const fetched = Number(unreadMap[String(c.id)] ?? 0);
         const isCurrentlySelected = selectedChat === index;
-        // Only set to 0 if currently selected, otherwise show actual unread count from server
-        // This allows new messages to show unread count even if chat was viewed recently
-        const unread = isCurrentlySelected ? 0 : (fetched > 0 ? fetched : parentVal);
+        
+        // Priority logic for unread count:
+        // 1. If currently selected, always show 0
+        // 2. If fetched > 0 (from unreadMap API), use it (most up-to-date from API)
+        //    This allows new messages to show badges even if parentVal is 0
+        // 3. If parentVal > 0, use it (from GroupChat refresh)
+        // 4. If parentVal === 0 and fetched === 0, show 0 (chat was read, no new messages)
+        // 5. Otherwise, default to 0
+        let unread;
+        if (isCurrentlySelected) {
+            unread = 0;
+        } else if (fetched > 0) {
+            // Fetched has a positive value from API - use it (new messages arrived)
+            // This takes priority over parentVal to ensure badges show for new messages
+            unread = fetched;
+        } else if (parentVal > 0) {
+            // Parent has a positive value, use it (it's more up-to-date from GroupChat)
+            unread = parentVal;
+        } else if (parentVal === 0 && fetched === 0) {
+            // Both are 0 - chat was read and no new messages
+            unread = 0;
+        } else {
+            // Default to 0
+            unread = 0;
+        }
 
         // Debug log for unread count merging
         if (parentVal !== fetched || parentVal > 0 || fetched > 0) {
