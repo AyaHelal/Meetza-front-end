@@ -169,7 +169,7 @@ export default function GroupChat() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMainChat, setShowMainChat] = useState(false);
-   // sockets disabled — using HTTP polling for live updates
+  // sockets disabled — using HTTP polling for live updates
   //const [socket, setSocket] = useState(null);
   //const [socketStatus, setSocketStatus] = useState('disconnected');
   const [groupChats, setGroupChats] = useState([]);
@@ -178,30 +178,35 @@ export default function GroupChat() {
   const [loading, setLoading] = useState(true);
   const [activeInfoSection, setActiveInfoSection] = useState(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
+  // Track which groups we've already marked as read to prevent loops
+  const markedAsReadRef = React.useRef(new Set());
+  // Track which groups have been opened/read in this session - always keep unread at 0 for these
+  const readGroupsRef = React.useRef(new Set());
 
   const formatMessage = useCallback((msg) => ({
     id: msg.id,
     sender: msg.sender_name,
     initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
     time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  }) : new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  }),
-  date: msg.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  }) : new Date().toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  }),
-  created_at: msg.created_at || new Date().toISOString(),
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) : new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }),
+    date: msg.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) : new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }),
+    created_at: msg.created_at || new Date().toISOString(),
     text: msg.message,
     senderPhoto: msg.sender_photo,
     senderEmail: msg.sender_email,
@@ -221,60 +226,60 @@ export default function GroupChat() {
     return 'document';
   }, []);
 
-   const extractLinksFromMessages = (messages = []) => {
+  const extractLinksFromMessages = (messages = []) => {
     console.log('Processing messages for links:', messages);
     const links = [];
     messages?.forEach(msg => {
-        // Skip if message is deleted or has media (we only want plain text messages with links)
-        if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
-            console.log('Skipping message (deleted or has media):', msg.id, {
-                is_deleted: msg.is_deleted,
-                has_media: msg.media?.length > 0
-            });
-            return;
-        }
+      // Skip if message is deleted or has media (we only want plain text messages with links)
+      if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
+        console.log('Skipping message (deleted or has media):', msg.id, {
+          is_deleted: msg.is_deleted,
+          has_media: msg.media?.length > 0
+        });
+        return;
+      }
 
-        if (msg.message) {
-            console.log('Checking message for URLs:', {
-                id: msg.id,
-                message: msg.message
-            });
-            const urlRegex = /https?:\/\/[^\s<>,;]+/g;
-            const urls = msg.message.match(urlRegex) || [];
-            console.log('Found URLs:', urls);
+      if (msg.message) {
+        console.log('Checking message for URLs:', {
+          id: msg.id,
+          message: msg.message
+        });
+        const urlRegex = /https?:\/\/[^\s<>,;]+/g;
+        const urls = msg.message.match(urlRegex) || [];
+        console.log('Found URLs:', urls);
 
-            urls.forEach(url => {
-                try {
-                    const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
-                    const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+        urls.forEach(url => {
+          try {
+            const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+            const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
 
-                    if (!isFileUrl) {
-                        const urlObj = new URL(cleanUrl);
-                        const linkData = {
-                            id: `link-${msg.id}-${cleanUrl}`,
-                            media_url: cleanUrl,
-                            file_name: urlObj.hostname.replace('www.', ''),
-                            original_url: cleanUrl,
-                            created_at: msg.created_at,
-                            sender_name: msg.sender_name,
-                            message_id: msg.id,
-                            isLink: true,
-                            is_downloadable: false
-                        };
-                        console.log('Adding link:', linkData);
-                        links.push(linkData);
-                    } else {
-                        console.log('Skipping file URL:', cleanUrl);
-                    }
-                } catch (e) {
-                    console.warn('Invalid URL:', url, e);
-                }
-            });
-        }
+            if (!isFileUrl) {
+              const urlObj = new URL(cleanUrl);
+              const linkData = {
+                id: `link-${msg.id}-${cleanUrl}`,
+                media_url: cleanUrl,
+                file_name: urlObj.hostname.replace('www.', ''),
+                original_url: cleanUrl,
+                created_at: msg.created_at,
+                sender_name: msg.sender_name,
+                message_id: msg.id,
+                isLink: true,
+                is_downloadable: false
+              };
+              console.log('Adding link:', linkData);
+              links.push(linkData);
+            } else {
+              console.log('Skipping file URL:', cleanUrl);
+            }
+          } catch (e) {
+            console.warn('Invalid URL:', url, e);
+          }
+        });
+      }
     });
     console.log('Extracted links:', links);
     return links;
-};
+  };
 
   // Add class to body when GroupChat is mounted
   useEffect(() => {
@@ -524,7 +529,8 @@ export default function GroupChat() {
               day: 'numeric',
               month: 'short'
             }),
-          unread: 0,
+          // Use unread count from API if available, otherwise default to 0
+          unread: group.unread || group.unread_count || group.unreadCount || 0,
           group_name: group.group_name,
           group_content_id: group.group_content_id,
           contentName: group.contentName
@@ -539,22 +545,49 @@ export default function GroupChat() {
             return formattedGroups;
           }
 
-          // If selected chat was deleted, we'll handle below; otherwise restore by id
-          return formattedGroups;
+          // Preserve unread counts from previous state, especially for groups that were marked as read
+          console.log('📖 readGroupsRef contents:', Array.from(readGroupsRef.current));
+          return formattedGroups.map(newGroup => {
+            const groupIdStr = String(newGroup.id);
+            const apiUnreadCount = newGroup.unread; // This is from the API response (line 533)
+
+            // If this group has been opened/read in this session, always keep unread at 0
+            // This overrides any unread_count from the API response
+            if (readGroupsRef.current.has(groupIdStr)) {
+              console.log(`📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, but was opened, forcing to 0)`);
+              return {
+                ...newGroup,
+                unread: 0  // Force to 0, ignore API response completely
+              };
+            }
+
+            // Otherwise use the unread count from API or previous state
+            const oldGroup = prev.find(g => String(g.id) === groupIdStr);
+            if (oldGroup) {
+              // If old group had unread: 0, preserve it (might have been marked as read)
+              const preservedUnread = oldGroup.unread === 0 ? 0 : (newGroup.unread || oldGroup.unread || 0);
+              return {
+                ...newGroup,
+                unread: preservedUnread
+              };
+            }
+            // New group, use API value
+            return newGroup;
+          });
         });
 
         // After state update, restore selectedChat index to the position of the same group id
+        // Only restore if there was a previously selected chat (don't auto-select on initial load)
         if (currentSelectedId) {
           const newIndex = formattedGroups.findIndex((g) => String(g.id) === String(currentSelectedId));
           if (newIndex !== -1) {
             setSelectedChat(newIndex);
           } else {
-            // selected group was deleted
-            setSelectedChat(formattedGroups.length > 0 ? 0 : null);
+            // selected group was deleted - clear selection
+            setSelectedChat(null);
           }
-        } else if (isInitial && formattedGroups.length > 0) {
-          setSelectedChat(0);
         }
+        // Removed auto-selection on initial load - user should manually select a chat
       }
     } catch (error) {
       console.error('❌ Error fetching groups:', error);
@@ -577,21 +610,74 @@ export default function GroupChat() {
     return () => clearInterval(interval);
   }, [selectedChat]);
 
+  // Get current groupId from selected chat (memoized to prevent unnecessary re-runs)
+  const currentGroupId = useMemo(() => {
+    if (selectedChat === null || !groupChats || groupChats.length === 0) return null;
+    return groupChats[selectedChat]?.id || null;
+  }, [selectedChat, groupChats]);
+
   // Fetch messages and group info when selected chat changes
   useEffect(() => {
-    if (selectedChat === null || groupChats.length === 0) return;
+    if (selectedChat === null || !currentGroupId) return;
 
     const fetchMessagesAndInfo = async () => {
       try {
-        const groupId = groupChats[selectedChat]?.id;
-        if (!groupId) return;
+        const groupId = currentGroupId;
+        const groupIdStr = String(groupId);
 
-        // Join group via socket
-        /*if (socket) {
-          socket.emit('joinGroup', { groupId }, (ack) => {
-            console.log('✅ Joined group:', ack);
+        console.log('📖 Opening chat, marking messages as read for group:', groupIdStr);
+
+        // Always mark messages as read when chat is opened
+        // Mark this group as read in our tracking FIRST
+        readGroupsRef.current.add(groupIdStr);
+        console.log('📖 Added to readGroupsRef:', Array.from(readGroupsRef.current));
+
+        // Update local unread count to 0 immediately (optimistic update)
+        setGroupChats(prev => {
+          const updated = prev.map(g => {
+            if (String(g.id) === groupIdStr) {
+              console.log(`📖 Setting unread to 0 for group ${groupIdStr} (was ${g.unread})`);
+              return { ...g, unread: 0 };
+            }
+            return g;
           });
-        }*/
+          return updated;
+        });
+
+        // Mark messages as read via API (only once per session to avoid spam)
+        if (!markedAsReadRef.current.has(groupIdStr)) {
+          try {
+            // Try to mark all messages as read
+            const markReadResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
+            markedAsReadRef.current.add(groupIdStr);
+            console.log('✅ Marked messages as read for group', groupId, markReadResponse.data);
+
+            // Update unread count to 0 after successful mark-as-read
+            setGroupChats(prev => prev.map(g =>
+              String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+            ));
+          } catch (e) {
+            console.error('❌ Error marking messages as read:', e);
+            console.error('❌ Error response:', e?.response?.data);
+            console.error('❌ Error status:', e?.response?.status);
+
+            // Silently ignore 400/404 errors (endpoint might not be supported)
+            if (e?.response?.status !== 400 && e?.response?.status !== 404) {
+              console.warn('⚠️ Failed to mark messages as read:', e);
+            }
+            // Mark as processed even if API call failed
+            markedAsReadRef.current.add(groupIdStr);
+            // Still update local state to 0 since user is viewing the chat
+            setGroupChats(prev => prev.map(g =>
+              String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+            ));
+          }
+        } else {
+          // Already marked, but ensure unread is still 0
+          setGroupChats(prev => prev.map(g =>
+            String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+          ));
+        }
 
         // Fetch messages
         const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
@@ -611,7 +697,53 @@ export default function GroupChat() {
     };
 
     fetchMessagesAndInfo();
-  }, [selectedChat, groupChats /*,socket*/]);
+
+    // Poll for new messages every 3 seconds while chat is open
+    const messagesInterval = setInterval(() => {
+      if (selectedChat !== null && currentGroupId) {
+        const fetchNewMessages = async () => {
+          try {
+            const groupId = currentGroupId;
+            const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
+            if (messagesResponse.data.success) {
+              const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
+              // Update messages if count changed or if there are new message IDs
+              setMessages(prev => {
+                if (prev.length !== formattedMessages.length) {
+                  // Message count changed, update with new messages
+                  console.log('📨 Messages updated:', formattedMessages.length, 'prev:', prev.length);
+                  return formattedMessages;
+                }
+                // Check if any message IDs are new
+                const prevIds = new Set(prev.map(m => m.id));
+                const hasNewMessages = formattedMessages.some(m => !prevIds.has(m.id));
+                if (hasNewMessages) {
+                  console.log('📨 New messages detected');
+                  return formattedMessages;
+                }
+                return prev;
+              });
+            }
+          } catch (error) {
+            console.error('❌ Error fetching new messages:', error);
+          }
+        };
+        fetchNewMessages();
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(messagesInterval);
+  }, [selectedChat, currentGroupId, isMobile, showMainChat]); // Use currentGroupId instead of groupChats
+
+  // Reset marked-as-read tracking when chat is deselected
+  // This allows marking as read again when reopening the same chat
+  useEffect(() => {
+    if (selectedChat === null) {
+      // When no chat is selected, clear tracking so chats can be marked as read again when reopened
+      // Note: We don't clear readGroupsRef here - we want to keep unread at 0 for groups that were opened
+      markedAsReadRef.current.clear();
+    }
+  }, [selectedChat]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -634,7 +766,31 @@ export default function GroupChat() {
   };
 
   const handleBackToChats = () => {
+    console.log('🔵 handleBackToChats called', { isMobile, showMainChat, showRightSidebarMobile, selectedChat });
+    // Clear selected chat to remove highlight
+    setSelectedChat(null);
     setShowMainChat(false);
+    // Close right sidebar if open
+    if (showRightSidebarMobile) {
+      setShowRightSidebarMobile(false);
+    }
+    // Clear any active sections
+    setActiveInfoSection(null);
+  };
+
+  const handleGroupNameClick = () => {
+    // Open the first section (contents) to show group info in right sidebar
+    if (!activeInfoSection) {
+      setActiveInfoSection('contents');
+    }
+    // On mobile, show the right sidebar and hide main chat
+    if (isMobile) {
+      setShowRightSidebarMobile(true);
+      setShowMainChat(false);
+    } else {
+      // On desktop, ensure main chat stays visible
+      setShowMainChat(true);
+    }
   };
 
   const handleMessageEdited = (messageId, newText) => {
@@ -764,17 +920,17 @@ export default function GroupChat() {
 
   const groupMediaItems = useMemo(() => categorizeMediaItems(mediaArray), [mediaArray]);
 
-    const mediaSummary = useMemo(() => {
+  const mediaSummary = useMemo(() => {
     const summary = {
-        images: groupMediaItems?.images || [],
-        videos: groupMediaItems?.videos || [],
-        audio: groupMediaItems?.audio || [],
-        files: groupMediaItems?.files || [],
-        links: extractLinksFromMessages(messages)
+      images: groupMediaItems?.images || [],
+      videos: groupMediaItems?.videos || [],
+      audio: groupMediaItems?.audio || [],
+      files: groupMediaItems?.files || [],
+      links: extractLinksFromMessages(messages)
     };
     console.log('Media summary:', summary);
     return summary;
-}, [messages, groupMediaItems]);
+  }, [messages, groupMediaItems]);
 
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
@@ -811,7 +967,15 @@ export default function GroupChat() {
   };
 
   const handleToggleInfoSection = (section) => {
-    setActiveInfoSection((prev) => (prev === section ? null : section));
+    // Toggle the section
+    const newSection = activeInfoSection === section ? null : section;
+    setActiveInfoSection(newSection);
+
+    // On mobile, navigate to main chat and show the section
+    if (isMobile && newSection) {
+      setShowRightSidebarMobile(false);
+      setShowMainChat(true);
+    }
   };
 
   if (loading) {
@@ -835,27 +999,24 @@ export default function GroupChat() {
         showMainChat={showMainChat}
       />
 
-      {selectedChatData ? (
-        <MainChat
-          messages={messages}
-          chatTitle={selectedChat !== null ? groupChats[selectedChat]?.name : 'Select a chat'}
-          isMobile={isMobile}
-          showMainChat={showMainChat}
-          onBackToChats={handleBackToChats}
-          onSendMessage={handleSendMessage}
-          activeSection={activeInfoSection}
-          onCloseSection={() => setActiveInfoSection(null)}
-          contentResources={contentResources}
-          groupMediaItems={groupMediaItems}
-          groupMembers={groupMembers}
-          currentUserEmail={user?.email}
-          groupId={selectedChatData?.id}
-          onMessageEdited={handleMessageEdited}
-          isSendingMessage={isSendingMessage}
-        />
-      ) : (
-        <div className="main-chat-placeholder">Select a group chat to get started.</div>
-      )}
+      <MainChat
+        messages={selectedChatData ? messages : []}
+        chatTitle={selectedChat !== null && groupChats[selectedChat] ? groupChats[selectedChat]?.name : 'Select a chat'}
+        isMobile={isMobile}
+        showMainChat={showMainChat}
+        onBackToChats={handleBackToChats}
+        onSendMessage={handleSendMessage}
+        activeSection={activeInfoSection}
+        onCloseSection={() => setActiveInfoSection(null)}
+        contentResources={contentResources}
+        groupMediaItems={groupMediaItems}
+        groupMembers={groupMembers}
+        currentUserEmail={user?.email}
+        groupId={selectedChatData?.id || null}
+        onMessageEdited={handleMessageEdited}
+        isSendingMessage={isSendingMessage}
+        onGroupNameClick={handleGroupNameClick}
+      />
 
       <RightSidebar
         groupInfo={groupInfo}
@@ -868,6 +1029,27 @@ export default function GroupChat() {
         contentSummary={contentResources}
         mediaSummary={mediaSummary}
         memberCount={groupMembers.length}
+        showMobile={showRightSidebarMobile}
+        onCloseMobile={() => {
+          setShowRightSidebarMobile(false);
+          // Restore main chat when closing sidebar on mobile
+          if (isMobile) {
+            setShowMainChat(true);
+          }
+        }}
+        onOpenSidebar={() => {
+          console.log('🔵 onOpenSidebar called from GroupChat - opening sidebar menu');
+          // Dispatch custom event to trigger AppLayout sidebar
+          window.dispatchEvent(new CustomEvent('openMobileSidebar'));
+          // Don't close right sidebar - let the sidebar menu open on top
+        }}
+        onOpenNotifications={() => {
+          console.log('🔔 onOpenNotifications called from GroupChat - opening notifications');
+          // Dispatch custom event to trigger AppLayout notification panel
+          window.dispatchEvent(new CustomEvent('openNotificationPanel'));
+          // Don't close right sidebar - let the notification panel open on top
+        }}
+        unreadNotificationCount={0}
       />
     </div>
   );

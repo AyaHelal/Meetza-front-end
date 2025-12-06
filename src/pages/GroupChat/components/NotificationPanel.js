@@ -101,6 +101,15 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   };
 
+  const getInitials = (name) => {
+    if (!name) return 'A';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -131,16 +140,36 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
                 className={`notification-item ${notification.is_read ? 'read' : 'unread'}`}
               >
                 <div className="notification-content">
-                  <div className="notification-title">
-                    {notification.title || notification.message || 'Notification'}
-                  </div>
-                  {notification.description && (
-                    <div className="notification-description">
-                      {notification.description}
+                  <div className="notification-header">
+                    <div className="notification-avatar-container">
+                      {notification.administrator_photo ? (
+                        <img 
+                          src={notification.administrator_photo} 
+                          alt={notification.administrator_name || 'Admin'}
+                          className="notification-avatar"
+                        />
+                      ) : (
+                        <div className="notification-avatar-fallback">
+                          {getInitials(notification.administrator_name || 'A')}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="notification-time">
-                    {formatDate(notification.created_at || notification.createdAt || notification.timestamp)}
+                    <div className="notification-info">
+                      <div className="notification-sender-row">
+                        <span className="notification-sender">
+                          {notification.administrator_name || 'Administrator'}
+                        </span>
+                        <span className="notification-time">
+                          {formatDate(notification.created_at || notification.createdAt || notification.timestamp)}
+                        </span>
+                      </div>
+                      <div className="notification-title">
+                        {notification.title || 'Notification'}
+                      </div>
+                      <div className="notification-message">
+                        {notification.message || notification.description || ''}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

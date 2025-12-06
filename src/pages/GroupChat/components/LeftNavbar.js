@@ -15,7 +15,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
-  
+
   // Track mobile state
   useEffect(() => {
     const handleResize = () => {
@@ -24,7 +24,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // Sync with external notification panel state (for mobile sidebar)
   useEffect(() => {
     if (externalNotificationPanelOpen !== undefined) {

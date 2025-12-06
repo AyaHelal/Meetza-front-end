@@ -93,6 +93,18 @@ export const categorizeMediaItems = (mediaItems = []) => {
 
     if (Array.isArray(mediaItems)) {
         mediaItems.forEach((item) => {
+            // Skip audio/voice items - they should only appear in chat messages, not in media section
+            const mediaType = item?.media_type?.toLowerCase() || item?.file_type?.toLowerCase() || '';
+            const isAudio = mediaType.includes('audio') || 
+                          mediaType === 'voice' || 
+                          mediaType === 'voice_note' ||
+                          AUDIO_EXTENSIONS.includes(extractExtension(item));
+            
+            if (isAudio) {
+                // Don't add audio to any category - they should only appear in chat
+                return;
+            }
+
             const bucket = resolveMediaCategory(item);
             if (categories[bucket]) {
                 categories[bucket].push(item);
