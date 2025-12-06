@@ -96,9 +96,25 @@ html:not(.group-chat-active) {
   transform: translateZ(0);
   backface-visibility: hidden;
 
-  /* Always visible and interactive */
+  /* Transition for show/hide */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+.back-to-top.visible {
   opacity: 1 !important;
+  visibility: visible !important;
   pointer-events: auto !important;
+  display: flex !important;
+}
+
+.back-to-top.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex; /* Keep display flex even when hidden for smooth transition */
 }
 
 .back-to-top:hover {
