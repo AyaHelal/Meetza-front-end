@@ -105,7 +105,16 @@ const Groups = () => {
             setPositions(positionsData);
         } catch (error) {
             console.error('Error fetching positions:', error);
-            smartToast.error('Failed to load positions');
+            // Only show error for administrators, not for members
+            const storedUser = JSON.parse(localStorage.getItem("user")) ||
+                              JSON.parse(sessionStorage.getItem("user"));
+            const rawRole = (storedUser?.role || 'Member')
+                .toString()
+                .toLowerCase();
+            const isAdminRole = rawRole.includes('administrator');
+            if (isAdminRole) {
+                smartToast.error('Failed to load positions');
+            }
         }
     };
 
