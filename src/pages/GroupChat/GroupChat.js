@@ -183,6 +183,8 @@ export default function GroupChat() {
   const markedAsReadRef = React.useRef(new Set());
   // Track which groups have been opened/read in this session - always keep unread at 0 for these
   const readGroupsRef = React.useRef(new Set());
+  // Track previous message IDs to detect new messages during polling
+  const previousMessageIdsRef = React.useRef(new Set());
 
   const formatMessage = useCallback((msg) => ({
     id: msg.id,
@@ -551,27 +553,42 @@ export default function GroupChat() {
             const groupIdStr = String(newGroup.id);
             const apiUnreadCount = newGroup.unread; // This is from the API response (line 533)
 
-            // If this group has been opened/read in this session, always keep unread at 0
-            // This overrides any unread_count from the API response
+            // If this group has been opened/read in this session, check if new messages arrived
             if (readGroupsRef.current.has(groupIdStr)) {
-              console.log(`📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, but was opened, forcing to 0)`);
-              return {
-                ...newGroup,
-                unread: 0  // Force to 0, ignore API response completely
-              };
+              // If API returns a positive unread count, it means new messages arrived after being read
+              // Remove from readGroupsRef to allow the badge to show
+              if (apiUnreadCount > 0) {
+                console.log(`📖 New messages arrived for group ${groupIdStr} (API returned ${apiUnreadCount}), removing from readGroupsRef to show badge`);
+                readGroupsRef.current.delete(groupIdStr);
+                // Use the API value to show the badge
+                return {
+                  ...newGroup,
+                  unread: apiUnreadCount
+                };
+              } else {
+                // No new messages, keep unread at 0
+                console.log(`📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, was opened, no new messages)`);
+                return {
+                  ...newGroup,
+                  unread: 0  // Force to 0, ignore API response - user has already seen this chat
+                };
+              }
             }
 
             // Otherwise use the unread count from API or previous state
             const oldGroup = prev.find(g => String(g.id) === groupIdStr);
             if (oldGroup) {
               // If old group had unread: 0, preserve it (might have been marked as read)
+              // Otherwise use the new unread count from API
               const preservedUnread = oldGroup.unread === 0 ? 0 : (newGroup.unread || oldGroup.unread || 0);
+              console.log(`📖 Group ${groupIdStr}: API=${apiUnreadCount}, Old=${oldGroup.unread}, Preserved=${preservedUnread}`);
               return {
                 ...newGroup,
                 unread: preservedUnread
               };
             }
             // New group, use API value
+            console.log(`📖 New group ${groupIdStr}: using API unread count ${apiUnreadCount}`);
             return newGroup;
           });
         });
@@ -628,11 +645,12 @@ export default function GroupChat() {
         console.log('📖 Opening chat, marking messages as read for group:', groupIdStr);
 
         // Always mark messages as read when chat is opened
-        // Mark this group as read in our tracking FIRST
+        // Mark this group as read in our tracking FIRST (before any API calls)
         readGroupsRef.current.add(groupIdStr);
         console.log('📖 Added to readGroupsRef:', Array.from(readGroupsRef.current));
 
         // Update local unread count to 0 immediately (optimistic update)
+        // This ensures the badge disappears immediately when chat is selected
         setGroupChats(prev => {
           const updated = prev.map(g => {
             if (String(g.id) === groupIdStr) {
@@ -644,39 +662,75 @@ export default function GroupChat() {
           return updated;
         });
 
-        // Mark messages as read via API (only once per session to avoid spam)
-        if (!markedAsReadRef.current.has(groupIdStr)) {
-          try {
-            // Try to mark all messages as read
-            const markReadResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
-            markedAsReadRef.current.add(groupIdStr);
-            console.log('✅ Marked messages as read for group', groupId, markReadResponse.data);
+        // Mark messages as read via API
+        // Always call the API to ensure backend updates unread count
+        // Don't check markedAsReadRef - always call to ensure backend is updated
+        try {
+          // Try to mark all messages as read
+          console.log(`📖 Calling mark-as-read API for group ${groupId}...`);
+          const markReadResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
+          markedAsReadRef.current.add(groupIdStr);
+          console.log('✅ Marked messages as read for group', groupId, markReadResponse.data);
 
-            // Update unread count to 0 after successful mark-as-read
-            setGroupChats(prev => prev.map(g =>
-              String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-            ));
-          } catch (e) {
-            console.error('❌ Error marking messages as read:', e);
-            console.error('❌ Error response:', e?.response?.data);
-            console.error('❌ Error status:', e?.response?.status);
+          // Update unread count to 0 after successful mark-as-read
+          setGroupChats(prev => prev.map(g =>
+            String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+          ));
 
-            // Silently ignore 400/404 errors (endpoint might not be supported)
-            if (e?.response?.status !== 400 && e?.response?.status !== 404) {
-              console.warn('⚠️ Failed to mark messages as read:', e);
+          // Force a refresh of unread counts after a short delay to ensure backend has updated
+          setTimeout(async () => {
+            try {
+              const unreadResponse = await axiosInstance.get(`/chat/groups/${groupId}/unread-count`, {
+                params: { _cacheBust: Date.now() },
+                headers: { 'Cache-Control': 'no-cache' }
+              });
+              const unreadCount = unreadResponse?.data?.data?.unread_count ?? 
+                                  unreadResponse?.data?.data?.unread_count ?? 0;
+              console.log(`📊 Refreshed unread count after mark-as-read: ${unreadCount} for group ${groupId}`);
+              if (unreadCount === 0) {
+                // Backend confirmed unread is 0, update local state
+                setGroupChats(prev => prev.map(g =>
+                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+                ));
+              }
+            } catch (refreshError) {
+              console.warn('⚠️ Failed to refresh unread count after mark-as-read:', refreshError);
             }
-            // Mark as processed even if API call failed
+          }, 500); // Wait 500ms for backend to process
+        } catch (e) {
+          console.error('❌ Error marking messages as read:', e);
+          console.error('❌ Error response:', e?.response?.data);
+          console.error('❌ Error status:', e?.response?.status);
+
+          // Try fallback endpoint if read-all doesn't work
+          if (e?.response?.status === 400 || e?.response?.status === 404) {
+            try {
+              console.log('📖 Trying fallback mark-read endpoint...');
+              const fallbackResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/mark-read`);
+              markedAsReadRef.current.add(groupIdStr);
+              console.log('✅ Marked messages as read (fallback) for group', groupId, fallbackResponse.data);
+              
+              setGroupChats(prev => prev.map(g =>
+                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+              ));
+            } catch (fallbackError) {
+              console.warn('⚠️ Fallback mark-read also failed:', fallbackError);
+              // Mark as processed even if both failed
+              markedAsReadRef.current.add(groupIdStr);
+              // Still update local state to 0 since user is viewing the chat
+              setGroupChats(prev => prev.map(g =>
+                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+              ));
+            }
+          } else {
+            // For other errors, log but still mark as processed
+            console.warn('⚠️ Failed to mark messages as read:', e);
             markedAsReadRef.current.add(groupIdStr);
             // Still update local state to 0 since user is viewing the chat
             setGroupChats(prev => prev.map(g =>
               String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
             ));
           }
-        } else {
-          // Already marked, but ensure unread is still 0
-          setGroupChats(prev => prev.map(g =>
-            String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-          ));
         }
 
         // Fetch messages
@@ -684,6 +738,8 @@ export default function GroupChat() {
         if (messagesResponse.data.success) {
           const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
           setMessages(formattedMessages);
+          // Initialize previous message IDs ref for polling detection
+          previousMessageIdsRef.current = new Set(formattedMessages.map(m => m.id));
         }
 
         // Fetch group info
@@ -700,36 +756,71 @@ export default function GroupChat() {
 
     // Poll for new messages every 3 seconds while chat is open
     const messagesInterval = setInterval(() => {
-      if (selectedChat !== null && currentGroupId) {
-        const fetchNewMessages = async () => {
-          try {
-            const groupId = currentGroupId;
-            const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
-            if (messagesResponse.data.success) {
-              const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
-              // Update messages if count changed or if there are new message IDs
-              setMessages(prev => {
-                if (prev.length !== formattedMessages.length) {
-                  // Message count changed, update with new messages
-                  console.log('📨 Messages updated:', formattedMessages.length, 'prev:', prev.length);
-                  return formattedMessages;
+      if (selectedChat === null || !currentGroupId) return;
+      
+      const fetchNewMessages = async () => {
+        try {
+          const groupId = currentGroupId;
+          const groupIdStr = String(groupId);
+          const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
+          if (messagesResponse.data.success) {
+            const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
+            
+            // Check if there are new messages BEFORE updating state
+            const currentMessageIds = new Set(formattedMessages.map(m => m.id));
+            const prevIds = previousMessageIdsRef.current;
+            const hasNewMessages = formattedMessages.length !== prevIds.size || 
+                                  formattedMessages.some(m => !prevIds.has(m.id));
+            
+            // Update previous message IDs
+            previousMessageIdsRef.current = currentMessageIds;
+            
+            // Update messages state
+            setMessages(prev => {
+              if (prev.length !== formattedMessages.length) {
+                // Message count changed, update with new messages
+                console.log('📨 Messages updated:', formattedMessages.length, 'prev:', prev.length);
+                return formattedMessages;
+              }
+              // Check if any message IDs are new
+              const prevIds = new Set(prev.map(m => m.id));
+              const newMessagesExist = formattedMessages.some(m => !prevIds.has(m.id));
+              if (newMessagesExist) {
+                console.log('📨 New messages detected');
+                return formattedMessages;
+              }
+              return prev;
+            });
+
+            // If new messages arrived while chat is open, mark them as read
+            if (hasNewMessages) {
+              console.log('📖 New messages arrived in open chat, marking as read for group:', groupIdStr);
+              try {
+                // Mark all messages as read (including the new ones)
+                await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
+                console.log('✅ Marked new messages as read for group', groupId);
+                
+                // Update unread count to 0
+                setGroupChats(prev => prev.map(g =>
+                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+                ));
+              } catch (e) {
+                // Silently ignore 400/404 errors (endpoint might not be supported)
+                if (e?.response?.status !== 400 && e?.response?.status !== 404) {
+                  console.warn('⚠️ Failed to mark new messages as read:', e);
                 }
-                // Check if any message IDs are new
-                const prevIds = new Set(prev.map(m => m.id));
-                const hasNewMessages = formattedMessages.some(m => !prevIds.has(m.id));
-                if (hasNewMessages) {
-                  console.log('📨 New messages detected');
-                  return formattedMessages;
-                }
-                return prev;
-              });
+                // Still update local state to 0 since user is viewing the chat
+                setGroupChats(prev => prev.map(g =>
+                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+                ));
+              }
             }
-          } catch (error) {
-            console.error('❌ Error fetching new messages:', error);
           }
-        };
-        fetchNewMessages();
-      }
+        } catch (error) {
+          console.error('❌ Error fetching new messages:', error);
+        }
+      };
+      fetchNewMessages();
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(messagesInterval);
