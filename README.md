@@ -91,3 +91,8 @@ Builds the app for production to the build folder. The build is minified and opt
 ## 📞 Support
 
 For support or questions, please contact the development team or create an issue in the repository.
+
+
+## 📝 License
+
+This project is private and proprietary to Meetza.
