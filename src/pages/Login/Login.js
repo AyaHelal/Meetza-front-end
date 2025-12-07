@@ -317,7 +317,7 @@ const Login = () => {
                 onSkipCaptcha={handleSkipCaptcha}
                 failedAttempts={failedAttempts}
                 extraFields={(
-                    <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
+                    <div className="d-flex  ps-2 py-2 role-radio-group">
                         <div className="form-check">
                             <input
                                 className="form-check-input"
@@ -328,7 +328,7 @@ const Login = () => {
                                 checked={formData.role === 'Member'}
                                 onChange={handleInputChange}
                             />
-                            <label className="form-check-label ms-2" htmlFor="loginMemberRole">
+                            <label className="form-check-label mx-2" htmlFor="loginMemberRole">
                                 Member
                             </label>
                         </div>
