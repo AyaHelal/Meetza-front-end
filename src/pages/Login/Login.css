@@ -147,7 +147,7 @@
 .role-radio-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0 !important;
   align-items: center;
   justify-content: flex-start;
 }
@@ -156,6 +156,8 @@
   display: flex;
   align-items: center;
 }
+
+/* All form-check elements should have padding 0 */
 
 .role-radio-group .form-check-label {
   font-weight: 500;
@@ -166,15 +168,23 @@
   .role-radio-group {
     flex-direction: row;
     flex-wrap: nowrap; /* keep in one row */
-    gap: 8px;
+    gap: 0 !important;
     overflow: hidden;
+    justify-content: flex-start !important; /* Override justify-content-between */
   }
 
   .role-radio-group .form-check {
-    flex: 1 1 0; /* allow shrinking */
+    flex: 0 0 auto !important; /* Don't grow, keep natural size */
     min-width: 0; /* allow contents to shrink/truncate if needed */
     display: flex;
     align-items: start;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* All form-check elements should have padding 0 on mobile */
+  .form-check {
+    padding: 0 !important;
   }
 
   .role-radio-group .form-check-label {
@@ -429,11 +439,15 @@
     max-width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   .row {
     margin-left: 0 !important;
     margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     width: 100% !important;
   }
 
@@ -441,6 +455,8 @@
   .col-lg-6 {
     padding-left: 0 !important;
     padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     max-width: 100% !important;
   }
 
@@ -448,20 +464,90 @@
     overflow-x: hidden;
   }
 
-  /* Form container */
+  /* Form container - spacing from both sides */
   .bg-white {
     padding: 30px 20px !important;
     margin-bottom: 20px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
     min-height: 100vh;
-    width: 100vw;
-    margin: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
     border-radius: 0;
     box-sizing: border-box;
   }
 
   .login-page-wrapper {
-    padding: 0;
+    padding: 0 20px !important;
     min-height: auto;
+    background-color: white !important;
+  }
+
+  /* All form-check elements should have padding 0 on mobile */
+  .form-check {
+    padding: 0 !important;
+  }
+
+  /* Remove space between radio buttons in mobile */
+  .role-radio-group {
+    justify-content: flex-start !important; /* Override justify-content-between */
+    gap: 0 !important;
+  }
+
+  .role-radio-group .form-check {
+    margin: 0 !important;
+    padding: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Welcome Back heading - 20px on mobile */
+  h1.h2.fw-semibold.mb-2.font-size-lg,
+  h1.h2.fw-semibold {
+    font-size: 20px !important;
+  }
+
+  /* Please enter your details - 13px on mobile */
+  p.text-muted.p-font-size-lg,
+  p.text-muted {
+    font-size: 13px !important;
+  }
+
+  /* Icons - 18px on mobile */
+  /* Phosphor Icons */
+  .d-flex.gx-2.w-100.border svg,
+  .d-flex.gx-2.w-100.border [class*="phosphor"],
+  .d-flex.gx-2.w-100.border [class*="Phosphor"] {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+  }
+
+  /* React Icons (FaEye, FaEyeSlash) */
+  button svg,
+  .btn svg,
+  .d-flex.gx-2.w-100.border button svg,
+  .d-flex.gx-2.w-100.border .btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+  }
+
+  /* Social login SVG icons */
+  .social-login-button svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .w-100[style*="max-width"] {
@@ -485,25 +571,187 @@
     margin-bottom: 20px;
   }
 
+  /* Tab buttons (Sign In / Sign Up) - height 53px */
+  .rounded-3 .btn,
+  .rounded-3 button.btn,
+  .rounded-3 .d-flex.gap-1 .btn,
+  .rounded-3 .d-flex.gap-1 button,
+  .rounded-3.p-1.mb-2 .btn,
+  .rounded-3.p-1.mb-2 button,
+  .rounded-3.p-1.mb-2 .d-flex.gap-1 .btn,
+  .rounded-3.p-1.mb-2 .d-flex.gap-1 button,
+  .rounded-3.p-1 .btn,
+  .rounded-3.p-1 button {
+    max-height: 53px !important;
+    min-height: 53px !important;
+    height: 53px !important;
+    padding: 12px 16px !important;
+    line-height: 1.2 !important;
+  }
+
   /* Larger tablets */
   @media (min-width: 576px) {
+    .login-page-wrapper {
+      padding: 0 20px !important;
+      background-color: white !important;
+    }
+
     .bg-white {
       padding: 40px 30px !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      margin-top: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      display: block !important;
+      position: relative !important;
+      left: 0 !important;
+      right: auto !important;
+      transform: none !important;
     }
 
     .w-100[style*="max-width"] {
       max-width: calc(100vw - 60px) !important;
     }
+
+    /* Input containers - max height 53px */
+    .d-flex.gx-2.w-100.border {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      padding: 8px 12px !important;
+    }
+
+    /* Input fields */
+    .d-flex.gx-2.w-100.border input,
+    .form-control {
+      max-height: 37px !important;
+      font-size: 16px !important;
+      padding: 4px 0 !important;
+    }
+
+    /* All buttons - max height 53px (excluding button-submit) */
+    .btn-primary,
+    .btn:not(.button-submit),
+    .social-login-button,
+    .rounded-3 .btn,
+    .rounded-3 button.btn,
+    .rounded-3 .d-flex.gap-1 .btn,
+    .rounded-3 .d-flex.gap-1 button {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      height: 53px !important;
+      padding: 12px 16px !important;
+      line-height: 1.2 !important;
+    }
+
+    /* Continue/Create Account button - vertical padding 0, max height 53px */
+    .button-submit,
+    button.button-submit,
+    .btn.button-submit,
+    button.btn.button-submit {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      height: 53px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      line-height: 1.2 !important;
+    }
+
+    /* Override Bootstrap py-3 class */
+    .button-submit.py-3,
+    button.button-submit.py-3,
+    .button-submit[class*="py-3"],
+    button.btn.button-submit.py-3 {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      max-height: 53px !important;
+      min-height: 53px !important;
+      height: 53px !important;
+    }
   }
 
   /* Small phones */
   @media (max-width: 575px) {
+    .login-page-wrapper {
+      padding: 0 20px !important;
+      background-color: white !important;
+    }
+
     .bg-white {
       padding: 20px 15px !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      margin-top: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      display: block !important;
+      position: relative !important;
+      left: 0 !important;
+      right: auto !important;
+      transform: none !important;
     }
 
     .w-100[style*="max-width"] {
       max-width: calc(100vw - 30px) !important;
+    }
+
+    /* Input containers - max height 53px */
+    .d-flex.gx-2.w-100.border {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      padding: 8px 12px !important;
+    }
+
+    /* Input fields */
+    .d-flex.gx-2.w-100.border input,
+    .form-control {
+      max-height: 37px !important;
+      font-size: 16px !important;
+      padding: 4px 0 !important;
+    }
+
+    /* All buttons - max height 53px (excluding button-submit) */
+    .btn-primary,
+    .btn:not(.button-submit),
+    .social-login-button,
+    .rounded-3 .btn,
+    .rounded-3 button.btn,
+    .rounded-3 .d-flex.gap-1 .btn,
+    .rounded-3 .d-flex.gap-1 button {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      height: 53px !important;
+      padding: 12px 16px !important;
+      line-height: 1.2 !important;
+    }
+
+    /* Continue/Create Account button - vertical padding 0, max height 53px */
+    .button-submit,
+    button.button-submit,
+    .btn.button-submit,
+    button.btn.button-submit {
+      max-height: 53px !important;
+      min-height: 53px !important;
+      height: 53px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      line-height: 1.2 !important;
+    }
+
+    /* Override Bootstrap py-3 class */
+    .button-submit.py-3,
+    button.button-submit.py-3,
+    .button-submit[class*="py-3"],
+    button.btn.button-submit.py-3 {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      max-height: 44px !important;
+      min-height: 44px !important;
+      height: 44px !important;
     }
 
     .social-buttons .btn {

@@ -111,7 +111,7 @@ const FormSection = ({
                 )}
             </div>
 
-            <div className="rounded-3 p-1 mb-2" style={{ backgroundColor: '#e0e0e0' }}>
+            <div className="rounded-3 p-1 mb-2 btn-group-mobile" style={{ backgroundColor: '#e0e0e0' }}>
                 {/* Only show tabs for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <div className="d-flex gap-1">
@@ -190,7 +190,14 @@ const FormSection = ({
                                 name="password"
                             />
 
-                            <div className="d-flex justify-content-between align-items-center mb-3">
+                            {/* render any extra fields (e.g., role radios) above the remember/forgot row */}
+                            {extraFields && (
+                                <div className="mb-3">
+                                    {extraFields}
+                                </div>
+                            )}
+
+                            <div className="d-flex justify-content-between ps-2 align-items-center mb-3">
                                 {activeTab === 'signin' && (
                                     <div className="d-flex align-items-center">
                                         <input
@@ -216,13 +223,6 @@ const FormSection = ({
                                     Forgot Password ?
                                 </button>
                             </div>
-
-                            {/* render any extra fields (e.g., role radios) under the remember/forgot row */}
-                            {extraFields && (
-                                <div className="mb-2">
-                                    {extraFields}
-                                </div>
-                            )}
 
                             <Button
                                 type="submit"
