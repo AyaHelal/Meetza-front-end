@@ -213,7 +213,7 @@ const SignUp = () => {
                         </div>
                     )}
                     {/* Role Selection */}
-                    <div className="d-flex justify-content-between px-2 py-2 role-radio-group">
+                    <div className="d-flex px-2 py-2 role-radio-group">
                         <div className="form-check">
                             <input
                                 className="form-check-input"
@@ -224,7 +224,7 @@ const SignUp = () => {
                                 checked={formData.role === 'Member'}
                                 onChange={handleInputChange}
                             />
-                            <label className="form-check-label ms-2" htmlFor="memberRole">
+                            <label className="form-check-label mx-2" htmlFor="memberRole">
                                 Member
                             </label>
                         </div>
