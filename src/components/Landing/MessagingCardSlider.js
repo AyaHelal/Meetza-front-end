@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './MessagingCardSlider.css';
 
 export default function MessagingCardSlider() {
     const [slidePosition, setSlidePosition] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
 
     // Detect mobile screen size
     useEffect(() => {
@@ -84,10 +87,37 @@ export default function MessagingCardSlider() {
         setSlidePosition(prev => prev - 1);
     };
 
+    // Minimum swipe distance (in pixels)
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            nextSlide();
+        }
+        if (isRightSwipe) {
+            prevSlide();
+        }
+    };
+
     return (
-        <div style={{
-            minHeight: '100vh',
-            padding: isMobile ? '40px 15px' : '60px 20px',
+        <div className="messaging-card-slider-container" style={{
+            minHeight: isMobile ? 'auto' : '100vh',
+            padding: isMobile ? '20px 15px' : '60px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -99,11 +129,17 @@ export default function MessagingCardSlider() {
                         padding: isMobile ? '15px 0' : '20px 0',
                         position: 'relative'
                     }}>
-                        <div style={{
-                            display: 'flex',
-                            transition: isTransitioning ? 'transform 0.5s ease-in-out' : 'none',
-                            transform: `translateX(calc(-${halfCardOffset}% - ${actualPosition * cardWidth}%))`
-                        }}>
+                        <div
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={onTouchEnd}
+                            style={{
+                                display: 'flex',
+                                transition: isTransitioning ? 'transform 0.5s ease-in-out' : 'none',
+                                transform: `translateX(calc(-${halfCardOffset}% - ${actualPosition * cardWidth}%))`,
+                                touchAction: 'pan-x'
+                            }}
+                        >
                             {duplicatedCards.map((card, index) => {
                                 const cardPosition = index - actualPosition;
                                 const absPosition = Math.abs(cardPosition);
@@ -122,7 +158,7 @@ export default function MessagingCardSlider() {
                                         <div style={{
                                             background: 'linear-gradient(135deg, #214AB8 0%, #00DC85 100%)',
                                             borderRadius: isMobile ? '24px' : '32px',
-                                            padding: isMobile ? '20px' : '30px',
+                                            padding: isMobile ? '15px' : '30px',
                                             boxShadow: '0 10px 30px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.2)',
                                             height: '100%',
                                             transition: 'box-shadow 0.3s ease'
@@ -130,9 +166,9 @@ export default function MessagingCardSlider() {
                                             {/* Image Container */}
                                             <div style={{
                                                 borderRadius: isMobile ? '12px' : '15px',
-                                                marginBottom: isMobile ? '15px' : '20px',
+                                                marginBottom: isMobile ? '10px' : '20px',
                                                 overflow: 'hidden',
-                                                minHeight: isMobile ? '140px' : '180px',
+                                                minHeight: isMobile ? '0px' : '180px',
                                                 position: 'relative'
                                             }}>
                                                 <img
@@ -150,17 +186,17 @@ export default function MessagingCardSlider() {
                                             {/* Card Content */}
                                             <h5 style={{
                                                 color: '#FFFFFF',
-                                                marginBottom: isMobile ? '10px' : '15px',
+                                                marginBottom: isMobile ? '8px' : '15px',
                                                 fontWeight: '600',
-                                                fontSize: isMobile ? '20px' : '32px'
+                                                fontSize: isMobile ? '16px' : '32px'
                                             }}>
                                                 {card.title}
                                             </h5>
                                             <p style={{
                                                 color: '#FFFFFF',
                                                 marginBottom: '0',
-                                                fontSize: isMobile ? '14px' : '24px',
-                                                lineHeight: isMobile ? '1.4' : '1.5'
+                                                fontSize: isMobile ? '12px' : '24px',
+                                                lineHeight: isMobile ? '1.3' : '1.5'
                                             }}>
                                                 {card.description}
                                             </p>
@@ -174,17 +210,18 @@ export default function MessagingCardSlider() {
                     {/* Navigation Arrows */}
                     <button
                         onClick={prevSlide}
+                        className="slider-nav-btn slider-nav-prev"
                         style={{
                             position: 'absolute',
-                            left: '-60px',
+                            left: isMobile ? '10px' : '-60px',
                             top: '50%',
                             transform: 'translateY(-50%)',
                             background: 'white',
                             border: 'none',
                             borderRadius: '50%',
-                            width: '50px',
-                            height: '50px',
-                            fontSize: '24px',
+                            width: isMobile ? '40px' : '50px',
+                            height: isMobile ? '40px' : '50px',
+                            fontSize: isMobile ? '20px' : '24px',
                             cursor: 'pointer',
                             opacity: 1,
                             boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
@@ -192,7 +229,8 @@ export default function MessagingCardSlider() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#3498db',
-                            transition: 'all 0.3s ease'
+                            transition: 'all 0.3s ease',
+                            zIndex: 100
                         }}
                         onMouseEnter={(e) => {
                             e.target.style.transform = 'translateY(-50%) scale(1.1)';
@@ -210,17 +248,18 @@ export default function MessagingCardSlider() {
 
                     <button
                         onClick={nextSlide}
+                        className="slider-nav-btn slider-nav-next"
                         style={{
                             position: 'absolute',
-                            right: '-60px',
+                            right: isMobile ? '10px' : '-60px',
                             top: '50%',
                             transform: 'translateY(-50%)',
                             background: 'white',
                             border: 'none',
                             borderRadius: '50%',
-                            width: '50px',
-                            height: '50px',
-                            fontSize: '24px',
+                            width: isMobile ? '40px' : '50px',
+                            height: isMobile ? '40px' : '50px',
+                            fontSize: isMobile ? '20px' : '24px',
                             cursor: 'pointer',
                             opacity: 1,
                             boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
@@ -228,7 +267,8 @@ export default function MessagingCardSlider() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#3498db',
-                            transition: 'all 0.3s ease'
+                            transition: 'all 0.3s ease',
+                            zIndex: 100
                         }}
                         onMouseEnter={(e) => {
                             e.target.style.transform = 'translateY(-50%) scale(1.1)';

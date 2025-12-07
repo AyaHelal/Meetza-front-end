@@ -1,0 +1,55 @@
+/* MessagingCardSlider Mobile Styles */
+
+/* Reduce height on mobile */
+@media (max-width: 768px) {
+  .messaging-card-slider-container {
+    min-height: 0px !important;
+    height: auto !important;
+    padding: 20px 15px !important;
+  }
+
+  /* Reduce slider container padding */
+  .messaging-card-slider-container > div > div {
+    padding: 10px 0 !important;
+  }
+
+  /* Hide navigation arrows on mobile (swipe is available) */
+  .slider-nav-btn {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Small phones */
+@media (max-width: 575px) {
+  .messaging-card-slider-container {
+    min-height: 0px !important;
+    height: auto !important;
+    padding: 15px 10px !important;
+  }
+
+  /* Reduce slider container padding */
+  .messaging-card-slider-container > div > div {
+    padding: 8px 0 !important;
+  }
+
+  /* Set image container min-height to 0 on mobile */
+  .messaging-card-slider-container div[style*="min-height"] {
+    min-height: 0px !important;
+  }
+
+  /* Hide navigation arrows on small phones (swipe is available) */
+  .slider-nav-btn {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Mobile - Set image container min-height to 0 */
+@media (max-width: 768px) {
+  .messaging-card-slider-container div[style*="min-height"] {
+    min-height: 0px !important;
+  }
+}
