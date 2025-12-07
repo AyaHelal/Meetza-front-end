@@ -1,70 +1,97 @@
-# Getting Started with Create React App
+# ![Meetza Logo](public/assets/meetza_copy.png)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive React-based platform designed for group communication and collaboration. Meetza enables users to connect through secure video meetings, real-time group chat, and efficient group management tools. Currently built as an educational project, it can be adapted for any type of organization in the future.
 
-## Available Scripts
+## 🚀 Features
 
-In the project directory, you can run:
+- Secure Video Meetings: HD video calls with screen sharing, recording, and meeting notes
+- Real-Time Group Chat: Instant messaging with file sharing, emoji support, and notifications
+- Group Management: Create and manage academic/medical groups with role-based access (Administrators & Members)
+- Meeting Scheduling: Integrated calendar for appointment booking and event management
+- Responsive Design: Optimized for both desktop and mobile devices
+- Authentication: Secure login/signup with email verification and password recovery
+- File Management: Upload and share documents, images, videos, and other media files
+- User Roles: Different permissions for administrators and members
 
-### `npm start`
+## 🛠 Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Frontend: React 19.2.0, React Router DOM 7.9.4
+- UI Framework: Bootstrap 5.3.8, React Bootstrap 2.10.10
+- Animations: Framer Motion 12.23.22
+- Icons: Phosphor Icons, Lucide React, React Icons
+- HTTP Client: Axios 1.12.2
+- Real-Time Communication: Socket.io Client 4.8.1
+- Forms: React Google reCAPTCHA 3.1.0
+- Notifications: React Toastify 11.0.5
+- Build Tool: Create React App (React Scripts 5.0.1)
+- Testing: Jest, React Testing Library
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 📋 Prerequisites
 
-### `npm test`
+- Node.js (v14 or higher)
+- npm or yarn package manager
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🔧 Installation
 
-### `npm run build`
+1. Clone the repository
+      git clone <repository-url>
+   cd meetza
+   
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. Install dependencies
+      npm install
+   
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Start the development server
+      npm start
+   
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. Open your browser
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-### `npm run eject`
+## 📖 Usage
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### For Administrators:
+- Create and manage groups
+- Schedule meetings and events
+- Oversee group members and content
+- Access admin dashboard features
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### For Members:
+- Join groups created by administrators
+- Participate in video meetings
+- Send messages and share files
+- View group schedules and resources
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🧪 Testing
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+npm test
 
-## Learn More
+Launches the test runner in interactive watch mode.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🏗 Building for Production
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+npm run build
 
-### Code Splitting
+Builds the app for production to the build folder. The build is minified and optimized for the best performance.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🔗 Links
 
-### Analyzing the Bundle Size
+- Live Project: [https://meetza-front-end.vercel.app/](https://meetza-front-end.vercel.app/)
+- Figma Design: [https://www.figma.com/design/BCnIDNN5fdPOiVv5tXTYXE/Farida-Meetza?node-id=0-1&p=f&t=ehzpvGrgs7fbkPe3-0](https://www.figma.com/design/BCnIDNN5fdPOiVv5tXTYXE/Farida-Meetza?node-id=0-1&p=f&t=ehzpvGrgs7fbkPe3-0)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🤝 Contributing
 
-### Making a Progressive Web App
+1. Fork the repository
+2. Create a feature branch (git checkout -b feature/AmazingFeature)
+3. Commit your changes (git commit -m 'Add some AmazingFeature')
+4. Push to the branch (git push origin feature/AmazingFeature)
+5. Open a Pull Request
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📞 Support
 
-### Advanced Configuration
+For support or questions, please contact the development team or create an issue in the repository.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 📝 License
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is private and proprietary to Meetza.
