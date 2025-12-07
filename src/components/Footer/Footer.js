@@ -4,6 +4,7 @@ import {
     FaFacebookF,
     FaYoutube,
     FaTiktok,
+    FaLinkedinIn,
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 
@@ -16,9 +17,14 @@ function Footer() {
                     <div className="social-icons d-flex gap-4">
                         <FaXTwitter />
                         <FaInstagram />
-                        <FaFacebookF />
+                        <a href="https://www.facebook.com/profile.php?id=61582237062845" target="_blank" rel="noopener noreferrer" className="text-white">
+                            <FaFacebookF />
+                        </a>
                         <FaYoutube />
                         <FaTiktok />
+                        <a href="https://www.linkedin.com/company/109356033/admin/dashboard/" target="_blank" rel="noopener noreferrer" className="text-white">
+                            <FaLinkedinIn />
+                        </a>
                     </div>
                 </div>
 
