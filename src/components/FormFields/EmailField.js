@@ -41,6 +41,7 @@ const EmailField = ({ value, onChange, name = "email" }) => {
                         autoComplete="username"
                         value={value}
                         onChange={handleChange}
+                        placeholder="johndoe@email.com"
                         className={`form-control border-0 shadow-none ${error ? "is-invalid" : ""
                             }`}
                         style={{
