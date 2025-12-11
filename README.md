@@ -77,7 +77,7 @@ Builds the app for production to the build folder. The build is minified and opt
 
 ## 📊 Presentation
 
--Project Presentation on Canva: https://www.canva.com/design/DAG6wME9m9I/6szllu6C4vuPiD5iRwwTcQ/edit
+- Project Presentation on Canva: https://www.canva.com/design/DAG6wME9m9I/6szllu6C4vuPiD5iRwwTcQ/edit
 
 ## 🔗 Links
 
