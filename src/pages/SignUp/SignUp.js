@@ -136,6 +136,7 @@ const SignUp = () => {
                                 name="username"
                                 value={formData.username}
                                 onChange={handleInputChange}
+                                placeholder="Aya Helal"
                                 autoComplete="username"
                                 className={`form-control border-0 shadow-none ${errors.username ? 'is-invalid' : ''}`}
                                 style={{ backgroundColor: 'transparent', paddingBottom: '0px', paddingTop: '0px', marginBottom: '0px' }}
@@ -178,6 +179,7 @@ const SignUp = () => {
                                         name="confirmPassword"
                                         value={formData.confirmPassword}
                                         onChange={handleInputChange}
+                                        placeholder="●●●●●●●●"
                                         autoComplete="new-password"
                                         className={`form-control border-0 shadow-none ${errors.confirmPassword ? 'is-invalid' : ''}`}
                                         style={{ backgroundColor: "transparent", paddingBottom: '0px', paddingTop: '0px' }}

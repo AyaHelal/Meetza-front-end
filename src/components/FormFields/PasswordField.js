@@ -60,6 +60,7 @@ const PasswordField = ({ value, onChange, name = "password", showStrengthIndicat
                         autoComplete="current-password"
                         value={value}
                         onChange={handleChange}
+                        placeholder="●●●●●●●●"
                         className={`form-control border-0  shadow-none ${error ? "is-invalid" : ""
                             }`}
                         style={{

@@ -17,7 +17,7 @@ const LoginImage = ({ isSignup = false }) => {
 
     useEffect(() => {
         setImageSrc(
-            isSignup 
+            isSignup
                 ? (isLargeScreen ? "/assets/image 2 large.png" : "/assets/image 2.png")
                 : (isLargeScreen ? "/assets/image 1 large.png" : "/assets/image 1.png")
         );
@@ -25,21 +25,26 @@ const LoginImage = ({ isSignup = false }) => {
 
     return (
         <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            position: 'fixed',
+            ...(isSignup ? { left: 0 } : { right: 0 }),
+            top: 0,
+            width: '50%',
+            height: '100vh',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            ...(isSignup ? { paddingLeft: '10px' } :  { paddingRight: '10px' }),
             overflow: 'hidden',
             borderRadius: '12px'
         }}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={isSignup ? 'signup' : 'login'}
-                    initial={{ opacity: 0, x: isSignup ? 100 : -100 }}
+                    initial={{ opacity: 0, x: isSignup ? -100 : 100 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: isSignup ? -100 : 100 }}
+                    exit={{ opacity: 0, x: isSignup ? 100 : -100 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     style={{
-                        position: 'absolute',
+                        position: 'relative',
                         width: '100%',
                         height: '100%',
                         display: 'flex',
