@@ -649,7 +649,7 @@ body.group-chat-active {
   padding: 8px 12px;
   min-width: 200px;
   max-width: 300px;
-  border-radius: 8px;
+  border-radius: 18px;
 }
 
 .voice-own {
@@ -1227,13 +1227,16 @@ body.group-chat-active {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  justify-content: center;
+  width: 100%;
 }
 
 .event-bottom-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
+  width: 100%;
 }
 
 .event-month {
@@ -1266,6 +1269,12 @@ body.group-chat-active {
   flex-direction: column;
   gap: 4px;
   align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .event-header-column {
+    align-items: center;
+  }
 }
 
 .event-online {
@@ -1791,6 +1800,7 @@ body.group-chat-active {
 
   .chats-header {
     padding: 20px 30px;
+    margin-top: 0 !important;
   }
 
   .chats-header h2 {
@@ -1808,6 +1818,11 @@ body.group-chat-active {
     background-color: transparent !important;
     border: 2px solid #e0e0e0 !important;
     border-radius: 12px !important;
+    padding-left: 50px !important;
+  }
+
+  .chats-search .search-icon {
+    left: 30px;
   }
   .tab.active {
     background-color: #1976d2 !important;
@@ -2013,6 +2028,7 @@ body.group-chat-active {
     overflow-y: auto;
     flex-direction: column;
     justify-content: flex-start;
+    gap: 0;
   }
 
   .right-sidebar-mobile-header {
@@ -2040,6 +2056,20 @@ body.group-chat-active {
     padding-top: 0;
   }
 
+  .right-sidebar.mobile-visible .video-sessions,
+  .right-sidebar.mobile-visible .video-sessions.mt-2 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .right-sidebar.mobile-visible .video-banner {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 15px;
+    padding-right: 15px;
+    min-height: 30px;
+  }
+
   .right-sidebar-overlay {
     position: fixed;
     inset: 0;
@@ -2061,16 +2091,192 @@ body.group-chat-active {
   .calendar-section {
     min-width: 250px;
     margin-right: 15px;
+    margin-left: 16px;
     flex: 1;
     min-height: 300px;
     overflow-y: auto;
+    margin-top: 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .calendar-section h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 20px;
+    margin-top: 0;
+  }
+
+  .calendar-event {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 20px;
+    box-shadow: none;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .calendar-event:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .calendar-event .event-top-section {
+    justify-content: center;
+    width: 100%;
+    align-items: center;
+  }
+
+  .calendar-event .event-header-column {
+    align-items: center;
+  }
+
+  .calendar-event .event-bottom-section {
+    width: 100%;
+    align-items: center;
+  }
+
+  .calendar-event .event-time-container {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendar-event .event-avatars-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .calendar-event .event-avatars {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .calendar-event .go-to-meeting-btn {
+    margin: 0 auto;
+  }
+
+  .event-date-block {
+    width: 70px;
+    border-radius: 8px;
+  }
+
+  .event-month {
+    background: #1976d2;
+    color: #ffffff;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .event-day {
+    background: #e0e0e0;
+    color: #000000;
+    font-size: 20px;
+    padding: 6px 8px;
+  }
+
+  .event-time-container {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .event-time-main {
+    font-size: 14px;
+  }
+
+  .event-time-period {
+    font-size: 12px;
+    margin-left: 2px;
+  }
+
+  .event-avatars-section {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+
+  .go-to-meeting-btn {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    border: 1px solid #00dc85;
+    background: #ffffff;
   }
 
   .group-info {
     min-width: 250px;
     margin-right: 15px;
+    margin-left: 16px;
     flex-shrink: 0;
-    margin-top: auto;
+    margin-top: 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .group-info h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 20px;
+    margin-top: 0;
+  }
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    cursor: pointer;
+    border-bottom: none;
+  }
+
+  .info-item:last-child {
+    border-bottom: none;
+  }
+
+  .info-item:hover {
+    background: transparent;
+    padding-left: 0;
+  }
+
+  .info-icon {
+    color: #666666;
+    flex-shrink: 0;
+  }
+
+  .info-item span:not(.info-icon):not(.info-arrow) {
+    flex: 1;
+    font-size: 14px;
+    color: #000000;
+  }
+
+  .info-arrow {
+    color: #999999;
+    flex-shrink: 0;
+  }
+
+  .info-arrow svg {
+    width: 20px;
+    height: 20px;
   }
 
   .user-status {
@@ -2569,7 +2775,7 @@ body.group-chat-active {
 }
 
 .expanded-section1 {
-  padding: 1rem;
+  padding: 1.5rem;
   margin-bottom: 1rem;
 }
 
@@ -2581,10 +2787,127 @@ body.group-chat-active {
 }
 
 .expanded-section1 h4 {
-  margin: 0 0 1rem 0;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #333;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.member-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.member-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.member-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-item h5 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-item p {
+  margin: 0;
+  font-size: 14px;
+  color: #666666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-role {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  flex-shrink: 0;
+  background: #f5f5f5;
+  color: #666666;
+}
+
+.member-item .member-role {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.member-item .member-role.admin-role {
+  background: #1976d2;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Responsive styles for members section */
+@media (max-width: 768px) {
+  .expanded-section1 {
+    padding: 1rem;
+  }
+
+  .expanded-section1 h4 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .members-list {
+    gap: 10px;
+  }
+
+  .member-item {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .member-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .member-item h5 {
+    font-size: 15px;
+  }
+
+  .member-item p {
+    font-size: 13px;
+  }
+
+  .member-role {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
 }
 
 .tabs-header {
@@ -2617,6 +2940,27 @@ body.group-chat-active {
   gap: 0.5rem;
   width: 100%;
   margin-top: 1rem;
+}
+
+.media-item {
+  flex: 0 0 auto;
+  width: calc(33.333% - 0.5rem);
+  min-width: 200px;
+  max-width: 300px;
+}
+
+@media (max-width: 768px) {
+  .media-item {
+    width: calc(50% - 0.5rem);
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .media-item {
+    width: 100%;
+    min-width: 100%;
+  }
 }
 
 .expanded-items.documents-grid {

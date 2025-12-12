@@ -14,7 +14,8 @@ const GroupInfo = ({
 }) => {
     const contentCount = (contentSummary?.photos?.length || 0)
         + (contentSummary?.links?.length || 0)
-        + (contentSummary?.documents?.length || 0);
+        + (contentSummary?.documents?.length || 0)
+        + (contentSummary?.audio?.length || 0);
 
     const mediaCount = (mediaSummary?.images?.length || 0)
         + (mediaSummary?.videos?.length || 0)

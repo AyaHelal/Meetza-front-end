@@ -224,6 +224,20 @@
     background-color: #eff6ff;
   }
 
+  .sidebar-item.active {
+    background-color: #e8f5e9;
+    border-left: 4px solid #00dc85;
+  }
+
+  .sidebar-item.active span {
+    color: #00dc85;
+    font-weight: 600;
+  }
+
+  .sidebar-item.active svg {
+    color: #00dc85;
+  }
+
   .sidebar-item.logout-item {
     border-top: 2px solid #e0e0e0;
     margin-top: auto;

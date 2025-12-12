@@ -190,7 +190,16 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         setSelectedFile(file);
         setPreviewUrl(url);
         setPreviewType(determinePreviewType(file));
-        const resolvedCategory = overrideCategory || pendingCategory || determineMediaCategory(file) || null;
+        // Determine category: use override if provided, otherwise use pendingCategory, 
+        // or determine from file type, but ensure uploaded audio files are 'audio', not 'voice_note'
+        let resolvedCategory = overrideCategory || pendingCategory || determineMediaCategory(file) || null;
+        
+        // Safety check: if file is audio type and no override was provided (meaning it's an uploaded file, not recorded),
+        // ensure it's categorized as 'audio', not 'voice_note'
+        if (file.type?.startsWith('audio/') && !overrideCategory && resolvedCategory !== 'voice_note') {
+            resolvedCategory = 'audio';
+        }
+        
         setMediaCategory(resolvedCategory);
         setPendingCategory(null);
     };
@@ -322,7 +331,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                         });
                         testAudio.load();
                         
-                        handleFileSelection(audioFile, 'audio');
+                        handleFileSelection(audioFile, 'voice_note');
                     } catch (error) {
                         console.error('Error creating audio file:', error);
                         setRecordingError('Failed to create audio file: ' + error.message);
@@ -376,7 +385,9 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                         ) : previewType === 'audio' ? (
                             <div className="audio-preview-wrapper">
                                 <audio src={previewUrl} controls />
-                                <span className="audio-ready-label">Voice note ready to send</span>
+                                <span className="audio-ready-label">
+                                    {mediaCategory === 'voice_note' ? 'Voice note ready to send' : 'Audio file ready to send'}
+                                </span>
                             </div>
                         ) : (
                             <div className="preview-fallback">

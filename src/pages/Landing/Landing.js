@@ -23,6 +23,7 @@ const Landing = () => {
 
           {/* Background covering whole content area */}
           <div
+            className="landing-background"
             style={{
               backgroundImage: 'url(/assets/background.png)',
               backgroundRepeat: 'no-repeat',
