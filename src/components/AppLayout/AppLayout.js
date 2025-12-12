@@ -348,7 +348,7 @@ const AppLayout = ({ children }) => {
             {menuItems.map((item, index) => (
               <button
                 key={index}
-                className="sidebar-item"
+                className={`sidebar-item ${activeNav === item.nav ? 'active' : ''}`}
                 onClick={() => {
                   if (handleNavClick && typeof handleNavClick === 'function') {
                     handleNavClick(item.nav);

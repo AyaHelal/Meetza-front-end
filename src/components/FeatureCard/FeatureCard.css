@@ -343,10 +343,10 @@
     order: -1;
   }
   .layout-video .top-body {
-    top: -20px;
+    top: -35px;
   }
   .layout-video .top-figure {
-    top: -65px;
+    top: -110px;
   }
   .feature-inner {
     flex-direction: column;
@@ -422,17 +422,13 @@
 }
 
 @media (max-width: 576px) {
-  .top-figure {
-    top: -40px;
-    width: clamp(60px, 16vw, 100px);
-  }
   .feature-card {
     margin: 0.5rem 0;
   }
   .top-figure {
     position: absolute;
-    top: -85px;
-    left: 20%;
+    top: -152px;
+    left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);
     height: auto;
@@ -579,8 +575,10 @@
     width: 293px;
   }
   .top-figure {
-    top: -100px;
-    width: clamp(60px, 16vw, 100px);
+    top: -152px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(80px, 12vw, 140px);
   }
 }
 
@@ -593,8 +591,8 @@
   }
   .top-figure {
     position: absolute;
-    top: -133px;
-    left: 10%;
+    top: -152px;
+    left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);
     height: auto;
@@ -605,5 +603,102 @@
   .layout-video .feature-content.two-col {
     margin-top: 4rem;
     width: 100%;
+  }
+}
+
+/* Large screens (> 1440px) - reduce card width slightly */
+@media (min-width: 1441px) {
+  .feature-outer {
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+  .feature-content.two-col {
+    max-width: 1250px;
+  }
+  .layout-video .media-surface {
+    max-width: 750px;
+  }
+  .layout-video .feature-center-img {
+    max-width: 550px;
+  }
+  .layout-boy .top-figure {
+    left: 20%;
+  }
+  .feature-card {
+    height: 620px;
+  }
+  .feature-frame {
+    height: calc(100% - 80px);
+  }
+  .layout-boy .feature-inner {
+    min-height: clamp(450px, 48vw, 580px);
+    padding-top: 3rem;
+  }
+  .layout-video .feature-inner {
+    min-height: clamp(450px, 48vw, 600px);
+  }
+  .layout-boy .media-surface {
+    min-height: clamp(320px, 36vw, 500px);
+  }
+  .layout-video .media-surface {
+    min-height: clamp(280px, 38vw, 520px);
+    max-height: 520px;
+  }
+  .layout-video .feature-center-img {
+    max-width: 500px;
+  }
+  .layout-video .feature-text h2 {
+    font-size: clamp(1.4rem, 3.8vw, 2.8rem);
+    margin: 0 0 0.5rem 2rem;
+  }
+  .layout-video .feature-text p {
+    font-size: clamp(0.9rem, 1.1vw, 0.95rem);
+    line-height: 1.6;
+    margin: 0 0 0 2rem;
+  }
+  .layout-boy .feature-text h2,
+  .layout-boy .feature-text .h2 {
+    font-size: clamp(0, 4.2vw, 3.2rem);
+  }
+  .layout-boy .feature-text p {
+    font-size: 18px;
+  }
+  .feature-outer {
+    padding: 1.75rem 1.75rem 0.875rem 1.75rem;
+  }
+  .feature-frame {
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+  }
+  .feature-content.two-col {
+    gap: 1.5rem;
+  }
+  /* Calendar card (Meeting Schedule) adjustments */
+  .feature-center-img[src*="calender.png"] {
+    max-height: 420px;
+    padding: 0.75rem 0;
+  }
+  .feature-card:has(.feature-center-img[src*="calender.png"]) .feature-inner {
+    padding: 0.75rem 0;
+    min-height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .feature-title {
+    font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+    margin-bottom: 1rem;
+  }
+  /* Move figures inside feature frame on large screens - keep same size as normal screens */
+  .figure-left {
+    left: -100px;
+    top: 60px;
+    height: 439px;
+    width: 293px;
+  }
+  .figure-right {
+    right: -50px;
+    top: 155px;
+    height: 439px;
+    width: 293px;
   }
 }

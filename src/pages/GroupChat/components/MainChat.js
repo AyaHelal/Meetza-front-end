@@ -227,6 +227,9 @@ const MainChat = ({
         videos: [
             ...(groupMediaItems?.videos || [])
         ],
+        audio: [
+            ...(groupMediaItems?.audio || [])
+        ],
         links: messageLinks,
         documents: [
             ...(groupMediaItems?.files || [])
@@ -234,9 +237,9 @@ const MainChat = ({
     }), [groupMediaItems, messageLinks]);
 
     // Legacy support for groupInfo-based resources (from first file)
-    const { photos, links, documents } = groupInfo?.content?.resources ?
+    const { photos, links, documents, audio } = groupInfo?.content?.resources ?
         categorizeResources(groupInfo.content.resources) :
-        { photos: [], links: [], documents: [] };
+        { photos: [], links: [], documents: [], audio: [] };
 
     const handlePhotoClick = (item) => {
         console.log('Clicked item:', item);
@@ -254,6 +257,18 @@ const MainChat = ({
         const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url) ||
             item.media_type?.startsWith('video') ||
             item.file_type?.startsWith('video/');
+
+        const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(url) ||
+            item.media_type?.startsWith('audio') ||
+            item.media_type === 'voice' ||
+            item.media_type === 'voice_note' ||
+            item.file_type?.startsWith('audio/');
+
+        // For audio files, open in new tab to play, don't open media modal
+        if (isAudio) {
+            window.open(url, '_blank');
+            return;
+        }
 
         const mediaItem = {
             media_url: url,
@@ -472,11 +487,7 @@ const MainChat = ({
                                 <p>{member.email}</p>
                             </div>
                             <span
-                                className="member-role"
-                                style={{
-                                    fontWeight: member.role === 'Administrator' ? 'bold' : 'normal',
-                                    color: member.role === 'Administrator' ? 'blue' : 'black'
-                                }}
+                                className={`member-role ${member.role === 'Administrator' ? 'admin-role' : ''}`}
                             >
                                 {member.role}
                             </span>
@@ -687,6 +698,12 @@ const MainChat = ({
                     Media
                 </button>
                 <button
+                    className={`tab-item ${tabValue === 'audios' ? 'active' : ''}`}
+                    onClick={() => onTabChange('audios')}
+                >
+                    Audios
+                </button>
+                <button
                     className={`tab-item ${tabValue === 'links' ? 'active' : ''}`}
                     onClick={() => onTabChange('links')}
                 >
@@ -704,6 +721,7 @@ const MainChat = ({
                 ...(source?.photos || []),
                 ...(source?.videos || [])
             ])}
+            {tabValue === 'audios' && renderResourceGrid(source?.audio || [])}
             {tabValue === 'links' && renderLinkList(source?.links)}
             {tabValue === 'documents' && renderDocumentList(source?.documents)}
         </div>

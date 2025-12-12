@@ -290,7 +290,8 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
         if (typeof declaredType === 'string' && declaredType.length > 0) {
             if (declaredType.startsWith('image')) return 'image';
             if (declaredType.startsWith('video')) return 'video';
-            if (declaredType.startsWith('audio') || declaredType === 'voice') return 'audio';
+            // Treat both 'audio', 'voice', and 'voice_note' as audio for consistent rendering
+            if (declaredType.startsWith('audio') || declaredType === 'voice' || declaredType === 'voice_note') return 'audio';
             if (declaredType === 'document' || declaredType === 'file') return 'document';
             if (declaredType === 'link') return 'link';
             // Handle generic 'media' type by checking MIME type

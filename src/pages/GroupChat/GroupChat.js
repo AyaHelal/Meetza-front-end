@@ -139,11 +139,14 @@ const normalizeMediaItems = (mediaItems, messageId) => {
       : (typeof item?.file_type === 'string' ? item.file_type : '');
 
     let normalizedType = declaredType?.toLowerCase() || '';
-    if (normalizedType.startsWith('image')) {
+    // Preserve voice_note type - don't convert it to 'audio'
+    if (normalizedType === 'voice_note' || normalizedType === 'voice') {
+      normalizedType = 'voice_note';
+    } else if (normalizedType.startsWith('image')) {
       normalizedType = 'image';
     } else if (normalizedType.startsWith('video')) {
       normalizedType = 'video';
-    } else if (normalizedType.startsWith('audio') || normalizedType === 'voice' || normalizedType === 'voice_note') {
+    } else if (normalizedType.startsWith('audio')) {
       normalizedType = 'audio';
     } else if (!normalizedType || normalizedType === 'file' || normalizedType === 'document') {
       normalizedType = deriveMediaTypeFromExtension(extension);
@@ -913,6 +916,8 @@ export default function GroupChat() {
     const tempId = `temp-${Date.now()}`;
     let localMediaUrl = null;
     const normalizedType = file ? deriveMediaCategory(file, mediaCategory) : null;
+    // Use 'voice_note' if mediaCategory is 'voice_note', otherwise use normalizedType
+    const finalMediaType = mediaCategory === 'voice_note' ? 'voice_note' : (normalizedType || 'document');
 
     const optimisticMessage = {
       id: tempId,
@@ -941,7 +946,7 @@ export default function GroupChat() {
       optimisticMessage.media = [{
         id: `${tempId}-media`,
         media_url: localMediaUrl,
-        media_type: normalizedType || 'document',
+        media_type: finalMediaType,
         isLocal: true,
         file_name: originalName
       }];
@@ -963,8 +968,18 @@ export default function GroupChat() {
     }
     if (file) {
       formData.append('media', file);
-      if (normalizedType) {
-        formData.append('media_type', normalizedType);
+      // Use 'voice_note' if it's a voice recording, otherwise use normalizedType
+      // For uploaded audio files, ensure they're marked as 'audio', not 'voice_note'
+      let finalMediaType;
+      if (mediaCategory === 'voice_note') {
+        finalMediaType = 'voice_note';
+      } else if (mediaCategory === 'audio' || (file.type?.startsWith('audio/') && mediaCategory !== 'voice_note')) {
+        finalMediaType = 'audio';
+      } else {
+        finalMediaType = normalizedType || 'document';
+      }
+      if (finalMediaType) {
+        formData.append('media_type', finalMediaType);
       }
       if (file.type) {
         formData.append('file_mime', file.type);
@@ -982,6 +997,19 @@ export default function GroupChat() {
       if (res?.data?.success && res.data.data) {
         const formattedMessage = formatMessage(res.data.data);
         setMessages((prev) => prev.map((msg) => (msg.id === tempId ? formattedMessage : msg)));
+        
+        // Refresh group info to get updated media list if a file was sent
+        if (file && finalMediaType !== 'voice_note') {
+          try {
+            const infoResponse = await axiosInstance.get(`/chat/groups/${groupId}/info`);
+            if (infoResponse?.data?.success) {
+              setGroupInfo(infoResponse.data.data);
+            }
+          } catch (refreshError) {
+            console.warn('⚠️ Failed to refresh group info after sending media:', refreshError);
+          }
+        }
+        
         return true;
       }
       throw new Error('Failed to send message');

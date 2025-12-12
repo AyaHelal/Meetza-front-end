@@ -7,10 +7,11 @@ import Select from 'react-select';
 
 const Groups = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedYears, setSelectedYears] = useState([1]);
-    const [selectedSemesters, setSelectedSemesters] = useState(['Spring']);
-    const [expandedYear, setExpandedYear] = useState(true);
-    const [expandedSemester, setExpandedSemester] = useState(true);
+    const [selectedYears, setSelectedYears] = useState([]);
+    const [selectedSemesters, setSelectedSemesters] = useState([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [expandedYear, setExpandedYear] = useState(!isMobile);
+    const [expandedSemester, setExpandedSemester] = useState(!isMobile);
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
@@ -120,6 +121,27 @@ const Groups = () => {
 
     fetchPositions();
 }, []);
+
+    // Detect mobile screen size
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+            // Close filters on mobile, open on desktop
+            if (mobile) {
+                setExpandedYear(false);
+                setExpandedSemester(false);
+            } else {
+                setExpandedYear(true);
+                setExpandedSemester(true);
+            }
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Add class to body when Groups is mounted
     useEffect(() => {
