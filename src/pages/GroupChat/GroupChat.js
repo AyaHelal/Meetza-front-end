@@ -684,7 +684,7 @@ export default function GroupChat() {
                 params: { _cacheBust: Date.now() },
                 headers: { 'Cache-Control': 'no-cache' }
               });
-              const unreadCount = unreadResponse?.data?.data?.unread_count ?? 
+              const unreadCount = unreadResponse?.data?.data?.unread_count ??
                                   unreadResponse?.data?.data?.unread_count ?? 0;
               console.log(`📊 Refreshed unread count after mark-as-read: ${unreadCount} for group ${groupId}`);
               if (unreadCount === 0) {
@@ -709,7 +709,7 @@ export default function GroupChat() {
               const fallbackResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/mark-read`);
               markedAsReadRef.current.add(groupIdStr);
               console.log('✅ Marked messages as read (fallback) for group', groupId, fallbackResponse.data);
-              
+
               setGroupChats(prev => prev.map(g =>
                 String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
               ));
@@ -757,7 +757,7 @@ export default function GroupChat() {
     // Poll for new messages every 3 seconds while chat is open
     const messagesInterval = setInterval(() => {
       if (selectedChat === null || !currentGroupId) return;
-      
+
       const fetchNewMessages = async () => {
         try {
           const groupId = currentGroupId;
@@ -765,16 +765,16 @@ export default function GroupChat() {
           const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
           if (messagesResponse.data.success) {
             const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
-            
+
             // Check if there are new messages BEFORE updating state
             const currentMessageIds = new Set(formattedMessages.map(m => m.id));
             const prevIds = previousMessageIdsRef.current;
-            const hasNewMessages = formattedMessages.length !== prevIds.size || 
+            const hasNewMessages = formattedMessages.length !== prevIds.size ||
                                   formattedMessages.some(m => !prevIds.has(m.id));
-            
+
             // Update previous message IDs
             previousMessageIdsRef.current = currentMessageIds;
-            
+
             // Update messages state
             setMessages(prev => {
               if (prev.length !== formattedMessages.length) {
@@ -799,7 +799,7 @@ export default function GroupChat() {
                 // Mark all messages as read (including the new ones)
                 await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
                 console.log('✅ Marked new messages as read for group', groupId);
-                
+
                 // Update unread count to 0
                 setGroupChats(prev => prev.map(g =>
                   String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
@@ -1121,6 +1121,7 @@ export default function GroupChat() {
         mediaSummary={mediaSummary}
         memberCount={groupMembers.length}
         showMobile={showRightSidebarMobile}
+        selectedChat={selectedChat}
         onCloseMobile={() => {
           setShowRightSidebarMobile(false);
           // Restore main chat when closing sidebar on mobile

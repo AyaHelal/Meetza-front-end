@@ -22,7 +22,8 @@ const RightSidebar = ({
     onSelectSection,
     contentSummary,
     mediaSummary,
-    memberCount
+    memberCount,
+    selectedChat
 }) => {
     const sidebarRef = useRef(null);
     const touchStartX = useRef(0);
@@ -94,18 +95,20 @@ const RightSidebar = ({
                     </div>
                 </div>
                 <CalendarSection calendarEvents={calendarEvents} />
-                <GroupInfo
-                    groupInfo={groupInfo}
-                    expandedSection={expandedSection}
-                    setExpandedSection={setExpandedSection}
-                    activeSection={activeSection}
-                    onSelectSection={onSelectSection}
-                    contentSummary={contentSummary}
-                    mediaSummary={mediaSummary}
-                    memberCount={memberCount}
-                    isMobile={isMobile}
-                    onCloseMobile={onCloseMobile}
-                />
+                {selectedChat !== null && (
+                    <GroupInfo
+                        groupInfo={groupInfo}
+                        expandedSection={expandedSection}
+                        setExpandedSection={setExpandedSection}
+                        activeSection={activeSection}
+                        onSelectSection={onSelectSection}
+                        contentSummary={contentSummary}
+                        mediaSummary={mediaSummary}
+                        memberCount={memberCount}
+                        isMobile={isMobile}
+                        onCloseMobile={onCloseMobile}
+                    />
+                )}
                 {/* UserStatus is now in AppLayout as fixed component */}
             </div>
         </>
