@@ -2,7 +2,7 @@ import axiosInstance from "./axiosInstance";
 
 // ✅ Register a new user
 export const signup = async (userData) => {
-    const response = await axiosInstance.post("/auth/register", userData);
+    const response = await axiosInstance.post("/auth/reggister", userData);
     return response.data;
 };
 
