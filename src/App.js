@@ -1,5 +1,5 @@
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
@@ -17,8 +17,9 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { token, initializing, isRemembered } = useContext(AuthContext);
+  const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -47,9 +48,29 @@ const AppRoutes = () => {
       return () => clearTimeout(timer);
     }
 
-    // Store current route
-    sessionStorage.setItem('lastRoute', location.pathname);
+  // Store current route
+  sessionStorage.setItem('lastRoute', location.pathname);
   }, [location.pathname]);
+
+  // Handle social login redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const token = urlParams.get('token');
+    const user = urlParams.get('user');
+
+    if (token && user) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(user));
+        loginUser(userData, token, false); // Assuming not remembered for social login
+        // Clean up URL
+        navigate(location.pathname, { replace: true });
+        // Navigate to home
+        navigate('/home');
+      } catch (error) {
+        console.error('Error parsing social login data:', error);
+      }
+    }
+  }, [location.search, loginUser, navigate]);
 
   if (loading || initializing) {
     return <PageLoader />;
