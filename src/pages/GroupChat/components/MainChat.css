@@ -26,6 +26,22 @@
     object-fit: cover;
     }
 
+    .member-avatar-fallback {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0076EA, #00DC85);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 16px;
+        border: 3px solid #f0f0f0;
+        flex-shrink: 0;
+        flex-grow: 0;
+    }
+
     .member-role {
     margin-left: auto;
     font-size: 12px;

@@ -1937,10 +1937,12 @@ body.group-chat-active {
     height: calc(100vh - 80px - 100px) !important;
     /* Full height minus top offset and space for fixed UserStatus */
     position: fixed;
-    top: 93px;
-    left: 2%;
-    right: 2%;
-    width: auto;
+    top: 80px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
     z-index: 997;
   }
 
@@ -2811,6 +2813,12 @@ body.group-chat-active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.member-item > .member-avatar,
+.member-item > .member-avatar-fallback {
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
 .member-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
@@ -2825,7 +2833,28 @@ body.group-chat-active {
   flex-shrink: 0;
 }
 
-.member-item > div {
+.member-avatar-fallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0076EA, #00DC85);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 20px;
+  border: 3px solid #f0f0f0;
+  flex-shrink: 0;
+  flex-grow: 0;
+  box-sizing: border-box;
+  line-height: 1;
+  overflow: hidden;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.member-item > div:not(.member-avatar-fallback) {
   flex: 1;
   min-width: 0;
 }
@@ -2896,6 +2925,12 @@ body.group-chat-active {
     height: 48px;
   }
 
+  .member-avatar-fallback {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+
   .member-item h5 {
     font-size: 15px;
   }
@@ -2949,17 +2984,38 @@ body.group-chat-active {
   max-width: 300px;
 }
 
+/* Smaller size for photos and videos only on mobile */
 @media (max-width: 768px) {
-  .media-item {
+  /* Photos and videos - smaller size */
+  .media-item-photo,
+  .media-item-video {
+    width: calc(33.333% - 0.5rem);
+    min-width: 100px;
+    max-width: 120px;
+  }
+  
+  /* Audio and other items - keep original size */
+  .media-item-audio {
     width: calc(50% - 0.5rem);
     min-width: 150px;
+    max-width: 300px;
   }
 }
 
 @media (max-width: 480px) {
-  .media-item {
+  /* Photos and videos - smaller size */
+  .media-item-photo,
+  .media-item-video {
+    width: calc(33.333% - 0.5rem);
+    min-width: 90px;
+    max-width: 110px;
+  }
+  
+  /* Audio and other items - keep original size */
+  .media-item-audio {
     width: 100%;
     min-width: 100%;
+    max-width: 100%;
   }
 }
 
@@ -2994,6 +3050,18 @@ body.group-chat-active {
   transition: transform 0.2s ease;
 }
 
+@media (max-width: 768px) {
+  .expanded-photo {
+    height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .expanded-photo {
+    height: 90px;
+  }
+}
+
 .expanded-photo:hover {
   transform: scale(1.05);
 }
@@ -3006,6 +3074,18 @@ body.group-chat-active {
   overflow: hidden;
   cursor: pointer;
   background: #000;
+}
+
+@media (max-width: 768px) {
+  .video-thumbnail {
+    height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-thumbnail {
+    height: 90px;
+  }
 }
 
 .expanded-video {
