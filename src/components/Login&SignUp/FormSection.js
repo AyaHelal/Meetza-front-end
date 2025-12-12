@@ -291,7 +291,7 @@ const FormSection = ({
                                 </div>
                             )}
 
-                            <SocialLoginButtons />
+                            <SocialLoginButtons role={formData.role} />
                         </>
                     )
                 )}
