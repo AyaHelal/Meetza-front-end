@@ -10,7 +10,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
   // Close panel when clicking outside (desktop only)
   useEffect(() => {
     if (isMobile) return; // Don't handle click outside on mobile full-page
-    
+
     const handleClickOutside = (event) => {
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         // Check if click is not on the bell icon
@@ -35,6 +35,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
       fetchNotifications();
       markAllAsRead();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const fetchNotifications = async () => {
@@ -42,7 +43,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
       setLoading(true);
       const response = await axiosInstance.get('/notification');
       console.log('Notification API response:', response.data);
-      
+
       // Handle different response formats
       let notificationsData = [];
       if (response.data) {
@@ -56,7 +57,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
           notificationsData = response.data.data;
         }
       }
-      
+
       console.log('Parsed notifications:', notificationsData);
       setNotifications(notificationsData);
     } catch (error) {
@@ -113,10 +114,10 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       ref={panelRef}
       className={`notification-panel ${isMobile ? 'mobile-full-page' : ''}`}
-      style={isMobile ? {} : (position ? { 
+      style={isMobile ? {} : (position ? {
         top: position.top,
         left: position.left,
         right: position.right,
@@ -134,46 +135,52 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
           <div className="notification-empty">No notifications</div>
         ) : (
           <div className="notification-list">
-            {notifications.map((notification) => (
-              <div 
-                key={notification.id || notification.notification_id} 
-                className={`notification-item ${notification.is_read ? 'read' : 'unread'}`}
-              >
-                <div className="notification-content">
-                  <div className="notification-header">
-                    <div className="notification-avatar-container">
-                      {notification.administrator_photo ? (
-                        <img 
-                          src={notification.administrator_photo} 
-                          alt={notification.administrator_name || 'Admin'}
-                          className="notification-avatar"
-                        />
-                      ) : (
-                        <div className="notification-avatar-fallback">
-                          {getInitials(notification.administrator_name || 'A')}
+            {notifications.map((notification) => {
+              const isUnread = !notification.is_read;
+              return (
+                <div
+                  key={notification.id || notification.notification_id}
+                  className={`notification-item ${isUnread ? 'unread' : 'read'}`}
+                >
+                  {isUnread && <div className="notification-unread-indicator"></div>}
+                  <div className="notification-content">
+                    <div className="notification-header">
+                      <div className="notification-avatar-container">
+                        {notification.administrator_photo ? (
+                          <img
+                            src={notification.administrator_photo}
+                            alt={notification.administrator_name || 'Admin'}
+                            className="notification-avatar"
+                          />
+                        ) : (
+                          <div className="notification-avatar-fallback">
+                            {getInitials(notification.administrator_name || 'A')}
+                          </div>
+                        )}
+                        {isUnread && <div className="notification-avatar-badge"></div>}
+                      </div>
+                      <div className="notification-info">
+                        <div className="notification-sender-row">
+                          <span className="notification-sender">
+                            {notification.administrator_name || 'Administrator'}
+                          </span>
+                          <span className="notification-time">
+                            {formatDate(notification.created_at || notification.createdAt || notification.timestamp)}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                    <div className="notification-info">
-                      <div className="notification-sender-row">
-                        <span className="notification-sender">
-                          {notification.administrator_name || 'Administrator'}
-                        </span>
-                        <span className="notification-time">
-                          {formatDate(notification.created_at || notification.createdAt || notification.timestamp)}
-                        </span>
-                      </div>
-                      <div className="notification-title">
-                        {notification.title || 'Notification'}
-                      </div>
-                      <div className="notification-message">
-                        {notification.message || notification.description || ''}
+                        <div className="notification-title">
+                          {notification.title || 'Notification'}
+                          {isUnread && <span className="notification-new-badge">New</span>}
+                        </div>
+                        <div className="notification-message">
+                          {notification.message || notification.description || ''}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

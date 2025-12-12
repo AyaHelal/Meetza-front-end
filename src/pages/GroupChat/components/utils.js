@@ -13,12 +13,19 @@ export const categorizeResources = (resources) => {
             let classifiedAsAudio = false;
 
             // Use category field from API as primary categorization
+            let classifiedAsVideo = false;
+            
             if (category === 'photos' || category === 'images') {
                 photos.push(resource);
                 classifiedAsPhoto = true;
             } else if (category === 'audio' || category === 'audios') {
                 audio.push(resource);
                 classifiedAsAudio = true;
+            } else if (category === 'videos' || category === 'video') {
+                // Videos should be in photos array for Media tab (since Media tab shows photos + videos)
+                photos.push(resource);
+                classifiedAsPhoto = true;
+                classifiedAsVideo = true;
             } else if (category === 'documents' || category === 'files') {
                 documents.push(resource);
                 classifiedAsDocument = true;
@@ -29,6 +36,13 @@ export const categorizeResources = (resources) => {
                 if (file_type?.startsWith('image/') || file_url?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
                     photos.push(resource);
                     classifiedAsPhoto = true;
+                } else if (file_type?.startsWith('video/') || 
+                          VIDEO_EXTENSIONS.includes(extension) ||
+                          file_url?.match(/\.(mp4|mov|webm|mkv|avi)$/i)) {
+                    // Videos should be in photos array for Media tab (since Media tab shows photos + videos)
+                    photos.push(resource);
+                    classifiedAsPhoto = true;
+                    classifiedAsVideo = true;
                 } else if (file_type?.startsWith('audio/') || 
                           AUDIO_EXTENSIONS.includes(extension) ||
                           file_url?.match(/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i)) {
@@ -42,8 +56,8 @@ export const categorizeResources = (resources) => {
             }
 
             // Always mirror HTTP/HTTPS resources in links per requirement
-            // BUT exclude audio files and photos - they should only appear in their respective categories
-            if (file_url && (file_url.startsWith('http://') || file_url.startsWith('https://')) && !classifiedAsAudio && !classifiedAsPhoto) {
+            // BUT exclude audio files, photos, and videos - they should only appear in their respective categories
+            if (file_url && (file_url.startsWith('http://') || file_url.startsWith('https://')) && !classifiedAsAudio && !classifiedAsPhoto && !classifiedAsVideo) {
                 links.push(resource);
             }
         });

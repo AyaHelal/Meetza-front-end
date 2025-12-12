@@ -7,7 +7,7 @@ import { categorizeResources } from './utils';
 import './MainChat.css';
 import { smartToast } from "../../../API/toastManager";
 import '../GroupChat.css';
-import { UserCheck, File } from "lucide-react";
+import { File } from "lucide-react";
 
 const MainChat = ({
     messages: initialMessages,
@@ -448,6 +448,15 @@ const MainChat = ({
         }
     };
 
+    const getInitials = (name) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        return name.charAt(0).toUpperCase();
+    };
+
     const renderMembersSection = () => {
         const sortedMembers = [...members].sort((a, b) => {
             if (a.role === 'Administrator' && b.role !== 'Administrator') return -1;
@@ -468,17 +477,8 @@ const MainChat = ({
                                     className="member-avatar"
                                 />
                             ) : (
-                                <div
-                                    className="rounded-3 d-flex align-items-center justify-content-center"
-                                    style={{
-                                        width: 50,
-                                        height: 50,
-                                        background: "linear-gradient(135deg, #0076EA, #00DC85)",
-                                        color: "white",
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    <UserCheck size={28} />
+                                <div className="member-avatar-fallback">
+                                    {getInitials(member.name || member.email || 'U')}
                                 </div>
                             )}
 
@@ -518,7 +518,7 @@ const MainChat = ({
                 return (
                     <div
                         key={item.id || index}
-                        className="media-item"
+                        className={`media-item ${isImage ? 'media-item-photo' : isVideo ? 'media-item-video' : isAudio ? 'media-item-audio' : ''}`}
                         onClick={() => handlePhotoClick(item)}
                     >
                         {isImage ? (

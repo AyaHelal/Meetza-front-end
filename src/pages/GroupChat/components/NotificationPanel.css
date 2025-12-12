@@ -83,10 +83,43 @@
 .notification-item.unread {
   background-color: #f0f7ff;
   border-left: 4px solid #00dc85;
+  animation: pulseUnread 2s ease-in-out infinite;
+}
+
+@keyframes pulseUnread {
+  0%, 100% {
+    background-color: #f0f7ff;
+  }
+  50% {
+    background-color: #e6f3ff;
+  }
 }
 
 .notification-item.read {
   background-color: #ffffff;
+}
+
+.notification-unread-indicator {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: #00dc85;
+  border-radius: 50%;
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-50%) scale(1.2);
+  }
 }
 
 .notification-content {
@@ -106,6 +139,7 @@
   flex-shrink: 0;
   width: 48px;
   height: 48px;
+  position: relative;
 }
 
 .notification-avatar {
@@ -170,6 +204,56 @@
 
 .notification-item.unread .notification-title {
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-avatar-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  background-color: #00dc85;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: pulseBadge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseBadge {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.notification-new-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #00dc85;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: pulseNew 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseNew {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
 }
 
 .notification-message {
