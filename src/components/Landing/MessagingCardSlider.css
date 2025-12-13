@@ -53,3 +53,9 @@
     min-height: 0px !important;
   }
 }
+
+@media(max-width: 991.98px) {
+  .messaging-card-slider-container {
+    min-height: 0px !important;
+  }
+}
