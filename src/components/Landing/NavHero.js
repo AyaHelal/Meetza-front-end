@@ -57,6 +57,22 @@ export default function HeroNav() {
                         <li className="nav-item">
                             <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Careers</button>
                         </li>
+                        <li className="nav-item">
+                            <button 
+                                type="button" 
+                                className="nav-link btn btn-link p-0" 
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    closeMenu();
+                                    const contactSection = document.getElementById('contact-section');
+                                    if (contactSection) {
+                                        contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                }}
+                            >
+                                Contact Us
+                            </button>
+                        </li>
                     </ul>
                     {/* Login button removed as requested */}
                 </div>

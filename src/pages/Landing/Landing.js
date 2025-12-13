@@ -3,6 +3,7 @@ import Footer from "../../components/Footer/Footer";
 import HeroSection from "../../components/Landing/HeroSection";
 import MessagingCardSlider from "../../components/Landing/MessagingCardSlider";
 import FeatureCard from "../../components/FeatureCard/FeatureCard";
+import ContactSection from "../../components/Landing/ContactSection";
 import "./Landing.css";
 import BackToTop from './BackToTop';
 
@@ -120,6 +121,11 @@ const Landing = () => {
                 hideFiguresOnSmall={true}
               />
             </motion.div>
+
+            {/* Contact Section */}
+            <div className="page-block">
+              <ContactSection />
+            </div>
 
             <Footer />
           </div>

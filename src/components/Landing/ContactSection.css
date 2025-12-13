@@ -1,0 +1,562 @@
+.contact-section-wrapper {
+    padding: 80px 0;
+    background: transparent;
+    position: relative;
+}
+
+/* Override FeatureCard styles for contact layout */
+.layout-contact .feature-content.two-col {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Hide the placeholder image */
+.layout-contact .feature-center-img {
+    display: none;
+}
+
+/* Style media-surface to contain the form */
+.layout-contact .media-surface {
+    background: linear-gradient(135deg, #214ab8 11%, #1f2120 100%);
+    border-radius: 40px;
+    padding: 0;
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    position: relative;
+    overflow: visible;
+}
+
+/* Replace media-surface image with form content */
+.layout-contact .media-surface {
+    position: relative;
+    padding: 2.5rem 2rem;
+    align-items: stretch;
+    display: flex !important;
+    flex-direction: column;
+}
+
+.layout-contact .media-surface > img {
+    display: none;
+}
+
+/* Form container inside media-surface */
+.layout-contact .media-surface .contact-form-container {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+}
+
+/* Remove feature-frame styling but keep structure */
+.layout-contact .feature-frame {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Create two-column layout directly in feature-outer */
+.layout-contact .feature-outer {
+    position: relative;
+    padding: 3rem 2.5rem;
+}
+
+/* Make feature-inner transparent (no background, no padding) */
+.layout-contact .feature-inner {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Keep feature-content visible for grid structure */
+.layout-contact .feature-content.two-col {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+/* Ensure feature columns are visible */
+.layout-contact .feature-col {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.layout-contact .feature-col-left {
+    display: flex !important;
+    align-items: stretch !important;
+    width: 100%;
+}
+
+.layout-contact .feature-col-right {
+    display: flex !important;
+    align-items: stretch !important;
+    width: 100%;
+}
+
+/* Show feature-text content in left column - only one instance */
+.layout-contact .feature-text {
+    display: flex !important;
+    visibility: visible !important;
+    height: 100% !important;
+    padding: 3rem 2.5rem !important;
+    margin: 0 !important;
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Hide any duplicate contact-info-outer if it exists */
+.layout-contact .feature-outer > .contact-info-outer {
+    display: none !important;
+}
+
+/* Position form container (right column) */
+.layout-contact .feature-outer .media-surface {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex !important;
+    visibility: visible !important;
+}
+
+
+/* Left side - Info section (original styling) */
+.contact-info-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    padding: 1rem 0;
+}
+
+.contact-info-title {
+    font-size: clamp(1.7rem, 4.2vw, 3.2rem);
+    font-weight: 400;
+    color: #fff;
+    margin-bottom: 1.25rem;
+    line-height: 1.15;
+}
+
+.contact-info-text {
+    font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.7;
+    margin-bottom: 0;
+}
+
+.contact-info-email {
+    font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0;
+    line-height: 1.7;
+}
+
+/* Inner Container - Form Section with rounded corners */
+.contact-form-container {
+    background: linear-gradient(135deg, #214ab8 11%, #1f2120 100%);
+    border-radius: 40px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+/* Form section */
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    height: 100%;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.form-group label {
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 220, 133, 0.3);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    max-height: 120px;
+    font-family: inherit;
+}
+
+.form-submit-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.submit-btn {
+    padding: 12px 32px;
+    background: #214ab8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: #1a3a9a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 74, 184, 0.3);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive - Match other featured cards */
+@media (max-width: 992px) {
+    /* Stack columns vertically on mobile */
+    .layout-contact .feature-content.two-col {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+
+    /* Order: text first, then form */
+    .layout-contact .feature-col-left {
+        order: -1;
+    }
+
+    .layout-contact .feature-col-right {
+        order: 1;
+    }
+
+    /* Adjust outer padding and border-radius */
+    .layout-contact .feature-outer {
+        padding: 1.5rem 1.25rem;
+        border-radius: 40px;
+    }
+
+    /* Adjust text section */
+    .layout-contact .feature-text {
+        padding: 1.5rem 1.25rem !important;
+    }
+
+    .contact-info-section {
+        padding: 0.25rem 0;
+    }
+
+    /* Adjust form container */
+    .layout-contact .media-surface {
+        padding: 1.5rem 1.25rem !important;
+        border-radius: 30px;
+    }
+
+    .contact-form-container {
+        padding: 0 !important;
+    }
+
+    .contact-info-title {
+        font-size: clamp(1.7rem, 4.2vw, 3.2rem);
+        font-weight: 400;
+        line-height: 1.15;
+        margin-bottom: 0.75rem;
+    }
+
+    .contact-info-text {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .contact-info-email {
+        font-size: 0.85rem;
+    }
+
+    .contact-form {
+        gap: 1rem !important;
+    }
+
+    .form-group textarea {
+        min-height: 80px;
+        max-height: 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .contact-section-wrapper {
+        padding: 60px 20px;
+    }
+
+    .layout-contact .feature-outer {
+        padding: 1.25rem;
+        border-radius: 30px;
+    }
+
+    .layout-contact .feature-content.two-col {
+        gap: 1.25rem !important;
+    }
+
+    .layout-contact .feature-text {
+        padding: 1.25rem !important;
+    }
+
+    .layout-contact .media-surface {
+        padding: 1.25rem !important;
+        border-radius: 25px;
+    }
+
+    .contact-info-section {
+        padding: 0.15rem 0;
+    }
+
+    .contact-info-title {
+        font-size: clamp(1.4rem, 4.5vw, 2.5rem);
+        font-weight: 400;
+        line-height: 1.15;
+        margin-bottom: 0.625rem;
+    }
+
+    .contact-info-text {
+        font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+
+    .contact-info-email {
+        font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+        line-height: 1.7;
+        margin-top: 0;
+    }
+
+    .contact-form {
+        gap: 0.875rem !important;
+    }
+
+    .form-group label {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 10px 14px;
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 0.95rem;
+    }
+
+    .form-group textarea {
+        min-height: 70px;
+        max-height: 90px;
+    }
+
+    .submit-btn {
+        padding: 10px 24px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .contact-section-wrapper {
+        padding: 40px 15px;
+    }
+
+    .layout-contact .feature-outer {
+        padding: 1rem;
+        border-radius: 25px;
+    }
+
+    .layout-contact .feature-content.two-col {
+        gap: 1rem !important;
+    }
+
+    .layout-contact .feature-text {
+        padding: 1rem !important;
+    }
+
+    .layout-contact .media-surface {
+        padding: 1rem !important;
+        border-radius: 20px;
+    }
+
+    .contact-info-section {
+        padding: 0.1rem 0;
+    }
+
+    .contact-info-title {
+        font-size: clamp(1.2rem, 5vw, 2.5rem);
+        font-weight: 400;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+    }
+
+    .contact-info-text {
+        font-size: clamp(0.9rem, 1.2vw, 1rem);
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+
+    .contact-info-email {
+        font-size: clamp(0.9rem, 1.2vw, 1rem);
+        line-height: 1.7;
+        margin-top: 0;
+    }
+
+    .contact-form {
+        gap: 0.75rem !important;
+    }
+
+    .form-group label {
+        margin-bottom: 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .form-group textarea {
+        min-height: 60px;
+        max-height: 80px;
+    }
+
+    .submit-btn {
+        padding: 8px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Match the height of Meeting Schedule featured card */
+@media (min-width: 992px) {
+    .contact-info-section {
+        padding: 0.5rem 0;
+    }
+    
+    .contact-info-title {
+        font-size: clamp(0, 4.8vw, 3.6rem);
+        font-weight: 500;
+        line-height: 1.15;
+        margin-bottom: 1rem;
+    }
+    
+    .contact-info-text {
+        font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+
+    .contact-info-email {
+        font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+        line-height: 1.7;
+        margin-top: 0;
+    }
+    
+    .contact-form-container {
+        padding: 2rem 1.75rem;
+    }
+    
+    .contact-form {
+        gap: 1rem;
+    }
+    
+    .form-group textarea {
+        min-height: 90px;
+        max-height: 110px;
+    }
+}
+
+@media (min-width: 1441px) {
+    .contact-info-section {
+        padding: 0.25rem 0;
+    }
+    
+    .contact-info-title {
+        font-size: clamp(0, 4.2vw, 3.2rem);
+        font-weight: 500;
+        line-height: 1.15;
+        margin-bottom: 0.875rem;
+    }
+    
+    .contact-info-text {
+        font-size: 18px;
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+    
+    .contact-info-email {
+        font-size: 18px;
+        line-height: 1.7;
+        margin-top: 0;
+    }
+    
+    .contact-form-container {
+        padding: 1.75rem 1.5rem;
+    }
+    
+    .contact-form {
+        gap: 0.875rem;
+    }
+    
+    .form-group label {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        background: #fff !important;
+        color: #000 !important;
+    }
+    
+    .form-group textarea {
+        min-height: 80px;
+        max-height: 100px;
+    }
+    
+    .submit-btn {
+        padding: 10px 28px;
+        font-size: 0.95rem;
+    }
+}
