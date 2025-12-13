@@ -322,10 +322,13 @@
   .layout-boy .feature-center-img {
     max-width: 270px;
   }
+  .layout-boy .media-surface {
+    max-width: 330px;
+  }
   .layout-video .media-surface {
     min-height: clamp(193px, 44vw, 600px);
     align-items: center;
-    width: 350px;
+    width: 330px;
   }
   .layout-video .feature-center-img {
     margin: 0.5rem 0;
@@ -343,10 +346,10 @@
     order: -1;
   }
   .layout-video .top-body {
-    top: -35px;
+    top: -20px;
   }
   .layout-video .top-figure {
-    top: -110px;
+    top: -65px;
   }
   .feature-inner {
     flex-direction: column;
@@ -427,7 +430,7 @@
   }
   .top-figure {
     position: absolute;
-    top: -152px;
+    top: -88px;
     left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);
@@ -508,6 +511,7 @@
   .feature-text {
     overflow: visible !important;
     max-width: 100% !important;
+    padding-left: 1rem;
   }
 }
 
@@ -575,11 +579,14 @@
     width: 293px;
   }
   .top-figure {
-    top: -152px;
+    top: -108px;
     left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);
   }
+  .layout-video .top-figure {
+    top: -70px;
+}
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
@@ -589,9 +596,12 @@
   .feature-center-img {
     width: clamp(220px, 30vw, 340px);
   }
+  .layout-video .top-figure {
+    top: -95px;
+  }
   .top-figure {
     position: absolute;
-    top: -152px;
+    top: -134px;
     left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);

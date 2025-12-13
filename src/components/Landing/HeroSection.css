@@ -409,6 +409,11 @@
   outline: none;
 }
 
+.hero-section{
+  min-height: 0;
+}
+
+
 .hero-login-btn:active {
   transform: translateY(0);
 }
