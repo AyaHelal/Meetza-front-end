@@ -87,6 +87,9 @@ function Footer() {
                             className="footer-logo"
                         />
                     </div>
+                    <div className="footer-copyright">
+                        <p>© 2025Meetza — All rights reserved</p>
+                    </div>
                 </div>
             </div>
         </footer>

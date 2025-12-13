@@ -11,6 +11,8 @@
   margin: 3rem 2rem 0 2rem;
   border-radius: 32px;
   padding-top: 5rem;
+  padding-bottom: 0;
+  margin-bottom: 0;
   overflow-x: hidden;
 }
 
@@ -90,7 +92,7 @@
 
 /* Footer Logo Styles */
 .footer-logo-container {
-  padding: 1rem 0;
+  padding: 1rem 0 0 0;
   text-align: start;
   width: 100%;
 }
@@ -102,6 +104,16 @@
   object-fit: contain;
   margin: 0;
   display: block;
+}
+
+.footer-copyright {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  padding: 1rem 2rem 1rem 0;
+}
+
+.footer-copyright p {
+  margin: 0;
 }
 
 /* Responsive adjustments */
@@ -168,6 +180,12 @@
   .footer-logo-container {
     padding: 1.5rem 1rem;
     text-align: start;
+    width: 100%;
+  }
+
+  .footer-copyright {
+    padding: 1rem 1rem 1rem 0;
+    text-align: center;
     width: 100%;
   }
 }
