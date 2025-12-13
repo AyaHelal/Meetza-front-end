@@ -84,6 +84,13 @@ Builds the app for production to the build folder. The build is minified and opt
 - Live Project: [https://meetza-front-end.vercel.app/](https://meetza-front-end.vercel.app/)
 - Figma Design: [https://www.figma.com/design/BCnIDNN5fdPOiVv5tXTYXE/Farida-Meetza?node-id=0-1&p=f&t=ehzpvGrgs7fbkPe3-0](https://www.figma.com/design/BCnIDNN5fdPOiVv5tXTYXE/Farida-Meetza?node-id=0-1&p=f&t=ehzpvGrgs7fbkPe3-0)
 
+
+## 📊 Presentation
+
+- Project Presentation on Canva: https://www.canva.com/design/DAG6wME9m9I/6szllu6C4vuPiD5iRwwTcQ/edit
+
+
+
 ## 🤝 Contributing
 
 1. Fork the repository
