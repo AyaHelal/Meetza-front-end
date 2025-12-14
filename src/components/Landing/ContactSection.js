@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { smartToast } from '../../API/toastManager';
+import axiosInstance from '../../API/axiosInstance';
 import FeatureCard from '../../components/FeatureCard/FeatureCard';
 import './ContactSection.css';
 
@@ -37,28 +38,52 @@ const ContactSection = () => {
             return;
         }
         if (!formData.description.trim()) {
-            smartToast.error('Please enter a description');
+            smartToast.error('Please enter a message');
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            // TODO: Replace with actual API endpoint when backend is ready
-            // const response = await axiosInstance.post('/contact', formData);
+            // Prepare data in the format the backend expects
+            const requestData = {
+                name: formData.fullName.trim(),
+                email: formData.email.trim(),
+                message: formData.description.trim()
+            };
 
-            // Simulate API call for now
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('Sending contact form data:', requestData);
+            const response = await axiosInstance.post('/contact', requestData);
+            console.log('Contact form response:', response.data);
 
-            smartToast.success('Message sent successfully! We will get back to you soon.');
-            setFormData({
-                fullName: '',
-                email: '',
-                description: ''
-            });
+            if (response.data) {
+                const successMessage = response.data.message || 'Message sent successfully! We will get back to you soon.';
+                smartToast.success(successMessage);
+                setFormData({
+                    fullName: '',
+                    email: '',
+                    description: ''
+                });
+            }
         } catch (error) {
             console.error('Error sending message:', error);
-            smartToast.error('Failed to send message. Please try again later.');
+            console.error('Error response:', error.response?.data);
+
+            // Show more detailed error message
+            let errorMessage = 'Failed to send message. Please try again later.';
+            if (error.response?.data) {
+                if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errorMessage = error.response.data.error;
+                } else if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            smartToast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -132,7 +157,7 @@ const ContactSection = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="description">Description</label>
+                        <label htmlFor="description">Message</label>
                         <textarea
                             id="description"
                             name="description"

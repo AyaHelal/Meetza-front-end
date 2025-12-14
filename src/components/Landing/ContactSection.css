@@ -186,7 +186,7 @@
 }
 
 .form-group label {
-    color: #fff;
+    color: #fff !important;
     font-weight: 500;
     margin-bottom: 0.75rem;
     font-size: 0.95rem;
@@ -371,6 +371,7 @@
     }
 
     .form-group label {
+        color: #fff !important;
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
     }
@@ -445,6 +446,7 @@
     }
 
     .form-group label {
+        color: #fff !important;
         margin-bottom: 0.4rem;
         font-size: 0.85rem;
     }
@@ -538,6 +540,7 @@
     }
 
     .form-group label {
+        color: #fff !important;
         margin-bottom: 0.5rem;
         font-size: 0.9rem;
     }
