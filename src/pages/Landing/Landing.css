@@ -1,9 +1,9 @@
-html, body {
+html,
+body {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
 }
-
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 html::-webkit-scrollbar {
@@ -40,8 +40,9 @@ body::-webkit-scrollbar {
   z-index: 2;
 }
 
-
-.landing-content { flex: 1 0 auto; }
+.landing-content {
+  flex: 1 0 auto;
+}
 
 /* Ensure body and html allow scrolling on landing page */
 body:not(.group-chat-active),
@@ -70,7 +71,6 @@ html:not(.group-chat-active) {
   min-height: clamp(300px, 50vw, 600px);
 }
 
-
 /* Back to top floating button */
 .back-to-top {
   position: fixed;
@@ -85,7 +85,7 @@ html:not(.group-chat-active) {
   font-size: 20px;
   line-height: 44px;
   text-align: center;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   z-index: 2147483647;
   display: flex;
@@ -122,8 +122,6 @@ html:not(.group-chat-active) {
   transform: translateY(-2px) translateZ(0);
   transition: all 0.2s ease;
 }
-
-
 
 /* Small phones */
 @media (max-width: 575.98px) {
@@ -164,7 +162,6 @@ html:not(.group-chat-active) {
   }
 }
 
-
 /* Background div that extends below footer */
 .landing-background {
   padding-bottom: 0;
@@ -198,4 +195,3 @@ html:not(.group-chat-active) {
     margin: 0 2rem 12rem 2rem;
   }
 }
-
