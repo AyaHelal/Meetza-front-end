@@ -10,6 +10,7 @@ import axiosInstance from '../../API/axiosInstance';
 import { AuthContext } from '../../context/AuthContext';
 import { smartToast } from '../../API/toastManager';
 
+
 //const SERVER_URL = "https://meetza-backend.vercel.app";
 
 const MEDIA_TYPE_MAP = {
@@ -997,7 +998,7 @@ export default function GroupChat() {
       if (res?.data?.success && res.data.data) {
         const formattedMessage = formatMessage(res.data.data);
         setMessages((prev) => prev.map((msg) => (msg.id === tempId ? formattedMessage : msg)));
-        
+
         // Refresh group info to get updated media list if a file was sent
         if (file && finalMediaType !== 'voice_note') {
           try {
@@ -1009,7 +1010,7 @@ export default function GroupChat() {
             console.warn('⚠️ Failed to refresh group info after sending media:', refreshError);
           }
         }
-        
+
         return true;
       }
       throw new Error('Failed to send message');
