@@ -1,93 +1,105 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
-//import { io } from 'socket.io-client';
-import './GroupChat.css';
-import ChatsPanel from './components/ChatsPanel';
-import MainChat from './components/MainChat';
-import RightSidebar from './components/RightSidebar';
-import { categorizeResources, categorizeMediaItems } from './components/utils';
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import "./GroupChat.css";
+import ChatsPanel from "./components/ChatsPanel";
+import MainChat from "./components/MainChat";
+import RightSidebar from "./components/RightSidebar";
+import { categorizeResources, categorizeMediaItems } from "./components/utils";
 
-import axiosInstance from '../../API/axiosInstance';
-import { AuthContext } from '../../context/AuthContext';
-import { smartToast } from '../../API/toastManager';
-
+import axiosInstance from "../../API/axiosInstance";
+import { AuthContext } from "../../context/AuthContext";
+import { useSocket } from "../../context/SocketContext";
+import { smartToast } from "../../API/toastManager";
 
 //const SERVER_URL = "https://meetza-backend.vercel.app";
 
 const MEDIA_TYPE_MAP = {
-  image: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'],
-  video: ['mp4', 'mov', 'webm', 'mkv'],
-  audio: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm']
+  image: ["png", "jpg", "jpeg", "gif", "webp", "svg", "avif"],
+  video: ["mp4", "mov", "webm", "mkv"],
+  audio: ["mp3", "wav", "m4a", "aac", "ogg", "webm"],
 };
 
 const MIME_EXTENSION_MAP = {
-  'application/pdf': 'pdf',
-  'application/msword': 'doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-  'application/vnd.ms-excel': 'xls',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-  'application/vnd.ms-powerpoint': 'ppt',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-  'text/plain': 'txt',
-  'text/csv': 'csv',
-  'application/zip': 'zip',
-  'application/x-rar-compressed': 'rar',
-  'audio/webm': 'webm',
-  'audio/mpeg': 'mp3',
-  'audio/mp3': 'mp3',
-  'audio/ogg': 'ogg',
-  'audio/wav': 'wav',
-  'video/webm': 'webm',
-  'video/mp4': 'mp4'
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    "pptx",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "application/zip": "zip",
+  "application/x-rar-compressed": "rar",
+  "audio/webm": "webm",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "video/webm": "webm",
+  "video/mp4": "mp4",
 };
 
 const deriveExtensionFromMime = (mime) => {
-  if (!mime) return '';
-  const cleanMime = mime.split(';')[0]?.trim().toLowerCase();
+  if (!mime) return "";
+  const cleanMime = mime.split(";")[0]?.trim().toLowerCase();
   if (MIME_EXTENSION_MAP[cleanMime]) {
     return MIME_EXTENSION_MAP[cleanMime];
   }
-  if (cleanMime.includes('/')) {
-    const subtype = cleanMime.split('/')[1];
-    if (subtype === 'plain') return 'txt';
+  if (cleanMime.includes("/")) {
+    const subtype = cleanMime.split("/")[1];
+    if (subtype === "plain") return "txt";
     if (subtype) {
       return subtype;
     }
   }
-  return '';
+  return "";
 };
 
 const extractExtension = (mediaItem) => {
-  const fromName = mediaItem?.file_name?.split('.').pop();
+  const fromName = mediaItem?.file_name?.split(".").pop();
   if (fromName) {
     return fromName.toLowerCase();
   }
 
-  const url = mediaItem?.media_url || mediaItem?.file_url || '';
-  if (!url) return '';
-  const cleanUrl = url.split('?')[0];
-  if (cleanUrl.includes('.')) {
-    return cleanUrl.split('.').pop().toLowerCase();
+  const url = mediaItem?.media_url || mediaItem?.file_url || "";
+  if (!url) return "";
+  const cleanUrl = url.split("?")[0];
+  if (cleanUrl.includes(".")) {
+    return cleanUrl.split(".").pop().toLowerCase();
   }
-  const mimeExt = deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
-  return mimeExt || '';
+  const mimeExt = deriveExtensionFromMime(
+    mediaItem?.file_type || mediaItem?.media_type
+  );
+  return mimeExt || "";
 };
 
 const deriveMediaTypeFromExtension = (extension) => {
-  if (!extension) return 'document';
-  if (MEDIA_TYPE_MAP.image.includes(extension)) return 'image';
-  if (MEDIA_TYPE_MAP.video.includes(extension)) return 'video';
-  if (MEDIA_TYPE_MAP.audio.includes(extension)) return 'audio';
-  return 'document';
+  if (!extension) return "document";
+  if (MEDIA_TYPE_MAP.image.includes(extension)) return "image";
+  if (MEDIA_TYPE_MAP.video.includes(extension)) return "video";
+  if (MEDIA_TYPE_MAP.audio.includes(extension)) return "audio";
+  return "document";
 };
 
 const deriveFileName = (mediaItem) => {
-  const extension = extractExtension(mediaItem) || deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
+  const extension =
+    extractExtension(mediaItem) ||
+    deriveExtensionFromMime(mediaItem?.file_type || mediaItem?.media_type);
 
   const ensureExtension = (name) => {
-    if (!name) return '';
+    if (!name) return "";
     const trimmed = name.trim();
-    if (!trimmed) return '';
-    if (trimmed.includes('.') && trimmed.split('.').pop().length <= 6) {
+    if (!trimmed) return "";
+    if (trimmed.includes(".") && trimmed.split(".").pop().length <= 6) {
       return trimmed;
     }
     if (extension) {
@@ -105,17 +117,19 @@ const deriveFileName = (mediaItem) => {
   if (url) {
     try {
       const parsed = new URL(url);
-      const candidate = decodeURIComponent(parsed.pathname.split('/').pop() || '');
+      const candidate = decodeURIComponent(
+        parsed.pathname.split("/").pop() || ""
+      );
       if (candidate) {
-        if (candidate.includes('.') || !extension) {
+        if (candidate.includes(".") || !extension) {
           return candidate;
         }
         return `${candidate}.${extension}`;
       }
     } catch (err) {
-      const fallback = url.split('?')[0].split('/').pop();
+      const fallback = url.split("?")[0].split("/").pop();
       if (fallback) {
-        if (fallback.includes('.') || !extension) {
+        if (fallback.includes(".") || !extension) {
           return fallback;
         }
         return `${fallback}.${extension}`;
@@ -126,42 +140,49 @@ const deriveFileName = (mediaItem) => {
   if (extension) {
     return `document.${extension}`;
   }
-  return 'document';
+  return "document";
 };
 
 const normalizeMediaItems = (mediaItems, messageId) => {
   if (!Array.isArray(mediaItems)) return [];
   return mediaItems.map((item, index) => {
-    const mediaUrl = item?.media_url || item?.file_url || '';
+    const mediaUrl = item?.media_url || item?.file_url || "";
     const extension = extractExtension(item);
 
-    const declaredType = typeof item?.media_type === 'string'
-      ? item.media_type
-      : (typeof item?.file_type === 'string' ? item.file_type : '');
+    const declaredType =
+      typeof item?.media_type === "string"
+        ? item.media_type
+        : typeof item?.file_type === "string"
+        ? item.file_type
+        : "";
 
-    let normalizedType = declaredType?.toLowerCase() || '';
+    let normalizedType = declaredType?.toLowerCase() || "";
     // Preserve voice_note type - don't convert it to 'audio'
-    if (normalizedType === 'voice_note' || normalizedType === 'voice') {
-      normalizedType = 'voice_note';
-    } else if (normalizedType.startsWith('image')) {
-      normalizedType = 'image';
-    } else if (normalizedType.startsWith('video')) {
-      normalizedType = 'video';
-    } else if (normalizedType.startsWith('audio')) {
-      normalizedType = 'audio';
-    } else if (!normalizedType || normalizedType === 'file' || normalizedType === 'document') {
+    if (normalizedType === "voice_note" || normalizedType === "voice") {
+      normalizedType = "voice_note";
+    } else if (normalizedType.startsWith("image")) {
+      normalizedType = "image";
+    } else if (normalizedType.startsWith("video")) {
+      normalizedType = "video";
+    } else if (normalizedType.startsWith("audio")) {
+      normalizedType = "audio";
+    } else if (
+      !normalizedType ||
+      normalizedType === "file" ||
+      normalizedType === "document"
+    ) {
       normalizedType = deriveMediaTypeFromExtension(extension);
     } else {
-      normalizedType = deriveMediaTypeFromExtension(extension) || 'document';
+      normalizedType = deriveMediaTypeFromExtension(extension) || "document";
     }
 
     return {
       ...item,
-      id: item?.id || `${messageId || 'msg'}-media-${index}`,
+      id: item?.id || `${messageId || "msg"}-media-${index}`,
       media_url: mediaUrl,
       file_url: mediaUrl,
       file_name: deriveFileName(item),
-      media_type: normalizedType
+      media_type: normalizedType,
     };
   });
 };
@@ -170,12 +191,18 @@ const normalizeMediaItems = (mediaItems, messageId) => {
 
 export default function GroupChat() {
   const { user } = useContext(AuthContext);
+  const {
+    socket,
+    isConnected,
+    joinGroup,
+    leaveGroup,
+    markAllMessagesRead,
+    getUnreadCount,
+    sendMessage: socketSendMessage,
+  } = useSocket();
   const [selectedChat, setSelectedChat] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMainChat, setShowMainChat] = useState(false);
-  // sockets disabled — using HTTP polling for live updates
-  //const [socket, setSocket] = useState(null);
-  //const [socketStatus, setSocketStatus] = useState('disconnected');
   const [groupChats, setGroupChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
@@ -187,134 +214,161 @@ export default function GroupChat() {
   const markedAsReadRef = React.useRef(new Set());
   // Track which groups have been opened/read in this session - always keep unread at 0 for these
   const readGroupsRef = React.useRef(new Set());
-  // Track previous message IDs to detect new messages during polling
-  const previousMessageIdsRef = React.useRef(new Set());
+  // Track current group ID for socket operations
+  const currentGroupIdRef = useRef(null);
+  // Track user data for duplicate detection
+  const userRef = useRef(user);
 
-  const formatMessage = useCallback((msg) => ({
-    id: msg.id,
-    sender: msg.sender_name,
-    initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
-    time: msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }) : new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+  // Keep userRef in sync
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const formatMessage = useCallback(
+    (msg) => ({
+      id: msg.id,
+      sender: msg.sender_name,
+      initials: msg.sender_name?.charAt(0)?.toUpperCase() || "U",
+      time: msg.created_at
+        ? new Date(msg.created_at).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+      date: msg.created_at
+        ? new Date(msg.created_at).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : new Date().toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+      created_at: msg.created_at || new Date().toISOString(),
+      text: msg.message,
+      senderPhoto: msg.sender_photo,
+      senderEmail: msg.sender_email,
+      media: normalizeMediaItems(msg.media, msg.id),
+      is_read: msg.is_read,
+      read_at: msg.read_at,
     }),
-    date: msg.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    }) : new Date().toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    }),
-    created_at: msg.created_at || new Date().toISOString(),
-    text: msg.message,
-    senderPhoto: msg.sender_photo,
-    senderEmail: msg.sender_email,
-    media: normalizeMediaItems(msg.media, msg.id),
-    is_read: msg.is_read,
-    read_at: msg.read_at
-  }), []);
+    []
+  );
 
   const deriveMediaCategory = useCallback((file, fallbackCategory) => {
-    if (fallbackCategory && fallbackCategory !== 'file') {
+    if (fallbackCategory && fallbackCategory !== "file") {
       return fallbackCategory;
     }
-    const mime = file?.type || '';
-    if (mime.startsWith('image')) return 'image';
-    if (mime.startsWith('video')) return 'video';
-    if (mime.startsWith('audio')) return 'audio';
-    return 'document';
+    const mime = file?.type || "";
+    if (mime.startsWith("image")) return "image";
+    if (mime.startsWith("video")) return "video";
+    if (mime.startsWith("audio")) return "audio";
+    return "document";
   }, []);
 
   const extractLinksFromMessages = (messages = []) => {
-    console.log('Processing messages for links:', messages);
+    console.log("Processing messages for links:", messages);
     const links = [];
-    messages?.forEach(msg => {
+    messages?.forEach((msg) => {
       // Skip if message is deleted or has media (we only want plain text messages with links)
       if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
-        console.log('Skipping message (deleted or has media):', msg.id, {
+        console.log("Skipping message (deleted or has media):", msg.id, {
           is_deleted: msg.is_deleted,
-          has_media: msg.media?.length > 0
+          has_media: msg.media?.length > 0,
         });
         return;
       }
 
       if (msg.message) {
-        console.log('Checking message for URLs:', {
+        console.log("Checking message for URLs:", {
           id: msg.id,
-          message: msg.message
+          message: msg.message,
         });
         const urlRegex = /https?:\/\/[^\s<>,;]+/g;
         const urls = msg.message.match(urlRegex) || [];
-        console.log('Found URLs:', urls);
+        console.log("Found URLs:", urls);
 
-        urls.forEach(url => {
+        urls.forEach((url) => {
           try {
-            const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
-            const isFileUrl = /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(cleanUrl);
+            const cleanUrl = url.replace(/[.,;:!?)]+$/, "");
+            const isFileUrl =
+              /\.(jpg|jpeg|png|gif|bmp|webp|pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z|mp4|mp3|wav|avi|mov|webm)(\?|$)/i.test(
+                cleanUrl
+              );
 
             if (!isFileUrl) {
               const urlObj = new URL(cleanUrl);
               const linkData = {
                 id: `link-${msg.id}-${cleanUrl}`,
                 media_url: cleanUrl,
-                file_name: urlObj.hostname.replace('www.', ''),
+                file_name: urlObj.hostname.replace("www.", ""),
                 original_url: cleanUrl,
                 created_at: msg.created_at,
                 sender_name: msg.sender_name,
                 message_id: msg.id,
                 isLink: true,
-                is_downloadable: false
+                is_downloadable: false,
               };
-              console.log('Adding link:', linkData);
+              console.log("Adding link:", linkData);
               links.push(linkData);
             } else {
-              console.log('Skipping file URL:', cleanUrl);
+              console.log("Skipping file URL:", cleanUrl);
             }
           } catch (e) {
-            console.warn('Invalid URL:', url, e);
+            console.warn("Invalid URL:", url, e);
           }
         });
       }
     });
-    console.log('Extracted links:', links);
+    console.log("Extracted links:", links);
     return links;
   };
 
   // Add class to body when GroupChat is mounted
   useEffect(() => {
-    document.documentElement.classList.add('group-chat-active');
-    document.body.classList.add('group-chat-active');
+    document.documentElement.classList.add("group-chat-active");
+    document.body.classList.add("group-chat-active");
 
     return () => {
-      document.documentElement.classList.remove('group-chat-active');
-      document.body.classList.remove('group-chat-active');
+      document.documentElement.classList.remove("group-chat-active");
+      document.body.classList.remove("group-chat-active");
     };
   }, []);
 
   // Define group event handler outside socket effect so it can be referenced in cleanup
-  const groupEventNames = ['groupCreated', 'group_created', 'newGroup', 'new_group', 'group:add', 'group', 'groupUpdated'];
+  const groupEventNames = [
+    "groupCreated",
+    "group_created",
+    "newGroup",
+    "new_group",
+    "group:add",
+    "group",
+    "groupUpdated",
+  ];
 
   const handleGroupEvent = async (payload) => {
     try {
-      console.log('🔔 Group event received:', payload);
+      console.log("🔔 Group event received:", payload);
 
       let group = null;
-      if (payload && typeof payload === 'object') {
+      if (payload && typeof payload === "object") {
         if (payload.id || payload.group_id || payload.groupId) {
           const id = payload.id || payload.group_id || payload.groupId;
           if (payload.group_name || payload.name) {
             group = { ...payload, id };
           } else {
-            const res = await axiosInstance.get('/chat/groups');
+            const res = await axiosInstance.get("/chat/groups");
             const list = res?.data?.data || [];
-            group = list.find((g) => g.id === id || g.group_id === id || g.id === Number(id));
+            group = list.find(
+              (g) => g.id === id || g.group_id === id || g.id === Number(id)
+            );
           }
         } else if (payload.group_name || payload.name) {
           group = payload;
@@ -322,24 +376,41 @@ export default function GroupChat() {
       }
 
       if (!group) {
-        const res = await axiosInstance.get('/chat/groups');
+        const res = await axiosInstance.get("/chat/groups");
         const list = res?.data?.data || [];
         const groupsWithContent = await Promise.all(
           list.map(async (g) => {
             let contentName = "No content";
             try {
               if (g.group_content_id) {
-                const contentResponse = await axiosInstance.get(`/group-contents/${g.group_content_id}`);
+                const contentResponse = await axiosInstance.get(
+                  `/group-contents/${g.group_content_id}`
+                );
                 if (contentResponse.data && contentResponse.data.success) {
                   const data = contentResponse.data.data || {};
-                  contentName = data.name || data.title || data.content_name || data.group_name || data.group_title || data.title_en || data.name_en || data.description || "No content";
+                  contentName =
+                    data.name ||
+                    data.title ||
+                    data.content_name ||
+                    data.group_name ||
+                    data.group_title ||
+                    data.title_en ||
+                    data.name_en ||
+                    data.description ||
+                    "No content";
                   if (!contentName || contentName === "No content") {
-                    console.warn(`⚠️ No content name found for content id ${g.group_content_id}`, data);
+                    console.warn(
+                      `⚠️ No content name found for content id ${g.group_content_id}`,
+                      data
+                    );
                   }
                 }
               }
             } catch (e) {
-              console.warn('❌ Error fetching content for group during group-event refresh', e);
+              console.warn(
+                "❌ Error fetching content for group during group-event refresh",
+                e
+              );
             }
             return { ...g, contentName };
           })
@@ -348,152 +419,293 @@ export default function GroupChat() {
         const formatted = groupsWithContent.map((g) => ({
           id: g.id,
           name: g.group_name,
-          subject: g.last_message || 'No messages yet',
-          avatar: g.group_name?.charAt(0)?.toUpperCase() || 'G',
+          subject: g.last_message || "No messages yet",
+          avatar: g.group_name?.charAt(0)?.toUpperCase() || "G",
           avatarImage: g.group_photo || null,
           date: g.last_message_at
-            ? new Date(g.last_message_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            })
-            : new Date().toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            }),
+            ? new Date(g.last_message_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+              })
+            : new Date().toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+              }),
           unread: 0,
           group_name: g.group_name,
           group_content_id: g.group_content_id,
-          contentName: g.contentName
+          contentName: g.contentName,
         }));
 
         setGroupChats(formatted);
         return;
       }
 
-      let contentName = group.contentName || group.content_name || group.title || group.name || 'No content';
+      let contentName =
+        group.contentName ||
+        group.content_name ||
+        group.title ||
+        group.name ||
+        "No content";
       if (!contentName && group.group_content_id) {
         try {
-          const contentResponse = await axiosInstance.get(`/group-contents/${group.group_content_id}`);
+          const contentResponse = await axiosInstance.get(
+            `/group-contents/${group.group_content_id}`
+          );
           if (contentResponse.data && contentResponse.data.success) {
             const data = contentResponse.data.data || {};
-            contentName = data.name || data.title || data.content_name || data.group_name || data.group_title || data.title_en || data.name_en || data.description || 'No content';
+            contentName =
+              data.name ||
+              data.title ||
+              data.content_name ||
+              data.group_name ||
+              data.group_title ||
+              data.title_en ||
+              data.name_en ||
+              data.description ||
+              "No content";
           }
         } catch (e) {
-          console.warn('❌ Error fetching content for new group', e);
+          console.warn("❌ Error fetching content for new group", e);
         }
       }
 
       const formattedGroup = {
         id: group.id,
         name: group.group_name || group.name,
-        subject: group.last_message || 'No messages yet',
-        avatar: (group.group_name || group.name || 'G').charAt(0).toUpperCase(),
+        subject: group.last_message || "No messages yet",
+        avatar: (group.group_name || group.name || "G").charAt(0).toUpperCase(),
         avatarImage: group.group_photo || null,
-        date: group.last_message_at ? new Date(group.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        date: group.last_message_at
+          ? new Date(group.last_message_at).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+            })
+          : new Date().toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+            }),
         unread: 0,
         group_name: group.group_name || group.name,
         group_content_id: group.group_content_id,
-        contentName: contentName
+        contentName: contentName,
       };
 
       setGroupChats((prev) => {
-        const exists = prev.some((g) => String(g.id) === String(formattedGroup.id));
+        const exists = prev.some(
+          (g) => String(g.id) === String(formattedGroup.id)
+        );
         if (exists) {
-          return prev.map((g) => (String(g.id) === String(formattedGroup.id) ? formattedGroup : g));
+          return prev.map((g) =>
+            String(g.id) === String(formattedGroup.id) ? formattedGroup : g
+          );
         }
         return [formattedGroup, ...prev];
       });
     } catch (err) {
-      console.error('❌ Error handling group event:', err);
+      console.error("❌ Error handling group event:", err);
     }
   };
 
-  // Initialize Socket.IO using websocket-only transport (matches test-socket.js)
-  /*useEffect(() => {
-    let token = localStorage.getItem('token');
-    if (!token) token = sessionStorage.getItem('token');
-    if (!token) {
-      console.log('⚠️ No token found, skipping Socket.IO');
-      return;
-    }
+  // Listen for Socket.IO message events - Set up BEFORE joining groups
+  useEffect(() => {
+    if (!socket || !isConnected) return;
 
-    console.log('🔌 Connecting to Socket.IO (websocket-only)...');
+    const handleNewMessage = (messageData) => {
+      console.log("📨 New message received via Socket.IO:", messageData);
+      console.log("📨 Current group ID:", currentGroupIdRef.current);
 
-    const newSocket = io(SERVER_URL, {
-      auth: { token },
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity,
-      timeout: 20000
-    });
+      // Handle different possible field names for group ID
+      const messageGroupId = String(
+        messageData.group_id || messageData.groupId || messageData.group || ""
+      );
 
-    newSocket.on('connect', () => {
-      console.log('✅ Socket connected:', newSocket.id);
-      setSocketStatus('connected');
-    });
+      console.log("📨 Message group ID (parsed):", messageGroupId);
 
-    newSocket.on('message', (msg) => {
-      console.log('📨 New message:', msg);
-      setMessages((prev) => [...prev, {
-        id: msg.id,
-        sender: msg.sender_name,
-        initials: msg.sender_name?.charAt(0)?.toUpperCase() || 'U',
-        time: new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-        text: msg.message,
-        date: new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        senderPhoto: msg.sender_photo,
-        senderEmail: msg.sender_email
-      }]);
+      if (
+        !messageData ||
+        !messageGroupId ||
+        messageGroupId === "undefined" ||
+        messageGroupId === "null"
+      ) {
+        console.warn(
+          "⚠️ Invalid message data received - missing group ID:",
+          messageData
+        );
+        return;
+      }
 
-      // Update last_message in groupChats list
-      if (msg.group_id) {
-        setGroupChats((prev) =>
-          prev.map((group) =>
-            String(group.id) === String(msg.group_id)
-              ? { ...group, subject: msg.message || 'No messages yet' }
-              : group
-          )
+      const isForCurrentGroup =
+        currentGroupIdRef.current &&
+        String(currentGroupIdRef.current) === messageGroupId;
+
+      console.log("📨 Is for current group?", isForCurrentGroup);
+
+      // Add message to UI if it's for the currently selected group
+      if (isForCurrentGroup) {
+        console.log("✅ Message is for current group, adding to UI");
+        console.log("📨 Message details:", {
+          id: messageData.id,
+          sender: messageData.sender_name,
+          text: messageData.message || messageData.text,
+          group_id: messageGroupId,
+          current_group: currentGroupIdRef.current,
+        });
+
+        // Ensure message has required fields
+        if (!messageData.message && !messageData.text) {
+          console.warn("⚠️ Message missing text field:", messageData);
+        }
+
+        const formattedMessage = formatMessage(messageData);
+        console.log("📨 Formatted message:", formattedMessage);
+        setMessages((prev) => {
+          // Check if message already exists by ID (avoid duplicates)
+          const existingIndex = prev.findIndex((msg) => {
+            // Check by exact ID match
+            if (msg.id === messageData.id) return true;
+            // Also check if it's a temp message that should be replaced
+            if (msg.id && msg.id.startsWith("temp-") && messageData.id) {
+              // Check if this is the same message (same text and recent timestamp)
+              const currentUser = userRef.current;
+              const isFromCurrentUser =
+                messageData.sender_email === currentUser?.email ||
+                messageData.sender_id === currentUser?.id;
+              if (isFromCurrentUser && msg.text === messageData.message) {
+                const timeDiff = Math.abs(
+                  new Date(msg.created_at).getTime() -
+                    new Date(messageData.created_at).getTime()
+                );
+                if (timeDiff < 10000) {
+                  // Within 10 seconds
+                  return true; // This is the temp message that should be replaced
+                }
+              }
+            }
+            return false;
+          });
+
+          if (existingIndex !== -1) {
+            // Message already exists, update it instead of adding duplicate
+            console.log("🔄 Updating existing message:", messageData.id);
+            const updated = [...prev];
+            updated[existingIndex] = formattedMessage;
+            return updated;
+          }
+
+          // New message, add it
+          console.log("➕ Adding new message to UI:", messageData.id);
+          return [...prev, formattedMessage];
+        });
+
+        // Mark as read if chat is open (only for messages from others)
+        const currentUser = userRef.current;
+        const isFromCurrentUser =
+          messageData.sender_email === currentUser?.email ||
+          messageData.sender_id === currentUser?.id;
+
+        if (!isFromCurrentUser && currentGroupIdRef.current) {
+          // Only mark as read if message is from another user
+          markAllMessagesRead(currentGroupIdRef.current, (ack) => {
+            if (ack && ack.ok) {
+              setGroupChats((prev) =>
+                prev.map((g) =>
+                  String(g.id) === String(currentGroupIdRef.current)
+                    ? { ...g, unread: 0 }
+                    : g
+                )
+              );
+            }
+          });
+        }
+      } else {
+        console.log(
+          "ℹ️ Message is for another group, updating unread count only"
         );
       }
-    });
 
-    newSocket.on('connect_error', (err) => {
-      console.error('❌ Socket connect_error:', err?.message || err);
-      setSocketStatus('error');
-    });
+      // Update last_message in groupChats list for all groups
+      if (
+        messageGroupId &&
+        messageGroupId !== "undefined" &&
+        messageGroupId !== "null"
+      ) {
+        setGroupChats((prev) =>
+          prev.map((group) => {
+            if (String(group.id) !== messageGroupId) {
+              return group; // Not this group, return unchanged
+            }
 
-    newSocket.on('error', (err) => {
-      console.error('❌ Socket error:', err);
-      setSocketStatus('error');
-    });
+            // This is the group the message belongs to
+            const isCurrentGroup =
+              String(group.id) === String(currentGroupIdRef.current);
+            const currentUser = userRef.current;
+            const isFromCurrentUser =
+              messageData.sender_email === currentUser?.email ||
+              messageData.sender_id === currentUser?.id;
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason);
-      setSocketStatus('disconnected');
-    });
+            // Calculate new unread count
+            let newUnread = group.unread || 0;
+            if (isCurrentGroup) {
+              // If it's the current group and message is from another user, keep unread at 0
+              // (we'll mark as read in the handler above)
+              newUnread = 0;
+            } else {
+              // If it's NOT the current group, increment unread count
+              // But only if message is from another user (not your own message)
+              if (!isFromCurrentUser) {
+                newUnread = (group.unread || 0) + 1;
+                console.log(
+                  `📬 Incrementing unread for group ${messageGroupId}: ${newUnread}`
+                );
+              } else {
+                // Your own message in another group - don't increment unread
+                console.log(
+                  `ℹ️ Your own message in group ${messageGroupId}, not incrementing unread`
+                );
+              }
+            }
 
-    // Register for group events emitted by server
-    groupEventNames.forEach((ename) => newSocket.on(ename, handleGroupEvent));
+            return {
+              ...group,
+              subject:
+                messageData.message || messageData.text || "No messages yet",
+              unread: newUnread,
+            };
+          })
+        );
+      }
+    };
 
-    setSocket(newSocket);
+    // Set up message listener BEFORE joining groups
+    console.log("🎧 Setting up Socket.IO message listener");
+
+    // Also listen for any socket events for debugging
+    const handleAnyEvent = (eventName, ...args) => {
+      if (eventName === "message") {
+        // This will be handled by handleNewMessage
+        return;
+      }
+      console.log(`🔔 Socket event received: ${eventName}`, args);
+    };
+
+    socket.on("message", handleNewMessage);
+
+    // Listen for all events for debugging (remove in production if needed)
+    socket.onAny(handleAnyEvent);
 
     return () => {
-      try {
-        groupEventNames.forEach((ename) => newSocket.off(ename, handleGroupEvent));
-      } catch (e) {
-        // ignore
-      }
-      newSocket.disconnect();
+      console.log("🎧 Removing Socket.IO message listener");
+      socket.off("message", handleNewMessage);
+      socket.offAny(handleAnyEvent);
     };
-  }, []);*/
+  }, [socket, isConnected, formatMessage, markAllMessagesRead]);
 
   // Reusable function to fetch and format groups
   const refreshGroupsList = async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
-      const response = await axiosInstance.get('/chat/groups');
+      const response = await axiosInstance.get("/chat/groups");
       if (response.data.success) {
         // Fetch content names for each group
         const groupsWithContent = await Promise.all(
@@ -506,14 +718,29 @@ export default function GroupChat() {
                 );
                 if (contentResponse.data && contentResponse.data.success) {
                   const data = contentResponse.data.data || {};
-                  contentName = data.name || data.title || data.content_name || data.group_name || data.group_title || data.title_en || data.name_en || data.description || "No content";
+                  contentName =
+                    data.name ||
+                    data.title ||
+                    data.content_name ||
+                    data.group_name ||
+                    data.group_title ||
+                    data.title_en ||
+                    data.name_en ||
+                    data.description ||
+                    "No content";
                   if (!contentName || contentName === "No content") {
-                    console.warn(`⚠️ No content name found for content id ${group.group_content_id}`, data);
+                    console.warn(
+                      `⚠️ No content name found for content id ${group.group_content_id}`,
+                      data
+                    );
                   }
                 }
               }
             } catch (error) {
-              console.error(`❌ Error fetching content for group ${group.id}:`, error);
+              console.error(
+                `❌ Error fetching content for group ${group.id}:`,
+                error
+              );
             }
             return { ...group, contentName };
           })
@@ -523,27 +750,30 @@ export default function GroupChat() {
         const formattedGroups = groupsWithContent.map((group) => ({
           id: group.id,
           name: group.group_name,
-          subject: group.last_message || 'No messages yet',
-          avatar: group.group_name?.charAt(0)?.toUpperCase() || 'G',
+          subject: group.last_message || "No messages yet",
+          avatar: group.group_name?.charAt(0)?.toUpperCase() || "G",
           avatarImage: group.group_photo || null,
           date: group.last_message_at
-            ? new Date(group.last_message_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            })
-            : new Date().toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short'
-            }),
+            ? new Date(group.last_message_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+              })
+            : new Date().toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+              }),
           // Use unread count from API if available, otherwise default to 0
           unread: group.unread || group.unread_count || group.unreadCount || 0,
           group_name: group.group_name,
           group_content_id: group.group_content_id,
-          contentName: group.contentName
+          contentName: group.contentName,
         }));
 
         // Preserve the currently selected chat by ID when updating the list
-        const currentSelectedId = selectedChat !== null && groupChats[selectedChat] ? groupChats[selectedChat].id : null;
+        const currentSelectedId =
+          selectedChat !== null && groupChats[selectedChat]
+            ? groupChats[selectedChat].id
+            : null;
 
         setGroupChats((prev) => {
           // If this is the initial load, set all groups
@@ -552,8 +782,11 @@ export default function GroupChat() {
           }
 
           // Preserve unread counts from previous state, especially for groups that were marked as read
-          console.log('📖 readGroupsRef contents:', Array.from(readGroupsRef.current));
-          return formattedGroups.map(newGroup => {
+          console.log(
+            "📖 readGroupsRef contents:",
+            Array.from(readGroupsRef.current)
+          );
+          return formattedGroups.map((newGroup) => {
             const groupIdStr = String(newGroup.id);
             const apiUnreadCount = newGroup.unread; // This is from the API response (line 533)
 
@@ -562,37 +795,48 @@ export default function GroupChat() {
               // If API returns a positive unread count, it means new messages arrived after being read
               // Remove from readGroupsRef to allow the badge to show
               if (apiUnreadCount > 0) {
-                console.log(`📖 New messages arrived for group ${groupIdStr} (API returned ${apiUnreadCount}), removing from readGroupsRef to show badge`);
+                console.log(
+                  `📖 New messages arrived for group ${groupIdStr} (API returned ${apiUnreadCount}), removing from readGroupsRef to show badge`
+                );
                 readGroupsRef.current.delete(groupIdStr);
                 // Use the API value to show the badge
                 return {
                   ...newGroup,
-                  unread: apiUnreadCount
+                  unread: apiUnreadCount,
                 };
               } else {
                 // No new messages, keep unread at 0
-                console.log(`📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, was opened, no new messages)`);
+                console.log(
+                  `📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, was opened, no new messages)`
+                );
                 return {
                   ...newGroup,
-                  unread: 0  // Force to 0, ignore API response - user has already seen this chat
+                  unread: 0, // Force to 0, ignore API response - user has already seen this chat
                 };
               }
             }
 
             // Otherwise use the unread count from API or previous state
-            const oldGroup = prev.find(g => String(g.id) === groupIdStr);
+            const oldGroup = prev.find((g) => String(g.id) === groupIdStr);
             if (oldGroup) {
               // If old group had unread: 0, preserve it (might have been marked as read)
               // Otherwise use the new unread count from API
-              const preservedUnread = oldGroup.unread === 0 ? 0 : (newGroup.unread || oldGroup.unread || 0);
-              console.log(`📖 Group ${groupIdStr}: API=${apiUnreadCount}, Old=${oldGroup.unread}, Preserved=${preservedUnread}`);
+              const preservedUnread =
+                oldGroup.unread === 0
+                  ? 0
+                  : newGroup.unread || oldGroup.unread || 0;
+              console.log(
+                `📖 Group ${groupIdStr}: API=${apiUnreadCount}, Old=${oldGroup.unread}, Preserved=${preservedUnread}`
+              );
               return {
                 ...newGroup,
-                unread: preservedUnread
+                unread: preservedUnread,
               };
             }
             // New group, use API value
-            console.log(`📖 New group ${groupIdStr}: using API unread count ${apiUnreadCount}`);
+            console.log(
+              `📖 New group ${groupIdStr}: using API unread count ${apiUnreadCount}`
+            );
             return newGroup;
           });
         });
@@ -600,7 +844,9 @@ export default function GroupChat() {
         // After state update, restore selectedChat index to the position of the same group id
         // Only restore if there was a previously selected chat (don't auto-select on initial load)
         if (currentSelectedId) {
-          const newIndex = formattedGroups.findIndex((g) => String(g.id) === String(currentSelectedId));
+          const newIndex = formattedGroups.findIndex(
+            (g) => String(g.id) === String(currentSelectedId)
+          );
           if (newIndex !== -1) {
             setSelectedChat(newIndex);
           } else {
@@ -611,29 +857,104 @@ export default function GroupChat() {
         // Removed auto-selection on initial load - user should manually select a chat
       }
     } catch (error) {
-      console.error('❌ Error fetching groups:', error);
+      console.error("❌ Error fetching groups:", error);
     } finally {
       if (isInitial) setLoading(false);
     }
   };
+
+  // Track which groups we've joined via Socket.IO
+  const joinedGroupsRef = useRef(new Set());
 
   // Fetch groups list on initial mount
   useEffect(() => {
     refreshGroupsList(true);
   }, []);
 
-  // Poll for group updates every 5 seconds to detect new/deleted groups
+  // Join all groups via Socket.IO when groups are loaded and socket is connected
+  // This ensures we receive messages for all groups, not just the selected one
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshGroupsList(false);
-    }, 5000); // 5 seconds
+    if (!socket || !isConnected || groupChats.length === 0) return;
 
-    return () => clearInterval(interval);
-  }, [selectedChat]);
+    console.log("🔌 Joining all groups via Socket.IO to receive messages...");
+
+    // Capture current groups for cleanup
+    const currentGroups = [...groupChats];
+    const groupsToJoin = currentGroups.map((g) => ({
+      id: g.id,
+      idStr: String(g.id),
+    }));
+    const groupsJoinedInThisEffect = new Set(); // Track groups joined in this effect
+
+    groupsToJoin.forEach(({ id, idStr }) => {
+      // Skip if already joined
+      if (joinedGroupsRef.current.has(idStr)) {
+        return;
+      }
+
+      // Join the group
+      joinGroup(id, (ack) => {
+        if (ack && ack.ok) {
+          joinedGroupsRef.current.add(idStr);
+          groupsJoinedInThisEffect.add(idStr);
+          console.log(`✅ Joined group ${id} for message receiving`);
+        } else {
+          console.warn(`⚠️ Failed to join group ${id}:`, ack?.message);
+        }
+      });
+    });
+
+    // Cleanup: Leave all groups that were joined in this effect
+    return () => {
+      console.log("👋 Leaving groups on cleanup...");
+      groupsToJoin.forEach(({ id, idStr }) => {
+        // Only leave if we joined it in this effect
+        if (groupsJoinedInThisEffect.has(idStr)) {
+          leaveGroup(id);
+          joinedGroupsRef.current.delete(idStr);
+        }
+      });
+    };
+  }, [socket, isConnected, groupChats, joinGroup, leaveGroup]);
+
+  // Listen for Socket.IO group events instead of polling
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const groupEventNames = [
+      "groupCreated",
+      "group_created",
+      "newGroup",
+      "new_group",
+      "group:add",
+      "group",
+      "groupUpdated",
+    ];
+
+    const handleGroupEvent = async (payload) => {
+      try {
+        console.log("🔔 Group event received:", payload);
+        await refreshGroupsList(false);
+      } catch (err) {
+        console.error("❌ Error handling group event:", err);
+      }
+    };
+
+    groupEventNames.forEach((eventName) => {
+      socket.on(eventName, handleGroupEvent);
+    });
+
+    return () => {
+      groupEventNames.forEach((eventName) => {
+        socket.off(eventName, handleGroupEvent);
+      });
+    };
+  }, [socket, isConnected]);
 
   // Get current groupId from selected chat (memoized to prevent unnecessary re-runs)
   const currentGroupId = useMemo(() => {
-    if (selectedChat === null || !groupChats || groupChats.length === 0) return null;
+    if (selectedChat === null || !groupChats || groupChats.length === 0)
+      return null;
     return groupChats[selectedChat]?.id || null;
   }, [selectedChat, groupChats]);
 
@@ -646,19 +967,27 @@ export default function GroupChat() {
         const groupId = currentGroupId;
         const groupIdStr = String(groupId);
 
-        console.log('📖 Opening chat, marking messages as read for group:', groupIdStr);
+        console.log(
+          "📖 Opening chat, marking messages as read for group:",
+          groupIdStr
+        );
 
         // Always mark messages as read when chat is opened
         // Mark this group as read in our tracking FIRST (before any API calls)
         readGroupsRef.current.add(groupIdStr);
-        console.log('📖 Added to readGroupsRef:', Array.from(readGroupsRef.current));
+        console.log(
+          "📖 Added to readGroupsRef:",
+          Array.from(readGroupsRef.current)
+        );
 
         // Update local unread count to 0 immediately (optimistic update)
         // This ensures the badge disappears immediately when chat is selected
-        setGroupChats(prev => {
-          const updated = prev.map(g => {
+        setGroupChats((prev) => {
+          const updated = prev.map((g) => {
             if (String(g.id) === groupIdStr) {
-              console.log(`📖 Setting unread to 0 for group ${groupIdStr} (was ${g.unread})`);
+              console.log(
+                `📖 Setting unread to 0 for group ${groupIdStr} (was ${g.unread})`
+              );
               return { ...g, unread: 0 };
             }
             return g;
@@ -666,169 +995,156 @@ export default function GroupChat() {
           return updated;
         });
 
-        // Mark messages as read via API
-        // Always call the API to ensure backend updates unread count
-        // Don't check markedAsReadRef - always call to ensure backend is updated
-        try {
-          // Try to mark all messages as read
-          console.log(`📖 Calling mark-as-read API for group ${groupId}...`);
-          const markReadResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
-          markedAsReadRef.current.add(groupIdStr);
-          console.log('✅ Marked messages as read for group', groupId, markReadResponse.data);
-
-          // Update unread count to 0 after successful mark-as-read
-          setGroupChats(prev => prev.map(g =>
-            String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-          ));
-
-          // Force a refresh of unread counts after a short delay to ensure backend has updated
-          setTimeout(async () => {
-            try {
-              const unreadResponse = await axiosInstance.get(`/chat/groups/${groupId}/unread-count`, {
-                params: { _cacheBust: Date.now() },
-                headers: { 'Cache-Control': 'no-cache' }
-              });
-              const unreadCount = unreadResponse?.data?.data?.unread_count ??
-                                  unreadResponse?.data?.data?.unread_count ?? 0;
-              console.log(`📊 Refreshed unread count after mark-as-read: ${unreadCount} for group ${groupId}`);
-              if (unreadCount === 0) {
-                // Backend confirmed unread is 0, update local state
-                setGroupChats(prev => prev.map(g =>
-                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-                ));
-              }
-            } catch (refreshError) {
-              console.warn('⚠️ Failed to refresh unread count after mark-as-read:', refreshError);
-            }
-          }, 500); // Wait 500ms for backend to process
-        } catch (e) {
-          console.error('❌ Error marking messages as read:', e);
-          console.error('❌ Error response:', e?.response?.data);
-          console.error('❌ Error status:', e?.response?.status);
-
-          // Try fallback endpoint if read-all doesn't work
-          if (e?.response?.status === 400 || e?.response?.status === 404) {
-            try {
-              console.log('📖 Trying fallback mark-read endpoint...');
-              const fallbackResponse = await axiosInstance.put(`/chat/groups/${groupId}/messages/mark-read`);
+        // Mark messages as read via Socket.IO
+        if (socket && isConnected) {
+          console.log(
+            `📖 Marking all messages as read via Socket.IO for group ${groupId}...`
+          );
+          markAllMessagesRead(groupId, (ack) => {
+            if (ack && ack.ok) {
               markedAsReadRef.current.add(groupIdStr);
-              console.log('✅ Marked messages as read (fallback) for group', groupId, fallbackResponse.data);
-
-              setGroupChats(prev => prev.map(g =>
-                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-              ));
-            } catch (fallbackError) {
-              console.warn('⚠️ Fallback mark-read also failed:', fallbackError);
-              // Mark as processed even if both failed
-              markedAsReadRef.current.add(groupIdStr);
-              // Still update local state to 0 since user is viewing the chat
-              setGroupChats(prev => prev.map(g =>
-                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-              ));
+              console.log("✅ Marked messages as read for group", groupId);
+              // Update unread count from acknowledgment
+              const unreadCount = ack.unreadCount || 0;
+              setGroupChats((prev) =>
+                prev.map((g) =>
+                  String(g.id) === groupIdStr
+                    ? { ...g, unread: unreadCount }
+                    : g
+                )
+              );
+            } else {
+              // Fallback to REST API if Socket.IO fails
+              console.warn(
+                "⚠️ Socket.IO mark-as-read failed, trying REST API..."
+              );
+              axiosInstance
+                .put(`/chat/groups/${groupId}/messages/read-all`)
+                .then(() => {
+                  markedAsReadRef.current.add(groupIdStr);
+                  setGroupChats((prev) =>
+                    prev.map((g) =>
+                      String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+                    )
+                  );
+                })
+                .catch((e) => {
+                  console.warn("⚠️ REST API mark-as-read also failed:", e);
+                  markedAsReadRef.current.add(groupIdStr);
+                  setGroupChats((prev) =>
+                    prev.map((g) =>
+                      String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+                    )
+                  );
+                });
             }
-          } else {
-            // For other errors, log but still mark as processed
-            console.warn('⚠️ Failed to mark messages as read:', e);
+          });
+        } else {
+          // Fallback to REST API if socket not connected
+          try {
+            console.log(
+              `📖 Socket not connected, using REST API for mark-as-read...`
+            );
+            await axiosInstance.put(
+              `/chat/groups/${groupId}/messages/read-all`
+            );
             markedAsReadRef.current.add(groupIdStr);
-            // Still update local state to 0 since user is viewing the chat
-            setGroupChats(prev => prev.map(g =>
-              String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-            ));
+            setGroupChats((prev) =>
+              prev.map((g) =>
+                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+              )
+            );
+          } catch (e) {
+            console.warn("⚠️ Failed to mark messages as read:", e);
+            markedAsReadRef.current.add(groupIdStr);
+            setGroupChats((prev) =>
+              prev.map((g) =>
+                String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
+              )
+            );
           }
         }
 
         // Fetch messages
-        const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
+        const messagesResponse = await axiosInstance.get(
+          `/chat/groups/${groupId}/messages`
+        );
         if (messagesResponse.data.success) {
-          const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
+          const formattedMessages = messagesResponse.data.data.map((msg) =>
+            formatMessage(msg)
+          );
           setMessages(formattedMessages);
-          // Initialize previous message IDs ref for polling detection
-          previousMessageIdsRef.current = new Set(formattedMessages.map(m => m.id));
         }
 
         // Fetch group info
-        const infoResponse = await axiosInstance.get(`/chat/groups/${groupId}/info`);
+        const infoResponse = await axiosInstance.get(
+          `/chat/groups/${groupId}/info`
+        );
         if (infoResponse.data.success) {
           setGroupInfo(infoResponse.data.data);
         }
       } catch (error) {
-        console.error('❌ Error fetching messages/info:', error);
+        console.error("❌ Error fetching messages/info:", error);
       }
     };
 
     fetchMessagesAndInfo();
 
-    // Poll for new messages every 3 seconds while chat is open
-    const messagesInterval = setInterval(() => {
-      if (selectedChat === null || !currentGroupId) return;
+    // Set current group ID when chat is selected (for message filtering)
+    // Note: We already join all groups in a separate useEffect, so we don't need to join here
+    if (currentGroupId) {
+      currentGroupIdRef.current = currentGroupId;
+      console.log(`📌 Current group ID set to: ${currentGroupId}`);
 
-      const fetchNewMessages = async () => {
-        try {
-          const groupId = currentGroupId;
-          const groupIdStr = String(groupId);
-          const messagesResponse = await axiosInstance.get(`/chat/groups/${groupId}/messages`);
-          if (messagesResponse.data.success) {
-            const formattedMessages = messagesResponse.data.data.map((msg) => formatMessage(msg));
-
-            // Check if there are new messages BEFORE updating state
-            const currentMessageIds = new Set(formattedMessages.map(m => m.id));
-            const prevIds = previousMessageIdsRef.current;
-            const hasNewMessages = formattedMessages.length !== prevIds.size ||
-                                  formattedMessages.some(m => !prevIds.has(m.id));
-
-            // Update previous message IDs
-            previousMessageIdsRef.current = currentMessageIds;
-
-            // Update messages state
-            setMessages(prev => {
-              if (prev.length !== formattedMessages.length) {
-                // Message count changed, update with new messages
-                console.log('📨 Messages updated:', formattedMessages.length, 'prev:', prev.length);
-                return formattedMessages;
-              }
-              // Check if any message IDs are new
-              const prevIds = new Set(prev.map(m => m.id));
-              const newMessagesExist = formattedMessages.some(m => !prevIds.has(m.id));
-              if (newMessagesExist) {
-                console.log('📨 New messages detected');
-                return formattedMessages;
-              }
-              return prev;
-            });
-
-            // If new messages arrived while chat is open, mark them as read
-            if (hasNewMessages) {
-              console.log('📖 New messages arrived in open chat, marking as read for group:', groupIdStr);
-              try {
-                // Mark all messages as read (including the new ones)
-                await axiosInstance.put(`/chat/groups/${groupId}/messages/read-all`);
-                console.log('✅ Marked new messages as read for group', groupId);
-
-                // Update unread count to 0
-                setGroupChats(prev => prev.map(g =>
-                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-                ));
-              } catch (e) {
-                // Silently ignore 400/404 errors (endpoint might not be supported)
-                if (e?.response?.status !== 400 && e?.response?.status !== 404) {
-                  console.warn('⚠️ Failed to mark new messages as read:', e);
-                }
-                // Still update local state to 0 since user is viewing the chat
-                setGroupChats(prev => prev.map(g =>
-                  String(g.id) === groupIdStr ? { ...g, unread: 0 } : g
-                ));
-              }
-            }
+      // Ensure this group is joined (it should already be, but double-check)
+      const groupIdStr = String(currentGroupId);
+      if (socket && isConnected && !joinedGroupsRef.current.has(groupIdStr)) {
+        console.log(
+          `🔌 Group ${currentGroupId} not yet joined, joining now...`
+        );
+        joinGroup(currentGroupId, (ack) => {
+          if (ack && ack.ok) {
+            joinedGroupsRef.current.add(groupIdStr);
+            console.log(`✅ Joined group ${currentGroupId} via Socket.IO`);
           }
-        } catch (error) {
-          console.error('❌ Error fetching new messages:', error);
-        }
-      };
-      fetchNewMessages();
-    }, 3000); // Poll every 3 seconds
+        });
+      }
 
-    return () => clearInterval(messagesInterval);
-  }, [selectedChat, currentGroupId, isMobile, showMainChat]); // Use currentGroupId instead of groupChats
+      // Get initial unread count for the selected group
+      if (socket && isConnected) {
+        getUnreadCount(currentGroupId, (ack) => {
+          if (ack && ack.ok) {
+            const unreadCount = ack.unreadCount || 0;
+            setGroupChats((prev) =>
+              prev.map((g) =>
+                String(g.id) === String(currentGroupId)
+                  ? { ...g, unread: unreadCount }
+                  : g
+              )
+            );
+          }
+        });
+      }
+    } else {
+      currentGroupIdRef.current = null;
+    }
+
+    // Cleanup: Leave group when chat is deselected
+    return () => {
+      if (socket && isConnected && currentGroupIdRef.current) {
+        leaveGroup(currentGroupIdRef.current);
+        currentGroupIdRef.current = null;
+      }
+    };
+  }, [
+    selectedChat,
+    currentGroupId,
+    socket,
+    isConnected,
+    joinGroup,
+    leaveGroup,
+    getUnreadCount,
+  ]);
 
   // Reset marked-as-read tracking when chat is deselected
   // This allows marking as read again when reopening the same chat
@@ -849,8 +1165,8 @@ export default function GroupChat() {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleChatSelect = (index) => {
@@ -861,7 +1177,12 @@ export default function GroupChat() {
   };
 
   const handleBackToChats = () => {
-    console.log('🔵 handleBackToChats called', { isMobile, showMainChat, showRightSidebarMobile, selectedChat });
+    console.log("🔵 handleBackToChats called", {
+      isMobile,
+      showMainChat,
+      showRightSidebarMobile,
+      selectedChat,
+    });
     // Clear selected chat to remove highlight
     setSelectedChat(null);
     setShowMainChat(false);
@@ -876,7 +1197,7 @@ export default function GroupChat() {
   const handleGroupNameClick = () => {
     // Open the first section (contents) to show group info in right sidebar
     if (!activeInfoSection) {
-      setActiveInfoSection('contents');
+      setActiveInfoSection("contents");
     }
     // On mobile, show the right sidebar and hide main chat
     if (isMobile) {
@@ -893,12 +1214,14 @@ export default function GroupChat() {
     if (selectedChat !== null && groupChats[selectedChat]) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.id === messageId) {
-        setGroupChats(prev => prev.map((chat, index) => {
-          if (index === selectedChat) {
-            return { ...chat, subject: newText };
-          }
-          return chat;
-        }));
+        setGroupChats((prev) =>
+          prev.map((chat, index) => {
+            if (index === selectedChat) {
+              return { ...chat, subject: newText };
+            }
+            return chat;
+          })
+        );
       }
     }
   };
@@ -909,136 +1232,244 @@ export default function GroupChat() {
     const groupId = groupChats[selectedChat]?.id;
     if (!groupId) return false;
 
-    const trimmedText = text?.trim() || '';
+    const trimmedText = text?.trim() || "";
     if (!trimmedText && !file) {
       return false;
     }
 
     const tempId = `temp-${Date.now()}`;
     let localMediaUrl = null;
-    const normalizedType = file ? deriveMediaCategory(file, mediaCategory) : null;
+    const normalizedType = file
+      ? deriveMediaCategory(file, mediaCategory)
+      : null;
     // Use 'voice_note' if mediaCategory is 'voice_note', otherwise use normalizedType
-    const finalMediaType = mediaCategory === 'voice_note' ? 'voice_note' : (normalizedType || 'document');
+    const finalMediaType =
+      mediaCategory === "voice_note"
+        ? "voice_note"
+        : normalizedType || "document";
 
     const optimisticMessage = {
       id: tempId,
       sender: user?.name || "You",
-      initials: user?.name?.charAt(0)?.toUpperCase() || 'ME',
-      time: new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+      initials: user?.name?.charAt(0)?.toUpperCase() || "ME",
+      time: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
       }),
       text: trimmedText,
-      date: new Date().toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
+      date: new Date().toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
       }),
       created_at: new Date().toISOString(),
       senderPhoto: user?.photo || null,
       senderEmail: user?.email || null,
-      media: []
+      media: [],
     };
 
     if (file) {
       localMediaUrl = URL.createObjectURL(file);
-      const originalName = file.name || 'attachment';
-      optimisticMessage.media = [{
-        id: `${tempId}-media`,
-        media_url: localMediaUrl,
-        media_type: finalMediaType,
-        isLocal: true,
-        file_name: originalName
-      }];
+      const originalName = file.name || "attachment";
+      optimisticMessage.media = [
+        {
+          id: `${tempId}-media`,
+          media_url: localMediaUrl,
+          media_type: finalMediaType,
+          isLocal: true,
+          file_name: originalName,
+        },
+      ];
     }
 
     setMessages((prev) => [...prev, optimisticMessage]);
 
-    const previewLabel = trimmedText || (file ? 'Media attachment' : '');
-    setGroupChats(prev => prev.map((chat, index) => {
-      if (index === selectedChat) {
-        return { ...chat, subject: previewLabel || chat.subject };
-      }
-      return chat;
-    }));
+    const previewLabel = trimmedText || (file ? "Media attachment" : "");
+    setGroupChats((prev) =>
+      prev.map((chat, index) => {
+        if (index === selectedChat) {
+          return { ...chat, subject: previewLabel || chat.subject };
+        }
+        return chat;
+      })
+    );
 
     const formData = new FormData();
     if (trimmedText) {
-      formData.append('message', trimmedText);
+      formData.append("message", trimmedText);
     }
     if (file) {
-      formData.append('media', file);
+      formData.append("media", file);
       // Use 'voice_note' if it's a voice recording, otherwise use normalizedType
       // For uploaded audio files, ensure they're marked as 'audio', not 'voice_note'
       let finalMediaType;
-      if (mediaCategory === 'voice_note') {
-        finalMediaType = 'voice_note';
-      } else if (mediaCategory === 'audio' || (file.type?.startsWith('audio/') && mediaCategory !== 'voice_note')) {
-        finalMediaType = 'audio';
+      if (mediaCategory === "voice_note") {
+        finalMediaType = "voice_note";
+      } else if (
+        mediaCategory === "audio" ||
+        (file.type?.startsWith("audio/") && mediaCategory !== "voice_note")
+      ) {
+        finalMediaType = "audio";
       } else {
-        finalMediaType = normalizedType || 'document';
+        finalMediaType = normalizedType || "document";
       }
       if (finalMediaType) {
-        formData.append('media_type', finalMediaType);
+        formData.append("media_type", finalMediaType);
       }
       if (file.type) {
-        formData.append('file_mime', file.type);
+        formData.append("file_mime", file.type);
       }
       if (file.name) {
-        formData.append('file_name', file.name);
+        formData.append("file_name", file.name);
       }
     }
 
     setIsSendingMessage(true);
-    try {
-      const res = await axiosInstance.post(`/chat/groups/${groupId}/messages`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      if (res?.data?.success && res.data.data) {
-        const formattedMessage = formatMessage(res.data.data);
-        setMessages((prev) => prev.map((msg) => (msg.id === tempId ? formattedMessage : msg)));
 
-        // Refresh group info to get updated media list if a file was sent
-        if (file && finalMediaType !== 'voice_note') {
-          try {
-            const infoResponse = await axiosInstance.get(`/chat/groups/${groupId}/info`);
-            if (infoResponse?.data?.success) {
-              setGroupInfo(infoResponse.data.data);
-            }
-          } catch (refreshError) {
-            console.warn('⚠️ Failed to refresh group info after sending media:', refreshError);
+    // Helper function for REST API fallback
+    const sendViaRestAPI = async () => {
+      try {
+        console.log("📤 Sending message via REST API...");
+        const res = await axiosInstance.post(
+          `/chat/groups/${groupId}/messages`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
           }
-        }
+        );
+        if (res?.data?.success && res.data.data) {
+          const formattedMessage = formatMessage(res.data.data);
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === tempId ? formattedMessage : msg))
+          );
 
-        return true;
+          // Refresh group info to get updated media list if a file was sent
+          if (file && finalMediaType !== "voice_note") {
+            try {
+              const infoResponse = await axiosInstance.get(
+                `/chat/groups/${groupId}/info`
+              );
+              if (infoResponse?.data?.success) {
+                setGroupInfo(infoResponse.data.data);
+              }
+            } catch (refreshError) {
+              console.warn(
+                "⚠️ Failed to refresh group info after sending media:",
+                refreshError
+              );
+            }
+          }
+
+          if (localMediaUrl) {
+            URL.revokeObjectURL(localMediaUrl);
+          }
+          setIsSendingMessage(false);
+          return true;
+        }
+        throw new Error("Failed to send message");
+      } catch (err) {
+        console.error("❌ REST API failed to send message:", err);
+        smartToast.error(
+          err?.response?.data?.message || "Failed to send message"
+        );
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+        if (localMediaUrl) {
+          URL.revokeObjectURL(localMediaUrl);
+        }
+        setIsSendingMessage(false);
+        return false;
       }
-      throw new Error('Failed to send message');
+    };
+
+    try {
+      // If there's a file, always use REST API (Socket.IO doesn't handle file uploads well)
+      if (file) {
+        return await sendViaRestAPI();
+      }
+
+      // For text-only messages, try Socket.IO first
+      if (socket && isConnected) {
+        console.log("📤 Sending text message via Socket.IO...");
+        return new Promise((resolve) => {
+          socketSendMessage(groupId, trimmedText, (ack) => {
+            if (ack && ack.ok && ack.data) {
+              // Message sent successfully via Socket.IO
+              const formattedMessage = formatMessage(ack.data);
+              setMessages((prev) => {
+                // Check if message already exists (from Socket.IO broadcast)
+                const existingIndex = prev.findIndex(
+                  (msg) => msg.id === ack.data.id
+                );
+                if (existingIndex !== -1) {
+                  // Message already exists (from Socket.IO broadcast), just update it
+                  const updated = [...prev];
+                  updated[existingIndex] = formattedMessage;
+                  return updated;
+                }
+                // Replace temp message with real one
+                return prev.map((msg) =>
+                  msg.id === tempId ? formattedMessage : msg
+                );
+              });
+              console.log("✅ Message sent via Socket.IO");
+              if (localMediaUrl) {
+                URL.revokeObjectURL(localMediaUrl);
+              }
+              setIsSendingMessage(false);
+              resolve(true);
+            } else {
+              // Socket.IO failed, fallback to REST API
+              console.warn(
+                "⚠️ Socket.IO send failed, falling back to REST API:",
+                ack?.message
+              );
+              sendViaRestAPI().then(resolve);
+            }
+          });
+        });
+      } else {
+        // Fallback to REST API if Socket.IO not available
+        return await sendViaRestAPI();
+      }
     } catch (err) {
-      console.error('❌ REST fallback failed to send message:', err);
-      smartToast.error(err?.response?.data?.message || 'Failed to send message');
+      console.error("❌ Error sending message:", err);
+      smartToast.error(
+        err?.response?.data?.message || "Failed to send message"
+      );
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      return false;
-    } finally {
       if (localMediaUrl) {
         URL.revokeObjectURL(localMediaUrl);
       }
       setIsSendingMessage(false);
+      return false;
     }
   };
 
-  const selectedChatData = selectedChat !== null ? groupChats[selectedChat] : null;
-  const chatTitle = selectedChatData ? selectedChatData.group_name : 'Group Chat';
+  const selectedChatData =
+    selectedChat !== null ? groupChats[selectedChat] : null;
+  const chatTitle = selectedChatData
+    ? selectedChatData.group_name
+    : "Group Chat";
 
-  const rawContentResources = useMemo(() => groupInfo?.content?.resources || [], [groupInfo]);
-  const contentResources = useMemo(() => categorizeResources(rawContentResources), [rawContentResources]);
+  const rawContentResources = useMemo(
+    () => groupInfo?.content?.resources || [],
+    [groupInfo]
+  );
+  const contentResources = useMemo(
+    () => categorizeResources(rawContentResources),
+    [rawContentResources]
+  );
 
   const mediaArray = useMemo(() => {
     if (groupInfo?.group?.group_media) return groupInfo.group.group_media;
     return groupInfo?.group_media || [];
   }, [groupInfo]);
 
-  const groupMediaItems = useMemo(() => categorizeMediaItems(mediaArray), [mediaArray]);
+  const groupMediaItems = useMemo(
+    () => categorizeMediaItems(mediaArray),
+    [mediaArray]
+  );
 
   const mediaSummary = useMemo(() => {
     const summary = {
@@ -1046,44 +1477,43 @@ export default function GroupChat() {
       videos: groupMediaItems?.videos || [],
       audio: groupMediaItems?.audio || [],
       files: groupMediaItems?.files || [],
-      links: extractLinksFromMessages(messages)
+      links: extractLinksFromMessages(messages),
     };
-    console.log('Media summary:', summary);
+    console.log("Media summary:", summary);
     return summary;
   }, [messages, groupMediaItems]);
-
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
   const calendarEvents = [
     {
-      month: 'Sep',
-      day: '25',
-      online: 'Online',
-      type: 'Group Meeting',
-      startTime: '8:25',
-      startPeriod: 'AM',
-      endTime: '10:20',
-      endPeriod: 'AM',
-      avatars: ['M', 'A']
+      month: "Sep",
+      day: "25",
+      online: "Online",
+      type: "Group Meeting",
+      startTime: "8:25",
+      startPeriod: "AM",
+      endTime: "10:20",
+      endPeriod: "AM",
+      avatars: ["M", "A"],
     },
     {
-      month: 'Sep',
-      day: '26',
-      online: 'Online',
-      type: 'Group Meeting',
-      startTime: '8:25',
-      startPeriod: 'AM',
-      endTime: '10:20',
-      endPeriod: 'AM',
-      avatars: ['M', 'A']
-    }
+      month: "Sep",
+      day: "26",
+      online: "Online",
+      type: "Group Meeting",
+      startTime: "8:25",
+      startPeriod: "AM",
+      endTime: "10:20",
+      endPeriod: "AM",
+      avatars: ["M", "A"],
+    },
   ];
 
   const currentUser = {
-    name: user?.name || 'User',
-    initials: user?.name?.charAt(0)?.toUpperCase() || 'U',
-    status: 'Online'
+    name: user?.name || "User",
+    initials: user?.name?.charAt(0)?.toUpperCase() || "U",
+    status: "Online",
   };
 
   const handleToggleInfoSection = (section) => {
@@ -1102,7 +1532,11 @@ export default function GroupChat() {
     return (
       <div
         className="home-container"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         Loading groups...
       </div>
@@ -1121,7 +1555,11 @@ export default function GroupChat() {
 
       <MainChat
         messages={selectedChatData ? messages : []}
-        chatTitle={selectedChat !== null && groupChats[selectedChat] ? groupChats[selectedChat]?.name : 'Select a chat'}
+        chatTitle={
+          selectedChat !== null && groupChats[selectedChat]
+            ? groupChats[selectedChat]?.name
+            : "Select a chat"
+        }
         isMobile={isMobile}
         showMainChat={showMainChat}
         onBackToChats={handleBackToChats}
@@ -1159,15 +1597,19 @@ export default function GroupChat() {
           }
         }}
         onOpenSidebar={() => {
-          console.log('🔵 onOpenSidebar called from GroupChat - opening sidebar menu');
+          console.log(
+            "🔵 onOpenSidebar called from GroupChat - opening sidebar menu"
+          );
           // Dispatch custom event to trigger AppLayout sidebar
-          window.dispatchEvent(new CustomEvent('openMobileSidebar'));
+          window.dispatchEvent(new CustomEvent("openMobileSidebar"));
           // Don't close right sidebar - let the sidebar menu open on top
         }}
         onOpenNotifications={() => {
-          console.log('🔔 onOpenNotifications called from GroupChat - opening notifications');
+          console.log(
+            "🔔 onOpenNotifications called from GroupChat - opening notifications"
+          );
           // Dispatch custom event to trigger AppLayout notification panel
-          window.dispatchEvent(new CustomEvent('openNotificationPanel'));
+          window.dispatchEvent(new CustomEvent("openNotificationPanel"));
           // Don't close right sidebar - let the notification panel open on top
         }}
         unreadNotificationCount={0}

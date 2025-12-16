@@ -1,19 +1,31 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { X, House, User, Envelope, CalendarBlank, GearSix, SignOut, UsersThree, Plus } from '@phosphor-icons/react';
-import LeftNavbar from '../../pages/GroupChat/components/LeftNavbar';
-import UserStatus from '../../pages/GroupChat/components/UserStatus';
-import MobileHeader from '../MobileHeader/MobileHeader';
-import { AuthContext } from '../../context/AuthContext';
-import axiosInstance from '../../API/axiosInstance';
-import { smartToast } from '../../API/toastManager';
-import './AppLayout.css';
+import React, { useState, useEffect, useContext, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  X,
+  House,
+  User,
+  Envelope,
+  CalendarBlank,
+  GearSix,
+  SignOut,
+  UsersThree,
+  Plus,
+} from "@phosphor-icons/react";
+import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
+import UserStatus from "../../pages/GroupChat/components/UserStatus";
+import MobileHeader from "../MobileHeader/MobileHeader";
+import { AuthContext } from "../../context/AuthContext";
+import { useSocket } from "../../context/SocketContext";
+import axiosInstance from "../../API/axiosInstance";
+import { smartToast } from "../../API/toastManager";
+import "./AppLayout.css";
 
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser, loginUser } = useContext(AuthContext);
-  const [activeNav, setActiveNav] = useState('messages');
+  const { socket, isConnected } = useSocket();
+  const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
@@ -23,10 +35,16 @@ const AppLayout = ({ children }) => {
 
   // Update activeNav based on current route
   useEffect(() => {
-    if (location.pathname === '/home' || location.pathname.startsWith('/home')) {
-      setActiveNav('messages');
-    } else if (location.pathname === '/groups' || location.pathname.startsWith('/groups')) {
-      setActiveNav('users');
+    if (
+      location.pathname === "/home" ||
+      location.pathname.startsWith("/home")
+    ) {
+      setActiveNav("messages");
+    } else if (
+      location.pathname === "/groups" ||
+      location.pathname.startsWith("/groups")
+    ) {
+      setActiveNav("users");
     }
   }, [location]);
 
@@ -35,19 +53,35 @@ const AppLayout = ({ children }) => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch unread notification count
+  // Fetch unread notification count on mount
   useEffect(() => {
     fetchUnreadCount();
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(() => {
-      fetchUnreadCount();
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Listen for Socket.IO notification events instead of polling
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewNotification = (notification) => {
+      console.log("🔔 New notification received via Socket.IO:", notification);
+      // Increment unread count
+      setUnreadNotificationCount((prev) => prev + 1);
+      // Optionally show a toast notification
+      if (notification.title && notification.message) {
+        smartToast.info(`${notification.title}: ${notification.message}`);
+      }
+    };
+
+    socket.on("new_notification", handleNewNotification);
+
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, isConnected]);
 
   // Listen for custom events from child components (like GroupChat)
   useEffect(() => {
@@ -62,53 +96,56 @@ const AppLayout = ({ children }) => {
       fetchUnreadCount();
     };
 
-    window.addEventListener('openMobileSidebar', handleOpenSidebar);
-    window.addEventListener('openNotificationPanel', handleOpenNotifications);
+    window.addEventListener("openMobileSidebar", handleOpenSidebar);
+    window.addEventListener("openNotificationPanel", handleOpenNotifications);
 
     return () => {
-      window.removeEventListener('openMobileSidebar', handleOpenSidebar);
-      window.removeEventListener('openNotificationPanel', handleOpenNotifications);
+      window.removeEventListener("openMobileSidebar", handleOpenSidebar);
+      window.removeEventListener(
+        "openNotificationPanel",
+        handleOpenNotifications
+      );
     };
   }, []);
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axiosInstance.get('/notification/unread-count');
+      const response = await axiosInstance.get("/notification/unread-count");
       let count = 0;
       const data = response.data;
 
       if (data !== null && data !== undefined) {
-        if (typeof data === 'number') {
+        if (typeof data === "number") {
           count = data;
-        } else if (data.success && typeof data.unreadCount === 'number') {
+        } else if (data.success && typeof data.unreadCount === "number") {
           count = data.unreadCount;
         } else if (data.success && data.data !== undefined) {
-          if (typeof data.data === 'number') {
+          if (typeof data.data === "number") {
             count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
+          } else if (data.data && typeof data.data.count === "number") {
             count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
+          } else if (data.data && typeof data.data.unread_count === "number") {
             count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
+          } else if (data.data && typeof data.data.unreadCount === "number") {
             count = data.data.unreadCount;
           }
         } else if (data.data !== undefined) {
-          if (typeof data.data === 'number') {
+          if (typeof data.data === "number") {
             count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
+          } else if (data.data && typeof data.data.count === "number") {
             count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
+          } else if (data.data && typeof data.data.unread_count === "number") {
             count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
+          } else if (data.data && typeof data.data.unreadCount === "number") {
             count = data.data.unreadCount;
           }
-        } else if (typeof data.unreadCount === 'number') {
+        } else if (typeof data.unreadCount === "number") {
           count = data.unreadCount;
-        } else if (typeof data.count === 'number') {
+        } else if (typeof data.count === "number") {
           count = data.count;
-        } else if (typeof data.unread_count === 'number') {
+        } else if (typeof data.unread_count === "number") {
           count = data.unread_count;
-        } else if (typeof data.unread === 'number') {
+        } else if (typeof data.unread === "number") {
           count = data.unread;
         }
       }
@@ -116,19 +153,19 @@ const AppLayout = ({ children }) => {
       count = Number(count) || 0;
       setUnreadNotificationCount(count);
     } catch (error) {
-      console.error('Error fetching unread notification count:', error);
+      console.error("Error fetching unread notification count:", error);
     }
   };
 
   // Handle navigation from LeftNavbar
   const handleNavClick = (nav) => {
     // Only navigate if we're not already on that route
-    if (nav === 'users' && location.pathname !== '/groups') {
+    if (nav === "users" && location.pathname !== "/groups") {
       setActiveNav(nav);
-      navigate('/groups', { replace: false });
-    } else if (nav === 'messages' && location.pathname !== '/home') {
+      navigate("/groups", { replace: false });
+    } else if (nav === "messages" && location.pathname !== "/home") {
       setActiveNav(nav);
-      navigate('/home', { replace: false });
+      navigate("/home", { replace: false });
     } else {
       // Just update active state if already on the route
       setActiveNav(nav);
@@ -162,9 +199,9 @@ const AppLayout = ({ children }) => {
     try {
       logoutUser();
     } catch (err) {
-      console.warn('Logout error', err);
+      console.warn("Logout error", err);
     }
-    navigate('/login');
+    navigate("/login");
     setIsSidebarOpen(false);
   };
 
@@ -179,20 +216,20 @@ const AppLayout = ({ children }) => {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      smartToast.error('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      smartToast.error("Please select an image file");
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      smartToast.error('Image size should be less than 5MB');
+      smartToast.error("Image size should be less than 5MB");
       return;
     }
 
     const userId = user?.id;
     if (!userId) {
-      smartToast.error('User ID not found');
+      smartToast.error("User ID not found");
       return;
     }
 
@@ -200,17 +237,18 @@ const AppLayout = ({ children }) => {
 
     try {
       const formData = new FormData();
-      formData.append('user_photo', file);
+      formData.append("user_photo", file);
 
       const response = await axiosInstance.patch(`/user/${userId}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       if (response.data) {
         // Try different possible field names and nested structures for the photo URL
-        let photoUrl = response.data.user_photo ||
+        let photoUrl =
+          response.data.user_photo ||
           response.data.photo ||
           response.data.data?.user_photo ||
           response.data.data?.photo ||
@@ -223,37 +261,40 @@ const AppLayout = ({ children }) => {
         const updatedUser = {
           ...user,
           photo: photoUrl || user?.photo,
-          user_photo: photoUrl || user?.user_photo
+          user_photo: photoUrl || user?.user_photo,
         };
 
         // Get token from storage
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const rememberMe = localStorage.getItem('remember') === 'true';
+        const token =
+          localStorage.getItem("token") || sessionStorage.getItem("token");
+        const rememberMe = localStorage.getItem("remember") === "true";
 
         // Update user in context
         loginUser(updatedUser, token, rememberMe);
 
-        smartToast.success('Profile photo updated successfully');
+        smartToast.success("Profile photo updated successfully");
       }
     } catch (error) {
-      console.error('Error uploading photo:', error);
-      smartToast.error(error?.response?.data?.message || 'Failed to upload photo');
+      console.error("Error uploading photo:", error);
+      smartToast.error(
+        error?.response?.data?.message || "Failed to upload photo"
+      );
     } finally {
       setIsUploadingPhoto(false);
       // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const menuItems = [
-    { icon: House, label: 'Home', nav: 'home' },
-    { icon: User, label: 'User', nav: 'profile' },
-    { icon: Envelope, label: 'Message', nav: 'messages' },
-    { icon: UsersThree, label: 'Groups', nav: 'users' },
-    { icon: CalendarBlank, label: 'Calendar', nav: 'calendar' },
-    { icon: GearSix, label: 'Settings', nav: 'settings' },
+    { icon: House, label: "Home", nav: "home" },
+    { icon: User, label: "User", nav: "profile" },
+    { icon: Envelope, label: "Message", nav: "messages" },
+    { icon: UsersThree, label: "Groups", nav: "users" },
+    { icon: CalendarBlank, label: "Calendar", nav: "calendar" },
+    { icon: GearSix, label: "Settings", nav: "settings" },
   ];
 
   return (
@@ -261,7 +302,9 @@ const AppLayout = ({ children }) => {
       <LeftNavbar
         activeNav={activeNav}
         setActiveNav={handleNavClick}
-        externalNotificationPanelOpen={isMobile ? showNotificationPanel : undefined}
+        externalNotificationPanelOpen={
+          isMobile ? showNotificationPanel : undefined
+        }
         onExternalNotificationPanelClose={handleNotificationPanelClose}
         onNotificationRead={handleNotificationRead}
       />
@@ -285,7 +328,7 @@ const AppLayout = ({ children }) => {
 
       {/* Sidebar Menu - Mobile Only */}
       {isMobile && (
-        <div className={`mobile-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className={`mobile-sidebar ${isSidebarOpen ? "open" : ""}`}>
           {/* Profile Section */}
           <div className="sidebar-profile">
             <button
@@ -299,35 +342,48 @@ const AppLayout = ({ children }) => {
                 type="file"
                 ref={fileInputRef}
                 accept="image/*"
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
                 onChange={handleFileChange}
                 disabled={isUploadingPhoto}
               />
               <div
                 className="profile-avatar-container"
                 onClick={handlePhotoClick}
-                style={{ cursor: isUploadingPhoto ? 'wait' : 'pointer' }}
-                title={isUploadingPhoto ? 'Uploading...' : 'Click to change photo'}
+                style={{ cursor: isUploadingPhoto ? "wait" : "pointer" }}
+                title={
+                  isUploadingPhoto ? "Uploading..." : "Click to change photo"
+                }
               >
                 <div className="profile-avatar">
                   {(() => {
-                    const userPhoto = user?.photo || user?.user_photo || user?.profile_photo;
+                    const userPhoto =
+                      user?.photo || user?.user_photo || user?.profile_photo;
 
                     return userPhoto ? (
                       <img
                         src={userPhoto}
-                        alt={user?.name || 'User'}
+                        alt={user?.name || "User"}
                         className="profile-avatar-img"
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          const span = e.target.parentElement.querySelector('span');
-                          if (span) span.style.display = 'flex';
+                          e.target.style.display = "none";
+                          const span =
+                            e.target.parentElement.querySelector("span");
+                          if (span) span.style.display = "flex";
                         }}
                       />
                     ) : null;
                   })()}
-                  <span style={{ display: (user?.photo || user?.user_photo || user?.profile_photo) ? 'none' : 'flex' }}>
-                    {isUploadingPhoto ? '...' : (user?.name?.charAt(0)?.toUpperCase() || 'U')}
+                  <span
+                    style={{
+                      display:
+                        user?.photo || user?.user_photo || user?.profile_photo
+                          ? "none"
+                          : "flex",
+                    }}
+                  >
+                    {isUploadingPhoto
+                      ? "..."
+                      : user?.name?.charAt(0)?.toUpperCase() || "U"}
                   </span>
                 </div>
                 <div className="profile-avatar-overlay">
@@ -339,7 +395,7 @@ const AppLayout = ({ children }) => {
                   </div>
                 )}
               </div>
-              <h3>{user?.name || 'User'}</h3>
+              <h3>{user?.name || "User"}</h3>
             </div>
           </div>
 
@@ -348,9 +404,11 @@ const AppLayout = ({ children }) => {
             {menuItems.map((item, index) => (
               <button
                 key={index}
-                className={`sidebar-item ${activeNav === item.nav ? 'active' : ''}`}
+                className={`sidebar-item ${
+                  activeNav === item.nav ? "active" : ""
+                }`}
                 onClick={() => {
-                  if (handleNavClick && typeof handleNavClick === 'function') {
+                  if (handleNavClick && typeof handleNavClick === "function") {
                     handleNavClick(item.nav);
                   }
                 }}
@@ -359,10 +417,7 @@ const AppLayout = ({ children }) => {
                 <span>{item.label}</span>
               </button>
             ))}
-            <button
-              className="sidebar-item logout-item"
-              onClick={handleLogout}
-            >
+            <button className="sidebar-item logout-item" onClick={handleLogout}>
               <SignOut size={24} weight="regular" />
               <span>Logout</span>
             </button>
@@ -374,7 +429,7 @@ const AppLayout = ({ children }) => {
         {React.cloneElement(children, {
           activeNav,
           setActiveNav: handleNavClick,
-          onOpenSidebar: () => setIsSidebarOpen(true)
+          onOpenSidebar: () => setIsSidebarOpen(true),
         })}
       </div>
 
@@ -389,4 +444,3 @@ const AppLayout = ({ children }) => {
 };
 
 export default AppLayout;
-

@@ -3,6 +3,7 @@ import { House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut } from '@p
 import './LeftNavbar.css';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
+import { useSocket } from '../../../context/SocketContext';
 import { UsersThree } from '@phosphor-icons/react';
 import axiosInstance from '../../../API/axiosInstance';
 import NotificationPanel from './NotificationPanel';
@@ -11,6 +12,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
   console.log('🔔 LeftNavbar component rendering');
   const navigate = useNavigate();
   const { logoutUser } = useContext(AuthContext);
+  const { socket, isConnected } = useSocket();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -34,20 +36,28 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
 
   console.log('🔔 Current unreadCount state:', unreadCount);
 
-  // Fetch unread notification count
+  // Fetch unread notification count on mount
   useEffect(() => {
     console.log('🔔 LeftNavbar mounted, fetching unread count...');
     fetchUnreadCount();
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(() => {
-      console.log('🔔 Polling unread count...');
-      fetchUnreadCount();
-    }, 30000);
-    return () => {
-      console.log('🔔 LeftNavbar unmounting, clearing interval...');
-      clearInterval(interval);
-    };
   }, []);
+
+  // Listen for Socket.IO notification events instead of polling
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewNotification = (notification) => {
+      console.log('🔔 New notification received via Socket.IO in LeftNavbar:', notification);
+      // Increment unread count
+      setUnreadCount(prev => prev + 1);
+    };
+
+    socket.on('new_notification', handleNewNotification);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket, isConnected]);
 
   const fetchUnreadCount = async () => {
     console.log('🔔 fetchUnreadCount called');
