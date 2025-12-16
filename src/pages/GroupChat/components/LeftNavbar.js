@@ -12,10 +12,21 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
   console.log('🔔 LeftNavbar component rendering');
   const navigate = useNavigate();
   const { logoutUser } = useContext(AuthContext);
-  const { unreadNotificationCount, setUnreadNotificationCount,markAllNotificationsRead } = useSocket();
+  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount,markAllNotificationsRead,getUnreadNotificationCount } = useSocket();
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
+
+  useEffect(() => {
+  if (socket&& isConnected && getUnreadNotificationCount ) {
+    getUnreadNotificationCount((ack) => {
+      if (ack?.ok && ack.unreadCount !== undefined) {
+        setUnreadNotificationCount(ack.unreadCount);
+      }
+    });
+  }
+}, [socket,isConnected]);
+
 
   // Track mobile state
   useEffect(() => {
@@ -39,16 +50,17 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     setShowNotificationPanel(!showNotificationPanel);
 
     // If opening the panel, immediately hide the badge (optimistic update)
-    if (!wasOpen && unreadNotificationCount  > 0) {
+    if (!wasOpen && markAllNotificationsRead&& socket&& isConnected) {
+      if (markAllNotificationsRead) {
+  markAllNotificationsRead((ack) => {
+    if (ack?.ok) {
       setUnreadNotificationCount(0);
+    } else {
+      console.warn('Failed to mark notifications as read on server');
     }
-
-    if (markAllNotificationsRead) {
-    markAllNotificationsRead((ack) => {
-      if (!ack?.ok)
-        console.warn('Failed to mark notifications as read on server');
-    });
-  }
+  });
+}
+    }
   };
 
   const handleNotificationClose = () => {
@@ -169,10 +181,12 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
           setUnreadNotificationCount(0);
 
           if (markAllNotificationsRead) {
-    markAllNotificationsRead((ack) => {
-      if (!ack?.ok)
-        console.warn('Failed to mark notifications as read on server');
-    });
+              if (socket && isConnected && markAllNotificationsRead) {
+            markAllNotificationsRead((ack) => {
+              if (!ack?.ok)
+                console.warn('Failed to mark notifications as read on server');
+            });
+          }
   }
           // Also call external callback if provided (for mobile header)
           if (onNotificationRead) {
