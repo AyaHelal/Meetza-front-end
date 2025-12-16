@@ -5,15 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import { UsersThree } from '@phosphor-icons/react';
-import axiosInstance from '../../../API/axiosInstance';
 import NotificationPanel from './NotificationPanel';
+import { color } from 'framer-motion';
 
 const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, onExternalNotificationPanelClose, onNotificationRead }) => {
   console.log('🔔 LeftNavbar component rendering');
   const navigate = useNavigate();
   const { logoutUser } = useContext(AuthContext);
-  const { socket, isConnected } = useSocket();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadNotificationCount, setUnreadNotificationCount,markAllNotificationsRead } = useSocket();
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
@@ -34,114 +33,22 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     }
   }, [externalNotificationPanelOpen]);
 
-  console.log('🔔 Current unreadCount state:', unreadCount);
-
-  // Fetch unread notification count on mount
-  useEffect(() => {
-    console.log('🔔 LeftNavbar mounted, fetching unread count...');
-    fetchUnreadCount();
-  }, []);
-
-  // Listen for Socket.IO notification events instead of polling
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleNewNotification = (notification) => {
-      console.log('🔔 New notification received via Socket.IO in LeftNavbar:', notification);
-      // Increment unread count
-      setUnreadCount(prev => prev + 1);
-    };
-
-    socket.on('new_notification', handleNewNotification);
-
-    return () => {
-      socket.off('new_notification', handleNewNotification);
-    };
-  }, [socket, isConnected]);
-
-  const fetchUnreadCount = async () => {
-    console.log('🔔 fetchUnreadCount called');
-    try {
-      console.log('🔔 Making API call to /notification/unread-count');
-      const response = await axiosInstance.get('/notification/unread-count');
-      console.log('🔔 Unread count API response:', response);
-      console.log('🔔 Response data:', response.data);
-      console.log('🔔 Response data type:', typeof response.data);
-
-      // Handle different response formats
-      let count = 0;
-      const data = response.data;
-
-      if (data !== null && data !== undefined) {
-        // Case 1: Direct number
-        if (typeof data === 'number') {
-          count = data;
-        }
-        // Case 2: { success: true, unreadCount: number } - YOUR API FORMAT
-        else if (data.success && typeof data.unreadCount === 'number') {
-          count = data.unreadCount;
-        }
-        // Case 3: { success: true, data: number }
-        else if (data.success && data.data !== undefined) {
-          if (typeof data.data === 'number') {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
-            count = data.data.unreadCount;
-          }
-        }
-        // Case 4: { data: number } (without success field)
-        else if (data.data !== undefined) {
-          if (typeof data.data === 'number') {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
-            count = data.data.unreadCount;
-          }
-        }
-        // Case 5: Direct properties on response.data
-        else if (typeof data.unreadCount === 'number') {
-          count = data.unreadCount;
-        } else if (typeof data.count === 'number') {
-          count = data.count;
-        } else if (typeof data.unread_count === 'number') {
-          count = data.unread_count;
-        } else if (typeof data.unread === 'number') {
-          count = data.unread;
-        }
-      }
-
-      // Ensure count is a valid number
-      count = Number(count) || 0;
-      console.log('🔔 Final parsed unread count:', count);
-      console.log('🔔 Setting unreadCount state to:', count);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('❌ Error fetching unread notification count:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      // Don't reset to 0 on error, keep previous count
-    }
-  };
-
   const handleBellClick = (e) => {
     e.stopPropagation();
     const wasOpen = showNotificationPanel;
     setShowNotificationPanel(!showNotificationPanel);
 
     // If opening the panel, immediately hide the badge (optimistic update)
-    if (!wasOpen && unreadCount > 0) {
-      setUnreadCount(0);
+    if (!wasOpen && unreadNotificationCount  > 0) {
+      setUnreadNotificationCount(0);
     }
 
-    // Always refresh count when toggling
-    fetchUnreadCount();
+    if (markAllNotificationsRead) {
+    markAllNotificationsRead((ack) => {
+      if (!ack?.ok)
+        console.warn('Failed to mark notifications as read on server');
+    });
+  }
   };
 
   const handleNotificationClose = () => {
@@ -150,20 +57,6 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     if (onExternalNotificationPanelClose) {
       onExternalNotificationPanelClose();
     }
-    // Refresh count after closing to get updated count
-    setTimeout(() => {
-      fetchUnreadCount();
-    }, 300);
-  };
-
-  // Handle notification read callback - refresh count after marking as read
-  const handleNotificationRead = () => {
-    // Immediately set count to 0 (optimistic update)
-    setUnreadCount(0);
-    // Also refresh from server to ensure accuracy
-    setTimeout(() => {
-      fetchUnreadCount();
-    }, 500);
   };
 
   const handleLogout = () => {
@@ -246,9 +139,9 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
               onClick={handleBellClick}
             >
               <Bell size={32} />
-              {unreadCount > 0 && (
-                <span className="notification-badge" title={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadNotificationCount > 0 && (
+                <span className="notification-badge" title={`${unreadNotificationCount } unread notification${unreadNotificationCount  !== 1 ? 's' : ''}`}>
+                  {unreadNotificationCount  > 99 ? '99+' : unreadNotificationCount }
                 </span>
               )}
             </div>
@@ -263,7 +156,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
               title="Logout"
               onClick={handleLogout}
             >
-              <SignOut size={32} />
+              <SignOut size={32} style={{color:'red'}}/>
             </div>
           </div>
         </div>
@@ -273,7 +166,14 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
         onClose={handleNotificationClose}
         position={getNotificationPanelPosition()}
         onNotificationRead={() => {
-          handleNotificationRead();
+          setUnreadNotificationCount(0);
+
+          if (markAllNotificationsRead) {
+    markAllNotificationsRead((ack) => {
+      if (!ack?.ok)
+        console.warn('Failed to mark notifications as read on server');
+    });
+  }
           // Also call external callback if provided (for mobile header)
           if (onNotificationRead) {
             onNotificationRead();

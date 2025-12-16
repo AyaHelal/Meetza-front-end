@@ -24,12 +24,11 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser, loginUser } = useContext(AuthContext);
-  const { socket, isConnected } = useSocket();
+  const { unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead} = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -57,32 +56,6 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch unread notification count on mount
-  useEffect(() => {
-    fetchUnreadCount();
-  }, []);
-
-  // Listen for Socket.IO notification events instead of polling
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleNewNotification = (notification) => {
-      console.log("🔔 New notification received via Socket.IO:", notification);
-      // Increment unread count
-      setUnreadNotificationCount((prev) => prev + 1);
-      // Optionally show a toast notification
-      if (notification.title && notification.message) {
-        smartToast.info(`${notification.title}: ${notification.message}`);
-      }
-    };
-
-    socket.on("new_notification", handleNewNotification);
-
-    return () => {
-      socket.off("new_notification", handleNewNotification);
-    };
-  }, [socket, isConnected]);
-
   // Listen for custom events from child components (like GroupChat)
   useEffect(() => {
     const handleOpenSidebar = () => {
@@ -93,7 +66,6 @@ const AppLayout = ({ children }) => {
     const handleOpenNotifications = () => {
       setShowNotificationPanel(true);
       setIsSidebarOpen(false);
-      fetchUnreadCount();
     };
 
     window.addEventListener("openMobileSidebar", handleOpenSidebar);
@@ -106,56 +78,8 @@ const AppLayout = ({ children }) => {
         handleOpenNotifications
       );
     };
-  }, []);
+  }, [setUnreadNotificationCount]);
 
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await axiosInstance.get("/notification/unread-count");
-      let count = 0;
-      const data = response.data;
-
-      if (data !== null && data !== undefined) {
-        if (typeof data === "number") {
-          count = data;
-        } else if (data.success && typeof data.unreadCount === "number") {
-          count = data.unreadCount;
-        } else if (data.success && data.data !== undefined) {
-          if (typeof data.data === "number") {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === "number") {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === "number") {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === "number") {
-            count = data.data.unreadCount;
-          }
-        } else if (data.data !== undefined) {
-          if (typeof data.data === "number") {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === "number") {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === "number") {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === "number") {
-            count = data.data.unreadCount;
-          }
-        } else if (typeof data.unreadCount === "number") {
-          count = data.unreadCount;
-        } else if (typeof data.count === "number") {
-          count = data.count;
-        } else if (typeof data.unread_count === "number") {
-          count = data.unread_count;
-        } else if (typeof data.unread === "number") {
-          count = data.unread;
-        }
-      }
-
-      count = Number(count) || 0;
-      setUnreadNotificationCount(count);
-    } catch (error) {
-      console.error("Error fetching unread notification count:", error);
-    }
-  };
 
   // Handle navigation from LeftNavbar
   const handleNavClick = (nav) => {
@@ -179,20 +103,27 @@ const AppLayout = ({ children }) => {
     setShowNotificationPanel(true);
     setIsSidebarOpen(false);
     // Refresh count when opening
-    fetchUnreadCount();
+    setUnreadNotificationCount(0);
+    if (typeof markAllNotificationsRead === "function") {
+    markAllNotificationsRead((ack) => {
+      if (!ack?.ok) console.warn("Failed to mark notifications as read on server");
+    });
+  }
   };
 
   // Handle notification panel close - refresh count
   const handleNotificationPanelClose = () => {
     setShowNotificationPanel(false);
-    setTimeout(() => {
-      fetchUnreadCount();
-    }, 300);
   };
 
   // Handle notification read - refresh count
   const handleNotificationRead = () => {
-    fetchUnreadCount();
+    setUnreadNotificationCount(0);
+    if (typeof markAllNotificationsRead === "function") {
+    markAllNotificationsRead((ack) => {
+      if (!ack?.ok) console.warn("Failed to mark notifications as read on server");
+    });
+  }
   };
 
   const handleLogout = () => {

@@ -273,6 +273,30 @@ export default function GroupChat() {
     return "document";
   }, []);
 
+  const getMediaLabel = useCallback((mediaType, fileName) => {
+    switch (mediaType) {
+      case 'audio':
+      case 'voice_note':
+        return 'Audio 🎤';
+      case 'image':
+        return 'Photo 📷';
+      case 'video':
+        return 'Video 📷';
+      case 'document':
+      default:
+        return fileName || 'Document 📄';
+    }
+  }, []);
+
+  const getMessageSubject = useCallback((message) => {
+    if (message.text) return message.text;
+    if (message.media && message.media.length > 0) {
+      const media = message.media[0];
+      return getMediaLabel(media.media_type, media.file_name);
+    }
+    return 'No messages yet';
+  }, [getMediaLabel]);
+
   const extractLinksFromMessages = (messages = []) => {
     console.log("Processing messages for links:", messages);
     const links = [];
@@ -666,10 +690,13 @@ export default function GroupChat() {
               }
             }
 
+            const messageSubject = messageData.message || messageData.text;
+            const subject = messageSubject || (messageData.media && messageData.media.length > 0
+              ? getMediaLabel(messageData.media[0].media_type, messageData.media[0].file_name)
+              : "No messages yet");
             return {
               ...group,
-              subject:
-                messageData.message || messageData.text || "No messages yet",
+              subject,
               unread: newUnread,
             };
           })
@@ -1210,20 +1237,102 @@ export default function GroupChat() {
   };
 
   const handleMessageEdited = (messageId, newText) => {
-    // Update the last message in the chats panel if this is the last message
-    if (selectedChat !== null && groupChats[selectedChat]) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.id === messageId) {
-        setGroupChats((prev) =>
-          prev.map((chat, index) => {
-            if (index === selectedChat) {
-              return { ...chat, subject: newText };
+    // Update the message text in the local messages state and calculate new subject
+    setMessages(prevMessages => {
+      const updatedMessages = prevMessages.map(msg =>
+        msg.id === messageId ? { ...msg, text: newText, message: newText } : msg
+      );
+
+      // Find the last non-deleted message after the edit
+      const newLastMessage = updatedMessages
+        .filter(msg => !msg.is_deleted) // Only consider non-deleted messages
+        .pop(); // Get the last non-deleted message
+
+      const newSubject = newLastMessage
+        ? (newLastMessage.text || (newLastMessage.media && newLastMessage.media.length > 0
+            ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
+            : "Media attachment"))
+        : "No messages yet";
+
+      // Update the subject in groupChats for the selected chat
+      setGroupChats(prev =>
+        prev.map((chat, index) => {
+          if (index === selectedChat) {
+            return { ...chat, subject: newSubject };
+          }
+          return chat;
+        })
+      );
+
+      return updatedMessages;
+    });
+  };
+
+  const handleMessageDeleted = (messageId) => {
+    // Find the message to get its media before marking as deleted
+    const messageToDelete = messages.find(msg => msg.id === messageId);
+
+    // If the message has media, remove it from groupInfo to update counts immediately
+    if (messageToDelete && messageToDelete.media && messageToDelete.media.length > 0) {
+      setGroupInfo(prev => {
+        if (!prev) return prev;
+
+        const mediaArray = prev.group?.group_media || prev.group_media || [];
+        const updatedMedia = mediaArray.filter(mediaItem => {
+          // Remove media items that match the deleted message's media
+          return !messageToDelete.media.some(deletedMedia =>
+            deletedMedia.media_url === mediaItem.media_url ||
+            deletedMedia.id === mediaItem.id
+          );
+        });
+
+        if (prev.group?.group_media) {
+          return {
+            ...prev,
+            group: {
+              ...prev.group,
+              group_media: updatedMedia
             }
-            return chat;
-          })
-        );
-      }
+          };
+        } else if (prev.group_media) {
+          return {
+            ...prev,
+            group_media: updatedMedia
+          };
+        }
+        return prev;
+      });
     }
+
+    // Mark message as deleted and update subject in one go
+    setMessages(prevMessages => {
+      const updatedMessages = prevMessages.map((msg) =>
+        msg.id === messageId ? { ...msg, is_deleted: true } : msg
+      );
+
+      // Find the last non-deleted message after the deletion
+      const newLastMessage = updatedMessages
+        .filter(msg => !msg.is_deleted) // Only consider non-deleted messages
+        .pop(); // Get the last non-deleted message
+
+      const newSubject = newLastMessage
+        ? (newLastMessage.text || (newLastMessage.media && newLastMessage.media.length > 0
+            ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
+            : "Media attachment"))
+        : "No messages yet";
+
+      // Update the subject in groupChats for the selected chat
+      setGroupChats(prev =>
+        prev.map((chat, index) => {
+          if (index === selectedChat) {
+            return { ...chat, subject: newSubject };
+          }
+          return chat;
+        })
+      );
+
+      return updatedMessages;
+    });
   };
 
   const handleSendMessage = async ({ text, file, mediaCategory }) => {
@@ -1239,6 +1348,7 @@ export default function GroupChat() {
 
     const tempId = `temp-${Date.now()}`;
     let localMediaUrl = null;
+    let originalName = null;
     const normalizedType = file
       ? deriveMediaCategory(file, mediaCategory)
       : null;
@@ -1271,7 +1381,7 @@ export default function GroupChat() {
 
     if (file) {
       localMediaUrl = URL.createObjectURL(file);
-      const originalName = file.name || "attachment";
+      originalName = file.name || "attachment";
       optimisticMessage.media = [
         {
           id: `${tempId}-media`,
@@ -1285,7 +1395,7 @@ export default function GroupChat() {
 
     setMessages((prev) => [...prev, optimisticMessage]);
 
-    const previewLabel = trimmedText || (file ? "Media attachment" : "");
+    const previewLabel = trimmedText || (file ? getMediaLabel(finalMediaType, originalName) : "");
     setGroupChats((prev) =>
       prev.map((chat, index) => {
         if (index === selectedChat) {
@@ -1485,6 +1595,20 @@ export default function GroupChat() {
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
+  // Determine user role based on whether current user is the group administrator
+  const userRole = useMemo(() => {
+    if (!user?.id || !groupInfo) return 'Member';
+
+    const currentUserId = user.id;
+    const adminId = groupInfo.group?.administrator_id || groupInfo.administrator_id;
+
+    if (adminId && String(adminId) === String(currentUserId)) {
+      return 'Administrator';
+    }
+
+    return 'Member';
+  }, [user?.id, groupInfo]);
+
   const calendarEvents = [
     {
       month: "Sep",
@@ -1572,8 +1696,10 @@ export default function GroupChat() {
         currentUserEmail={user?.email}
         groupId={selectedChatData?.id || null}
         onMessageEdited={handleMessageEdited}
+        onMessageDeleted={handleMessageDeleted}
         isSendingMessage={isSendingMessage}
         onGroupNameClick={handleGroupNameClick}
+        userRole={userRole}
       />
 
       <RightSidebar

@@ -25,6 +25,8 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const socketRef = useRef(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
 
   const SERVER_URL = "http://localhost:3000";
 
@@ -69,6 +71,12 @@ export const SocketProvider = ({ children }) => {
     newSocket.on("connect", () => {
       console.log("✅ Socket connected:", newSocket.id);
       setIsConnected(true);
+      newSocket.emit("getUnreadNotificationCount", {}, (ack) => {
+  if (ack && ack.unreadCount !== undefined) {
+    setUnreadNotificationCount(ack.unreadCount);
+    console.log("🔔 Initial unread notification count:", ack.unreadCount);
+  }
+});
       setConnectionError(null);
     });
 
@@ -124,6 +132,22 @@ export const SocketProvider = ({ children }) => {
       setIsConnected(false);
     };
   }, [token, SERVER_URL]);
+
+    useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewNotification = (notification) => {
+      console.log('🔔 New notification received:', notification);
+      setUnreadNotificationCount(prev => prev + 1);
+    };
+
+    socket.on("new_notification", handleNewNotification);
+
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, isConnected]);
+
 
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
@@ -244,6 +268,74 @@ export const SocketProvider = ({ children }) => {
     });
   };
 
+  // Helper function to get notifications
+  const getNotifications = (callback) => {
+    if (!socket || !isConnected) {
+      console.warn(`⚠️ Cannot get notifications: socket not connected`);
+      if (callback) {
+        callback({
+          ok: false,
+          message: "Socket not connected",
+          notifications: [],
+        });
+      }
+      return;
+    }
+
+    socket.emit("getNotifications", {}, (ack) => {
+      if (callback) callback(ack);
+    });
+  };
+
+  // Helper function to mark notification as read
+  const markNotificationRead = (notificationId, callback) => {
+    if (!socket || !isConnected) {
+      console.warn(`⚠️ Cannot mark notification as read: socket not connected`);
+      if (callback) {
+        callback({ ok: false, message: "Socket not connected" });
+      }
+      return;
+    }
+
+    socket.emit("markNotificationRead", { notificationId }, (ack) => {
+      if (callback) callback(ack);
+    });
+  };
+
+  // Helper function to mark all notifications as read
+  const markAllNotificationsRead = (callback) => {
+    if (!socket || !isConnected) {
+      console.warn(`⚠️ Cannot mark all notifications as read: socket not connected`);
+      if (callback) {
+        callback({ ok: false, message: "Socket not connected" });
+      }
+      return;
+    }
+
+    socket.emit("markAllNotificationsRead", {}, (ack) => {
+      if (callback) callback(ack);
+    });
+  };
+
+  // Helper function to get unread notification count
+  const getUnreadNotificationCount = (callback) => {
+    if (!socket || !isConnected) {
+      console.warn(`⚠️ Cannot get unread notification count: socket not connected`);
+      if (callback) {
+        callback({
+          ok: false,
+          message: "Socket not connected",
+          unreadCount: 0,
+        });
+      }
+      return;
+    }
+
+    socket.emit("getUnreadNotificationCount", {}, (ack) => {
+      if (callback) callback(ack);
+    });
+  };
+
   const value = {
     socket,
     isConnected,
@@ -255,6 +347,12 @@ export const SocketProvider = ({ children }) => {
     markMessageRead,
     markAllMessagesRead,
     getUnreadCount,
+    getNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    getUnreadNotificationCount,
+    unreadNotificationCount,
+setUnreadNotificationCount
   };
 
   return (

@@ -32,6 +32,7 @@ const MainChat = ({
   currentUserEmail,
   groupId,
   onMessageEdited,
+  onMessageDeleted,
   isSendingMessage = false,
   onGroupNameClick,
   userRole,
@@ -46,7 +47,10 @@ const MainChat = ({
 
   // Function to format messages and add link media items
   const formatMessages = (msgs) => {
-    return msgs.map((msg) => {
+    // Filter out deleted messages first
+    const nonDeletedMsgs = msgs.filter((msg) => !msg.is_deleted);
+
+    return nonDeletedMsgs.map((msg) => {
       const formattedMsg = { ...msg };
       const media = Array.isArray(msg.media) ? [...msg.media] : [];
 
@@ -303,9 +307,19 @@ const MainChat = ({
     try {
       const response = await deleteMessage(groupId, messageId);
       console.log("Delete message response:", response);
+
+      // Mark message as deleted locally
       setMessages((prevMessages) =>
-        prevMessages.filter((msg) => msg.id !== messageId)
+        prevMessages.map((msg) =>
+          msg.id === messageId ? { ...msg, is_deleted: true } : msg
+        )
       );
+
+      // Notify parent to mark in GroupChat's messages
+      if (onMessageDeleted) {
+        onMessageDeleted(messageId);
+      }
+
       smartToast.success("Message deleted successfully");
     } catch (error) {
       smartToast.error("Failed to delete message");

@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import axiosInstance from '../../../API/axiosInstance';
+import { useSocket } from '../../../context/SocketContext';
 import './NotificationPanel.css';
 
 const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMobile = false }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
+  const { socket, isConnected, getNotifications, markAllNotificationsRead } = useSocket();
 
   // Close panel when clicking outside (desktop only)
   useEffect(() => {
@@ -33,10 +35,60 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Mark all as read when panel closes
+  useEffect(() => {
+    if (!isOpen) {
       markAllAsRead();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Listen for real-time notification updates
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNewNotification = (notification) => {
+      console.log('🔔 New notification received in NotificationPanel:', notification);
+      // Add new notification to the list
+      setNotifications((prev) => [notification, ...prev]);
+    };
+
+    const handleNotificationRead = (data) => {
+      console.log('🔔 Notification read event received:', data);
+      // Update notification status in the list
+      if (data.notificationId) {
+        setNotifications((prev) =>
+          prev.map((notif) =>
+            (notif.id === data.notificationId || notif.notification_id === data.notificationId)
+              ? { ...notif, is_read: true }
+              : notif
+          )
+        );
+      }
+    };
+
+    const handleAllNotificationsRead = () => {
+      console.log('🔔 All notifications marked as read');
+      // Mark all notifications as read
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, is_read: true }))
+      );
+    };
+
+    socket.on('new_notification', handleNewNotification);
+    socket.on('notification_read', handleNotificationRead);
+    socket.on('all_notifications_read', handleAllNotificationsRead);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+      socket.off('notification_read', handleNotificationRead);
+      socket.off('all_notifications_read', handleAllNotificationsRead);
+    };
+  }, [socket, isConnected]);
 
   const fetchNotifications = async () => {
     try {
