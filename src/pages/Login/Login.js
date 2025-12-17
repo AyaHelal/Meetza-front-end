@@ -15,6 +15,7 @@ const Login = () => {
         role: '' // must choose via radio
     });
 
+    const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [failedAttempts, setFailedAttempts] = useState(0);
@@ -153,10 +154,47 @@ const Login = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : (type === 'radio' ? value : value)
         }));
+
+        // Clear error for this field when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation logic
+        const newErrors = {};
+
+        // Email validation
+        if (!formData.email.trim()) {
+            newErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = "Please enter a valid email address";
+        }
+
+        // Password validation
+        if (!formData.password.trim()) {
+            newErrors.password = "Password is required";
+        }
+
+        // Role validation
+        if (!formData.role) {
+            newErrors.role = "Please select a role";
+        }
+
+        // If there are validation errors, set them and prevent submission
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        // Clear errors on successful validation
+        setErrors({});
 
         // Clear any existing CAPTCHA timeout
         if (window.captchaTimeoutId) {
@@ -310,6 +348,7 @@ const Login = () => {
                 handleSubmit={handleSubmit}
                 isLoading={isLoading}
                 message={message}
+                errors={errors}
                 showCaptcha={showCaptcha}
                 onCaptchaChange={onCaptchaChange}
                 onCaptchaExpired={onCaptchaExpired}
@@ -317,35 +356,42 @@ const Login = () => {
                 onSkipCaptcha={handleSkipCaptcha}
                 failedAttempts={failedAttempts}
                 extraFields={(
-                    <div className="d-flex  ps-2 py-2 role-radio-group">
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="radio"
-                                name="role"
-                                id="loginMemberRole"
-                                value="Member"
-                                checked={formData.role === 'Member'}
-                                onChange={handleInputChange}
-                            />
-                            <label className="form-check-label mx-2" htmlFor="loginMemberRole">
-                                Member
-                            </label>
+                    <div>
+                        <div className="d-flex  ps-2 py-2 role-radio-group">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="role"
+                                    id="loginMemberRole"
+                                    value="Member"
+                                    checked={formData.role === 'Member'}
+                                    onChange={handleInputChange}
+                                />
+                                <label className="form-check-label mx-2" htmlFor="loginMemberRole">
+                                    Member
+                                </label>
+                            </div>
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="role"
+                                    id="loginAdminRole"
+                                    value="Administrator"
+                                    checked={formData.role === 'Administrator'}
+                                    onChange={handleInputChange}
+                                />
+                                <label className="form-check-label ms-2" htmlFor="loginAdminRole">
+                                    Administrator
+                                </label>
+                            </div>
                         </div>
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="radio"
-                                name="role"
-                                id="loginAdminRole"
-                                value="Administrator"
-                                checked={formData.role === 'Administrator'}
-                                onChange={handleInputChange}
-                            />
-                            <label className="form-check-label ms-2" htmlFor="loginAdminRole">
-                                Administrator
-                            </label>
-                        </div>
+                        {errors.role && (
+                             <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
+                                {errors.role}
+                            </div>
+                        )}
                     </div>
                 )}
             />

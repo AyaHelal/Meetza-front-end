@@ -13,6 +13,7 @@ const FormSection = ({
     handleSubmit,
     isLoading,
     message,
+    errors,
     showCaptcha,
     onForgotPassword,
     onCaptchaChange,
@@ -181,6 +182,7 @@ const FormSection = ({
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 name="email"
+                                error={errors?.email}
                                 autoFocus
                             />
 
@@ -188,6 +190,7 @@ const FormSection = ({
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 name="password"
+                                error={errors?.password}
                             />
 
                             {/* render any extra fields (e.g., role radios) above the remember/forgot row */}

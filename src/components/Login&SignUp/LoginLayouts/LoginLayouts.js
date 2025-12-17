@@ -11,6 +11,7 @@ const LoginLayout = ({
     handleSubmit,
     isLoading,
     message,
+    errors,
     showCaptcha,
     onCaptchaChange,
     onCaptchaExpired,
@@ -39,6 +40,7 @@ const LoginLayout = ({
                         handleSubmit={handleSubmit}
                         isLoading={isLoading}
                         message={message}
+                        errors={errors}
                         showCaptcha={showCaptcha}
                         onCaptchaChange={onCaptchaChange}
                         onCaptchaExpired={onCaptchaExpired}
