@@ -277,14 +277,14 @@ export default function GroupChat() {
     switch (mediaType) {
       case 'audio':
       case 'voice_note':
-        return 'Audio 🎤';
+        return '🎤 Audio';
       case 'image':
-        return 'Photo 📷';
+        return '📷 Photo';
       case 'video':
-        return 'Video 📷';
+        return '📷 Video';
       case 'document':
       default:
-        return fileName || 'Document 📄';
+        return fileName || '📄 Document';
     }
   }, []);
 
