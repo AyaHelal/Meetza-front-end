@@ -4,39 +4,8 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Password } from '@phosphor-icons/react';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
-const PasswordField = ({ value, onChange, name = "password", showStrengthIndicator = false, label = "Password" }) => {
+const PasswordField = ({ value, onChange, name = "password", showStrengthIndicator = false, label = "Password", error }) => {
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState("");
-
-
-    const validatePassword = (password) => {
-        if (!password) return false;
-
-        const checks = {
-            length: password.length >= 8,
-            lowercase: /[a-z]/.test(password),
-            uppercase: /[A-Z]/.test(password),
-            numbers: /\d/.test(password),
-            symbols: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
-        };
-
-        const score = Object.values(checks).filter(check => check).length;
-
-        // Require at least 8 characters AND at least 3 out of 5 criteria for a strong password
-        return checks.length && score >= 3;
-    };
-
-    const handleChange = (e) => {
-        const newValue = e.target.value;
-        onChange(e);
-        if (!newValue.trim()) {
-            setError("");
-        } else if (!validatePassword(newValue)) {
-            setError("Password must be at least 8 characters with uppercase, lowercase, numbers, and symbols.");
-        } else {
-            setError("");
-        }
-    };
 
     return (
         <div className="w-100 mb-2">
@@ -59,7 +28,7 @@ const PasswordField = ({ value, onChange, name = "password", showStrengthIndicat
                         name={name}
                         autoComplete="current-password"
                         value={value}
-                        onChange={handleChange}
+                        onChange={onChange}
                         placeholder="●●●●●●●●"
                         className={`form-control border-0  shadow-none ${error ? "is-invalid" : ""
                             }`}
