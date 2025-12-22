@@ -30,20 +30,8 @@ export const SocketProvider = ({ children }) => {
   // Use environment variable or derive from API base URL
   // For production, use the backend URL (socket.io connects at root, not /api)
   // Extract the base URL from API URL (remove /api suffix if present)
-  const SERVER_URL = useMemo(() => {
-    // Check for explicit socket URL environment variable first
-    if (process.env.REACT_APP_SOCKET_URL) {
-      return process.env.REACT_APP_SOCKET_URL;
-    }
-
-    // Otherwise, derive from API URL (socket.io connects at root, not /api)
-    const apiUrl =
-      process.env.REACT_APP_API_URL || "https://meetza-backend.vercel.app/api";
-    // Remove /api suffix if present, and ensure it's the base URL
-    const baseUrl = apiUrl.replace(/\/api\/?$/, "");
-    return baseUrl;
-  }, []); // Empty deps since env vars are build-time constants
-
+  const SERVER_URL = "https://courteous-uncomplimenting-aleena.ngrok-free.dev";
+  
   useEffect(() => {
     // Only connect if we have a token
     if (!token) {
