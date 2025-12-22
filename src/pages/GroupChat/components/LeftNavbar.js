@@ -1,67 +1,84 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import { House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut } from '@phosphor-icons/react';
-import './LeftNavbar.css';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../../context/AuthContext';
-import { useSocket } from '../../../context/SocketContext';
-import { UsersThree } from '@phosphor-icons/react';
-import NotificationPanel from './NotificationPanel';
-import api from "../../../API/axiosInstance";
+import React, { useContext, useState, useEffect, useRef } from "react";
+import {
+  House,
+  User,
+  Envelope,
+  CalendarBlank,
+  Bell,
+  GearSix,
+  SignOut,
+} from "@phosphor-icons/react";
+import "./LeftNavbar.css";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import { useSocket } from "../../../context/SocketContext";
+import { UsersThree } from "@phosphor-icons/react";
+import NotificationPanel from "./NotificationPanel";
 
-
-const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, onExternalNotificationPanelClose, onNotificationRead }) => {
-  console.log('🔔 LeftNavbar component rendering');
+const LeftNavbar = ({
+  activeNav,
+  setActiveNav,
+  externalNotificationPanelOpen,
+  onExternalNotificationPanelClose,
+  onNotificationRead,
+}) => {
+  console.log("🔔 LeftNavbar component rendering");
   const navigate = useNavigate();
   const { logoutUser } = useContext(AuthContext);
-  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount,markAllNotificationsRead,getUnreadNotificationCount } = useSocket();
+  const {
+    socket,
+    isConnected,
+    unreadNotificationCount,
+    setUnreadNotificationCount,
+    markAllNotificationsRead,
+    getUnreadNotificationCount,
+  } = useSocket();
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
 
-useEffect(() => {
-  // Function to fetch unread count from API using Axios
-  const fetchUnreadCountFromAPI = async () => {
-    try {
-      const res = await api.get('/notification/unread-count');
-
-      if (res.data?.unreadCount !== undefined) {
-        setUnreadNotificationCount(res.data.unreadCount);
-        console.log("🔔 Initial unread count from API:", res.data.unreadCount);
-      }
-    } catch (err) {
-      console.error("❌ Failed to fetch unread count from API:", err);
+  // Fetch initial unread count when socket connects (via socket)
+  useEffect(() => {
+    if (socket && isConnected) {
+      getUnreadNotificationCount((ack) => {
+        if (ack && ack.ok && ack.unreadCount !== undefined) {
+          console.log("🔔 Initial unread count from socket:", ack.unreadCount);
+        }
+      });
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, isConnected]);
 
-  fetchUnreadCountFromAPI();
-},[]);
+  // Socket effect to update count on new notifications
+  // Note: The count is already updated in SocketContext, but we can listen here if needed
+  useEffect(() => {
+    if (!socket || !isConnected) return;
 
-// Socket effect to update count on new notifications
-useEffect(() => {
-  if (!socket || !isConnected) return;
+    // Listen for both event name variations (backend may use either)
+    const handleNewNotification = (notification) => {
+      console.log(
+        "🔔 New notification received via socket in LeftNavbar:",
+        notification
+      );
+      // Count is already updated in SocketContext, so this is just for logging
+    };
 
-  const handleNewNotification = (notification) => {
-    console.log("🔔 New notification received via socket:", notification);
-    setUnreadNotificationCount(prev => prev + 1);
-  };
+    socket.on("newNotification", handleNewNotification);
+    socket.on("new_notification", handleNewNotification);
 
-  socket.on("new_notification", handleNewNotification);
-
-  return () => {
-    socket.off("new_notification", handleNewNotification);
-  };
-}, [socket, isConnected]);
-
-
-
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, isConnected]);
 
   // Track mobile state
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Sync with external notification panel state (for mobile sidebar)
@@ -72,9 +89,9 @@ useEffect(() => {
   }, [externalNotificationPanelOpen]);
 
   const handleOpenPanel = () => {
-  markAllNotificationsRead();
-  setUnreadNotificationCount(0);
-};
+    markAllNotificationsRead();
+    setUnreadNotificationCount(0);
+  };
 
   const handleBellClick = (e) => {
     e.stopPropagation();
@@ -83,11 +100,9 @@ useEffect(() => {
 
     // If opening the panel, immediately hide the badge (optimistic update)
     if (!wasOpen) {
-  handleOpenPanel();
-}
-
+      handleOpenPanel();
     }
-
+  };
 
   const handleNotificationClose = () => {
     setShowNotificationPanel(false);
@@ -101,9 +116,9 @@ useEffect(() => {
     try {
       logoutUser();
     } catch (err) {
-      console.warn('Logout error', err);
+      console.warn("Logout error", err);
     }
-    navigate('/login');
+    navigate("/login");
   };
 
   // Calculate position for notification panel
@@ -116,16 +131,16 @@ useEffect(() => {
       const panelTop = Math.max(10, bellCenter - 300); // 300 is half of 600px max height
       return {
         top: `${panelTop}px`, // Center panel vertically with bell
-        left: `${rect.right + 10}px` // Position to the right of the bell
+        left: `${rect.right + 10}px`, // Position to the right of the bell
       };
     }
     return {
-      top: '80px',
-      left: '90px' // Default position to the right of left navbar
+      top: "80px",
+      left: "90px", // Default position to the right of left navbar
     };
   };
 
-console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
+  console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
 
   return (
     <>
@@ -135,39 +150,39 @@ console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
             <img
               src="/assets/meetza_logo_1024.png"
               alt="logo"
-              style={{ width: '80px', height: '80px' }}
+              style={{ width: "80px", height: "80px" }}
             />
           </div>
         </div>
         <div className="nav-icons">
           <div className="nav-icons-group-top">
             <div
-              className={`nav-icon ${activeNav === 'home' ? 'active' : ''}`}
-              onClick={() => setActiveNav('home')}
+              className={`nav-icon ${activeNav === "home" ? "active" : ""}`}
+              onClick={() => setActiveNav("home")}
             >
               <House size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveNav('profile')}
+              className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
+              onClick={() => setActiveNav("profile")}
             >
               <User size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'messages' ? 'active' : ''}`}
-              onClick={() => setActiveNav('messages')}
+              className={`nav-icon ${activeNav === "messages" ? "active" : ""}`}
+              onClick={() => setActiveNav("messages")}
             >
               <Envelope size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveNav('users')}
+              className={`nav-icon ${activeNav === "users" ? "active" : ""}`}
+              onClick={() => setActiveNav("users")}
             >
               <UsersThree size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'calendar' ? 'active' : ''}`}
-              onClick={() => setActiveNav('calendar')}
+              className={`nav-icon ${activeNav === "calendar" ? "active" : ""}`}
+              onClick={() => setActiveNav("calendar")}
             >
               <CalendarBlank size={32} />
             </div>
@@ -175,19 +190,28 @@ console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
           <div className="nav-icons-group-bottom">
             <div
               ref={bellRef}
-              className={`nav-icon notification-icon ${activeNav === 'notifications' ? 'active' : ''}`}
+              className={`nav-icon notification-icon ${
+                activeNav === "notifications" ? "active" : ""
+              }`}
               onClick={handleBellClick}
             >
               <Bell size={32} />
               {unreadNotificationCount > 0 && (
-                <span className="notification-badge" title={`${unreadNotificationCount } unread notification${unreadNotificationCount  !== 1 ? 's' : ''}`}>
-                  {unreadNotificationCount  > 99 ? '99+' : unreadNotificationCount }
+                <span
+                  className="notification-badge"
+                  title={`${unreadNotificationCount} unread notification${
+                    unreadNotificationCount !== 1 ? "s" : ""
+                  }`}
+                >
+                  {unreadNotificationCount > 99
+                    ? "99+"
+                    : unreadNotificationCount}
                 </span>
               )}
             </div>
             <div
-              className={`nav-icon ${activeNav === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveNav('settings')}
+              className={`nav-icon ${activeNav === "settings" ? "active" : ""}`}
+              onClick={() => setActiveNav("settings")}
             >
               <GearSix size={32} />
             </div>
@@ -196,7 +220,7 @@ console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
               title="Logout"
               onClick={handleLogout}
             >
-              <SignOut size={32} style={{color:'red'}}/>
+              <SignOut size={32} style={{ color: "red" }} />
             </div>
           </div>
         </div>
@@ -219,4 +243,3 @@ console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
 };
 
 export default LeftNavbar;
-

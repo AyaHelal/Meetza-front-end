@@ -35,24 +35,6 @@ export const SocketProvider = ({ children }) => {
   // Extract the base URL from API URL (remove /api suffix if present)
   const SERVER_URL = "https://courteous-uncomplimenting-aleena.ngrok-free.dev";
 
-  const fetchUnreadCountFromAPI = async () => {
-  if (!token) return;
-  try {
-    const res = await api.get('/notification/unread-count');
-    if (res.data && res.data.unreadCount !== undefined) {
-      setUnreadNotificationCount(res.data.unreadCount);
-      console.log("🔔 Unread notifications from API:", res.data.unreadCount);
-    }
-  } catch (err) {
-    console.error("❌ Failed to fetch unread notifications from API:", err);
-  }
-};
-useEffect(() => { fetchUnreadCountFromAPI(); }, [token]);
-
-useEffect(() => {
-  fetchUnreadCountFromAPI();
-}, [token]);
-
 
   useEffect(() => {
     // Only connect if we have a token
@@ -95,20 +77,43 @@ useEffect(() => {
     newSocket.on("connect", () => {
       console.log("✅ Socket connected:", newSocket.id);
       setIsConnected(true);
+      
+      // Join notification room (backend does this automatically, but we can also explicitly join)
+      newSocket.emit("join_notifications", (ack) => {
+        if (ack && ack.ok) {
+          console.log("✅ Joined notifications room");
+        }
+      });
+      
+      // Get initial unread notification count via socket
       newSocket.emit("getUnreadNotificationCount", {}, (ack) => {
-        if (ack && ack.unreadCount !== undefined) {
+        if (ack && ack.ok && ack.unreadCount !== undefined) {
           setUnreadNotificationCount(ack.unreadCount);
           console.log("🔔 Initial unread notification count:", ack.unreadCount);
         }
       });
+      
       setConnectionError(null);
       hasLoggedSocketErrorRef.current = false;
     });
 
+    // Listen for new notifications (emitted to the user's notification room)
     newSocket.on("newNotification", (notification) => {
-    setUnreadNotificationCount(prevCount => prevCount + 1);
-    console.log("🔔 Received new notification, updated count:", unreadNotificationCount + 1);
-  });
+      setUnreadNotificationCount((prevCount) => {
+        const newCount = prevCount + 1;
+        console.log("🔔 Received new notification, updated count:", newCount);
+        return newCount;
+      });
+    });
+
+    // Also listen for 'new_notification' event name (backup)
+    newSocket.on("new_notification", (notification) => {
+      setUnreadNotificationCount((prevCount) => {
+        const newCount = prevCount + 1;
+        console.log("🔔 Received new notification (new_notification), updated count:", newCount);
+        return newCount;
+      });
+    });
 
     // Connection error
   newSocket.on("connect_error", (error) => {
@@ -343,19 +348,23 @@ useEffect(() => {
     });
   };
 
-  // Helper function to get unread notification count
-  const getUnreadNotificationCount = async (callback) => {
-  try {
-    const res = await api.get('/notification/unread-count');
-    if (res.data && res.data.unreadCount !== undefined) {
-      setUnreadNotificationCount(res.data.unreadCount);
-      if (callback) callback({ ok: true, unreadCount: res.data.unreadCount });
+  // Helper function to get unread notification count via socket
+  const getUnreadNotificationCount = (callback) => {
+    if (!socket || !isConnected) {
+      console.warn(`⚠️ Cannot get unread notification count: socket not connected`);
+      if (callback) {
+        callback({ ok: false, message: "Socket not connected", unreadCount: 0 });
+      }
+      return;
     }
-  } catch (err) {
-    console.error("❌ Failed to get unread count:", err);
-    if (callback) callback({ ok: false, unreadCount: 0 });
-  }
-};
+
+    socket.emit("getUnreadNotificationCount", {}, (ack) => {
+      if (ack && ack.ok && ack.unreadCount !== undefined) {
+        setUnreadNotificationCount(ack.unreadCount);
+      }
+      if (callback) callback(ack);
+    });
+  };
 
 
   const value = {
