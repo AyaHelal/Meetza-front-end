@@ -5,9 +5,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Backend URL - browser will connect to this
+        # Since React runs in browser, use localhost:4000 (not host.docker.internal)
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:4000/api}
+        - REACT_APP_SOCKET_URL=${REACT_APP_SOCKET_URL:-http://localhost:4000}
     container_name: meetza-frontend
     ports:
-      - "3000:80"
+      # Changed to 3001 to avoid conflict with backend on port 4000
+      - "3001:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
