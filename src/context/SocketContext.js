@@ -8,6 +8,7 @@ import {
 } from "react";
 import { io } from "socket.io-client";
 import { AuthContext } from "./AuthContext";
+import api from "../API/axiosInstance";
 
 const SocketContext = createContext();
 
@@ -26,12 +27,33 @@ export const SocketProvider = ({ children }) => {
   const [connectionError, setConnectionError] = useState(null);
   const socketRef = useRef(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const hasLoggedSocketErrorRef = useRef(false);
+
 
   // Use environment variable or derive from API base URL
   // For production, use the backend URL (socket.io connects at root, not /api)
   // Extract the base URL from API URL (remove /api suffix if present)
   const SERVER_URL = "https://courteous-uncomplimenting-aleena.ngrok-free.dev";
-  
+
+  const fetchUnreadCountFromAPI = async () => {
+  if (!token) return;
+  try {
+    const res = await api.get('/notification/unread-count');
+    if (res.data && res.data.unreadCount !== undefined) {
+      setUnreadNotificationCount(res.data.unreadCount);
+      console.log("🔔 Unread notifications from API:", res.data.unreadCount);
+    }
+  } catch (err) {
+    console.error("❌ Failed to fetch unread notifications from API:", err);
+  }
+};
+useEffect(() => { fetchUnreadCountFromAPI(); }, [token]);
+
+useEffect(() => {
+  fetchUnreadCountFromAPI();
+}, [token]);
+
+
   useEffect(() => {
     // Only connect if we have a token
     if (!token) {
@@ -62,7 +84,7 @@ export const SocketProvider = ({ children }) => {
         token: token, // JWT token is required for authentication
       },
       transports: ["websocket", "polling"], // fallback options
-      reconnection: true,
+      reconnection: false,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: Infinity,
@@ -80,27 +102,36 @@ export const SocketProvider = ({ children }) => {
         }
       });
       setConnectionError(null);
+      hasLoggedSocketErrorRef.current = false;
     });
+
+    newSocket.on("newNotification", (notification) => {
+    setUnreadNotificationCount(prevCount => prevCount + 1);
+    console.log("🔔 Received new notification, updated count:", unreadNotificationCount + 1);
+  });
 
     // Connection error
-    newSocket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error.message);
-      console.error("❌ Error details:", error);
-      console.error("❌ Attempted URL:", SERVER_URL);
-      setIsConnected(false);
-      setConnectionError(error.message);
+  newSocket.on("connect_error", (error) => {
+  setIsConnected(false);
+  setConnectionError(error.message);
 
-      // If WebSocket fails, it will automatically fallback to polling
-      // Log this for debugging
-      if (
-        error.message.includes("websocket") ||
-        error.message.includes("WebSocket")
-      ) {
-        console.warn(
-          "⚠️ WebSocket connection failed, will fallback to polling transport"
-        );
-      }
-    });
+  if (!hasLoggedSocketErrorRef.current) {
+    console.error("❌ Socket connection error:", error.message);
+    console.error("❌ Attempted URL:", SERVER_URL);
+
+    if (
+      error.message.includes("websocket") ||
+      error.message.includes("WebSocket")
+    ) {
+      console.warn(
+        "⚠️ WebSocket connection failed, will fallback to polling transport"
+      );
+    }
+
+    hasLoggedSocketErrorRef.current = true;
+  }
+});
+
 
     // Disconnected
     newSocket.on("disconnect", (reason) => {
@@ -135,20 +166,7 @@ export const SocketProvider = ({ children }) => {
     };
   }, [token, SERVER_URL]); // SERVER_URL is memoized and stable
 
-  useEffect(() => {
-    if (!socket || !isConnected) return;
 
-    const handleNewNotification = (notification) => {
-      console.log("🔔 New notification received:", notification);
-      setUnreadNotificationCount((prev) => prev + 1);
-    };
-
-    socket.on("new_notification", handleNewNotification);
-
-    return () => {
-      socket.off("new_notification", handleNewNotification);
-    };
-  }, [socket, isConnected]);
 
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
@@ -304,42 +322,41 @@ export const SocketProvider = ({ children }) => {
   };
 
   // Helper function to mark all notifications as read
-  const markAllNotificationsRead = (callback) => {
+  const markAllNotificationsRead = async (callback) => {
     if (!socket || !isConnected) {
       console.warn(
         `⚠️ Cannot mark all notifications as read: socket not connected`
       );
-      if (callback) {
-        callback({ ok: false, message: "Socket not connected" });
-      }
+      // Since socket is not connected, we can't mark notifications as read
+      // Just reset the local count to 0 as optimistic update
+      setUnreadNotificationCount(0);
+      if (callback) callback({ ok: false, message: "Socket not connected" });
       return;
     }
 
     socket.emit("markAllNotificationsRead", {}, (ack) => {
+      if (ack && ack.ok) {
+        // Reset count to 0 since all are marked as read
+        setUnreadNotificationCount(0);
+      }
       if (callback) callback(ack);
     });
   };
 
   // Helper function to get unread notification count
-  const getUnreadNotificationCount = (callback) => {
-    if (!socket || !isConnected) {
-      console.warn(
-        `⚠️ Cannot get unread notification count: socket not connected`
-      );
-      if (callback) {
-        callback({
-          ok: false,
-          message: "Socket not connected",
-          unreadCount: 0,
-        });
-      }
-      return;
+  const getUnreadNotificationCount = async (callback) => {
+  try {
+    const res = await api.get('/notification/unread-count');
+    if (res.data && res.data.unreadCount !== undefined) {
+      setUnreadNotificationCount(res.data.unreadCount);
+      if (callback) callback({ ok: true, unreadCount: res.data.unreadCount });
     }
+  } catch (err) {
+    console.error("❌ Failed to get unread count:", err);
+    if (callback) callback({ ok: false, unreadCount: 0 });
+  }
+};
 
-    socket.emit("getUnreadNotificationCount", {}, (ack) => {
-      if (callback) callback(ack);
-    });
-  };
 
   const value = {
     socket,

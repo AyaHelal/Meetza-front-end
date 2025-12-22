@@ -24,13 +24,17 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser, loginUser } = useContext(AuthContext);
-  const { unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead} = useSocket();
+  const { unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead,getUnreadNotificationCount} = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    getUnreadNotificationCount();
+  }, []);
 
   // Update activeNav based on current route
   useEffect(() => {
@@ -104,11 +108,6 @@ const AppLayout = ({ children }) => {
     setIsSidebarOpen(false);
     // Refresh count when opening
     setUnreadNotificationCount(0);
-    if (typeof markAllNotificationsRead === "function") {
-    markAllNotificationsRead((ack) => {
-      if (!ack?.ok) console.warn("Failed to mark notifications as read on server");
-    });
-  }
   };
 
   // Handle notification panel close - refresh count
@@ -119,11 +118,6 @@ const AppLayout = ({ children }) => {
   // Handle notification read - refresh count
   const handleNotificationRead = () => {
     setUnreadNotificationCount(0);
-    if (typeof markAllNotificationsRead === "function") {
-    markAllNotificationsRead((ack) => {
-      if (!ack?.ok) console.warn("Failed to mark notifications as read on server");
-    });
-  }
   };
 
   const handleLogout = () => {

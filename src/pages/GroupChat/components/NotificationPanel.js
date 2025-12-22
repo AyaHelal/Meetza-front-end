@@ -7,7 +7,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
-  const { socket, isConnected, getNotifications, markAllNotificationsRead } = useSocket();
+  const { socket, isConnected, getNotifications, markAllNotificationsRead,setUnreadNotificationCount } = useSocket();
 
   // Close panel when clicking outside (desktop only)
   useEffect(() => {
@@ -55,6 +55,7 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
       console.log('🔔 New notification received in NotificationPanel:', notification);
       // Add new notification to the list
       setNotifications((prev) => [notification, ...prev]);
+      setUnreadNotificationCount(prev => prev + 1);
     };
 
     const handleNotificationRead = (data) => {
@@ -95,6 +96,9 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
       setLoading(true);
       const response = await axiosInstance.get('/notification');
       console.log('Notification API response:', response.data);
+      setNotifications(response.data.data ||[]);
+      setLoading(false);
+
 
       // Handle different response formats
       let notificationsData = [];
@@ -122,21 +126,25 @@ const NotificationPanel = ({ isOpen, onClose, position, onNotificationRead, isMo
   };
 
   const markAllAsRead = async () => {
-    try {
-      const response = await axiosInstance.put('/notification/mark-all-as-read');
-      console.log('Mark all as read response:', response.data);
-      // Refresh unread count after marking as read
-      if (onNotificationRead) {
-        // Add a small delay to ensure server has processed the request
-        setTimeout(() => {
-          onNotificationRead();
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-      console.error('Error response:', error.response?.data);
-    }
-  };
+  try {
+    await axiosInstance.put('/notification/mark-all-as-read');
+
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, is_read: true }))
+    );
+
+    setUnreadNotificationCount();
+
+    if (onNotificationRead) {
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  onNotificationRead(unreadCount);
+}
+
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 
   const formatDate = (dateString) => {
     if (!dateString) return '';

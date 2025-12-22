@@ -6,7 +6,8 @@ import { AuthContext } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import { UsersThree } from '@phosphor-icons/react';
 import NotificationPanel from './NotificationPanel';
-import { color } from 'framer-motion';
+import api from "../../../API/axiosInstance";
+
 
 const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, onExternalNotificationPanelClose, onNotificationRead }) => {
   console.log('🔔 LeftNavbar component rendering');
@@ -17,15 +18,41 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
 
-  useEffect(() => {
-  if (socket&& isConnected && getUnreadNotificationCount ) {
-    getUnreadNotificationCount((ack) => {
-      if (ack?.ok && ack.unreadCount !== undefined) {
-        setUnreadNotificationCount(ack.unreadCount);
+useEffect(() => {
+  // Function to fetch unread count from API using Axios
+  const fetchUnreadCountFromAPI = async () => {
+    try {
+      const res = await api.get('/notification/unread-count');
+
+      if (res.data?.unreadCount !== undefined) {
+        setUnreadNotificationCount(res.data.unreadCount);
+        console.log("🔔 Initial unread count from API:", res.data.unreadCount);
       }
-    });
-  }
-}, [socket,isConnected]);
+    } catch (err) {
+      console.error("❌ Failed to fetch unread count from API:", err);
+    }
+  };
+
+  fetchUnreadCountFromAPI();
+},[]);
+
+// Socket effect to update count on new notifications
+useEffect(() => {
+  if (!socket || !isConnected) return;
+
+  const handleNewNotification = (notification) => {
+    console.log("🔔 New notification received via socket:", notification);
+    setUnreadNotificationCount(prev => prev + 1);
+  };
+
+  socket.on("new_notification", handleNewNotification);
+
+  return () => {
+    socket.off("new_notification", handleNewNotification);
+  };
+}, [socket, isConnected]);
+
+
 
 
   // Track mobile state
@@ -44,24 +71,23 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     }
   }, [externalNotificationPanelOpen]);
 
+  const handleOpenPanel = () => {
+  markAllNotificationsRead();
+  setUnreadNotificationCount(0);
+};
+
   const handleBellClick = (e) => {
     e.stopPropagation();
     const wasOpen = showNotificationPanel;
     setShowNotificationPanel(!showNotificationPanel);
 
     // If opening the panel, immediately hide the badge (optimistic update)
-    if (!wasOpen && markAllNotificationsRead&& socket&& isConnected) {
-      if (markAllNotificationsRead) {
-  markAllNotificationsRead((ack) => {
-    if (ack?.ok) {
-      setUnreadNotificationCount(0);
-    } else {
-      console.warn('Failed to mark notifications as read on server');
-    }
-  });
+    if (!wasOpen) {
+  handleOpenPanel();
 }
+
     }
-  };
+
 
   const handleNotificationClose = () => {
     setShowNotificationPanel(false);
@@ -98,6 +124,8 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
       left: '90px' // Default position to the right of left navbar
     };
   };
+
+console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
 
   return (
     <>
@@ -179,15 +207,6 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
         position={getNotificationPanelPosition()}
         onNotificationRead={() => {
           setUnreadNotificationCount(0);
-
-          if (markAllNotificationsRead) {
-              if (socket && isConnected && markAllNotificationsRead) {
-            markAllNotificationsRead((ack) => {
-              if (!ack?.ok)
-                console.warn('Failed to mark notifications as read on server');
-            });
-          }
-  }
           // Also call external callback if provided (for mobile header)
           if (onNotificationRead) {
             onNotificationRead();
