@@ -42,28 +42,42 @@
   .sidebar-overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     z-index: 1001;
-    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .mobile-sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 100vw;
+    position: relative;
+    width: 100%;
+    max-width: 400px;
     background: white;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     z-index: 1002;
-    transform: translateX(100%);
-    transition: transform 0.3s ease-in-out;
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
   }
 
   .mobile-sidebar.open {
-    transform: translateX(0);
+    transform: scale(1);
+    opacity: 1;
   }
 
   .sidebar-profile {
@@ -73,10 +87,10 @@
 
   .close-sidebar {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 12px;
+    right: 12px;
     border: none;
-    padding: 8px;
+    padding: 4px;
     color: #333;
     background-color: transparent;
     border-radius: 50%;
@@ -85,8 +99,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
+    z-index: 10;
   }
 
   .close-sidebar:hover {
@@ -97,9 +112,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-top: 32px;
-    padding-bottom: 20px;
-    border-bottom: 3px solid #e0e0e0;
+    margin-top: 8px;
+    padding: 16px 0;
   }
 
   .profile-avatar-container {
@@ -204,6 +218,7 @@
   .sidebar-menu-items {
     flex: 1;
     overflow-y: auto;
+    padding: 0 0 16px 0;
   }
 
   .sidebar-item {
@@ -271,6 +286,26 @@
   pointer-events: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
+}
+
+/* Increase width for 1440px screens */
+@media (min-width: 1440px) and (max-width: 1500px) {
+  .fixed-user-status .user-status {
+    min-width: 290px;
+  }
+}
+
+/* Smaller width for 1550px screens */
+@media (min-width: 1501px) and (max-width: 1600px) {
+  .fixed-user-status .user-status {
+    min-width: 240px;
+  }
+}
+
+@media (min-width: 1601px) and (max-width: 1920px) {
+  .fixed-user-status .user-status {
+    min-width: 280px;
+  }
 }
 
 @media (max-width: 768px) {

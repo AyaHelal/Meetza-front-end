@@ -77,14 +77,14 @@ export const SocketProvider = ({ children }) => {
     newSocket.on("connect", () => {
       console.log("✅ Socket connected:", newSocket.id);
       setIsConnected(true);
-      
+
       // Join notification room (backend does this automatically, but we can also explicitly join)
       newSocket.emit("join_notifications", (ack) => {
         if (ack && ack.ok) {
           console.log("✅ Joined notifications room");
         }
       });
-      
+
       // Get initial unread notification count via socket
       newSocket.emit("getUnreadNotificationCount", {}, (ack) => {
         if (ack && ack.ok && ack.unreadCount !== undefined) {
@@ -92,7 +92,7 @@ export const SocketProvider = ({ children }) => {
           console.log("🔔 Initial unread notification count:", ack.unreadCount);
         }
       });
-      
+
       setConnectionError(null);
       hasLoggedSocketErrorRef.current = false;
     });
@@ -116,26 +116,26 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Connection error
-  newSocket.on("connect_error", (error) => {
-  setIsConnected(false);
-  setConnectionError(error.message);
+    newSocket.on("connect_error", (error) => {
+      setIsConnected(false);
+      setConnectionError(error.message);
 
-  if (!hasLoggedSocketErrorRef.current) {
-    console.error("❌ Socket connection error:", error.message);
-    console.error("❌ Attempted URL:", SERVER_URL);
+      if (!hasLoggedSocketErrorRef.current) {
+        console.error("❌ Socket connection error:", error.message);
+        console.error("❌ Attempted URL:", SERVER_URL);
 
-    if (
-      error.message.includes("websocket") ||
-      error.message.includes("WebSocket")
-    ) {
-      console.warn(
-        "⚠️ WebSocket connection failed, will fallback to polling transport"
-      );
-    }
+        if (
+          error.message.includes("websocket") ||
+          error.message.includes("WebSocket")
+        ) {
+          console.warn(
+            "⚠️ WebSocket connection failed, will fallback to polling transport"
+          );
+        }
 
-    hasLoggedSocketErrorRef.current = true;
-  }
-});
+        hasLoggedSocketErrorRef.current = true;
+      }
+    });
 
 
     // Disconnected

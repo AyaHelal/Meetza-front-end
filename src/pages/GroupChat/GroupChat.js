@@ -1437,6 +1437,26 @@ export default function GroupChat() {
 
     setIsSendingMessage(true);
 
+    // Check if message contains a link
+    const containsLink = trimmedText && /https?:\/\/[^\s<>,;]+/i.test(trimmedText);
+
+    // Helper function to refresh group info
+    const refreshGroupInfo = async () => {
+      try {
+        const infoResponse = await axiosInstance.get(
+          `/chat/groups/${groupId}/info`
+        );
+        if (infoResponse?.data?.success) {
+          setGroupInfo(infoResponse.data.data);
+        }
+      } catch (refreshError) {
+        console.warn(
+          "⚠️ Failed to refresh group info after sending message:",
+          refreshError
+        );
+      }
+    };
+
     // Helper function for REST API fallback
     const sendViaRestAPI = async () => {
       try {
@@ -1454,21 +1474,11 @@ export default function GroupChat() {
             prev.map((msg) => (msg.id === tempId ? formattedMessage : msg))
           );
 
-          // Refresh group info to get updated media list if a file was sent
-          if (file && finalMediaType !== "voice_note") {
-            try {
-              const infoResponse = await axiosInstance.get(
-                `/chat/groups/${groupId}/info`
-              );
-              if (infoResponse?.data?.success) {
-                setGroupInfo(infoResponse.data.data);
-              }
-            } catch (refreshError) {
-              console.warn(
-                "⚠️ Failed to refresh group info after sending media:",
-                refreshError
-              );
-            }
+          // Refresh group info to get updated media list if:
+          // 1. A file was sent (and it's not a voice note), OR
+          // 2. A link was sent in the message text (backend saves links to media)
+          if ((file && finalMediaType !== "voice_note") || containsLink) {
+            await refreshGroupInfo();
           }
 
           if (localMediaUrl) {
@@ -1502,7 +1512,7 @@ export default function GroupChat() {
       if (socket && isConnected) {
         console.log("📤 Sending text message via Socket.IO...");
         return new Promise((resolve) => {
-          socketSendMessage(groupId, trimmedText, (ack) => {
+          socketSendMessage(groupId, trimmedText, async (ack) => {
             if (ack && ack.ok && ack.data) {
               // Message sent successfully via Socket.IO
               const formattedMessage = formatMessage(ack.data);
@@ -1523,6 +1533,12 @@ export default function GroupChat() {
                 );
               });
               console.log("✅ Message sent via Socket.IO");
+              
+              // Refresh group info if message contains a link (backend saves links to media)
+              if (containsLink) {
+                await refreshGroupInfo();
+              }
+              
               if (localMediaUrl) {
                 URL.revokeObjectURL(localMediaUrl);
               }
@@ -1581,17 +1597,76 @@ export default function GroupChat() {
     [mediaArray]
   );
 
+  // Combine links from backend (groupMediaItems.links) with links extracted from messages
+  // Backend saves links from WhatsApp messages in the media field
+  const allLinks = useMemo(() => {
+    const backendLinks = groupMediaItems?.links || [];
+    const extractedLinks = extractLinksFromMessages(messages);
+    
+    // Create a Set to track unique URLs (normalize URLs for comparison)
+    const seenUrls = new Set();
+    const combinedLinks = [];
+
+    // First, add backend links (these are from WhatsApp messages saved by backend)
+    backendLinks.forEach((link) => {
+      const url = link.media_url || link.file_url || "";
+      if (url) {
+        try {
+          // Normalize URL for comparison (remove trailing slashes, query params, etc.)
+          const normalizedUrl = new URL(url).href.toLowerCase().replace(/\/$/, "");
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl);
+            combinedLinks.push({
+              ...link,
+              isLink: true,
+            });
+          }
+        } catch (e) {
+          // If URL parsing fails, still add it if not seen
+          if (!seenUrls.has(url.toLowerCase())) {
+            seenUrls.add(url.toLowerCase());
+            combinedLinks.push({
+              ...link,
+              isLink: true,
+            });
+          }
+        }
+      }
+    });
+
+    // Then, add extracted message links (avoiding duplicates)
+    extractedLinks.forEach((link) => {
+      const url = link.media_url || link.original_url || "";
+      if (url) {
+        try {
+          const normalizedUrl = new URL(url).href.toLowerCase().replace(/\/$/, "");
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl);
+            combinedLinks.push(link);
+          }
+        } catch (e) {
+          if (!seenUrls.has(url.toLowerCase())) {
+            seenUrls.add(url.toLowerCase());
+            combinedLinks.push(link);
+          }
+        }
+      }
+    });
+
+    return combinedLinks;
+  }, [groupMediaItems?.links, messages]);
+
   const mediaSummary = useMemo(() => {
     const summary = {
       images: groupMediaItems?.images || [],
       videos: groupMediaItems?.videos || [],
       audio: groupMediaItems?.audio || [],
       files: groupMediaItems?.files || [],
-      links: extractLinksFromMessages(messages),
+      links: allLinks,
     };
     console.log("Media summary:", summary);
     return summary;
-  }, [messages, groupMediaItems]);
+  }, [groupMediaItems, allLinks]);
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 

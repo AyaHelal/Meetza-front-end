@@ -89,7 +89,42 @@ const extractExtension = (item) => {
 const resolveMediaCategory = (item) => {
     const mediaType = item?.media_type?.toLowerCase() || item?.file_type?.toLowerCase() || '';
     const extension = extractExtension(item);
+    const url = item?.media_url || item?.file_url;
 
+    // Check if it's explicitly marked as a link
+    if (mediaType.includes('link')) {
+        return 'links';
+    }
+
+    // Check if it's an HTTP/HTTPS link
+    const isLink = isHttpLink(url);
+    
+    // If it's a link, check if it's a downloadable file type
+    if (isLink) {
+        // List of file extensions that should be treated as documents/files, not links
+        const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
+        
+        // If it has a document extension, treat as document
+        if (documentExtensions.includes(extension)) {
+            return 'files';
+        }
+        
+        // If it's an image, video, or audio file, categorize accordingly
+        if (mediaType.includes('image') || IMAGE_EXTENSIONS.includes(extension)) {
+            return 'images';
+        }
+        if (mediaType.includes('video') || VIDEO_EXTENSIONS.includes(extension)) {
+            return 'videos';
+        }
+        if (mediaType.includes('audio') || AUDIO_EXTENSIONS.includes(extension)) {
+            return 'audio';
+        }
+        
+        // Otherwise, it's a link (even if it has an extension like .html, .php, etc.)
+        return 'links';
+    }
+
+    // Not a link, check other categories
     if (mediaType.includes('image') || IMAGE_EXTENSIONS.includes(extension)) {
         return 'images';
     }
@@ -99,13 +134,7 @@ const resolveMediaCategory = (item) => {
     if (mediaType.includes('audio') || AUDIO_EXTENSIONS.includes(extension)) {
         return 'audio';
     }
-    if (mediaType.includes('link')) {
-        return 'links';
-    }
-    const url = item?.media_url || item?.file_url;
-    if (isHttpLink(url) && !extension) {
-        return 'links';
-    }
+    
     return 'files';
 };
 
@@ -157,8 +186,17 @@ export const categorizeMediaItems = (mediaItems = []) => {
                 categories.files.push(item);
             }
 
+            // Only add to links if it's actually a link (not a media file with HTTP URL)
+            // Media files (images, videos, audio, documents) should only appear in their respective categories
             const url = item?.media_url || item?.file_url;
-            if (isHttpLink(url) && bucket !== 'links') {
+            const isHttpUrl = isHttpLink(url);
+            const isMediaFile = bucket === 'images' || bucket === 'videos' || bucket === 'audio' || bucket === 'files';
+            
+            // Only add to links if:
+            // 1. It's an HTTP link
+            // 2. It's not already categorized as a media file (images, videos, audio, files)
+            // 3. It's not already in links
+            if (isHttpUrl && !isMediaFile && bucket !== 'links') {
                 categories.links.push(item);
             }
         });

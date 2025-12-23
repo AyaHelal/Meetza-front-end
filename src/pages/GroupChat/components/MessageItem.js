@@ -209,7 +209,58 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                 ]
                 : [];
 
+    // Helper function to check if an item is a link (before getMediaType is defined)
+    const isLinkItem = (item) => {
+        const declaredType = item?.media_type || item?.file_type || '';
+        if (declaredType === 'link' || declaredType.includes('link')) {
+            return true;
+        }
+        const url = item?.media_url || item?.file_url || '';
+        return /^https?:\/\//i.test(url);
+    };
 
+    // Remove links from message text if they're already shown as media items
+    const getDisplayText = () => {
+        const messageText = message.message || message.text || '';
+        if (!messageText || !finalMedia || finalMedia.length === 0) {
+            return messageText;
+        }
+
+        // Get all link URLs from media items
+        const linkUrls = finalMedia
+            .filter(item => isLinkItem(item))
+            .map(item => {
+                const url = item.media_url || item.file_url || '';
+                // Remove trailing punctuation that might have been cleaned
+                return url.replace(/[.,;:!?)]+$/, '');
+            })
+            .filter(url => url);
+
+        if (linkUrls.length === 0) {
+            return messageText;
+        }
+
+        // Remove link URLs from the message text
+        let displayText = messageText;
+        linkUrls.forEach(url => {
+            // Escape special regex characters in URL
+            const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Remove the URL from text (with optional trailing punctuation)
+            displayText = displayText.replace(new RegExp(escapedUrl + '[.,;:!?)]*', 'gi'), '').trim();
+        });
+
+        // Clean up extra spaces
+        displayText = displayText.replace(/\s+/g, ' ').trim();
+
+        // If the message was only links, return empty string (link preview will show)
+        if (!displayText || displayText.length === 0) {
+            return '';
+        }
+
+        return displayText;
+    };
+
+    const displayText = getDisplayText();
 
     // Update editText when message changes (e.g., after successful edit)
     useEffect(() => {
@@ -287,13 +338,52 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
 
     const getMediaType = (mediaItem) => {
         const declaredType = mediaItem?.media_type || mediaItem?.file_type || '';
+        const mediaUrl = mediaItem?.media_url || mediaItem?.file_url || '';
+        
+        // First, check if it's explicitly marked as a link
+        if (declaredType === 'link' || declaredType.includes('link')) {
+            return 'link';
+        }
+        
+        // Check if it's an HTTP/HTTPS link (even if media_type is not set to 'link')
+        const isHttpLink = /^https?:\/\//i.test(mediaUrl);
+        if (isHttpLink) {
+            // List of file extensions that should be treated as documents/files, not links
+            const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif'];
+            const videoExtensions = ['mp4', 'mov', 'webm', 'mkv', 'avi'];
+            const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm'];
+            
+            const extension = getExtension(mediaItem);
+            
+            // If it's a link but has a document extension, treat as document
+            if (documentExtensions.includes(extension)) {
+                return 'document';
+            }
+            // If it's a link but has an image extension, treat as image
+            if (imageExtensions.includes(extension)) {
+                return 'image';
+            }
+            // If it's a link but has a video extension, treat as video
+            if (videoExtensions.includes(extension)) {
+                return 'video';
+            }
+            // If it's a link but has an audio extension, treat as audio
+            if (audioExtensions.includes(extension)) {
+                return 'audio';
+            }
+            
+            // Otherwise, it's a link (even if it has extensions like .html, .php, etc.)
+            return 'link';
+        }
+        
+        // Not a link, check declared type
         if (typeof declaredType === 'string' && declaredType.length > 0) {
             if (declaredType.startsWith('image')) return 'image';
             if (declaredType.startsWith('video')) return 'video';
             // Treat both 'audio', 'voice', and 'voice_note' as audio for consistent rendering
             if (declaredType.startsWith('audio') || declaredType === 'voice' || declaredType === 'voice_note') return 'audio';
             if (declaredType === 'document' || declaredType === 'file') return 'document';
-            if (declaredType === 'link') return 'link';
             // Handle generic 'media' type by checking MIME type
             if (declaredType === 'media') {
                 const mimeType = mediaItem?.file_mime || mediaItem?.file_type || '';
@@ -303,6 +393,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
             }
         }
 
+        // Fallback to extension-based detection
         const extension = getExtension(mediaItem);
         if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg'].includes(extension)) return 'image';
         if (['mp4', 'mov', 'webm', 'mkv'].includes(extension)) return 'video';
@@ -383,7 +474,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         );
                     }
 
-                    if (mediaItem.media_type === 'link') {
+                    if (type === 'link' || mediaItem.media_type === 'link') {
                         // Extract domain name from URL
                         let domainName = '';
                         let displayUrl = mediaUrl;
@@ -547,7 +638,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         <span className="message-time">{message.time}</span>
                     </div>
                 )}
-                {!isLinkMessage && (message.message || message.text) && (
+                {displayText && (
                     <div className="message-text">
                         {isEditing ? (
                             <input
@@ -560,7 +651,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                                 className="edit-input"
                             />
                         ) : (
-                            message.message || message.text || ''
+                            displayText
                         )}
                     </div>
                 )}
