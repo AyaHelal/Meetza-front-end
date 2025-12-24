@@ -1,14 +1,38 @@
 import { Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import '../../pages/Login/Login.css';
 
-const SocialLoginButtons = ({ role }) => {
-    //const apiBase = process.env.REACT_APP_API_URL || '';
-    //const googleAuthUrl = `${apiBase}/auth/social/google?role=${role || 'Member'}`;
-    const googleAuthUrl = `https://sw2gc7g3-3000.uks1.devtunnels.ms/api/auth/social/google?role=${role || 'Member'}`;
-
-    // ✅ Google Login via backend redirect
-    const handleGoogleLogin = () => {
-        window.location.href = googleAuthUrl;
+const SocialLoginButtons = ({ role, redirectUrl }) => {
+    const navigate = useNavigate();
+    
+    const handleGoogleLogin = async () => {
+        try {
+            // Get token from cookies by calling protected route
+            const response = await axios.get("/api/protected-route", { withCredentials: true });
+            
+            if (response.data.token) {
+                // Store token and user info
+                localStorage.setItem('token', response.data.token);
+                if (response.data.user) {
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                }
+                
+                // Navigate to home or redirectUrl
+                navigate(redirectUrl || '/home');
+            } else {
+                // If no token, redirect to Google OAuth
+                const encodedRedirect = encodeURIComponent(redirectUrl || "/home");
+                const googleAuthUrl = `https://courteous-uncomplimenting-aleena.ngrok-free.dev/api/auth/social/google?role=${role || "Member"}&redirect=${encodedRedirect}`;
+                window.location.href = googleAuthUrl;
+            }
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            // If error, redirect to Google OAuth
+            const encodedRedirect = encodeURIComponent(redirectUrl || "/home");
+            const googleAuthUrl = `https://courteous-uncomplimenting-aleena.ngrok-free.dev/api/auth/social/google?role=${role || "Member"}&redirect=${encodedRedirect}`;
+            window.location.href = googleAuthUrl;
+        }
     };
 
     return (
