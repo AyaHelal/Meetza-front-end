@@ -195,7 +195,7 @@ const FormSection = ({
 
                             {/* render any extra fields (e.g., role radios) above the remember/forgot row */}
                             {extraFields && (
-                                <div className="mb-3">
+                                <div className="mb-0">
                                     {extraFields}
                                 </div>
                             )}

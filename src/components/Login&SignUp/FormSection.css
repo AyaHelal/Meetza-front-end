@@ -155,6 +155,17 @@
     gap: 0.5rem;
   }
 
+  /* Make remember me and forgot password smaller on mobile */
+  .d-flex.justify-content-between.align-items-center label {
+    font-size: 12px !important;
+    margin-top: 0;
+  }
+
+  .d-flex.justify-content-between.align-items-center .btn-link {
+    font-size: 12px !important;
+    margin-top: 0;
+  }
+
   /* Make checkbox and label stack on very small screens */
   .form-check {
     margin-bottom: 0.5rem;
