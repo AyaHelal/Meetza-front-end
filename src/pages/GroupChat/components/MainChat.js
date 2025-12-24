@@ -38,6 +38,9 @@ const MainChat = ({
   userRole,
 }) => {
   const messagesContainerRef = useRef(null);
+  const mainChatRef = useRef(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const messagesEndRef = useRef(null);
   const [modalPhoto, setModalPhoto] = useState(null);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
@@ -170,6 +173,52 @@ const MainChat = ({
     }
   }, [showMainChat, isMobile]);
 
+  // Handle swipe back gesture on mobile
+  useEffect(() => {
+    if (!isMobile || !showMainChat || !mainChatRef.current || !onBackToChats) return;
+
+    const mainChat = mainChatRef.current;
+
+    const handleTouchStart = (e) => {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!touchStartX.current || !touchStartY.current) return;
+
+      const touchCurrentX = e.touches[0].clientX;
+      const touchCurrentY = e.touches[0].clientY;
+      const diffX = touchCurrentX - touchStartX.current;
+      const diffY = touchCurrentY - touchStartY.current;
+
+      // Only handle horizontal swipe from left edge (swipe right to go back)
+      // Check if swipe started from left edge (within 20px)
+      if (touchStartX.current <= 20 && diffX > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+        // Swipe right from left edge - go back to chat panel
+        e.preventDefault();
+        onBackToChats();
+        touchStartX.current = 0;
+        touchStartY.current = 0;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchStartX.current = 0;
+      touchStartY.current = 0;
+    };
+
+    mainChat.addEventListener('touchstart', handleTouchStart, { passive: false });
+    mainChat.addEventListener('touchmove', handleTouchMove, { passive: false });
+    mainChat.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      mainChat.removeEventListener('touchstart', handleTouchStart);
+      mainChat.removeEventListener('touchmove', handleTouchMove);
+      mainChat.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, showMainChat, onBackToChats]);
+
   useEffect(() => {
     if (!initialMessages || !Array.isArray(initialMessages)) return;
 
@@ -242,7 +291,7 @@ const MainChat = ({
   const allLinks = useMemo(() => {
     const backendLinks = groupMediaItems?.links || [];
     const extractedLinks = messageLinks || [];
-    
+
     // Create a Set to track unique URLs (normalize URLs for comparison)
     const seenUrls = new Set();
     const combinedLinks = [];
@@ -576,9 +625,8 @@ const MainChat = ({
                 <p>{member.email}</p>
               </div>
               <span
-                className={`member-role ${
-                  member.role === "Administrator" ? "admin-role" : ""
-                }`}
+                className={`member-role ${member.role === "Administrator" ? "admin-role" : ""
+                  }`}
               >
                 {member.role}
               </span>
@@ -612,15 +660,14 @@ const MainChat = ({
         return (
           <div
             key={item.id || index}
-            className={`media-item ${
-              isImage
+            className={`media-item ${isImage
                 ? "media-item-photo"
                 : isVideo
-                ? "media-item-video"
-                : isAudio
-                ? "media-item-audio"
-                : ""
-            }`}
+                  ? "media-item-video"
+                  : isAudio
+                    ? "media-item-audio"
+                    : ""
+              }`}
             onClick={() => handlePhotoClick(item)}
           >
             {isImage ? (
@@ -757,8 +804,8 @@ const MainChat = ({
                     method: "GET",
                     headers: token
                       ? {
-                          Authorization: `Bearer ${token}`,
-                        }
+                        Authorization: `Bearer ${token}`,
+                      }
                       : {},
                   });
 
@@ -875,9 +922,8 @@ const MainChat = ({
       <div className="expanded-section">
         <h4>{title}</h4>
         <div
-          className={`expanded-items ${
-            expandedSection === "links" ? "expanded-links" : ""
-          }`}
+          className={`expanded-items ${expandedSection === "links" ? "expanded-links" : ""
+            }`}
         >
           {items.length === 0 ? (
             <p>No {title.toLowerCase()} available.</p>
@@ -935,9 +981,9 @@ const MainChat = ({
 
   return (
     <div
-      className={`main-chat rounded-4 shadow-sm ${
-        isMobile && !showMainChat ? "mobile-hidden" : ""
-      }`}
+      ref={mainChatRef}
+      className={`main-chat rounded-4 shadow-sm ${isMobile && !showMainChat ? "mobile-hidden" : ""
+        }`}
     >
       <div className="chat-header">
         {/* Show section back button if viewing a section, otherwise show mobile back button */}
@@ -1056,13 +1102,13 @@ const MainChat = ({
                 const prevDate =
                   index > 0
                     ? messages[index - 1].date ||
-                      new Date(
-                        messages[index - 1].created_at || Date.now()
-                      ).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
+                    new Date(
+                      messages[index - 1].created_at || Date.now()
+                    ).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                     : null;
                 const showSeparator = index === 0 || prevDate !== msgDate;
 

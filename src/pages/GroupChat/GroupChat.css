@@ -803,6 +803,108 @@ body.group-chat-active {
   color: rgba(0, 0, 0, 0.7);
 }
 
+/* Mobile responsive styles - prevent time from overlapping waveform */
+@media (max-width: 768px) {
+  .whatsapp-voice-message {
+    min-width: 180px;
+    max-width: 85%;
+    padding: 6px 10px;
+  }
+
+  .voice-message-content {
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .voice-play-btn {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .voice-waveform-container {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: 0;
+    height: 35px;
+    overflow: hidden;
+  }
+
+  .voice-waveform {
+    gap: 1px;
+  }
+
+  .waveform-bar {
+    min-width: 1.5px;
+  }
+
+  .voice-time-info {
+    min-width: 42px;
+    width: 42px;
+    flex-shrink: 0;
+    margin-left: 3px;
+  }
+
+  .voice-current-time {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .whatsapp-voice-message {
+    min-width: 150px;
+    max-width: 80%;
+    padding: 5px 8px;
+  }
+
+  .voice-message-content {
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .voice-play-btn {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+  }
+
+  .voice-play-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .voice-waveform-container {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: 0;
+    height: 32px;
+    overflow: hidden;
+  }
+
+  .voice-waveform {
+    gap: 1px;
+  }
+
+  .waveform-bar {
+    min-width: 1px;
+  }
+
+  .voice-time-info {
+    min-width: 38px;
+    width: 38px;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+
+  .voice-current-time {
+    font-size: 9px;
+  }
+}
+
 /* Legacy styles for backward compatibility */
 .message-media-audio-wrapper {
   padding: 0;
@@ -2573,6 +2675,8 @@ body.group-chat-active {
 
   .input-wrapper {
     padding: 0;
+    position: relative;
+    overflow: visible;
   }
 
   .chat-input input {
@@ -2583,6 +2687,7 @@ body.group-chat-active {
   .input-icon {
     width: 28px;
     height: 28px;
+    position: absolute;
   }
 
   .input-icon-left {
@@ -2599,6 +2704,16 @@ body.group-chat-active {
 
   .input-icon.emoji-icon {
     right: 40px;
+    position: absolute;
+  }
+
+  .input-wrapper {
+    position: relative;
+    overflow: visible;
+  }
+
+  .input-icon.send {
+    right: 6px;
   }
 
   .right-sidebar {
@@ -2842,7 +2957,7 @@ body.group-chat-active {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0076EA, #00DC85);
+  background: linear-gradient(135deg, #0076ea, #00dc85);
   color: #ffffff;
   font-weight: 600;
   font-size: 20px;
@@ -3026,7 +3141,7 @@ body.group-chat-active {
     min-width: 100px;
     max-width: 120px;
   }
-  
+
   /* Audio and other items - keep original size */
   .media-item-audio {
     width: calc(50% - 0.5rem);
@@ -3062,7 +3177,7 @@ body.group-chat-active {
     min-width: 90px;
     max-width: 110px;
   }
-  
+
   /* Audio and other items - keep original size */
   .media-item-audio {
     width: 100%;
@@ -3534,6 +3649,42 @@ body.group-chat-active {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   min-width: 120px;
+  animation: contextMenuFadeIn 0.2s ease;
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Context Menu - Center around message */
+@media (max-width: 768px) {
+  .context-menu {
+    min-width: 140px;
+    max-width: 200px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    /* Ensure menu stays within viewport */
+    left: auto !important;
+    right: auto !important;
+  }
+
+  .context-menu button {
+    padding: 12px 16px;
+    font-size: 15px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .context-menu button:active {
+    background-color: #e9ecef;
+  }
 }
 
 .context-menu button {

@@ -2,7 +2,7 @@
   width: 100%;
 }
 
-.btn-group-mobile{
+.btn-group-mobile {
   padding: 5px;
 }
 @media (min-width: 1441px) {
@@ -40,7 +40,7 @@
     border: none !important;
     max-width: 416px;
     width: 100%;
-    margin: 0 ;
+    margin: 0;
     padding: 0;
   }
 
