@@ -2774,6 +2774,8 @@ body.group-chat-active {
   padding: 1rem;
   margin-bottom: 1rem;
   width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .expanded-section1 {
@@ -2952,6 +2954,15 @@ body.group-chat-active {
   margin-bottom: 1rem;
   border-bottom: 1px solid #e0e0e0;
   padding-bottom: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tabs-header::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .tab-item {
@@ -2961,6 +2972,8 @@ body.group-chat-active {
   background: #f0f0f0;
   cursor: pointer;
   font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab-item.active {
   background: #1976d2;
@@ -2986,6 +2999,26 @@ body.group-chat-active {
 
 /* Smaller size for photos and videos only on mobile */
 @media (max-width: 768px) {
+  .expanded-section {
+    padding: 0.75rem;
+    overflow-x: hidden;
+  }
+
+  .tabs-header {
+    gap: 0.4rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .tab-item {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
   /* Photos and videos - smaller size */
   .media-item-photo,
   .media-item-video {
@@ -3003,6 +3036,25 @@ body.group-chat-active {
 }
 
 @media (max-width: 480px) {
+  .expanded-section {
+    padding: 0.5rem;
+  }
+
+  .tabs-header {
+    gap: 0.3rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .tab-item {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
   /* Photos and videos - smaller size */
   .media-item-photo,
   .media-item-video {

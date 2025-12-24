@@ -1,0 +1,240 @@
+/* UserPhoto Component Styles */
+.user-photo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-photo-avatar-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-photo-avatar {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e0e0;
+}
+
+.user-photo-sidebar .user-photo-avatar {
+  background: #1976d2; /* Blue background for sidebar variant */
+}
+
+.user-photo-small .user-photo-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.user-photo-medium .user-photo-avatar {
+  width: 50px;
+  height: 50px;
+}
+
+.user-photo-large .user-photo-avatar {
+  width: 80px;
+  height: 80px;
+}
+
+.user-photo-sidebar .user-photo-avatar {
+  width: 80px;
+  height: 80px;
+}
+
+.user-photo-status .user-photo-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+/* Integration with existing UserStatus styles */
+.user-status .user-photo-container {
+  margin: 0;
+  gap: 0;
+  flex-direction: row;
+  align-items: center;
+}
+
+.user-status .status-user-photo {
+  margin: 0;
+}
+
+.user-status .user-photo-avatar-container {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+/* Make UserPhoto work with existing status-avatar-container styles */
+.user-status .user-photo-avatar-container {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.user-status .user-photo-avatar-container:hover {
+  transform: scale(1.05);
+}
+
+/* Integration with mobile sidebar styles */
+.sidebar-profile .user-photo-container {
+  margin: 0;
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.sidebar-user-photo {
+  width: auto;
+}
+
+.sidebar-profile .profile-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Override any existing profile-avatar styles when using UserPhoto */
+.sidebar-profile .profile-info .user-photo-container {
+  width: auto;
+  flex-direction: row;
+}
+
+.sidebar-profile .profile-info h3 {
+  margin: 0;
+}
+
+.sidebar-profile .user-photo-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #000;
+  text-align: left;
+}
+
+.user-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.user-photo-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.user-photo-sidebar .user-photo-initials {
+  color: white; /* White text on blue background */
+}
+
+.user-photo-small .user-photo-initials {
+  font-size: 0.75rem;
+}
+
+.user-photo-status .user-photo-initials {
+  font-size: 0.875rem;
+}
+
+.user-photo-large .user-photo-initials,
+.user-photo-sidebar .user-photo-initials {
+  font-size: 1.25rem;
+}
+
+.user-photo-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: #007bff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: 2px solid white;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.user-photo-avatar-container:hover .user-photo-overlay {
+  opacity: 1;
+}
+
+.user-photo-sidebar .user-photo-overlay {
+  width: 28px;
+  height: 28px;
+  opacity: 1; /* Always visible in sidebar */
+  background: #1976d2;
+}
+
+.user-photo-status .user-photo-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  padding: 0;
+  opacity: 0;
+  color: white;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-photo-status .user-photo-avatar-container:hover .user-photo-overlay {
+  opacity: 1;
+}
+
+.user-photo-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-photo-loading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.user-photo-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+}
+
+.user-photo-sidebar .user-photo-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+

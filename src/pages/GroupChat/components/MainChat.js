@@ -237,15 +237,74 @@ const MainChat = ({
     return links;
   }, [messages]);
 
+  // Combine links from backend (groupMediaItems.links) with links extracted from messages
+  // Backend saves links from WhatsApp messages in the media field
+  const allLinks = useMemo(() => {
+    const backendLinks = groupMediaItems?.links || [];
+    const extractedLinks = messageLinks || [];
+    
+    // Create a Set to track unique URLs (normalize URLs for comparison)
+    const seenUrls = new Set();
+    const combinedLinks = [];
+
+    // First, add backend links (these are from WhatsApp messages saved by backend)
+    backendLinks.forEach((link) => {
+      const url = link.media_url || link.file_url || "";
+      if (url) {
+        try {
+          // Normalize URL for comparison (remove trailing slashes, query params, etc.)
+          const normalizedUrl = new URL(url).href.toLowerCase().replace(/\/$/, "");
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl);
+            combinedLinks.push({
+              ...link,
+              isLink: true,
+            });
+          }
+        } catch (e) {
+          // If URL parsing fails, still add it if not seen
+          if (!seenUrls.has(url.toLowerCase())) {
+            seenUrls.add(url.toLowerCase());
+            combinedLinks.push({
+              ...link,
+              isLink: true,
+            });
+          }
+        }
+      }
+    });
+
+    // Then, add extracted message links (avoiding duplicates)
+    extractedLinks.forEach((link) => {
+      const url = link.media_url || link.original_url || "";
+      if (url) {
+        try {
+          const normalizedUrl = new URL(url).href.toLowerCase().replace(/\/$/, "");
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl);
+            combinedLinks.push(link);
+          }
+        } catch (e) {
+          if (!seenUrls.has(url.toLowerCase())) {
+            seenUrls.add(url.toLowerCase());
+            combinedLinks.push(link);
+          }
+        }
+      }
+    });
+
+    return combinedLinks;
+  }, [groupMediaItems?.links, messageLinks]);
+
   const mediaTabResources = useMemo(
     () => ({
       photos: [...(groupMediaItems?.images || [])],
       videos: [...(groupMediaItems?.videos || [])],
       audio: [...(groupMediaItems?.audio || [])],
-      links: messageLinks,
+      links: allLinks,
       documents: [...(groupMediaItems?.files || [])],
     }),
-    [groupMediaItems, messageLinks]
+    [groupMediaItems, allLinks]
   );
 
   // Legacy support for groupInfo-based resources (from first file)
