@@ -26,8 +26,7 @@ const EmailField = ({ value, onChange, name = "email", error = "" }) => {
                         value={value}
                         onChange={handleChange}
                         placeholder="johndoe@email.com"
-                        className={`form-control border-0 shadow-none ${error ? "is-invalid" : ""
-                            }`}
+                        className={`form-control border-0 shadow-none ${error ? "is-invalid" : ""}`}
                         style={{
                             width: "100%",
                             paddingTop: "0%",
@@ -35,6 +34,9 @@ const EmailField = ({ value, onChange, name = "email", error = "" }) => {
                             backgroundColor: "transparent",
                             outline: "none",
                             boxShadow: "none",
+                            color: "#212529",
+                            WebkitAppearance: "none",
+                            MozAppearance: "textfield",
                         }}
                     />
                 </div>

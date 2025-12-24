@@ -112,7 +112,7 @@ const FormSection = ({
                 )}
             </div>
 
-            <div className="rounded-3 p-1 mb-2 btn-group-mobile" style={{ backgroundColor: '#e0e0e0' }}>
+            <div className="rounded-3 mb-2 btn-group-mobile" style={{ backgroundColor: '#e0e0e0'}}>
                 {/* Only show tabs for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <div className="d-flex gap-1">
