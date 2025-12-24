@@ -193,13 +193,13 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         // Determine category: use override if provided, otherwise use pendingCategory, 
         // or determine from file type, but ensure uploaded audio files are 'audio', not 'voice_note'
         let resolvedCategory = overrideCategory || pendingCategory || determineMediaCategory(file) || null;
-        
+
         // Safety check: if file is audio type and no override was provided (meaning it's an uploaded file, not recorded),
         // ensure it's categorized as 'audio', not 'voice_note'
         if (file.type?.startsWith('audio/') && !overrideCategory && resolvedCategory !== 'voice_note') {
             resolvedCategory = 'audio';
         }
-        
+
         setMediaCategory(resolvedCategory);
         setPendingCategory(null);
     };
@@ -221,7 +221,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
             'audio/mpeg',
             'audio/wav'
         ];
-        
+
         for (const type of types) {
             if (MediaRecorder.isTypeSupported(type)) {
                 return type;
@@ -245,14 +245,14 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         }
         setRecordingError(null);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true
-                } 
+                }
             });
-            
+
             const mimeType = getSupportedMimeType();
             const options = mimeType ? { mimeType } : {};
             const recorder = new MediaRecorder(stream, options);
@@ -279,45 +279,45 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                     try {
                         // Wait a bit to ensure all data is available
                         await new Promise(resolve => setTimeout(resolve, 100));
-                        
+
                         // Use the actual MIME type from recorder or fallback
                         const actualMimeType = recorder.mimeType || 'audio/webm';
-                        
+
                         // Ensure we have all chunks
                         if (audioChunksRef.current.length === 0) {
                             setRecordingError('No audio data recorded');
                             setRecording(false);
                             return;
                         }
-                        
+
                         const blob = new Blob(audioChunksRef.current, { type: actualMimeType });
-                        
+
                         // Verify blob has content
                         if (blob.size === 0) {
                             setRecordingError('Recording is empty');
                             setRecording(false);
                             return;
                         }
-                        
+
                         // Determine file extension based on MIME type
                         let extension = 'webm';
                         if (actualMimeType.includes('ogg')) extension = 'ogg';
                         else if (actualMimeType.includes('mp4')) extension = 'm4a';
                         else if (actualMimeType.includes('mpeg')) extension = 'mp3';
                         else if (actualMimeType.includes('wav')) extension = 'wav';
-                        
-                        const audioFile = new File([blob], `voice-${Date.now()}.${extension}`, { 
+
+                        const audioFile = new File([blob], `voice-${Date.now()}.${extension}`, {
                             type: actualMimeType,
                             lastModified: Date.now()
                         });
-                        
+
                         console.log('Audio recording created:', {
                             size: audioFile.size,
                             type: audioFile.type,
                             name: audioFile.name,
                             chunks: audioChunksRef.current.length
                         });
-                        
+
                         // Verify the file can be read
                         const testUrl = URL.createObjectURL(blob);
                         const testAudio = new Audio(testUrl);
@@ -330,7 +330,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                             URL.revokeObjectURL(testUrl);
                         });
                         testAudio.load();
-                        
+
                         handleFileSelection(audioFile, 'voice_note');
                     } catch (error) {
                         console.error('Error creating audio file:', error);

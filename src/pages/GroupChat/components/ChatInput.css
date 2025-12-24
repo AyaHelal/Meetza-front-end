@@ -1,228 +1,251 @@
 /* Existing styles */
 .chat-input {
-    position: relative;
-    background: #fff;
-    border-top: 1px solid #e9ecef;
-    padding: 10px;
+  position: relative;
+  background: #fff;
+  border-top: 1px solid #e9ecef;
+  padding: 10px;
 }
 
 .chat-media-preview {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 16px;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    gap: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 12px;
 }
 
 .preview-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .preview-content img,
 .preview-content video {
-    max-width: 180px;
-    border-radius: 12px;
+  max-width: 180px;
+  border-radius: 12px;
 }
 
 .preview-content audio {
-    width: 200px;
+  width: 200px;
 }
 
 .audio-preview-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
 .audio-preview-wrapper audio {
-    width: 100%;
-    max-width: 300px;
+  width: 100%;
+  max-width: 300px;
 }
 
 .audio-ready-label {
-    font-size: 12px;
-    color: #28a745;
-    font-weight: 500;
+  font-size: 12px;
+  color: #28a745;
+  font-weight: 500;
 }
 
 .preview-fallback {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #495057;
-    font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #495057;
+  font-size: 14px;
 }
 
 .remove-preview-btn {
-    border: none;
-    background: #ff7474;
-    color: #fff;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  border: none;
+  background: #ff7474;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .recording-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #e03131;
-    font-weight: 600;
-    font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e03131;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .recording-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #e03131;
-    animation: pulse 1.2s infinite;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e03131;
+  animation: pulse 1.2s infinite;
 }
 
 .recording-error {
-    color: #e03131;
-    font-size: 12px;
-    margin: 4px 12px 0;
+  color: #e03131;
+  font-size: 12px;
+  margin: 4px 12px 0;
 }
 
 @keyframes pulse {
-    0% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0.2; transform: scale(0.8); }
+  0% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
 }
 
 .input-wrapper {
-    display: flex;
-    align-items: center;
-    background: #f8f9fa;
-    border-radius: 20px;
-    padding: 5px 0px;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 5px 0px;
+  position: relative;
+  overflow: visible;
 }
 
 .input-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    color: #495057;
-    transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #495057;
+  transition: background-color 0.2s;
 }
 
 .input-icon:hover {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 .input-icon-left {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 
 .input-icon-right {
-    margin-left: 5px;
+  margin-left: 5px;
 }
 
 .input-icon.recording-active {
-    color: #e03131;
+  color: #e03131;
+}
+
+/* Mobile styles - ensure icons stay inside input */
+@media (max-width: 768px) {
+  .input-wrapper {
+    position: relative;
+    overflow: visible;
+  }
+
+  .input-icon {
+    flex-shrink: 0;
+  }
 }
 
 .emoji-icon {
-    position: relative;
+  position: relative;
 }
 
 .emoji-picker-wrapper {
-    position: absolute;
-    bottom: 60px;
-    right: 10px;
-    z-index: 1000;
+  position: absolute;
+  bottom: 60px;
+  right: 10px;
+  z-index: 1000;
 }
 
 .attachment-menu {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 1000;
-    margin-bottom: 8px;
-    min-width: 150px;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  margin-bottom: 8px;
+  min-width: 150px;
 }
 
 .attachment-menu button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 4px;
-    text-align: left;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: left;
+  width: 100%;
 }
 
 .attachment-menu button:hover {
-    background-color: #f5f5f5;
+  background-color: #f5f5f5;
 }
 
 .attachment-menu button span {
-    font-size: 14px;
-    color: #333;
+  font-size: 14px;
+  color: #333;
 }
 
 .attachment-button {
-    position: relative;
-    cursor: pointer;
+  position: relative;
+  cursor: pointer;
 }
 
 /* Input field */
 input[type="text"] {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 8px 12px;
-    font-size: 14px;
-    outline: none;
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
 }
 
 /* Send button */
 .send {
-    background: #00dc85;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
+  background: #00dc85;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
 }
 
 .send:hover {
-    background: #00c878;
+  background: #00c878;
 }
 
 .send:disabled {
-    background: #9edfc0;
-    cursor: not-allowed;
+  background: #9edfc0;
+  cursor: not-allowed;
 }

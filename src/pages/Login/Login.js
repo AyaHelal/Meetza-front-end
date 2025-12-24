@@ -388,7 +388,7 @@ const Login = () => {
                             </div>
                         </div>
                         {errors.role && (
-                             <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
+                            <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
                                 {errors.role}
                             </div>
                         )}

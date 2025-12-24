@@ -149,21 +149,30 @@ const normalizeMediaItems = (mediaItems, messageId) => {
     const mediaUrl = item?.media_url || item?.file_url || "";
     const extension = extractExtension(item);
 
-    const declaredType =
-      typeof item?.media_type === "string"
-        ? item.media_type
-        : typeof item?.file_type === "string"
-        ? item.file_type
-        : "";
+    // IMPORTANT: Check media_type FIRST (from server) before file_type (MIME type)
+    // This ensures voice_note is preserved even if file_type is video/webm
+    const mediaType = typeof item?.media_type === "string" ? item.media_type : "";
+    const fileType = typeof item?.file_type === "string" ? item.file_type : "";
+    
+    // Use media_type if available, otherwise fallback to file_type
+    const declaredType = mediaType || fileType;
 
     let normalizedType = declaredType?.toLowerCase() || "";
-    // Preserve voice_note type - don't convert it to 'audio'
-    if (normalizedType === "voice_note" || normalizedType === "voice") {
+    
+    // CRITICAL: Check for voice_note FIRST before any other type checking
+    // This handles cases where voice notes are saved as video/webm
+    if (mediaType === "voice_note" || mediaType === "voice" || 
+        normalizedType === "voice_note" || normalizedType === "voice") {
       normalizedType = "voice_note";
     } else if (normalizedType.startsWith("image")) {
       normalizedType = "image";
     } else if (normalizedType.startsWith("video")) {
-      normalizedType = "video";
+      // Double check: if media_type is voice_note, don't treat as video
+      if (mediaType === "voice_note" || mediaType === "voice") {
+        normalizedType = "voice_note";
+      } else {
+        normalizedType = "video";
+      }
     } else if (normalizedType.startsWith("audio")) {
       normalizedType = "audio";
     } else if (
@@ -172,8 +181,16 @@ const normalizeMediaItems = (mediaItems, messageId) => {
       normalizedType === "document"
     ) {
       normalizedType = deriveMediaTypeFromExtension(extension);
+      // Final check: if media_type says voice_note, override extension-based detection
+      if (mediaType === "voice_note" || mediaType === "voice") {
+        normalizedType = "voice_note";
+      }
     } else {
       normalizedType = deriveMediaTypeFromExtension(extension) || "document";
+      // Final check: if media_type says voice_note, override extension-based detection
+      if (mediaType === "voice_note" || mediaType === "voice") {
+        normalizedType = "voice_note";
+      }
     }
 
     return {
@@ -1353,8 +1370,11 @@ export default function GroupChat() {
       ? deriveMediaCategory(file, mediaCategory)
       : null;
     // Use 'voice_note' if mediaCategory is 'voice_note', otherwise use normalizedType
+    // IMPORTANT: Always preserve voice_note even if file type is detected as video/webm
     const finalMediaType =
       mediaCategory === "voice_note"
+        ? "voice_note"
+        : (file?.type?.startsWith("video/") && mediaCategory === "voice_note")
         ? "voice_note"
         : normalizedType || "document";
 
@@ -1413,6 +1433,7 @@ export default function GroupChat() {
       formData.append("media", file);
       // Use 'voice_note' if it's a voice recording, otherwise use normalizedType
       // For uploaded audio files, ensure they're marked as 'audio', not 'voice_note'
+      // IMPORTANT: Always preserve voice_note category even if file type is detected as video/webm
       let finalMediaType;
       if (mediaCategory === "voice_note") {
         finalMediaType = "voice_note";
@@ -1421,6 +1442,9 @@ export default function GroupChat() {
         (file.type?.startsWith("audio/") && mediaCategory !== "voice_note")
       ) {
         finalMediaType = "audio";
+      } else if (file.type?.startsWith("video/") && mediaCategory === "voice_note") {
+        // Handle case where voice recording is saved as video/webm but should be voice_note
+        finalMediaType = "voice_note";
       } else {
         finalMediaType = normalizedType || "document";
       }
