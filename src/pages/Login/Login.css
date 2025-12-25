@@ -192,6 +192,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 4px;
   }
 
   .role-radio-group .form-check .form-check-input {
@@ -720,8 +721,8 @@
     .rounded-3 button.btn,
     .rounded-3 .d-flex.gap-1 .btn,
     .rounded-3 .d-flex.gap-1 button {
-      max-height: 53px !important;
-      min-height: 53px !important;
+      max-height: 43px !important;
+      min-height: 20px !important;
       height: 53px !important;
       padding: 12px 16px !important;
       line-height: 1.2 !important;
