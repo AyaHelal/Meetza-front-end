@@ -201,7 +201,7 @@ const FormSection = ({
                                 </div>
                             )}
 
-                            <div className="d-flex justify-content-between ps-2 align-items-center mb-0">
+                            <div className="d-flex justify-content-between ps-2 align-items-center mb-1">
                                 {activeTab === 'signin' && (
                                     <div className="d-flex align-items-center">
                                         <input
