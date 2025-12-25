@@ -68,7 +68,8 @@ const FormSection = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: 300 }}
+            key={activeTab}
+            initial={{ opacity: 0, x: activeTab === 'signin' ? 300 : -300 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
             className="w-100 d-flex flex-column justify-content-center ff"
