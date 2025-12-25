@@ -1050,7 +1050,7 @@ const MainChat = ({
         </div>
       </div>
       <div className="chat-messages" ref={messagesContainerRef}>
-        {loading && !isMobile ? (
+        {loading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Loading messages...</p>
