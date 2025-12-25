@@ -153,15 +153,15 @@ const normalizeMediaItems = (mediaItems, messageId) => {
     // This ensures voice_note is preserved even if file_type is video/webm
     const mediaType = typeof item?.media_type === "string" ? item.media_type : "";
     const fileType = typeof item?.file_type === "string" ? item.file_type : "";
-    
+
     // Use media_type if available, otherwise fallback to file_type
     const declaredType = mediaType || fileType;
 
     let normalizedType = declaredType?.toLowerCase() || "";
-    
+
     // CRITICAL: Check for voice_note FIRST before any other type checking
     // This handles cases where voice notes are saved as video/webm
-    if (mediaType === "voice_note" || mediaType === "voice" || 
+    if (mediaType === "voice_note" || mediaType === "voice" ||
         normalizedType === "voice_note" || normalizedType === "voice") {
       normalizedType = "voice_note";
     } else if (normalizedType.startsWith("image")) {
@@ -224,6 +224,42 @@ export default function GroupChat() {
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+
+  // Function to load more messages
+  const loadMoreMessages = async () => {
+    if (!selectedChat || loadingMoreMessages || !hasMoreMessages) return;
+
+    try {
+      setLoadingMoreMessages(true);
+      const groupId = groupChats[selectedChat]?.id;
+      if (!groupId) return;
+
+      const offset = messages.length;
+      const messagesResponse = await axiosInstance.get(
+        `/chat/groups/${groupId}/messages?limit=50&offset=${offset}`
+      );
+
+      if (messagesResponse.data.success) {
+        const newMessages = messagesResponse.data.data.map((msg) =>
+          formatMessage(msg)
+        );
+
+        // Prepend new messages to existing messages
+        setMessages((prev) => [...newMessages, ...prev]);
+
+        // Check if there are more messages available
+        setHasMoreMessages(newMessages.length === 50);
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+      smartToast.error("Failed to load more messages");
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  };
   const [activeInfoSection, setActiveInfoSection] = useState(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
@@ -1004,10 +1040,14 @@ export default function GroupChat() {
 
   // Fetch messages and group info when selected chat changes
   useEffect(() => {
-    if (selectedChat === null || !currentGroupId) return;
+    if (selectedChat === null || !currentGroupId) {
+      setChatLoading(false);
+      return;
+    }
 
     const fetchMessagesAndInfo = async () => {
       try {
+        setChatLoading(true);
         const groupId = currentGroupId;
         const groupIdStr = String(groupId);
 
@@ -1109,15 +1149,17 @@ export default function GroupChat() {
           }
         }
 
-        // Fetch messages
+        // Fetch messages - load only last 50 messages initially
         const messagesResponse = await axiosInstance.get(
-          `/chat/groups/${groupId}/messages`
+          `/chat/groups/${groupId}/messages?limit=50&offset=0`
         );
         if (messagesResponse.data.success) {
           const formattedMessages = messagesResponse.data.data.map((msg) =>
             formatMessage(msg)
           );
           setMessages(formattedMessages);
+          // Check if there are more messages available
+          setHasMoreMessages(messagesResponse.data.data.length === 50);
         }
 
         // Fetch group info
@@ -1129,6 +1171,8 @@ export default function GroupChat() {
         }
       } catch (error) {
         console.error("❌ Error fetching messages/info:", error);
+      } finally {
+        setChatLoading(false);
       }
     };
 
@@ -1175,6 +1219,7 @@ export default function GroupChat() {
 
     // Cleanup: Leave group when chat is deselected
     return () => {
+      setChatLoading(false);
       if (socket && isConnected && currentGroupIdRef.current) {
         leaveGroup(currentGroupIdRef.current);
         currentGroupIdRef.current = null;
@@ -1557,12 +1602,12 @@ export default function GroupChat() {
                 );
               });
               console.log("✅ Message sent via Socket.IO");
-              
+
               // Refresh group info if message contains a link (backend saves links to media)
               if (containsLink) {
                 await refreshGroupInfo();
               }
-              
+
               if (localMediaUrl) {
                 URL.revokeObjectURL(localMediaUrl);
               }
@@ -1626,7 +1671,7 @@ export default function GroupChat() {
   const allLinks = useMemo(() => {
     const backendLinks = groupMediaItems?.links || [];
     const extractedLinks = extractLinksFromMessages(messages);
-    
+
     // Create a Set to track unique URLs (normalize URLs for comparison)
     const seenUrls = new Set();
     const combinedLinks = [];
@@ -1799,6 +1844,7 @@ export default function GroupChat() {
         isSendingMessage={isSendingMessage}
         onGroupNameClick={handleGroupNameClick}
         userRole={userRole}
+        loading={chatLoading}
       />
 
       <RightSidebar

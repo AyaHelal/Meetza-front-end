@@ -36,6 +36,10 @@ const MainChat = ({
   isSendingMessage = false,
   onGroupNameClick,
   userRole,
+  loading = false,
+  hasMoreMessages = false,
+  loadingMoreMessages = false,
+  onLoadMoreMessages,
 }) => {
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
@@ -1046,93 +1050,49 @@ const MainChat = ({
         </div>
       </div>
       <div className="chat-messages" ref={messagesContainerRef}>
-        {(() => {
-          // console.log('Render check:', {
-          //     activeSection,
-          //     expandedSection,
-          //     groupId,
-          //     messagesLength: messages.length,
-          //     messagesArray: Array.isArray(messages)
-          // });
-          return null;
-        })()}
-        {activeSection || expandedSection ? (
-          renderExpandedSection()
-        ) : !groupId ? (
-          <>
-            <div className="no-messages-container">
-              <img
-                src="/assets/GroupChat.png"
-                alt="No chat selected"
-                className="no-messages-image"
-              />
-              <p className="no-messages-text fw-semibold mt-3">
-                No chats selected yet!
-              </p>
-            </div>
-            <p
-              style={{
-                color: "#888888",
-                textAlign: "center",
-                marginTop: "auto",
-                padding: "1rem",
-              }}
-            >
-              Select chat to start a conversation
-            </p>
-          </>
-        ) : messages.length === 0 ? (
-          <div className="no-messages-container">
-            <img
-              src="/assets/GroupChat.png"
-              alt="No messages"
-              className="no-messages-image"
-            />
+        {loading && !isMobile ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading messages...</p>
           </div>
         ) : (
           <>
-            {Array.isArray(messages) && messages.length > 0 ? (
-              messages.map((msg, index) => {
-                const msgDate =
-                  msg.date ||
-                  new Date(msg.created_at || Date.now()).toLocaleDateString(
-                    "en-GB",
-                    { day: "numeric", month: "short", year: "numeric" }
-                  );
-                const prevDate =
-                  index > 0
-                    ? messages[index - 1].date ||
-                    new Date(
-                      messages[index - 1].created_at || Date.now()
-                    ).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
-                    : null;
-                const showSeparator = index === 0 || prevDate !== msgDate;
-
-                return (
-                  <React.Fragment key={msg.id || `msg-${index}`}>
-                    {showSeparator && (
-                      <div className="date-separator-wrapper">
-                        <div className="date-separator">{msgDate}</div>
-                      </div>
-                    )}
-                    <MessageItem
-                      message={msg}
-                      groupId={groupId}
-                      onDeleteMessage={handleDeleteMessage}
-                      onEditMessage={handleEditMessage}
-                      currentUserEmail={currentUserEmail}
-                      onMediaClick={handlePhotoClick}
-                      userRole={userRole}
-                    />
-                    {/* Debug: {JSON.stringify({ id: msg.id, hasText: !!msg.text, hasMessage: !!msg.message })} */}
-                  </React.Fragment>
-                );
-              })
-            ) : (
+            {(() => {
+              // console.log('Render check:', {
+              //     activeSection,
+              //     expandedSection,
+              //     groupId,
+              //     messagesLength: messages.length,
+              //     messagesArray: Array.isArray(messages)
+              // });
+              return null;
+            })()}
+            {activeSection || expandedSection ? (
+              renderExpandedSection()
+            ) : !groupId ? (
+              <>
+                <div className="no-messages-container">
+                  <img
+                    src="/assets/GroupChat.png"
+                    alt="No chat selected"
+                    className="no-messages-image"
+                  />
+                  <p className="no-messages-text fw-semibold mt-3">
+                    No chats selected yet!
+                  </p>
+                </div>
+                <p
+                  style={{
+                    color: "#888888",
+                    textAlign: "center",
+                    marginTop: "auto",
+                    padding: "1rem",
+                  }}
+                >
+                  Select chat to start a conversation
+                </p>
+              </>
+            ) : messages.length === 0 ? (
               <div className="no-messages-container">
                 <img
                   src="/assets/GroupChat.png"
@@ -1140,8 +1100,61 @@ const MainChat = ({
                   className="no-messages-image"
                 />
               </div>
+            ) : (
+              <>
+                {Array.isArray(messages) && messages.length > 0 ? (
+                  messages.map((msg, index) => {
+                    const msgDate =
+                      msg.date ||
+                      new Date(msg.created_at || Date.now()).toLocaleDateString(
+                        "en-GB",
+                        { day: "numeric", month: "short", year: "numeric" }
+                      );
+                    const prevDate =
+                      index > 0
+                        ? messages[index - 1].date ||
+                        new Date(
+                          messages[index - 1].created_at || Date.now()
+                        ).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                        : null;
+                    const showSeparator = index === 0 || prevDate !== msgDate;
+
+                    return (
+                      <React.Fragment key={msg.id || `msg-${index}`}>
+                        {showSeparator && (
+                          <div className="date-separator-wrapper">
+                            <div className="date-separator">{msgDate}</div>
+                          </div>
+                        )}
+                        <MessageItem
+                          message={msg}
+                          groupId={groupId}
+                          onDeleteMessage={handleDeleteMessage}
+                          onEditMessage={handleEditMessage}
+                          currentUserEmail={currentUserEmail}
+                          onMediaClick={handlePhotoClick}
+                          userRole={userRole}
+                        />
+                        {/* Debug: {JSON.stringify({ id: msg.id, hasText: !!msg.text, hasMessage: !!msg.message })} */}
+                      </React.Fragment>
+                    );
+                  })
+                ) : (
+                  <div className="no-messages-container">
+                    <img
+                      src="/assets/GroupChat.png"
+                      alt="No messages"
+                      className="no-messages-image"
+                    />
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </>
         )}
       </div>
