@@ -72,6 +72,28 @@ const AUDIO_EXTENSIONS = ['mp3', 'wav', 'aac', 'm4a', 'ogg'];
 
 const isHttpLink = (url) => typeof url === 'string' && /^https?:\/\//i.test(url);
 
+// MIME types that indicate documents
+const DOCUMENT_MIME_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'text/csv',
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-zip-compressed',
+];
+
+const isDocumentMimeType = (mimeType) => {
+    if (!mimeType) return false;
+    const cleanMime = mimeType.split(';')[0]?.trim().toLowerCase();
+    return DOCUMENT_MIME_TYPES.some(docMime => cleanMime === docMime.toLowerCase());
+};
+
 const extractExtension = (item) => {
     if (item?.file_name && item.file_name.includes('.')) {
         return item.file_name.split('.').pop().toLowerCase();
@@ -87,11 +109,38 @@ const extractExtension = (item) => {
 };
 
 const resolveMediaCategory = (item) => {
-    const mediaType = item?.media_type?.toLowerCase() || item?.file_type?.toLowerCase() || '';
+    const mediaType = item?.media_type?.toLowerCase() || '';
+    const fileType = item?.file_type?.toLowerCase() || item?.file_mime?.toLowerCase() || '';
     const extension = extractExtension(item);
     const url = item?.media_url || item?.file_url;
 
-    // Check if it's explicitly marked as a link
+    // List of file extensions that should be treated as documents/files, not links
+    const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
+    
+    // PRIORITY: Check if it's a document/file FIRST (before checking if it's a link)
+    // Documents should always go to 'files' category, even if they have HTTP URLs or are marked as links
+    // Check: 1) media_type (document, file), 2) file_type MIME type, 3) file extension
+    // IMPORTANT: 'file' media_type indicates a file/document, not a link
+    if (mediaType === 'document' || 
+        mediaType === 'file' ||
+        mediaType.includes('document') || 
+        isDocumentMimeType(fileType) ||
+        documentExtensions.includes(extension)) {
+        return 'files';
+    }
+    
+    // Check if it's an image, video, or audio file (also before checking links)
+    if (mediaType.includes('image') || fileType.startsWith('image/') || IMAGE_EXTENSIONS.includes(extension)) {
+        return 'images';
+    }
+    if (mediaType.includes('video') || fileType.startsWith('video/') || VIDEO_EXTENSIONS.includes(extension)) {
+        return 'videos';
+    }
+    if (mediaType.includes('audio') || fileType.startsWith('audio/') || AUDIO_EXTENSIONS.includes(extension)) {
+        return 'audio';
+    }
+
+    // Check if it's explicitly marked as a link (only after checking documents/media)
     if (mediaType.includes('link')) {
         return 'links';
     }
@@ -99,42 +148,12 @@ const resolveMediaCategory = (item) => {
     // Check if it's an HTTP/HTTPS link
     const isLink = isHttpLink(url);
     
-    // If it's a link, check if it's a downloadable file type
+    // If it's a link but we've already checked documents/media above, it must be a real link
     if (isLink) {
-        // List of file extensions that should be treated as documents/files, not links
-        const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
-        
-        // If it has a document extension, treat as document
-        if (documentExtensions.includes(extension)) {
-            return 'files';
-        }
-        
-        // If it's an image, video, or audio file, categorize accordingly
-        if (mediaType.includes('image') || IMAGE_EXTENSIONS.includes(extension)) {
-            return 'images';
-        }
-        if (mediaType.includes('video') || VIDEO_EXTENSIONS.includes(extension)) {
-            return 'videos';
-        }
-        if (mediaType.includes('audio') || AUDIO_EXTENSIONS.includes(extension)) {
-            return 'audio';
-        }
-        
-        // Otherwise, it's a link (even if it has an extension like .html, .php, etc.)
         return 'links';
     }
-
-    // Not a link, check other categories
-    if (mediaType.includes('image') || IMAGE_EXTENSIONS.includes(extension)) {
-        return 'images';
-    }
-    if (mediaType.includes('video') || VIDEO_EXTENSIONS.includes(extension)) {
-        return 'videos';
-    }
-    if (mediaType.includes('audio') || AUDIO_EXTENSIONS.includes(extension)) {
-        return 'audio';
-    }
     
+    // Default to files for anything else (unknown file types)
     return 'files';
 };
 
@@ -148,12 +167,23 @@ export const categorizeMediaItems = (mediaItems = []) => {
     };
 
     if (Array.isArray(mediaItems)) {
-        mediaItems.forEach((item) => {
+        mediaItems.forEach((item, index) => {
             // Skip voice notes - they should only appear in chat messages, not in media section
             // But allow regular audio files to be stored
             const mediaType = item?.media_type?.toLowerCase() || item?.file_type?.toLowerCase() || '';
             const fileName = item?.file_name?.toLowerCase() || '';
             const extension = extractExtension(item);
+            
+            // Debug logging for ALL items to see what we're working with
+            console.log(`🔍 Processing item ${index + 1}:`, {
+                media_type: item?.media_type,
+                file_type: item?.file_type,
+                file_mime: item?.file_mime,
+                file_name: item?.file_name,
+                extension,
+                url: item?.media_url || item?.file_url,
+                fullItem: item
+            });
             
             // Determine if it's a regular audio file by checking:
             // 1. media_type is 'audio' or starts with 'audio/'
@@ -180,6 +210,15 @@ export const categorizeMediaItems = (mediaItems = []) => {
             }
 
             const bucket = resolveMediaCategory(item);
+            
+            console.log(`✅ Item ${index + 1} categorized as:`, bucket, {
+                media_type: item?.media_type,
+                file_type: item?.file_type,
+                file_mime: item?.file_mime,
+                extension,
+                url: item?.media_url || item?.file_url
+            });
+            
             if (categories[bucket]) {
                 categories[bucket].push(item);
             } else {
@@ -199,6 +238,16 @@ export const categorizeMediaItems = (mediaItems = []) => {
             if (isHttpUrl && !isMediaFile && bucket !== 'links') {
                 categories.links.push(item);
             }
+        });
+        
+        // Debug logging for summary
+        console.log('📊 Media categorization summary:', {
+            total: mediaItems.length,
+            images: categories.images.length,
+            videos: categories.videos.length,
+            audio: categories.audio.length,
+            files: categories.files.length,
+            links: categories.links.length
         });
     }
 
