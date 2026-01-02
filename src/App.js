@@ -59,17 +59,18 @@ const AppRoutes = () => {
     const token = urlParams.get('token');
     const user = urlParams.get('user');
 
-    if (token && user) {
-      try {
-        const userData = JSON.parse(decodeURIComponent(user));
-        loginUser(userData, token, false); // Assuming not remembered for social login
-        // Clean up URL
-        navigate(location.pathname, { replace: true });
-        // Navigate to home
-        navigate('/home');
-      } catch (error) {
-        console.error('Error parsing social login data:', error);
-      }
+    if (!token) return;
+
+    try {
+      const userData = user ? JSON.parse(decodeURIComponent(user)) : null;
+      // Store token (and user if provided) using the same mechanism as normal login
+      loginUser(userData, token, false); // social login: default to session storage
+      // Clean up URL
+      navigate(location.pathname, { replace: true });
+      // Navigate to home
+      navigate('/home');
+    } catch (error) {
+      console.error('Error parsing social login data:', error);
     }
   }, [location.search, loginUser, navigate]);
 

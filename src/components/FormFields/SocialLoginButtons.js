@@ -1,19 +1,28 @@
 import { Button } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useEffect, useState } from 'react';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = ({ role, redirectUrl }) => {
-    const navigate = useNavigate();
-    
+    const [roleError, setRoleError] = useState('');
+
+    useEffect(() => {
+        if (role) {
+            setRoleError('');
+        }
+    }, [role]);
+
     const handleGoogleLogin = () => {
+    if (!role) {
+        setRoleError('لازم تختاري Role قبل ما تكمّلي تسجيل الدخول بجوجل');
+        return;
+    }
     const finalRedirect =
     redirectUrl || `${window.location.origin}/home`;
 
   const encodedRedirect = encodeURIComponent(finalRedirect);
     const googleAuthUrl =
       `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google` +
-      `?role=${role || "Member"}&redirect=${encodedRedirect}`;
+      `?role=${role}&redirect=${encodedRedirect}`;
 
     window.location.href = googleAuthUrl;
   };
@@ -43,6 +52,11 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
                         Continue with Google
                     </Button>
                 </div>
+                {roleError && (
+                    <div className="text-danger small mt-2 text-center">
+                        {roleError}
+                    </div>
+                )}
             </div>
         </>
     );
