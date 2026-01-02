@@ -300,12 +300,13 @@
   }
 
   .logo-container img {
-    width: 200px;
+    width: 17rem !important;
     height: auto;
-    max-height: 120px;
+    max-height: 320px;
     object-fit: contain;
     display: block;
     margin: 0 auto;
+
   }
 
   /* Adjust logo size for different screens */
@@ -340,14 +341,12 @@
 /* Smaller screens within 1500px */
 @media (max-height: 900px) {
   .logo-container img {
-    max-width: 150px !important;
-    height: 110px !important;
+    max-width: 20rem !important;
+    max-height: 5rem !important;
   }
-
   .logo-container {
-    margin-bottom: -20px !important;
-    margin-top: -60px !important;
-  }
+    margin-bottom: 10px !important;
+}
 }
 
 /* ============================================
@@ -564,8 +563,8 @@
   }
 
   .logo-container {
-    margin-bottom: -30px;
-    margin-top: -100px;
+    margin-bottom: 0.5rem !important;
+    margin-top: 0 !important;
   }
 
   .rounded-3 {
@@ -771,8 +770,8 @@
     }
 
     .logo-container img {
-      max-width: 200px;
-      height: 150px;
+      max-width: 30rem !important;
+      height: 30rem !important;
     }
   }
 }

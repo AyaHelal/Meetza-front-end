@@ -79,10 +79,10 @@ const FormSection = ({
                 overflowY: 'auto'
             }}
         >
-            <div ref={formRef} className="text-center mb-0 mt-5" style={{ marginTop: '1rem' }}>
+            <div ref={formRef} className="text-center mb-0 mt-0">
                 <div className="logo-container" style={{
                     margin: '0 auto',
-                    padding: '0 0 20px',
+                    padding: '0 0 70px',
                     width: '100%',
                     textAlign: 'center'
                 }}>
