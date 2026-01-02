@@ -1,39 +1,31 @@
 import { Button } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useEffect, useState } from 'react';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = ({ role, redirectUrl }) => {
-    const navigate = useNavigate();
-    
-    const handleGoogleLogin = async () => {
-        try {
-            // Get token from cookies by calling protected route
-            const response = await axios.get("/api/protected-route", { withCredentials: true });
-            
-            if (response.data.token) {
-                // Store token and user info
-                localStorage.setItem('token', response.data.token);
-                if (response.data.user) {
-                    localStorage.setItem('user', JSON.stringify(response.data.user));
-                }
-                
-                // Navigate to home or redirectUrl
-                navigate(redirectUrl || '/home');
-            } else {
-                // If no token, redirect to Google OAuth
-                const encodedRedirect = encodeURIComponent(redirectUrl || "/home");
-                const googleAuthUrl = `https://courteous-uncomplimenting-aleena.ngrok-free.dev/api/auth/social/google?role=${role || "Member"}&redirect=${encodedRedirect}`;
-                window.location.href = googleAuthUrl;
-            }
-        } catch (error) {
-            console.error('Error checking auth status:', error);
-            // If error, redirect to Google OAuth
-            const encodedRedirect = encodeURIComponent(redirectUrl || "/home");
-            const googleAuthUrl = `https://courteous-uncomplimenting-aleena.ngrok-free.dev/api/auth/social/google?role=${role || "Member"}&redirect=${encodedRedirect}`;
-            window.location.href = googleAuthUrl;
+    const [roleError, setRoleError] = useState('');
+
+    useEffect(() => {
+        if (role) {
+            setRoleError('');
         }
-    };
+    }, [role]);
+
+    const handleGoogleLogin = () => {
+    if (!role) {
+        setRoleError('لازم تختاري Role قبل ما تكمّلي تسجيل الدخول بجوجل');
+        return;
+    }
+    const finalRedirect =
+    redirectUrl || `${window.location.origin}/home`;
+
+  const encodedRedirect = encodeURIComponent(finalRedirect);
+    const googleAuthUrl =
+      `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google` +
+      `?role=${role}&redirect=${encodedRedirect}`;
+
+    window.location.href = googleAuthUrl;
+  };
 
     return (
         <>
@@ -60,6 +52,11 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
                         Continue with Google
                     </Button>
                 </div>
+                {roleError && (
+                    <div className="text-danger small mt-2 text-center">
+                        {roleError}
+                    </div>
+                )}
             </div>
         </>
     );
