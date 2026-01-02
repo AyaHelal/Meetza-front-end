@@ -33,7 +33,7 @@ export const SocketProvider = ({ children }) => {
   // Use environment variable or derive from API base URL
   // For production, use the backend URL (socket.io connects at root, not /api)
   // Extract the base URL from API URL (remove /api suffix if present)
-  const SERVER_URL = "https://courteous-uncomplimenting-aleena.ngrok-free.dev";
+  const SERVER_URL = "https://hulda-unglutted-curably.ngrok-free.dev";
 
 
   useEffect(() => {
