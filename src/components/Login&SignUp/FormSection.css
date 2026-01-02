@@ -28,9 +28,9 @@
 @media (max-width: 991px) {
   /* Adjust form container for mobile */
   .ff {
-    padding-top: 12% !important;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-top: 0% !important;
+    padding-left: 3rem;
+    padding-right: 3rem;
   }
 
   /* Show tab container only on mobile */
