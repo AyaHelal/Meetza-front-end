@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Microphone, PaperPlaneTilt, Smiley, Image, File as FileIcon, MapPin, Camera, MusicNote, X } from '@phosphor-icons/react';
 import EmojiPicker from 'emoji-picker-react';
 import './ChatInput.css';
@@ -18,10 +19,13 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
 
     const emojiPickerRef = useRef(null);
     const attachmentMenuRef = useRef(null);
+    const attachmentButtonRef = useRef(null);
     const fileInputRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const discardRecordingRef = useRef(false);
+
+    const [attachmentMenuPosition, setAttachmentMenuPosition] = useState(null);
 
     const handleFileCleanup = ({ preserveCategory = false } = {}) => {
         if (previewUrl) {
@@ -68,14 +72,14 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
             }
         };
 
-        if (showEmojiPicker) {
+        if (showEmojiPicker || showAttachmentMenu) {
             document.addEventListener('mousedown', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [showEmojiPicker]);
+    }, [showEmojiPicker, showAttachmentMenu]);
 
     useEffect(() => {
         return () => {
@@ -161,9 +165,45 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
     };
 
     const toggleAttachmentMenu = () => {
-        setShowAttachmentMenu(!showAttachmentMenu);
+        setShowAttachmentMenu((prev) => {
+            const next = !prev;
+            if (next) {
+                const btn = attachmentButtonRef.current;
+                if (btn) {
+                    const rect = btn.getBoundingClientRect();
+                    setAttachmentMenuPosition({
+                        left: rect.left,
+                        bottom: window.innerHeight - rect.top + 8,
+                    });
+                }
+            }
+            return next;
+        });
         setShowEmojiPicker(false);
     };
+
+    useEffect(() => {
+        if (!showAttachmentMenu) return;
+
+        const updatePosition = () => {
+            const btn = attachmentButtonRef.current;
+            if (!btn) return;
+            const rect = btn.getBoundingClientRect();
+            setAttachmentMenuPosition({
+                left: rect.left,
+                bottom: window.innerHeight - rect.top + 8,
+            });
+        };
+
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true);
+        };
+    }, [showAttachmentMenu]);
 
     const documentAcceptTypes = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,*/*';
 
@@ -405,28 +445,12 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
             )}
             {recordingError && <p className="recording-error">{recordingError}</p>}
             <form className="input-wrapper" onSubmit={handleSubmit}>
-                <div className="input-icon input-icon-left attachment-button" onClick={toggleAttachmentMenu}>
+                <div
+                    ref={attachmentButtonRef}
+                    className="input-icon input-icon-left attachment-button"
+                    onClick={toggleAttachmentMenu}
+                >
                     <Plus size={20} />
-                    {showAttachmentMenu && (
-                        <div className="attachment-menu" ref={attachmentMenuRef}>
-                            <button type="button" onClick={() => handleAttachmentSelect('image')}>
-                                <Image size={20} />
-                                <span>Photo</span>
-                            </button>
-                            <button type="button" onClick={() => handleAttachmentSelect('video')}>
-                                <Camera size={20} />
-                                <span>Video</span>
-                            </button>
-                            <button type="button" onClick={() => handleAttachmentSelect('audio')}>
-                                <MusicNote size={20} />
-                                <span>Audio</span>
-                            </button>
-                            <button type="button" onClick={() => handleAttachmentSelect('document')}>
-                                <FileIcon size={20} />
-                                <span>Document</span>
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 <input
@@ -459,6 +483,37 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                     onChange={handleFileChange}
                 />
             </form>
+
+            {showAttachmentMenu && attachmentMenuPosition && createPortal(
+                <div
+                    className="attachment-menu attachment-menu-portal"
+                    ref={attachmentMenuRef}
+                    style={{
+                        position: 'fixed',
+                        left: attachmentMenuPosition.left,
+                        bottom: attachmentMenuPosition.bottom,
+                        zIndex: 10000,
+                    }}
+                >
+                    <button type="button" onClick={() => handleAttachmentSelect('image')}>
+                        <Image size={20} />
+                        <span>Photo</span>
+                    </button>
+                    <button type="button" onClick={() => handleAttachmentSelect('video')}>
+                        <Camera size={20} />
+                        <span>Video</span>
+                    </button>
+                    <button type="button" onClick={() => handleAttachmentSelect('audio')}>
+                        <MusicNote size={20} />
+                        <span>Audio</span>
+                    </button>
+                    <button type="button" onClick={() => handleAttachmentSelect('document')}>
+                        <FileIcon size={20} />
+                        <span>Document</span>
+                    </button>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

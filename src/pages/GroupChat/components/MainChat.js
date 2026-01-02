@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import MessageItem from "./MessageItem";
 import ChatInput from "./ChatInput";
 import {
@@ -48,7 +48,10 @@ const MainChat = ({
   const messagesEndRef = useRef(null);
   const [modalPhoto, setModalPhoto] = useState(null);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
+  const isUserAtBottomRef = useRef(true);
   const prevMessagesLengthRef = useRef(0);
+  const lastOpenedGroupIdRef = useRef(null);
+  const pendingInitialScrollRef = useRef(false);
   const [contentTab, setContentTab] = useState("media");
   const [mediaTab, setMediaTab] = useState("media");
 
@@ -96,13 +99,22 @@ const MainChat = ({
     });
   };
 
+  const sortMessagesChronologically = (msgs) => {
+    if (!Array.isArray(msgs)) return [];
+    return [...msgs].sort((a, b) => {
+      const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return aTime - bTime;
+    });
+  };
+
   const [messages, setMessages] = useState(() => {
     if (!Array.isArray(initialMessages)) {
       console.warn("initialMessages is not an array:", initialMessages);
       return [];
     }
     console.log("Initial messages count:", initialMessages.length);
-    return formatMessages(initialMessages);
+    return sortMessagesChronologically(formatMessages(initialMessages));
   });
 
   // Check if user is at the bottom of the chat
@@ -126,12 +138,15 @@ const MainChat = ({
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
           if (container) {
-            container.scrollTop = container.scrollHeight;
+            container.scrollTop = Math.max(
+              0,
+              container.scrollHeight - container.clientHeight
+            );
           }
         });
       } else {
         // Smooth scroll for new messages
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       }
     }
   };
@@ -152,6 +167,29 @@ const MainChat = ({
   }, []);
 
   useEffect(() => {
+    isUserAtBottomRef.current = isUserAtBottom;
+  }, [isUserAtBottom]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleLoad = () => {
+      if (!isUserAtBottomRef.current) return;
+      requestAnimationFrame(() => {
+        if (!messagesContainerRef.current) return;
+        const c = messagesContainerRef.current;
+        c.scrollTop = Math.max(0, c.scrollHeight - c.clientHeight);
+      });
+    };
+
+    container.addEventListener("load", handleLoad, true);
+    return () => {
+      container.removeEventListener("load", handleLoad, true);
+    };
+  }, []);
+
+  useEffect(() => {
     const currentMessagesLength = messages.length;
     const prevMessagesLength = prevMessagesLengthRef.current;
 
@@ -163,19 +201,49 @@ const MainChat = ({
   }, [messages, isUserAtBottom]);
 
   useEffect(() => {
-    if (showMainChat || !isMobile) {
-      // Use instant scroll on initial load to avoid animation
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (messagesContainerRef.current) {
-            const container = messagesContainerRef.current;
-            container.scrollTop = container.scrollHeight;
-            setIsUserAtBottom(true);
-          }
-        });
-      });
+    const shouldOpenOnThisViewport = showMainChat || !isMobile;
+    const hasGroup = !!groupId;
+
+    if (!shouldOpenOnThisViewport || !hasGroup) return;
+
+    const isNewGroup = String(lastOpenedGroupIdRef.current) !== String(groupId);
+
+    if (isNewGroup) {
+      lastOpenedGroupIdRef.current = groupId;
     }
-  }, [showMainChat, isMobile]);
+
+    if (!isNewGroup && isMobile && !showMainChat) return;
+
+    const run = () => {
+      const container = messagesContainerRef.current;
+      if (!container) return;
+
+      container.scrollTop = Math.max(
+        0,
+        container.scrollHeight - container.clientHeight
+      );
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      setIsUserAtBottom(true);
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(run);
+    });
+
+    const t1 = setTimeout(run, 50);
+    const t2 = setTimeout(run, 250);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [showMainChat, isMobile, groupId]);
+
+  useEffect(() => {
+    const shouldOpenOnThisViewport = showMainChat || !isMobile;
+    if (!shouldOpenOnThisViewport || !groupId) return;
+    pendingInitialScrollRef.current = true;
+  }, [groupId, showMainChat, isMobile]);
 
   // Handle swipe back gesture on mobile
   useEffect(() => {
@@ -226,22 +294,75 @@ const MainChat = ({
   useEffect(() => {
     if (!initialMessages || !Array.isArray(initialMessages)) return;
 
-    const formattedNew = formatMessages(initialMessages);
+    const formattedNew = sortMessagesChronologically(
+      formatMessages(initialMessages)
+    );
     setMessages(formattedNew);
 
     // Scroll to bottom instantly when messages are loaded (no animation)
     // Use multiple requestAnimationFrame to ensure DOM is fully rendered
+    const run = () => {
+      const container = messagesContainerRef.current;
+      if (!container) return;
+      container.scrollTop = Math.max(
+        0,
+        container.scrollHeight - container.clientHeight
+      );
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      setIsUserAtBottom(true);
+    };
+
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (messagesContainerRef.current) {
-          const container = messagesContainerRef.current;
-          // Force instant scroll by directly setting scrollTop
-          container.scrollTop = container.scrollHeight;
-          setIsUserAtBottom(true);
-        }
-      });
+      requestAnimationFrame(run);
     });
+
+    const t1 = setTimeout(run, 50);
+    const t2 = setTimeout(run, 250);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [initialMessages]);
+
+  useEffect(() => {
+    const shouldOpenOnThisViewport = showMainChat || !isMobile;
+    if (!shouldOpenOnThisViewport || !groupId) return;
+    pendingInitialScrollRef.current = true;
+  }, [initialMessages, groupId, showMainChat, isMobile]);
+
+  useLayoutEffect(() => {
+    if (!pendingInitialScrollRef.current) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const run = () => {
+      const c = messagesContainerRef.current;
+      if (!c) return;
+      c.scrollTop = Math.max(0, c.scrollHeight - c.clientHeight);
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      setIsUserAtBottom(true);
+    };
+
+    requestAnimationFrame(() => {
+      run();
+      requestAnimationFrame(run);
+    });
+
+    const t1 = setTimeout(run, 100);
+    const t2 = setTimeout(run, 400);
+    const t3 = setTimeout(run, 1000);
+    const t4 = setTimeout(() => {
+      pendingInitialScrollRef.current = false;
+    }, 1200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, [messages, groupId]);
 
   useEffect(() => {
     setContentTab("media");

@@ -1822,6 +1822,7 @@ export default function GroupChat() {
       />
 
       <MainChat
+        key={selectedChatData?.id || "no-chat"}
         messages={selectedChatData ? messages : []}
         chatTitle={
           selectedChat !== null && groupChats[selectedChat]
