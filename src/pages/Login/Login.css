@@ -588,6 +588,9 @@
     padding: 12px 16px !important;
     line-height: 1.2 !important;
   }
+  .role-radio-group {
+        gap: 20px !important;
+    }
 
   /* Larger tablets */
   @media (min-width: 576px) {
