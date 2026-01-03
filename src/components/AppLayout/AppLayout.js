@@ -23,15 +23,29 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useContext(AuthContext);
-  const { unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead,getUnreadNotificationCount} = useSocket();
+  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead, getUnreadNotificationCount} = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+  const hasFetchedInitialCountRef = useRef(false);
 
+  // Fetch initial count when socket connects (only once)
   useEffect(() => {
-    getUnreadNotificationCount();
-  }, []);
+    if (socket && isConnected && !hasFetchedInitialCountRef.current) {
+      hasFetchedInitialCountRef.current = true;
+      getUnreadNotificationCount((ack) => {
+        if (ack && ack.ok && ack.unreadCount !== undefined) {
+          console.log("🔔 AppLayout - Fetched initial notification count:", ack.unreadCount);
+        }
+      });
+    }
+    
+    // Reset flag when socket disconnects
+    if (!socket || !isConnected) {
+      hasFetchedInitialCountRef.current = false;
+    }
+  }, [socket, isConnected, getUnreadNotificationCount]);
 
 
   // Update activeNav based on current route

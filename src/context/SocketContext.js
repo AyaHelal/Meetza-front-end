@@ -115,14 +115,31 @@ export const SocketProvider = ({ children }) => {
           console.log("✅ Joined notifications room");
         }
       });
-
-      // Get initial unread notification count via socket
-      newSocket.emit("getUnreadNotificationCount", {}, (ack) => {
-        if (ack && ack.ok && ack.unreadCount !== undefined) {
-          setUnreadNotificationCount(ack.unreadCount);
-          console.log("🔔 Initial unread notification count:", ack.unreadCount);
-        }
-      });
+      
+      // Get initial unread notification count after socket connects
+      // Use REST API directly since socket event doesn't seem to work reliably
+      setTimeout(() => {
+        console.log("🔔 Fetching initial unread notification count from API...");
+        api.get("/notification")
+          .then((response) => {
+            let notificationsData = [];
+            if (response.data) {
+              if (response.data.success && response.data.data) {
+                notificationsData = Array.isArray(response.data.data) ? response.data.data : [];
+              } else if (Array.isArray(response.data)) {
+                notificationsData = response.data;
+              } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
+                notificationsData = response.data.notifications;
+              }
+            }
+            const unreadCount = notificationsData.filter(n => !n.is_read && n.is_read !== true).length;
+            setUnreadNotificationCount(unreadCount);
+            console.log("🔔 Initial unread notification count from API:", unreadCount, `(${notificationsData.length} total notifications)`);
+          })
+          .catch((error) => {
+            console.warn("⚠️ Failed to fetch notification count from API:", error);
+          });
+      }, 500);
 
       setConnectionError(null);
       hasLoggedSocketErrorRef.current = false;
@@ -144,6 +161,29 @@ export const SocketProvider = ({ children }) => {
         console.log("🔔 Received new notification (new_notification), updated count:", newCount);
         return newCount;
       });
+    });
+
+    // Listen for notification_count_update event (backend sends the actual count)
+    newSocket.on("notification_count_update", (data) => {
+      console.log("🔔 Received notification_count_update event, raw data:", data);
+      // data can be an array with count, or an object with count property
+      const count = Array.isArray(data) && data[0]?.unreadCount !== undefined 
+        ? data[0].unreadCount 
+        : (data?.unreadCount !== undefined ? data.unreadCount : (typeof data === 'number' ? data : null));
+      
+      console.log("🔔 Parsed count from notification_count_update:", count);
+      
+      if (count !== null && count !== undefined) {
+        setUnreadNotificationCount(count);
+        console.log("🔔 Updated notification count to:", count);
+      } else {
+        // If count is not provided, increment (fallback behavior)
+        setUnreadNotificationCount((prevCount) => {
+          const newCount = prevCount + 1;
+          console.log("🔔 Received notification_count_update without count, incrementing:", newCount);
+          return newCount;
+        });
+      }
     });
 
     // Connection error
@@ -173,6 +213,10 @@ export const SocketProvider = ({ children }) => {
     newSocket.on("disconnect", (reason) => {
       console.log("🔌 Socket disconnected:", reason);
       setIsConnected(false);
+      // Remove all notification listeners on disconnect
+      newSocket.off("newNotification");
+      newSocket.off("new_notification");
+      newSocket.off("notification_count_update");
     });
 
     // Reconnection attempt
@@ -397,8 +441,12 @@ export const SocketProvider = ({ children }) => {
     }
 
     socket.emit("getUnreadNotificationCount", {}, (ack) => {
+      console.log("🔔 getUnreadNotificationCount callback response:", ack);
       if (ack && ack.ok && ack.unreadCount !== undefined) {
+        console.log("🔔 Setting notification count to:", ack.unreadCount);
         setUnreadNotificationCount(ack.unreadCount);
+      } else {
+        console.warn("⚠️ getUnreadNotificationCount failed or invalid response:", ack);
       }
       if (callback) callback(ack);
     });
