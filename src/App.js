@@ -87,6 +87,31 @@ const AppRoutes = () => {
           try {
             userData = JSON.parse(decodeURIComponent(user));
             console.log('✅ Parsed user data from URL:', userData);
+            console.log('📸 Photo fields in user data:', {
+              user_photo: userData?.user_photo,
+              photo: userData?.photo,
+              picture: userData?.picture,
+              avatar: userData?.avatar,
+              avatar_url: userData?.avatar_url,
+              google_photo: userData?.google_photo
+            });
+            
+            // Normalize Google photo field - Google OAuth typically returns 'picture'
+            if (userData && !userData.user_photo && !userData.photo) {
+              if (userData.picture) {
+                userData.user_photo = userData.picture;
+                userData.photo = userData.picture;
+              } else if (userData.avatar) {
+                userData.user_photo = userData.avatar;
+                userData.photo = userData.avatar;
+              } else if (userData.avatar_url) {
+                userData.user_photo = userData.avatar_url;
+                userData.photo = userData.avatar_url;
+              } else if (userData.google_photo) {
+                userData.user_photo = userData.google_photo;
+                userData.photo = userData.google_photo;
+              }
+            }
           } catch (parseError) {
             console.error('❌ Failed to parse user data from URL:', parseError);
             // If user data parsing fails, still store token

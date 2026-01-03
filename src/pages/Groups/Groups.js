@@ -105,7 +105,10 @@ const Groups = () => {
                 : response.data?.data || [];
             setPositions(positionsData);
         } catch (error) {
-            console.error('Error fetching positions:', error);
+            // 403 is expected for non-admin users
+            if (error.response?.status !== 403) {
+                console.error('Error fetching positions:', error);
+            }
             // Only show error for administrators, not for members
             const storedUser = JSON.parse(localStorage.getItem("user")) ||
                               JSON.parse(sessionStorage.getItem("user"));
@@ -234,7 +237,10 @@ const Groups = () => {
                                 ? groupId
                                 : null;
                         } catch (err) {
-                            console.error('Membership check error:', err);
+                            // 403 is expected for groups the user isn't a member of
+                            if (err.response?.status !== 403) {
+                                console.error('Membership check error:', err);
+                            }
                             return null;
                         }
                     })
