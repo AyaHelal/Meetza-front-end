@@ -3115,7 +3115,6 @@ body.group-chat-active {
 @media (max-width: 768px) {
   .expanded-section {
     padding: 0.75rem;
-    overflow-x: hidden;
   }
 
   .tabs-header {
