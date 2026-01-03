@@ -509,13 +509,13 @@
   /* Welcome Back heading - 20px on mobile */
   h1.h2.fw-semibold.mb-2.font-size-lg,
   h1.h2.fw-semibold {
-    font-size: 27px !important;
+    font-size: 22px !important;
   }
 
   /* Please enter your details - 13px on mobile */
   p.text-muted.p-font-size-lg,
   p.text-muted {
-    font-size: 24px !important;
+    font-size: 13px !important;
   }
 
   /* Icons - 18px on mobile */
