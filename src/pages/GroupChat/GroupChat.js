@@ -943,6 +943,17 @@ export default function GroupChat() {
       }
     } catch (error) {
       console.error("❌ Error fetching groups:", error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method
+        }
+      });
+      smartToast.error("Failed to load groups. Check console for details.");
     } finally {
       if (isInitial) setLoading(false);
     }
