@@ -57,9 +57,13 @@ const NotificationPanel = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, socket, isConnected]);
 
-  // Mark all as read when panel closes
+  // Mark all as read when panel closes (but not on initial mount when isOpen is false)
+  const hasBeenOpenRef = useRef(false);
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      hasBeenOpenRef.current = true;
+    } else if (hasBeenOpenRef.current && !isOpen) {
+      // Only mark as read if the panel was previously open and is now closed
       markAllAsRead();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
