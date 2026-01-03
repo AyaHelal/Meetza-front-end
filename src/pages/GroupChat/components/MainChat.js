@@ -247,49 +247,86 @@ const MainChat = ({
 
   // Handle swipe back gesture on mobile
   useEffect(() => {
-    if (!isMobile || !showMainChat || !mainChatRef.current || !onBackToChats) return;
+    if (!isMobile || !showMainChat || !mainChatRef.current) return;
+    // Need either onBackToChats or onCloseSection depending on whether a section is open
+    if (!onBackToChats && !onCloseSection) return;
 
     const mainChat = mainChatRef.current;
+    const MIN_SWIPE_DISTANCE = 60; // Minimum distance to trigger (reduced for real devices)
+    const MAX_VERTICAL_MOVEMENT = 100; // Max vertical movement to consider it horizontal
 
     const handleTouchStart = (e) => {
+      // Only handle single touch
+      if (e.touches.length !== 1) return;
+      
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
     };
 
     const handleTouchMove = (e) => {
-      if (!touchStartX.current || !touchStartY.current) return;
+      if (!touchStartX.current || !touchStartY.current || e.touches.length !== 1) return;
 
       const touchCurrentX = e.touches[0].clientX;
       const touchCurrentY = e.touches[0].clientY;
       const diffX = touchCurrentX - touchStartX.current;
       const diffY = touchCurrentY - touchStartY.current;
+      const absDiffX = Math.abs(diffX);
+      const absDiffY = Math.abs(diffY);
 
-      // Only handle horizontal swipe from left edge (swipe right to go back)
-      // Check if swipe started from left edge (within 20px)
-      if (touchStartX.current <= 20 && diffX > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-        // Swipe right from left edge - go back to chat panel
-        e.preventDefault();
-        onBackToChats();
-        touchStartX.current = 0;
-        touchStartY.current = 0;
+      // Check if it's a horizontal swipe right (more horizontal than vertical)
+      // Allow some vertical movement but prioritize horizontal
+      if (diffX > 20 && absDiffX > absDiffY && absDiffY < MAX_VERTICAL_MOVEMENT) {
+        // Only prevent default for significant horizontal movement to allow scrolling
+        if (absDiffX > 30) {
+          e.preventDefault();
+        }
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e) => {
+      if (!touchStartX.current || !touchStartY.current) {
+        touchStartX.current = 0;
+        touchStartY.current = 0;
+        return;
+      }
+
+      const touchEndX = e.changedTouches[0]?.clientX || 0;
+      const touchEndY = e.changedTouches[0]?.clientY || 0;
+      const diffX = touchEndX - touchStartX.current;
+      const diffY = touchEndY - touchStartY.current;
+      const absDiffX = Math.abs(diffX);
+      const absDiffY = Math.abs(diffY);
+
+      // Handle horizontal swipe right (swipe right to go back)
+      // Check if it's a clear horizontal swipe with minimum distance
+      if (diffX > MIN_SWIPE_DISTANCE && absDiffX > absDiffY && absDiffY < MAX_VERTICAL_MOVEMENT) {
+        // If a section is open (media/videos), close it and go back to chat
+        if (activeSection && onCloseSection) {
+          onCloseSection();
+        } 
+        // Otherwise, go back to chat panel
+        else if (onBackToChats) {
+          onBackToChats();
+        }
+      }
+
       touchStartX.current = 0;
       touchStartY.current = 0;
     };
 
-    mainChat.addEventListener('touchstart', handleTouchStart, { passive: false });
+    // Attach listeners with passive: true for start/end for better performance
+    mainChat.addEventListener('touchstart', handleTouchStart, { passive: true });
     mainChat.addEventListener('touchmove', handleTouchMove, { passive: false });
-    mainChat.addEventListener('touchend', handleTouchEnd);
+    mainChat.addEventListener('touchend', handleTouchEnd, { passive: true });
+    mainChat.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
     return () => {
       mainChat.removeEventListener('touchstart', handleTouchStart);
       mainChat.removeEventListener('touchmove', handleTouchMove);
       mainChat.removeEventListener('touchend', handleTouchEnd);
+      mainChat.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isMobile, showMainChat, onBackToChats]);
+  }, [isMobile, showMainChat, onBackToChats, onCloseSection, activeSection]);
 
   useEffect(() => {
     if (!initialMessages || !Array.isArray(initialMessages)) return;

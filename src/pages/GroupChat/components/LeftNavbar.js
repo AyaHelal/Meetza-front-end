@@ -36,18 +36,24 @@ const LeftNavbar = ({
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
+  const hasFetchedInitialCount = useRef(false);
 
-  // Fetch initial unread count when socket connects (via socket)
+  // Fetch initial unread count when socket connects (via socket) - only once
   useEffect(() => {
-    if (socket && isConnected) {
+    if (socket && isConnected && !hasFetchedInitialCount.current) {
+      hasFetchedInitialCount.current = true;
       getUnreadNotificationCount((ack) => {
         if (ack && ack.ok && ack.unreadCount !== undefined) {
           console.log("🔔 Initial unread count from socket:", ack.unreadCount);
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, isConnected]);
+    
+    // Reset flag when socket disconnects
+    if (!socket || !isConnected) {
+      hasFetchedInitialCount.current = false;
+    }
+  }, [socket, isConnected, getUnreadNotificationCount]);
 
   // Socket effect to update count on new notifications
   // Note: The count is already updated in SocketContext, but we can listen here if needed

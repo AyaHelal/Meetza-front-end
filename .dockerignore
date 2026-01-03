@@ -3,7 +3,7 @@ npm-debug.log
 build
 .git
 .gitignore
-.env.local
+.env
 .env.development.local
 .env.test.local
 .env.production.local

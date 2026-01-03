@@ -43,7 +43,12 @@ export const AuthProvider = ({ children }) => {
 
         try {
             if (rememberMe) {
-                localStorage.setItem("user", JSON.stringify(userData));
+                // Only store user if it exists
+                if (userData) {
+                    localStorage.setItem("user", JSON.stringify(userData));
+                } else {
+                    localStorage.removeItem("user");
+                }
                 localStorage.setItem("token", userToken);
                 localStorage.setItem("remember", "true");
 
@@ -51,7 +56,12 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.removeItem("token");
                 setIsRemembered(true);
             } else {
-                sessionStorage.setItem("user", JSON.stringify(userData));
+                // Only store user if it exists
+                if (userData) {
+                    sessionStorage.setItem("user", JSON.stringify(userData));
+                } else {
+                    sessionStorage.removeItem("user");
+                }
                 sessionStorage.setItem("token", userToken);
 
                 localStorage.removeItem("user");
@@ -59,6 +69,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem("remember", "false");
                 setIsRemembered(false);
             }
+            console.log("✅ loginUser: Token and user data stored successfully");
         } catch (error) {
             console.error("❌ Failed to save user/token:", error);
         }

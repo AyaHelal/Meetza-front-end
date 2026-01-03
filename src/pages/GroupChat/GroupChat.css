@@ -2420,7 +2420,7 @@ body.group-chat-active {
     position: fixed;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 1003;
     transition: opacity 0.3s;
   }
 
@@ -2433,7 +2433,7 @@ body.group-chat-active {
     width: 100vw;
     background: white;
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 1004;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     display: flex;
