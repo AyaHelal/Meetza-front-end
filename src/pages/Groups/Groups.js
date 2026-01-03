@@ -179,12 +179,20 @@ const Groups = () => {
             groupsResponse = await api.get(`/group`);
             }
 
-            // Extract data
-            allResults = Array.isArray(groupsResponse?.data?.data)
-            ? groupsResponse.data.data
-            : Array.isArray(groupsResponse?.data)
-                ? groupsResponse.data
-                : groupsResponse;
+            // Extract data - ensure we always get an array
+            if (Array.isArray(groupsResponse?.data?.data)) {
+                allResults = groupsResponse.data.data;
+            } else if (Array.isArray(groupsResponse?.data)) {
+                allResults = groupsResponse.data;
+            } else if (groupsResponse?.data?.success && Array.isArray(groupsResponse?.data?.data)) {
+                allResults = groupsResponse.data.data;
+            } else if (groupsResponse?.data?.success && Array.isArray(groupsResponse?.data?.groups)) {
+                allResults = groupsResponse.data.groups;
+            } else {
+                // Fallback: ensure allResults is always an array
+                console.warn('Unexpected response structure:', groupsResponse?.data);
+                allResults = [];
+            }
 
 
 
