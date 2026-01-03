@@ -1666,10 +1666,12 @@ export default function GroupChat() {
     return groupInfo?.group_media || [];
   }, [groupInfo]);
 
-  const groupMediaItems = useMemo(
-    () => categorizeMediaItems(mediaArray),
-    [mediaArray]
-  );
+  const groupMediaItems = useMemo(() => {
+    console.log('📦 Raw mediaArray from backend:', mediaArray);
+    const categorized = categorizeMediaItems(mediaArray);
+    console.log('📋 Categorized mediaItems:', categorized);
+    return categorized;
+  }, [mediaArray]);
 
   // Combine links from backend (groupMediaItems.links) with links extracted from messages
   // Backend saves links from WhatsApp messages in the media field
