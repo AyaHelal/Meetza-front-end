@@ -64,22 +64,23 @@
   }
 
   .notification-badge-mobile {
-    position: absolute;
-    top: 4px;
-    right: 4px;
+    align-items: center;
     background: #dc2626;
-    color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px #0003;
+    color: #fff;
+    display: flex;
     font-size: 10px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
+    height: 14px;
+    width: 14px;
     justify-content: center;
     line-height: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    min-width: 12px;
+    padding: 2px 6px;
+    position: absolute;
+    right: 4px;
+    top: 4px;
   }
 
   .mobile-header .hamburger-menu {
