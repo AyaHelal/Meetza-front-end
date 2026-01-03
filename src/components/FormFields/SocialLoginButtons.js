@@ -12,22 +12,22 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
     }, [role]);
 
     const handleGoogleLogin = () => {
-    if (!role) {
-        setRoleError('لازم تختاري Role قبل ما تكمّلي تسجيل الدخول بجوجل');
-        return;
-    }
-    const finalRedirect =
-    redirectUrl || `${window.location.origin}/home`;
+        if (!role) {
+            setRoleError('Please select a Role before signing in with Google');
+            return;
+        }
+        const finalRedirect =
+            redirectUrl || `${window.location.origin}/home`;
 
-  const encodedRedirect = encodeURIComponent(finalRedirect);
-    // Use environment variable or default to ngrok URL
-    const apiBaseUrl = process.env.REACT_APP_API_URL || "https://hulda-unglutted-curably.ngrok-free.dev/api";
-    const googleAuthUrl =
-      `${apiBaseUrl}/auth/social/google` +
-      `?role=${role}&redirect=${encodedRedirect}`;
+        const encodedRedirect = encodeURIComponent(finalRedirect);
+        // Use environment variable or default to ngrok URL
+        const apiBaseUrl = process.env.REACT_APP_API_URL || "https://hulda-unglutted-curably.ngrok-free.dev/api";
+        const googleAuthUrl =
+            `${apiBaseUrl}/auth/social/google` +
+            `?role=${role}&redirect=${encodedRedirect}`;
 
-    window.location.href = googleAuthUrl;
-  };
+        window.location.href = googleAuthUrl;
+    };
 
     return (
         <>
