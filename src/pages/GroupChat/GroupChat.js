@@ -1870,6 +1870,8 @@ export default function GroupChat() {
         selectedChat={selectedChat}
         onCloseMobile={() => {
           setShowRightSidebarMobile(false);
+          // Clear any active sections so chat shows normally, not media fields
+          setActiveInfoSection(null);
           // Restore main chat when closing sidebar on mobile
           if (isMobile) {
             setShowMainChat(true);
