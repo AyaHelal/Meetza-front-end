@@ -30,15 +30,22 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("❌ API Error:", {
-      url: error.config?.url,
-      baseURL: error.config?.baseURL,
-      fullURL: error.config?.baseURL + error.config?.url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message
-    });
+    // Suppress 403 errors for /info and /position endpoints (expected for permission-related endpoints)
+    const isInfoEndpoint = error.config?.url?.includes('/info');
+    const isPositionEndpoint = error.config?.url === '/position' || error.config?.url?.endsWith('/position');
+    const is403 = error.response?.status === 403;
+
+    if (!(is403 && (isInfoEndpoint || isPositionEndpoint))) {
+      console.error("❌ API Error:", {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullURL: error.config?.baseURL + error.config?.url,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+    }
     return Promise.reject(error);
   }
 );
