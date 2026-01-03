@@ -5,6 +5,7 @@ import {
   useState,
   useRef,
   useMemo,
+  useCallback,
 } from "react";
 import { io } from "socket.io-client";
 import { AuthContext } from "./AuthContext";
@@ -28,15 +29,21 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const hasLoggedSocketErrorRef = useRef(false);
+  const lastTokenRef = useRef(null);
+  const connectionTimeoutRef = useRef(null);
 
-
-  // Use environment variable or derive from API base URL
-  // For production, use the backend URL (socket.io connects at root, not /api)
-  // Extract the base URL from API URL (remove /api suffix if present)
-  const SERVER_URL = "https://hulda-unglutted-curably.ngrok-free.dev";
-
+  // Use environment variable or default to ngrok URL
+  // Socket.io connects at root, not /api, so remove /api suffix if present
+  const apiUrl = process.env.REACT_APP_SOCKET_URL || "https://hulda-unglutted-curably.ngrok-free.dev";
+  const SERVER_URL = apiUrl.replace(/\/api$/, '');
 
   useEffect(() => {
+    // Clear any pending connection timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+
     // Only connect if we have a token
     if (!token) {
       console.log("⚠️ No token found, skipping Socket.IO connection");
@@ -46,17 +53,41 @@ export const SocketProvider = ({ children }) => {
         setSocket(null);
         setIsConnected(false);
       }
+      lastTokenRef.current = null;
       return;
     }
 
-    // Disconnect existing socket before creating a new one
-    if (socketRef.current) {
-      console.log("🔌 Disconnecting existing socket before reconnecting...");
+    // If token hasn't changed, don't reconnect
+    if (lastTokenRef.current === token && socketRef.current && isConnected) {
+      console.log("✅ Token unchanged, keeping existing socket connection");
+      return;
+    }
+
+    // If token changed but socket exists, disconnect first
+    if (socketRef.current && lastTokenRef.current !== token) {
+      console.log("🔌 Token changed, disconnecting existing socket...");
       socketRef.current.disconnect();
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);
     }
+
+    // Store current token
+    lastTokenRef.current = token;
+
+    // Add a small delay to prevent rapid reconnections (especially after Google login)
+    connectionTimeoutRef.current = setTimeout(() => {
+      // Double-check token is still valid before connecting
+      if (!token || lastTokenRef.current !== token) {
+        console.log("⚠️ Token changed during delay, aborting connection");
+        return;
+      }
+
+      // Disconnect existing socket if still exists
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
 
     console.log(`🔌 Connecting to Socket.IO at ${SERVER_URL}...`);
 
@@ -156,11 +187,18 @@ export const SocketProvider = ({ children }) => {
       setConnectionError(null);
     });
 
-    socketRef.current = newSocket;
-    setSocket(newSocket);
+      socketRef.current = newSocket;
+      setSocket(newSocket);
+    }, 300); // 300ms delay to prevent rapid reconnections after Google login
 
     // Cleanup on unmount or token change
     return () => {
+      // Clear connection timeout
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      
       console.log("🔌 Cleaning up socket connection...");
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -169,7 +207,7 @@ export const SocketProvider = ({ children }) => {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [token, SERVER_URL]); // SERVER_URL is memoized and stable
+  }, [token]);
 
 
 
@@ -258,8 +296,8 @@ export const SocketProvider = ({ children }) => {
     });
   };
 
-  // Helper function to mark all messages as read
-  const markAllMessagesRead = (groupId, callback) => {
+  // Helper function to mark all messages as read (memoized to prevent re-renders)
+  const markAllMessagesRead = useCallback((groupId, callback) => {
     if (!socket || !isConnected) {
       console.warn(`⚠️ Cannot mark all messages as read: socket not connected`);
       if (callback) {
@@ -271,7 +309,7 @@ export const SocketProvider = ({ children }) => {
     socket.emit("markAllMessagesRead", { groupId }, (ack) => {
       if (callback) callback(ack);
     });
-  };
+  }, [socket, isConnected]);
 
   // Helper function to get unread count
   const getUnreadCount = (groupId, callback) => {
@@ -326,8 +364,8 @@ export const SocketProvider = ({ children }) => {
     });
   };
 
-  // Helper function to mark all notifications as read
-  const markAllNotificationsRead = async (callback) => {
+  // Helper function to mark all notifications as read (memoized to prevent re-renders)
+  const markAllNotificationsRead = useCallback(async (callback) => {
     if (!socket || !isConnected) {
       console.warn(
         `⚠️ Cannot mark all notifications as read: socket not connected`
@@ -346,10 +384,10 @@ export const SocketProvider = ({ children }) => {
       }
       if (callback) callback(ack);
     });
-  };
+  }, [socket, isConnected]);
 
-  // Helper function to get unread notification count via socket
-  const getUnreadNotificationCount = (callback) => {
+  // Helper function to get unread notification count via socket (memoized to prevent re-renders)
+  const getUnreadNotificationCount = useCallback((callback) => {
     if (!socket || !isConnected) {
       console.warn(`⚠️ Cannot get unread notification count: socket not connected`);
       if (callback) {
@@ -364,7 +402,7 @@ export const SocketProvider = ({ children }) => {
       }
       if (callback) callback(ack);
     });
-  };
+  }, [socket, isConnected]);
 
 
   const value = {

@@ -269,6 +269,11 @@ export default function GroupChat() {
   const readGroupsRef = React.useRef(new Set());
   // Track current group ID for socket operations
   const currentGroupIdRef = useRef(null);
+  // Store markAllMessagesRead in ref to prevent useEffect re-runs
+  const markAllMessagesReadRef = useRef(markAllMessagesRead);
+  useEffect(() => {
+    markAllMessagesReadRef.current = markAllMessagesRead;
+  }, [markAllMessagesRead]);
   // Track user data for duplicate detection
   const userRef = useRef(user);
 
@@ -683,7 +688,7 @@ export default function GroupChat() {
 
         if (!isFromCurrentUser && currentGroupIdRef.current) {
           // Only mark as read if message is from another user
-          markAllMessagesRead(currentGroupIdRef.current, (ack) => {
+          markAllMessagesReadRef.current(currentGroupIdRef.current, (ack) => {
             if (ack && ack.ok) {
               setGroupChats((prev) =>
                 prev.map((g) =>
@@ -779,7 +784,7 @@ export default function GroupChat() {
       socket.off("message", handleNewMessage);
       socket.offAny(handleAnyEvent);
     };
-  }, [socket, isConnected, formatMessage, markAllMessagesRead]);
+  }, [socket, isConnected, formatMessage]);
 
   // Reusable function to fetch and format groups
   const refreshGroupsList = async (isInitial = false) => {

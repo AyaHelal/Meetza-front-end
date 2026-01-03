@@ -13,7 +13,7 @@ import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
@@ -21,6 +21,7 @@ const AppRoutes = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
+  const socialLoginProcessed = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -55,22 +56,72 @@ const AppRoutes = () => {
 
   // Handle social login redirect
   useEffect(() => {
+    // Only process if we have token or error in URL and haven't processed yet
     const urlParams = new URLSearchParams(location.search);
     const token = urlParams.get('token');
     const user = urlParams.get('user');
+    const error = urlParams.get('error');
 
-    if (!token) return;
+    // Skip if no token/error or already processed
+    if ((!token && !error) || socialLoginProcessed.current) {
+      return;
+    }
 
-    try {
-      const userData = user ? JSON.parse(decodeURIComponent(user)) : null;
-      // Store token (and user if provided) using the same mechanism as normal login
-      loginUser(userData, token, false); // social login: default to session storage
-      // Clean up URL
-      navigate(location.pathname, { replace: true });
-      // Navigate to home
-      navigate('/home');
-    } catch (error) {
-      console.error('Error parsing social login data:', error);
+    // Mark as processed immediately to prevent re-processing
+    socialLoginProcessed.current = true;
+
+    // Handle error from OAuth
+    if (error) {
+      console.error('❌ OAuth error:', error);
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // Process token
+    if (token) {
+      try {
+        let userData = null;
+
+        // Parse user data from URL (comes from backend)
+        if (user) {
+          try {
+            userData = JSON.parse(decodeURIComponent(user));
+            console.log('✅ Parsed user data from URL:', userData);
+          } catch (parseError) {
+            console.error('❌ Failed to parse user data from URL:', parseError);
+            // If user data parsing fails, still store token
+          }
+        }
+
+        // Store token and user data in localStorage (like normal login)
+        loginUser(userData, token, true); // true = localStorage (remember me)
+
+        // Verify token was stored
+        const storedToken = localStorage.getItem('token');
+        console.log('✅ Social login successful');
+        console.log('✅ Token stored in localStorage:', storedToken ? 'Yes' : 'No');
+        console.log('✅ Token value:', storedToken ? storedToken.substring(0, 20) + '...' : 'None');
+        console.log('✅ User data stored:', userData ? 'Yes' : 'No');
+        
+        // Wait a bit for state to update, then navigate
+        setTimeout(() => {
+          // Verify token is still there before navigating
+          const verifyToken = localStorage.getItem('token');
+          if (verifyToken) {
+            console.log('✅ Token verified before navigation');
+            navigate('/home', { replace: true });
+          } else {
+            console.error('❌ Token not found after storage, retrying...');
+            // Retry storing
+            loginUser(userData, token, true);
+            setTimeout(() => navigate('/home', { replace: true }), 200);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('❌ Error handling social login:', error);
+        // Clean up URL even on error
+        navigate('/login', { replace: true });
+      }
     }
   }, [location.search, loginUser, navigate]);
 

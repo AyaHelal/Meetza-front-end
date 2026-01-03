@@ -20,8 +20,10 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
     redirectUrl || `${window.location.origin}/home`;
 
   const encodedRedirect = encodeURIComponent(finalRedirect);
+    // Use environment variable or default to ngrok URL
+    const apiBaseUrl = process.env.REACT_APP_API_URL || "https://hulda-unglutted-curably.ngrok-free.dev/api";
     const googleAuthUrl =
-      `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google` +
+      `${apiBaseUrl}/auth/social/google` +
       `?role=${role}&redirect=${encodedRedirect}`;
 
     window.location.href = googleAuthUrl;
