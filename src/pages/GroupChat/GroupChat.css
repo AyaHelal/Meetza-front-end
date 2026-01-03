@@ -2889,7 +2889,6 @@ body.group-chat-active {
   padding: 1rem;
   margin-bottom: 1rem;
   width: 100%;
-  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -3460,6 +3459,7 @@ body.group-chat-active {
   color: #1976d2;
   margin-bottom: 0.25rem;
   font-size: 0.95rem;
+  word-break: break-all;
 }
 
 .link-url {
