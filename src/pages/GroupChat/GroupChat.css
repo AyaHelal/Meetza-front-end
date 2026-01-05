@@ -1238,6 +1238,24 @@ body.group-chat-active {
   border: 1px solid #e0e0e0;
 }
 
+/* Fix emoji picker search input styling */
+.emoji-picker-wrapper em-emoji-picker input[type="search"],
+.emoji-picker-wrapper em-emoji-picker input[type="text"],
+.emoji-picker-wrapper input[type="search"],
+.emoji-picker-wrapper input[type="text"] {
+  padding-left: 40px !important;
+  padding-right: 12px !important;
+}
+
+.emoji-picker-wrapper em-emoji-picker .epr-search-icon,
+.emoji-picker-wrapper .epr-search-icon,
+.emoji-picker-wrapper em-emoji-picker [class*="search-icon"],
+.emoji-picker-wrapper [class*="search-icon"] {
+  left: 12px !important;
+  pointer-events: none;
+  position: absolute !important;
+}
+
 /* Arrow icon responsive sizing for screens larger than 1450px */
 @media (min-width: 1451px) {
   .input-icon.send {
