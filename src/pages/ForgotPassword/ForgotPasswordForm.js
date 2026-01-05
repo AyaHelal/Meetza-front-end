@@ -68,11 +68,24 @@ export default function ForgotPasswordForm() {
                 style={{ maxWidth: '500px' }}
             >
                 <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-4">
+                    {/* Logo */}
+                    <motion.div
+                        className="mb-5"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                    >
+                        <img src="/assets/meetza.png" alt="Meetza" style={{
+                            maxWidth: '210px',
+                            height: 'auto'
+                        }} />
+                    </motion.div>
+
                     <motion.h2
                         className="fw-semibold mb-3"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         Forgot Password
                     </motion.h2>
@@ -82,7 +95,7 @@ export default function ForgotPasswordForm() {
                         style={{ fontSize: "18px" }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
                     >
                         Enter your email to receive a reset code
                     </motion.p>

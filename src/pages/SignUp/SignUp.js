@@ -71,8 +71,28 @@ const SignUp = () => {
         // Password validation
         if (!formData.password.trim()) {
             newErrors.password = "Password is required";
-        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}/.test(formData.password)) {
-            newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, number, and special character";
+        } else {
+            const password = formData.password;
+            const hasLowercase = /[a-z]/.test(password);
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            // Check for any special character (non-alphanumeric)
+            const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+            const isLongEnough = password.length >= 8;
+
+            // Debug log (remove in production if needed)
+            console.log('Password validation:', {
+                password,
+                hasLowercase,
+                hasUppercase,
+                hasNumber,
+                hasSpecialChar,
+                isLongEnough
+            });
+
+            if (!hasLowercase || !hasUppercase || !hasNumber || !hasSpecialChar || !isLongEnough) {
+                newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, number, and special character";
+            }
         }
 
         // Confirm password validation
@@ -302,7 +322,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"}/>
+                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} />
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>

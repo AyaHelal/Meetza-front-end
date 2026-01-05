@@ -103,7 +103,7 @@ export default function VerifyResetCode() {
     };
 
     return (
-        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100">
+        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <motion.div
                 className="text-center w-100"
                 initial={{ opacity: 0, x: 100 }}
@@ -112,24 +112,49 @@ export default function VerifyResetCode() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ maxWidth: '500px' }}
             >
-                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-4">
-                    <motion.h2
-                        className="fw-semibold mb-3"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-2">
+                    {/* Logo */}
+                    <motion.div
+                        className="mb-5"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        Verify Reset Code
-                    </motion.h2>
+                        <img src="/assets/meetza.png" alt="Meetza" style={{
+                            maxWidth: '210px',
+                            height: 'auto'
+                        }} />
+                    </motion.div>
 
-                    <motion.p
-                        className="text-muted mb-4"
-                        style={{ fontSize: "18px" }}
+                    {/* Title */}
+                    <motion.h2
+                        className="fw-bold mb-2 mt-0"
+                        style={{
+                            color: '#333',
+                            fontSize: '1.8rem',
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '600'
+                        }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        Enter the 4-digit code sent to {email || "your email"} <span className="text-info">(Verification optional)</span>
+                        Verify Reset Code
+                    </motion.h2>
+
+                    {/* Subtitle */}
+                    <motion.p
+                        className="text-muted mb-4"
+                        style={{
+                            fontSize: "1rem",
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '400'
+                        }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                        Enter the 4-digit code sent to {email || "your email"}
                     </motion.p>
 
                     {/* Error Message */}
@@ -140,72 +165,108 @@ export default function VerifyResetCode() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            style={{ maxWidth: 420, borderRadius: "12px" }}
+                            style={{ maxWidth: 420, borderRadius: "12px", fontFamily: "'Poppins', sans-serif" }}
                         >
                             {error}
                         </motion.div>
                     )}
 
-                    <div className="d-flex gap-2 mb-3 justify-content-center" onPaste={handlePaste}>
-                        {code.map((value, idx) => (
-                            <input
-                                key={idx}
-                                type="text"
-                                inputMode="numeric"
-                                className="form-control text-center"
-                                style={{ width: 56, height: 56, fontSize: 24 }}
-                                maxLength={1}
-                                value={value}
-                                onChange={(e) => handleChange(idx, e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(idx, e)}
-                                ref={(el) => (inputsRef.current[idx] = el)}
-                                disabled={loading}
-                            />
-                        ))}
-                    </div>
+                    {/* Code Input */}
+                    <motion.div
+                        className="mb-4"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                        <div className="d-flex gap-3 justify-content-center" onPaste={handlePaste}>
+                            {code.map((value, idx) => (
+                                <input
+                                    key={idx}
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="form-control text-center"
+                                    style={{
+                                        width: 60,
+                                        height: 60,
+                                        fontSize: 24,
+                                        fontWeight: 'bold',
+                                        borderRadius: '12px',
+                                        border: '2px solid #e0e0e0',
+                                        textAlign: 'center',
+                                        backgroundColor: '#f8f9fa',
+                                        fontFamily: "'Poppins', sans-serif"
+                                    }}
+                                    maxLength={1}
+                                    value={value}
+                                    onChange={(e) => handleChange(idx, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                                    ref={(el) => (inputsRef.current[idx] = el)}
+                                    disabled={loading}
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
 
-                    <div className="mb-4 d-flex align-items-center justify-content-center gap-1">
-                        <span>Didn't receive a code?</span>
+                    {/* Resend Code */}
+                    <motion.div
+                        className="mb-4 text-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                    >
+                        <span style={{
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '400',
+                            color: '#6c757d'
+                        }}>Didn't receive a code? </span>
                         <button
                             type="button"
-                            className="btn btn-link p-0"
+                            className="btn btn-link text-primary p-0 text-decoration-none"
                             onClick={handleResend}
                             disabled={loading}
+                            style={{
+                                fontWeight: '600',
+                                fontFamily: "'Poppins', sans-serif"
+                            }}
                         >
                             Request again
                         </button>
-                    </div>
+                    </motion.div>
 
-                    <div className="mb-4 text-center">
-                        <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={() => {
-                                alert("You can proceed to set a new password.");
-                                navigate("/reset-password");
-                            }}
-                            disabled={loading}
-                        >
-                            Skip Verification
-                        </button>
-                        <p className="text-muted small mt-2">Verification is optional for password reset.</p>
-                    </div>
-
+                    {/* Verify Button */}
                     <motion.button
                         type="button"
-                        className="btn btn-primary w-100 py-3 mt-1 mb-3 rounded-4"
-                        style={{ maxWidth: 420 }}
+                        className="btn btn-primary w-100 py-3 mb-3"
+                        style={{
+                            borderRadius: '12px',
+                            fontSize: '1.1rem',
+                            fontWeight: '600',
+                            maxWidth: 420,
+                            fontFamily: "'Poppins', sans-serif"
+                        }}
                         onClick={handleVerify}
                         disabled={loading}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
                     >
                         {loading ? "Verifying..." : "Verify Code"}
                     </motion.button>
 
-                    <div className="text-center">
-                        <a href="/forgot-password" className="text-decoration-none text-muted">
+                    {/* Back to Forgot Password */}
+                    <motion.div
+                        className="text-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.7 }}
+                    >
+                        <a href="/forgot-password" className="text-decoration-none text-muted" style={{
+                            fontFamily: "'Poppins', sans-serif",
+                            fontSize: '0.9rem'
+                        }}>
                             Back to Forgot Password
                         </a>
-                    </div>
+                    </motion.div>
                 </div>
             </motion.div>
         </div>
