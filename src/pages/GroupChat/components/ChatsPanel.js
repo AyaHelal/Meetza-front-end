@@ -1,5 +1,5 @@
 import React from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass, Users } from "@phosphor-icons/react";
 import { useSocket } from "../../../context/SocketContext";
 import axiosInstance from "../../../API/axiosInstance";
 import ChatItem from "./ChatItem";
@@ -643,9 +643,8 @@ const ChatsPanel = ({
   return (
     <>
       <div
-        className={`chats-panel rounded-4 shadow-sm ${
-          isMobile && showMainChat ? "mobile-hidden" : ""
-        }`}
+        className={`chats-panel rounded-4 shadow-sm ${isMobile && showMainChat ? "mobile-hidden" : ""
+          }`}
       >
         <div className="chats-header">
           <h2 className="fw-semibold">Group Chats</h2>
@@ -676,11 +675,21 @@ const ChatsPanel = ({
         <div className="chats-list">
           {filteredChats.length === 0 ? (
             <div className="no-chats-container">
-              <img
-                src="/assets/GroupChat.png"
-                alt="No chats"
-                className="no-chats-image"
-              />
+              {groupChats.length === 0 ? (
+                <div className="no-groups-message">
+                  <div className="no-groups-icon">
+                    <Users size={64} weight="duotone" />
+                  </div>
+                  <p className="no-groups-text">No groups yet</p>
+                  <p className="no-groups-subtext">Please go to groups page and join groups</p>
+                </div>
+              ) : (
+                <img
+                  src="/assets/GroupChat.png"
+                  alt="No chats"
+                  className="no-chats-image"
+                />
+              )}
             </div>
           ) : (
             filteredChats.map((chat, index) => {

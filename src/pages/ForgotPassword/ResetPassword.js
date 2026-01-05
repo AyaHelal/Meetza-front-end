@@ -112,7 +112,7 @@ export default function ResetPassword() {
     };
 
     return (
-        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100">
+        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <motion.div
                 className="text-center w-100"
                 initial={{ opacity: 0, x: 100 }}
@@ -121,24 +121,49 @@ export default function ResetPassword() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ maxWidth: '500px' }}
             >
-                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-4">
-                    <motion.h2
-                        className="fw-semibold mb-3"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-2">
+                    {/* Logo */}
+                    <motion.div
+                        className="mb-5"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        Reset Password
-                    </motion.h2>
+                        <img src="/assets/meetza.png" alt="Meetza" style={{
+                            maxWidth: '210px',
+                            height: 'auto'
+                        }} />
+                    </motion.div>
 
-                    <motion.p
-                        className="text-muted mb-4"
-                        style={{ fontSize: "18px" }}
+                    {/* Title */}
+                    <motion.h2
+                        className="fw-bold mb-2 mt-0"
+                        style={{
+                            color: '#333',
+                            fontSize: '1.8rem',
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '600'
+                        }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        Enter your new password <span className="text-info">(Verification optional)</span>
+                        Reset Password
+                    </motion.h2>
+
+                    {/* Subtitle */}
+                    <motion.p
+                        className="text-muted mb-4"
+                        style={{
+                            fontSize: "1rem",
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: '400'
+                        }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                        Enter your new password
                     </motion.p>
 
                     {/* Success Message */}
@@ -149,7 +174,7 @@ export default function ResetPassword() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            style={{ maxWidth: 420, borderRadius: "12px" }}
+                            style={{ maxWidth: 420, borderRadius: "12px", fontFamily: "'Poppins', sans-serif" }}
                         >
                             {success}
                         </motion.div>
@@ -163,7 +188,7 @@ export default function ResetPassword() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            style={{ maxWidth: 420, borderRadius: "12px" }}
+                            style={{ maxWidth: 420, borderRadius: "12px", fontFamily: "'Poppins', sans-serif" }}
                         >
                             {error}
                         </motion.div>
@@ -188,18 +213,35 @@ export default function ResetPassword() {
 
                         <motion.button
                             type="submit"
-                            className="btn btn-primary w-100 py-3 mt-3 mb-3 rounded-4"
-                            style={{ maxWidth: 420 }}
+                            className="btn btn-primary w-100 py-3 mt-3 mb-3"
+                            style={{
+                                borderRadius: '12px',
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                maxWidth: 420,
+                                fontFamily: "'Poppins', sans-serif"
+                            }}
                             disabled={loading}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.4 }}
                         >
                             {loading ? "Resetting..." : "Reset Password"}
                         </motion.button>
 
-                        <div className="text-center">
-                            <a href="/login" className="text-decoration-none text-muted">
+                        <motion.div
+                            className="text-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                            <a href="/login" className="text-decoration-none text-muted" style={{
+                                fontFamily: "'Poppins', sans-serif",
+                                fontSize: '0.9rem'
+                            }}>
                                 Back to Login
                             </a>
-                        </div>
+                        </motion.div>
                     </form>
                 </div>
             </motion.div>

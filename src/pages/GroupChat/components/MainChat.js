@@ -1195,8 +1195,8 @@ const MainChat = ({
           )
         )}
         <h3
-          onClick={onGroupNameClick}
-          style={onGroupNameClick ? { cursor: "pointer" } : {}}
+          onClick={groupId && onGroupNameClick ? onGroupNameClick : undefined}
+          style={groupId && onGroupNameClick ? { cursor: "pointer" } : {}}
         >
           {chatTitle}
         </h3>
