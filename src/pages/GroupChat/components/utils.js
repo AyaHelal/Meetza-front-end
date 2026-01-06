@@ -56,8 +56,8 @@ export const categorizeResources = (resources) => {
             }
 
             // Always mirror HTTP/HTTPS resources in links per requirement
-            // BUT exclude audio files, photos, and videos - they should only appear in their respective categories
-            if (file_url && (file_url.startsWith('http://') || file_url.startsWith('https://')) && !classifiedAsAudio && !classifiedAsPhoto && !classifiedAsVideo) {
+            // BUT exclude audio files, photos, videos, and documents - they should only appear in their respective categories
+            if (file_url && (file_url.startsWith('http://') || file_url.startsWith('https://')) && !classifiedAsAudio && !classifiedAsPhoto && !classifiedAsVideo && !classifiedAsDocument) {
                 links.push(resource);
             }
         });
