@@ -117,7 +117,10 @@ const UserPhoto = ({
         }
       });
 
-      if (response.data) {
+      // Check if the upload was successful (status 200-299)
+      const isSuccess = response.status >= 200 && response.status < 300;
+      
+      if (response.data && isSuccess) {
         let photoUrl = response.data.user_photo ||
           response.data.photo ||
           response.data.data?.user_photo ||
@@ -127,27 +130,48 @@ const UserPhoto = ({
           response.data.profile_photo ||
           response.data.avatar;
 
+        // If we can't find the photo URL in the response, check existing photo or try to fetch updated user
         if (!photoUrl) {
           const existingPhoto = user?.user_photo || user?.photo || authUser?.user_photo || authUser?.photo;
           if (existingPhoto) {
             photoUrl = existingPhoto;
           } else {
-            smartToast.error('Failed to update photo: No photo URL available');
-            setIsUploading(false);
-            if (tempPreviewUrl) {
-              URL.revokeObjectURL(tempPreviewUrl);
-              setLocalPhotoUrl(null);
+            // Upload was successful but no URL in response - try to fetch updated user data
+            try {
+              console.log('Upload successful but no photo URL in response. Fetching updated user data...');
+              const userResponse = await axiosInstance.get(`/user/${userId}`);
+              const fetchedUser = userResponse.data?.user || userResponse.data?.data || userResponse.data;
+              
+              photoUrl = fetchedUser?.user_photo || 
+                        fetchedUser?.photo || 
+                        fetchedUser?.profile_photo || 
+                        fetchedUser?.avatar;
+              
+              if (photoUrl) {
+                console.log('Successfully fetched photo URL from updated user data');
+              } else {
+                // Still no URL, but upload was successful - keep local preview
+                console.log('Photo uploaded successfully but URL not available yet. Keeping local preview.');
+                // Don't show error - upload was successful, photo will be available on refresh
+              }
+            } catch (fetchError) {
+              console.log('Could not fetch updated user data, but upload was successful:', fetchError);
+              // Don't show error - upload was successful
             }
-            return;
           }
         }
 
         const photoUpdatedAt = Date.now();
         const currentUser = user || authUser;
+        
+        // If we have a photoUrl, use it. Otherwise, keep the local preview URL temporarily
+        // The local preview will be replaced when the user data refreshes or on page reload
+        const finalPhotoUrl = photoUrl || tempPreviewUrl || currentUser?.user_photo || currentUser?.photo;
+        
         const updatedUser = {
           ...currentUser,
-          user_photo: photoUrl || currentUser?.user_photo || currentUser?.photo,
-          photo: photoUrl || currentUser?.user_photo || currentUser?.photo,
+          user_photo: finalPhotoUrl,
+          photo: finalPhotoUrl,
           photoUpdatedAt: photoUpdatedAt
         };
 
