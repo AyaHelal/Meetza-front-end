@@ -45,7 +45,7 @@ const Groups = () => {
     const handleCreateGroup = async (groupData) => {
     try {
         const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                          JSON.parse(sessionStorage.getItem("user"));
+                            JSON.parse(sessionStorage.getItem("user"));
 
         if (!storedUser?.id) {
             smartToast.error("You must be logged in to create a group");
@@ -111,7 +111,7 @@ const Groups = () => {
             }
             // Only show error for administrators, not for members
             const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                              JSON.parse(sessionStorage.getItem("user"));
+                                JSON.parse(sessionStorage.getItem("user"));
             const rawRole = (storedUser?.role || 'Member')
                 .toString()
                 .toLowerCase();

@@ -1,10 +1,9 @@
 import { Button } from 'react-bootstrap';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../../pages/Login/Login.css';
 
 const SocialLoginButtons = ({ role, redirectUrl }) => {
     const [roleError, setRoleError] = useState('');
-
     useEffect(() => {
         if (role) {
             setRoleError('');
@@ -13,18 +12,13 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
 
     const handleGoogleLogin = () => {
         if (!role) {
-            setRoleError('Please select a Role before signing in with Google');
+            setRoleError('You must choose a Role before completing the Google login process.');
             return;
         }
-        const finalRedirect =
-            redirectUrl || `${window.location.origin}/home`;
 
+        const finalRedirect = redirectUrl || `${window.location.origin}/home`;
         const encodedRedirect = encodeURIComponent(finalRedirect);
-        // Use environment variable or default to ngrok URL
-        const apiBaseUrl = process.env.REACT_APP_API_URL || "https://hulda-unglutted-curably.ngrok-free.dev/api";
-        const googleAuthUrl =
-            `${apiBaseUrl}/auth/social/google` +
-            `?role=${role}&redirect=${encodedRedirect}`;
+        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?role=${role}&redirect=${encodedRedirect}`;
 
         window.location.href = googleAuthUrl;
     };

@@ -17,11 +17,11 @@ const PasswordStrengthIndicator = ({ password }) => {
         });
 
         if (score <= 2) {
-            return { strength: 1, label: 'Weak', color: '#dc3545' }; // أحمر
+            return { strength: 1, label: 'Weak', color: '#dc3545' };
         } else if (score === 3) {
-            return { strength: 2, label: 'Medium', color: '#fd7e14' }; // برتقاني
+            return { strength: 2, label: 'Medium', color: '#fd7e14' };
         } else {
-            return { strength: 3, label: 'Strong', color: '#198754' }; // أخضر
+            return { strength: 3, label: 'Strong', color: '#198754' };
         }
     };
 
