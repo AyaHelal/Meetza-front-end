@@ -14,7 +14,7 @@ export const categorizeResources = (resources) => {
 
             // Use category field from API as primary categorization
             let classifiedAsVideo = false;
-            
+
             if (category === 'photos' || category === 'images') {
                 photos.push(resource);
                 classifiedAsPhoto = true;
@@ -32,20 +32,20 @@ export const categorizeResources = (resources) => {
             } else {
                 // Fallback to file type/extension if category is not set
                 const extension = extractExtension(resource);
-                
+
                 if (file_type?.startsWith('image/') || file_url?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
                     photos.push(resource);
                     classifiedAsPhoto = true;
-                } else if (file_type?.startsWith('video/') || 
-                          VIDEO_EXTENSIONS.includes(extension) ||
-                          file_url?.match(/\.(mp4|mov|webm|mkv|avi)$/i)) {
+                } else if (file_type?.startsWith('video/') ||
+                            VIDEO_EXTENSIONS.includes(extension) ||
+                            file_url?.match(/\.(mp4|mov|webm|mkv|avi)$/i)) {
                     // Videos should be in photos array for Media tab (since Media tab shows photos + videos)
                     photos.push(resource);
                     classifiedAsPhoto = true;
                     classifiedAsVideo = true;
-                } else if (file_type?.startsWith('audio/') || 
-                          AUDIO_EXTENSIONS.includes(extension) ||
-                          file_url?.match(/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i)) {
+                } else if (file_type?.startsWith('audio/') ||
+                            AUDIO_EXTENSIONS.includes(extension) ||
+                            file_url?.match(/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i)) {
                     audio.push(resource);
                     classifiedAsAudio = true;
                 } else if (file_type?.includes('pdf') || file_type?.includes('doc') || file_type?.includes('docx') || file_type?.includes('xls') || file_type?.includes('xlsx') || file_type?.includes('ppt') || file_type?.includes('pptx') ||
@@ -116,19 +116,19 @@ const resolveMediaCategory = (item) => {
 
     // List of file extensions that should be treated as documents/files, not links
     const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
-    
+
     // PRIORITY: Check if it's a document/file FIRST (before checking if it's a link)
     // Documents should always go to 'files' category, even if they have HTTP URLs or are marked as links
     // Check: 1) media_type (document, file), 2) file_type MIME type, 3) file extension
     // IMPORTANT: 'file' media_type indicates a file/document, not a link
-    if (mediaType === 'document' || 
+    if (mediaType === 'document' ||
         mediaType === 'file' ||
-        mediaType.includes('document') || 
+        mediaType.includes('document') ||
         isDocumentMimeType(fileType) ||
         documentExtensions.includes(extension)) {
         return 'files';
     }
-    
+
     // Check if it's an image, video, or audio file (also before checking links)
     if (mediaType.includes('image') || fileType.startsWith('image/') || IMAGE_EXTENSIONS.includes(extension)) {
         return 'images';
@@ -147,12 +147,12 @@ const resolveMediaCategory = (item) => {
 
     // Check if it's an HTTP/HTTPS link
     const isLink = isHttpLink(url);
-    
+
     // If it's a link but we've already checked documents/media above, it must be a real link
     if (isLink) {
         return 'links';
     }
-    
+
     // Default to files for anything else (unknown file types)
     return 'files';
 };
@@ -173,7 +173,7 @@ export const categorizeMediaItems = (mediaItems = []) => {
             const mediaType = item?.media_type?.toLowerCase() || item?.file_type?.toLowerCase() || '';
             const fileName = item?.file_name?.toLowerCase() || '';
             const extension = extractExtension(item);
-            
+
             // Debug logging for ALL items to see what we're working with
             console.log(`🔍 Processing item ${index + 1}:`, {
                 media_type: item?.media_type,
@@ -184,22 +184,22 @@ export const categorizeMediaItems = (mediaItems = []) => {
                 url: item?.media_url || item?.file_url,
                 fullItem: item
             });
-            
+
             // Determine if it's a regular audio file by checking:
             // 1. media_type is 'audio' or starts with 'audio/'
             // 2. File extension is a known audio extension (mp3, wav, etc.)
             // 3. File name has an audio extension
-            const isRegularAudio = mediaType === 'audio' || 
-                                  mediaType.startsWith('audio/') ||
-                                  AUDIO_EXTENSIONS.includes(extension);
-            
+            const isRegularAudio = mediaType === 'audio' ||
+                                    mediaType.startsWith('audio/') ||
+                                    AUDIO_EXTENSIONS.includes(extension);
+
             // Check if it's a voice note
             // Voice notes are identified by:
             // 1. media_type is explicitly 'voice' or 'voice_note'
             // 2. filename starts with 'voice-' (recorded voice notes)
             const isExplicitVoiceNote = mediaType === 'voice' || mediaType === 'voice_note';
             const isVoiceNoteFilename = fileName.startsWith('voice-');
-            
+
             // Only skip if it's a voice note AND not a regular audio file
             // This ensures uploaded audio files are always stored, even if they have a 'voice-' prefix
             // (which shouldn't happen, but just in case)
@@ -210,7 +210,7 @@ export const categorizeMediaItems = (mediaItems = []) => {
             }
 
             const bucket = resolveMediaCategory(item);
-            
+
             console.log(`✅ Item ${index + 1} categorized as:`, bucket, {
                 media_type: item?.media_type,
                 file_type: item?.file_type,
@@ -218,7 +218,7 @@ export const categorizeMediaItems = (mediaItems = []) => {
                 extension,
                 url: item?.media_url || item?.file_url
             });
-            
+
             if (categories[bucket]) {
                 categories[bucket].push(item);
             } else {
@@ -230,7 +230,7 @@ export const categorizeMediaItems = (mediaItems = []) => {
             const url = item?.media_url || item?.file_url;
             const isHttpUrl = isHttpLink(url);
             const isMediaFile = bucket === 'images' || bucket === 'videos' || bucket === 'audio' || bucket === 'files';
-            
+
             // Only add to links if:
             // 1. It's an HTTP link
             // 2. It's not already categorized as a media file (images, videos, audio, files)
@@ -239,7 +239,7 @@ export const categorizeMediaItems = (mediaItems = []) => {
                 categories.links.push(item);
             }
         });
-        
+
         // Debug logging for summary
         console.log('📊 Media categorization summary:', {
             total: mediaItems.length,
