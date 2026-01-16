@@ -123,7 +123,7 @@ const MainChat = ({
   });
 
   // Check if user is at the bottom of the chat
-  const checkIfAtBottom = () => {
+  const checkIfAtBottom = useCallback(() => {
     if (!messagesContainerRef.current) return false;
     const container = messagesContainerRef.current;
     const threshold = 100;
@@ -131,7 +131,7 @@ const MainChat = ({
       container.scrollHeight - container.scrollTop - container.clientHeight <
       threshold;
     return isAtBottom;
-  };
+  }, []);
 
   const scrollToBottom = (force = false, instant = false) => {
     if (!messagesContainerRef.current) return;
@@ -203,7 +203,7 @@ const MainChat = ({
     }
 
     prevMessagesLengthRef.current = currentMessagesLength;
-  }, [messages, isUserAtBottom]);
+  }, [messages, isUserAtBottom, scrollToBottom]);
 
   useEffect(() => {
     const shouldOpenOnThisViewport = showMainChat || !isMobile;

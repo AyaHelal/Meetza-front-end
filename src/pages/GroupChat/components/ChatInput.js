@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Microphone, PaperPlaneTilt, Smiley, Image, File as FileIcon, Camera, MusicNote, X } from '@phosphor-icons/react';
 import EmojiPicker from 'emoji-picker-react';
@@ -27,7 +27,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
 
     const [attachmentMenuPosition, setAttachmentMenuPosition] = useState(null);
 
-    const handleFileCleanup = ({ preserveCategory = false } = {}) => {
+    const handleFileCleanup = useCallback(({ preserveCategory = false } = {}) => {
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
         }
@@ -41,7 +41,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
             setMediaCategory(null);
             setPendingCategory(null);
         }
-    };
+    }, [previewUrl]);
 
     const determinePreviewType = (file) => {
         if (!file?.type) return 'file';
