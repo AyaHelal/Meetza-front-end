@@ -425,15 +425,15 @@ export default function GroupChat() {
   }, []);
 
   // Define group event handler outside socket effect so it can be referenced in cleanup
-  const groupEventNames = [
-    "groupCreated",
-    "group_created",
-    "newGroup",
-    "new_group",
-    "group:add",
-    "group",
-    "groupUpdated",
-  ];
+  // const groupEventNames = [
+  //   "groupCreated",
+  //   "group_created",
+  //   "newGroup",
+  //   "new_group",
+  //   "group:add",
+  //   "group",
+  //   "groupUpdated",
+  // ];
 
   const handleGroupEvent = async (payload) => {
     try {

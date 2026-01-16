@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Microphone, PaperPlaneTilt, Smiley, Image, File as FileIcon, MapPin, Camera, MusicNote, X } from '@phosphor-icons/react';
+import { Plus, Microphone, PaperPlaneTilt, Smiley, Image, File as FileIcon, Camera, MusicNote, X } from '@phosphor-icons/react';
 import EmojiPicker from 'emoji-picker-react';
 import './ChatInput.css';
 
@@ -137,7 +137,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         setShowEmojiPicker(false);
         setShowAttachmentMenu(false);
         handleFileCleanup();
-    }, [chatId]);
+    }, [chatId, previewUrl, handleFileCleanup]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -230,7 +230,7 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
         setSelectedFile(file);
         setPreviewUrl(url);
         setPreviewType(determinePreviewType(file));
-        // Determine category: use override if provided, otherwise use pendingCategory, 
+        // Determine category: use override if provided, otherwise use pendingCategory,
         // or determine from file type, but ensure uploaded audio files are 'audio', not 'voice_note'
         let resolvedCategory = overrideCategory || pendingCategory || determineMediaCategory(file) || null;
 

@@ -7,7 +7,7 @@ import {
   Microphone,
   Play,
 } from "@phosphor-icons/react";
-import { deleteMessage, updateMessage, getMessages } from "../../../API/auth";
+import { deleteMessage, updateMessage } from "../../../API/auth";
 import { categorizeResources } from "./utils";
 import "./MainChat.css";
 import { smartToast } from "../../../API/toastManager";
@@ -524,7 +524,7 @@ const MainChat = ({
   );
 
   // Legacy support for groupInfo-based resources (from first file)
-  const { photos, links, documents, audio } = groupInfo?.content?.resources
+  const { photos, links, documents } = groupInfo?.content?.resources
     ? categorizeResources(groupInfo.content.resources)
     : { photos: [], links: [], documents: [], audio: [] };
 
