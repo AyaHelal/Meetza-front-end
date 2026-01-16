@@ -322,7 +322,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type="signup" />
+                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signup"} />
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>

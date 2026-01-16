@@ -296,7 +296,7 @@ const FormSection = ({
                                 </div>
                             )}
 
-                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type="signin"/>
+                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"}/>
                         </>
                     )
                 )}
