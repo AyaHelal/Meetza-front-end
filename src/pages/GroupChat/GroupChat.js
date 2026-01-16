@@ -1757,9 +1757,19 @@ export default function GroupChat() {
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
-  // Determine user role based on whether current user is the group administrator
+  // Determine user role based on whether current user is the group administrator or has Super-Admin role
   const userRole = useMemo(() => {
-    if (!user?.id || !groupInfo) return 'Member';
+    if (!user?.id) return 'Member';
+
+    // Check if user has Super-Admin role
+    const rawRole = (user?.role || 'Member').toString().toLowerCase();
+    const isSuperAdminRole = (rawRole.includes('Super') && rawRole.includes('Admin')) || rawRole.includes('Super_Admin');
+
+    if (isSuperAdminRole) {
+      return 'Super_Admin';
+    }
+
+    if (!groupInfo) return 'Member';
 
     const currentUserId = user.id;
     const adminId = groupInfo.group?.administrator_id || groupInfo.administrator_id;
@@ -1769,7 +1779,7 @@ export default function GroupChat() {
     }
 
     return 'Member';
-  }, [user?.id, groupInfo]);
+  }, [user?.id, user?.role, groupInfo]);
 
   const calendarEvents = [
     {

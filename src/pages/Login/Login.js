@@ -386,6 +386,20 @@ const Login = () => {
                                     Administrator
                                 </label>
                             </div>
+                            <div className="form-check ms-2">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="role"
+                                    id="loginSuperAdminRole"
+                                    value="Super_Admin"
+                                    checked={formData.role === 'Super_Admin'}
+                                    onChange={handleInputChange}
+                                />
+                                <label className="form-check-label ms-2" htmlFor="loginSuperAdminRole">
+                                    Super Admin
+                                </label>
+                            </div>
                         </div>
                         {errors.role && (
                             <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>

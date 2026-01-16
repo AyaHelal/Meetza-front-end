@@ -55,6 +55,11 @@ const MainChat = ({
   const [contentTab, setContentTab] = useState("media");
   const [mediaTab, setMediaTab] = useState("media");
 
+  // Debug userRole
+  useEffect(() => {
+    console.log('MainChat userRole:', userRole);
+  }, [userRole]);
+
   // Function to format messages and add link media items
   const formatMessages = (msgs) => {
     // Filter out deleted messages first
@@ -258,7 +263,7 @@ const MainChat = ({
     const handleTouchStart = (e) => {
       // Only handle single touch
       if (e.touches.length !== 1) return;
-      
+
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
     };
@@ -303,7 +308,7 @@ const MainChat = ({
         // If a section is open (media/videos), close it and go back to chat
         if (activeSection && onCloseSection) {
           onCloseSection();
-        } 
+        }
         // Otherwise, go back to chat panel
         else if (onBackToChats) {
           onBackToChats();
@@ -1316,7 +1321,7 @@ const MainChat = ({
           </>
         )}
       </div>
-      {!activeSection && !expandedSection && groupId && (
+      {!activeSection && !expandedSection && groupId && userRole !== 'Super_Admin' && (
         <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />
       )}
       {modalPhoto && (

@@ -213,14 +213,19 @@ const Groups = () => {
             const rawRole = (userInfo?.role || 'Member')
                 .toString()
                 .toLowerCase();
+            console.log('Raw role:', rawRole, 'User info:', userInfo);
             const isAdminRole = rawRole.includes('administrator');
-            const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
+            const isSuperAdminRole = (rawRole.includes('super') && rawRole.includes('admin')) || rawRole.includes('Super_Admin');
+            const normalizedRole = isSuperAdminRole ? 'Super_Admin' : (isAdminRole ? 'Administrator' : 'Member');
+            console.log('Normalized role:', normalizedRole);
 
-            const visibleGroups = isAdminRole && currentUserId
-                ? uniqueGroups.filter(
-                    group => group.administrator_id === currentUserId
-                )
-                : uniqueGroups;
+            const visibleGroups = isSuperAdminRole
+                ? uniqueGroups
+                : (isAdminRole && currentUserId
+                    ? uniqueGroups.filter(
+                        group => group.administrator_id === currentUserId
+                    )
+                    : uniqueGroups);
 
             setGroups(visibleGroups);
             setUserRole(normalizedRole);
@@ -448,21 +453,21 @@ const Groups = () => {
                                     </div>
                                     <div className="group-card-body">
                                         <div className="group-card-title">{group.name || group.title || group.group_name || group.content_name}</div>
+                                        {(userRole === 'Member' || userRole === 'Super_Admin') && (
+                                            <div className="group-card-instructor">
+                                                {`Dr. ${group.admin?.name || group.admin_name || 'Unknown'}`}
+                                            </div>
+                                        )}
                                         {userRole === 'Member' && groupId && (
-                                            <>
-                                                <div className="group-card-instructor">
-                                                    {`Dr. ${group.admin?.name || group.admin_name || 'Unknown'}`}
-                                                </div>
-                                                <button
-                                                    className={`group-join-btn py-2 w-50 align-items-center ${
-                                                        joinedGroups.includes(groupId) ? "joined" : ""
-                                                    }`}
-                                                    onClick={() => handleJoinGroup(groupId)}
-                                                    disabled={joinedGroups.includes(groupId)}
-                                                >
-                                                    {joinedGroups.includes(groupId) ? "Joined" : "Join"}
-                                                </button>
-                                            </>
+                                            <button
+                                                className={`group-join-btn py-2 w-50 align-items-center ${
+                                                    joinedGroups.includes(groupId) ? "joined" : ""
+                                                }`}
+                                                onClick={() => handleJoinGroup(groupId)}
+                                                disabled={joinedGroups.includes(groupId)}
+                                            >
+                                                {joinedGroups.includes(groupId) ? "Joined" : "Join"}
+                                            </button>
                                         )}
 
                                     </div>
