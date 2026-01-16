@@ -9,7 +9,6 @@ import {
   GearSix,
   SignOut,
   UsersThree,
-  Plus,
 } from "@phosphor-icons/react";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
@@ -23,7 +22,7 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useContext(AuthContext);
-  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead, getUnreadNotificationCount} = useSocket();
+  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, getUnreadNotificationCount} = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -40,7 +39,7 @@ const AppLayout = ({ children }) => {
         }
       });
     }
-    
+
     // Reset flag when socket disconnects
     if (!socket || !isConnected) {
       hasFetchedInitialCountRef.current = false;
@@ -179,7 +178,7 @@ const AppLayout = ({ children }) => {
           className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
           onClick={() => setIsSidebarOpen(false)}
         >
-          <div 
+          <div
             className={`mobile-sidebar ${isSidebarOpen ? "open" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -192,9 +191,9 @@ const AppLayout = ({ children }) => {
                 <X size={20} weight="bold" />
               </button>
               <div className="profile-info">
-                <UserPhoto 
-                  user={user} 
-                  variant="sidebar" 
+                <UserPhoto
+                  user={user}
+                  variant="sidebar"
                   size="large"
                   showName={true}
                   className="sidebar-user-photo"
