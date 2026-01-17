@@ -2,7 +2,7 @@ import { Button } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import '../../pages/Login/Login.css';
 
-const SocialLoginButtons = ({ role, redirectUrl }) => {
+const SocialLoginButtons = ({ role, redirectUrl ,type}) => {
     const [roleError, setRoleError] = useState('');
     useEffect(() => {
         if (role) {
@@ -18,7 +18,7 @@ const SocialLoginButtons = ({ role, redirectUrl }) => {
 
         const finalRedirect = redirectUrl || `${window.location.origin}/home`;
         const encodedRedirect = encodeURIComponent(finalRedirect);
-        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?role=${role}&redirect=${encodedRedirect}`;
+        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?role=${role}&type=${type}&redirect=${encodedRedirect}`;
 
         window.location.href = googleAuthUrl;
     };
