@@ -1,13 +1,25 @@
 import { Button } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
 import '../../pages/Login/Login.css';
 
-const SocialLoginButtons = ({ role }) => {
-    //const apiBase = process.env.REACT_APP_API_URL || '';
-    //const googleAuthUrl = `${apiBase}/auth/social/google?role=${role || 'Member'}`;
-    const googleAuthUrl = `https://sw2gc7g3-3000.uks1.devtunnels.ms/api/auth/social/google?role=${role || 'Member'}`;
+const SocialLoginButtons = ({ role, redirectUrl }) => {
+    const [roleError, setRoleError] = useState('');
+    useEffect(() => {
+        if (role) {
+            setRoleError('');
+        }
+    }, [role]);
 
-    // ✅ Google Login via backend redirect
     const handleGoogleLogin = () => {
+        if (!role) {
+            setRoleError('You must choose a Role before completing the Google login process.');
+            return;
+        }
+
+        const finalRedirect = redirectUrl || `${window.location.origin}/home`;
+        const encodedRedirect = encodeURIComponent(finalRedirect);
+        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?role=${role}&redirect=${encodedRedirect}`;
+
         window.location.href = googleAuthUrl;
     };
 
@@ -36,6 +48,11 @@ const SocialLoginButtons = ({ role }) => {
                         Continue with Google
                     </Button>
                 </div>
+                {roleError && (
+                    <div className="text-danger small mt-2 text-center">
+                        {roleError}
+                    </div>
+                )}
             </div>
         </>
     );

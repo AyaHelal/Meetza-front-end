@@ -7,6 +7,11 @@ const MobileHeader = ({
   onOpenSidebar,
   unreadNotificationCount = 0
 }) => {
+  // Debug: Log count changes on mobile
+  React.useEffect(() => {
+    console.log('📱 MobileHeader - unreadNotificationCount:', unreadNotificationCount);
+  }, [unreadNotificationCount]);
+
   return (
     <div className="mobile-header">
       <div className="logo-section">

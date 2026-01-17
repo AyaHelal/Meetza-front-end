@@ -32,7 +32,7 @@ const LoginImage = ({ isSignup = false }) => {
             height: '100vh',
             paddingTop: '10px',
             paddingBottom: '10px',
-            ...(isSignup ? { paddingLeft: '10px' } :  { paddingRight: '10px' }),
+            ...(isSignup ? { paddingLeft: '10px' } : { paddingRight: '10px' }),
             overflow: 'hidden',
             borderRadius: '12px'
         }}>

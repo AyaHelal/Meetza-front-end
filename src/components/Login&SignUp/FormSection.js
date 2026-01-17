@@ -13,6 +13,7 @@ const FormSection = ({
     handleSubmit,
     isLoading,
     message,
+    errors,
     showCaptcha,
     onForgotPassword,
     onCaptchaChange,
@@ -45,6 +46,7 @@ const FormSection = ({
     useEffect(() => {
         const loadCaptcha = () => {
             if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
+                console.log('Environment variable REACT_APP_RECAPTCHA_SITE_KEY:', process.env.REACT_APP_RECAPTCHA_SITE_KEY);
                 window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
                     sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
                     callback: (token) => {
@@ -67,7 +69,8 @@ const FormSection = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: 300 }}
+            key={activeTab}
+            initial={{ opacity: 0, x: activeTab === 'signin' ? 300 : -300 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
             className="w-100 d-flex flex-column justify-content-center ff"
@@ -77,10 +80,10 @@ const FormSection = ({
                 overflowY: 'auto'
             }}
         >
-            <div ref={formRef} className="text-center mb-0 mt-5" style={{ marginTop: '1rem' }}>
+            <div ref={formRef} className="text-center mb-0 mt-0">
                 <div className="logo-container" style={{
                     margin: '0 auto',
-                    padding: '0 0 20px',
+                    padding: '0 0 70px',
                     width: '100%',
                     textAlign: 'center'
                 }}>
@@ -111,7 +114,7 @@ const FormSection = ({
                 )}
             </div>
 
-            <div className="rounded-3 p-1 mb-2 btn-group-mobile" style={{ backgroundColor: '#e0e0e0' }}>
+            <div className="rounded-3 mb-2 btn-group-mobile" style={{ backgroundColor: '#e0e0e0' }}>
                 {/* Only show tabs for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <div className="d-flex gap-1">
@@ -181,6 +184,7 @@ const FormSection = ({
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 name="email"
+                                error={errors?.email}
                                 autoFocus
                             />
 
@@ -188,16 +192,17 @@ const FormSection = ({
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 name="password"
+                                error={errors?.password}
                             />
 
                             {/* render any extra fields (e.g., role radios) above the remember/forgot row */}
                             {extraFields && (
-                                <div className="mb-3">
+                                <div className="mb-0">
                                     {extraFields}
                                 </div>
                             )}
 
-                            <div className="d-flex justify-content-between ps-2 align-items-center mb-3">
+                            <div className="d-flex justify-content-between ps-2 align-items-center mb-1">
                                 {activeTab === 'signin' && (
                                     <div className="d-flex align-items-center">
                                         <input
@@ -291,7 +296,7 @@ const FormSection = ({
                                 </div>
                             )}
 
-                            <SocialLoginButtons role={formData.role} />
+                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"}/>
                         </>
                     )
                 )}

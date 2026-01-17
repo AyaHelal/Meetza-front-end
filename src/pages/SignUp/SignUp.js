@@ -36,41 +36,87 @@ const SignUp = () => {
             [name]: type === 'radio' ? value : (type === 'checkbox' ? checked : value)
         }));
 
-        // simple validation for username + confirm password
-        if (name === 'username') {
-            if (!value.trim()) {
-                setErrors(prev => ({ ...prev, username: '' }));
-            } else if (value.length < 3) {
-                setErrors(prev => ({ ...prev, username: 'At least 3 characters' }));
-            } else if (!/^[a-zA-Z0-9\s]+$/.test(value)) {
-                setErrors(prev => ({ ...prev, username: 'Name can only contain letters, numbers, and spaces' }));
-            } else {
-                setErrors(prev => ({ ...prev, username: '' }));
-            }
-        }
-
-        if (name === 'confirmPassword') {
-            if (!value.trim()) {
-                setErrors(prev => ({ ...prev, confirmPassword: '' }));
-            } else if (value !== formData.password) {
-                setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
-            } else {
-                setErrors(prev => ({ ...prev, confirmPassword: '' }));
-            }
+        // Clear error for this field when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsLoading(true);
 
-        // Require role selection
+        // Validation logic
+        const newErrors = {};
+
+        // Username validation
+        if (!formData.username.trim()) {
+            newErrors.username = "Name is required";
+        } else if (formData.username.length < 3) {
+            newErrors.username = "Username must be at least 3 characters";
+        } else if (!/^[a-zA-Z0-9\s]+$/.test(formData.username)) {
+            newErrors.username = "Username can only contain letters, numbers, and spaces";
+        }
+
+        // Email validation
+        if (!formData.email.trim()) {
+            newErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = "Please enter a valid email address";
+        }
+
+        // Password validation
+        if (!formData.password.trim()) {
+            newErrors.password = "Password is required";
+        } else {
+            const password = formData.password;
+            const hasLowercase = /[a-z]/.test(password);
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            // Check for any special character (non-alphanumeric)
+            const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+            const isLongEnough = password.length >= 8;
+
+            // Debug log (remove in production if needed)
+            console.log('Password validation:', {
+                password,
+                hasLowercase,
+                hasUppercase,
+                hasNumber,
+                hasSpecialChar,
+                isLongEnough
+            });
+
+            if (!hasLowercase || !hasUppercase || !hasNumber || !hasSpecialChar || !isLongEnough) {
+                newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, number, and special character";
+            }
+        }
+
+        // Confirm password validation
+        if (!formData.confirmPassword.trim()) {
+            newErrors.confirmPassword = "confirmPassword is required";
+        } else if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = "Passwords do not match";
+        }
+
+        // Role validation
         if (!formData.role) {
-            setMessage({ text: "Please select a role before signing up.", type: "error" });
-            setIsLoading(false);
+            newErrors.role = "Please select a role";
+        }
+
+        // If there are validation errors, set them and prevent submission
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
+
+        // Clear errors on successful validation
+        setErrors({});
+
+        setIsLoading(true);
 
         try {
             const userData = {
@@ -125,7 +171,7 @@ const SignUp = () => {
                 >
 
                     {/* Username Field */}
-                    <div className="d-flex gx-2 mt-0 w-100 border border-2 py-1 px-4 rounded-4 align-items-center">
+                    <div className="d-flex gx-2 mt-0 w-100 border border-2 py-1 px-4 mb-2 rounded-4 align-items-center">
                         <User size={32} color="#888" weight="bold" className="me-2" />
                         <div className="text-start w-100">
                             <label className="text-888888" style={{ fontSize: "12px", paddingLeft: "12px", paddingBottom: '0px', marginBottom: '0px' }}>
@@ -154,6 +200,7 @@ const SignUp = () => {
                         onChange={handleInputChange}
                         name="email"
                         autoComplete="email"
+                        error={errors.email}
                         className="mt-3"
                     />
 
@@ -162,6 +209,7 @@ const SignUp = () => {
                         onChange={handleInputChange}
                         name="password"
                         autoComplete="new-password"
+                        error={errors.password}
                         showStrengthIndicator={true}
                     />
 
@@ -215,35 +263,42 @@ const SignUp = () => {
                         </div>
                     )}
                     {/* Role Selection */}
-                    <div className="d-flex px-2 py-2 role-radio-group">
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="radio"
-                                name="role"
-                                id="memberRole"
-                                value="Member"
-                                checked={formData.role === 'Member'}
-                                onChange={handleInputChange}
-                            />
-                            <label className="form-check-label mx-2" htmlFor="memberRole">
-                                Member
-                            </label>
+                    <div>
+                        <div className="d-flex px-2 py-2 role-radio-group">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="role"
+                                    id="memberRole"
+                                    value="Member"
+                                    checked={formData.role === 'Member'}
+                                    onChange={handleInputChange}
+                                />
+                                <label className="form-check-label mx-2" htmlFor="memberRole">
+                                    Member
+                                </label>
+                            </div>
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="role"
+                                    id="adminRole"
+                                    value="Administrator"
+                                    checked={formData.role === 'Administrator'}
+                                    onChange={handleInputChange}
+                                />
+                                <label className="form-check-label ms-2" htmlFor="adminRole">
+                                    Administrator
+                                </label>
+                            </div>
                         </div>
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="radio"
-                                name="role"
-                                id="adminRole"
-                                value="Administrator"
-                                checked={formData.role === 'Administrator'}
-                                onChange={handleInputChange}
-                            />
-                            <label className="form-check-label ms-2" htmlFor="adminRole">
-                                Administrator
-                            </label>
-                        </div>
+                        {errors.role && (
+                            <div className="text-danger small mt-1 mb-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
+                                {errors.role}
+                            </div>
+                        )}
                     </div>
 
                     <Button
@@ -267,7 +322,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons />
+                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} />
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>

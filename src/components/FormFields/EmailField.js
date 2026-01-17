@@ -1,24 +1,8 @@
-import { useState } from "react";
 import { Envelope } from "@phosphor-icons/react";
 
-const EmailField = ({ value, onChange, name = "email" }) => {
-    const [error, setError] = useState("");
-
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
-
+const EmailField = ({ value, onChange, name = "email", error = "" }) => {
     const handleChange = (e) => {
-        const newValue = e.target.value;
         onChange(e);
-        if (!newValue.trim()) {
-            setError("");
-        } else if (!validateEmail(newValue)) {
-            setError("Please enter a valid email address.");
-        } else {
-            setError("");
-        }
     };
 
     return (
@@ -42,8 +26,7 @@ const EmailField = ({ value, onChange, name = "email" }) => {
                         value={value}
                         onChange={handleChange}
                         placeholder="johndoe@email.com"
-                        className={`form-control border-0 shadow-none ${error ? "is-invalid" : ""
-                            }`}
+                        className={`form-control border-0 shadow-none ${error ? "is-invalid" : ""}`}
                         style={{
                             width: "100%",
                             paddingTop: "0%",
@@ -51,6 +34,9 @@ const EmailField = ({ value, onChange, name = "email" }) => {
                             backgroundColor: "transparent",
                             outline: "none",
                             boxShadow: "none",
+                            color: "#212529",
+                            WebkitAppearance: "none",
+                            MozAppearance: "textfield",
                         }}
                     />
                 </div>

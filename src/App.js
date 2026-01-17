@@ -1,6 +1,7 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
@@ -12,7 +13,7 @@ import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
@@ -20,6 +21,7 @@ const AppRoutes = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
+  const socialLoginProcessed = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -54,20 +56,96 @@ const AppRoutes = () => {
 
   // Handle social login redirect
   useEffect(() => {
+    // Only process if we have token or error in URL and haven't processed yet
     const urlParams = new URLSearchParams(location.search);
     const token = urlParams.get('token');
     const user = urlParams.get('user');
+    const error = urlParams.get('error');
 
-    if (token && user) {
+    // Skip if no token/error or already processed
+    if ((!token && !error) || socialLoginProcessed.current) {
+      return;
+    }
+
+    // Mark as processed immediately to prevent re-processing
+    socialLoginProcessed.current = true;
+
+    // Handle error from OAuth
+    if (error) {
+      console.error('❌ OAuth error:', error);
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    // Process token
+    if (token) {
       try {
-        const userData = JSON.parse(decodeURIComponent(user));
-        loginUser(userData, token, false); // Assuming not remembered for social login
-        // Clean up URL
-        navigate(location.pathname, { replace: true });
-        // Navigate to home
-        navigate('/home');
+        let userData = null;
+
+        // Parse user data from URL (comes from backend)
+        if (user) {
+          try {
+            userData = JSON.parse(decodeURIComponent(user));
+            console.log('✅ Parsed user data from URL:', userData);
+            console.log('📸 Photo fields in user data:', {
+              user_photo: userData?.user_photo,
+              photo: userData?.photo,
+              picture: userData?.picture,
+              avatar: userData?.avatar,
+              avatar_url: userData?.avatar_url,
+              google_photo: userData?.google_photo
+            });
+            
+            // Normalize Google photo field - Google OAuth typically returns 'picture'
+            if (userData && !userData.user_photo && !userData.photo) {
+              if (userData.picture) {
+                userData.user_photo = userData.picture;
+                userData.photo = userData.picture;
+              } else if (userData.avatar) {
+                userData.user_photo = userData.avatar;
+                userData.photo = userData.avatar;
+              } else if (userData.avatar_url) {
+                userData.user_photo = userData.avatar_url;
+                userData.photo = userData.avatar_url;
+              } else if (userData.google_photo) {
+                userData.user_photo = userData.google_photo;
+                userData.photo = userData.google_photo;
+              }
+            }
+          } catch (parseError) {
+            console.error('❌ Failed to parse user data from URL:', parseError);
+            // If user data parsing fails, still store token
+          }
+        }
+
+        // Store token and user data in localStorage (like normal login)
+        loginUser(userData, token, true); // true = localStorage (remember me)
+
+        // Verify token was stored
+        const storedToken = localStorage.getItem('token');
+        console.log('✅ Social login successful');
+        console.log('✅ Token stored in localStorage:', storedToken ? 'Yes' : 'No');
+        console.log('✅ Token value:', storedToken ? storedToken.substring(0, 20) + '...' : 'None');
+        console.log('✅ User data stored:', userData ? 'Yes' : 'No');
+        
+        // Wait a bit for state to update, then navigate
+        setTimeout(() => {
+          // Verify token is still there before navigating
+          const verifyToken = localStorage.getItem('token');
+          if (verifyToken) {
+            console.log('✅ Token verified before navigation');
+            navigate('/home', { replace: true });
+          } else {
+            console.error('❌ Token not found after storage, retrying...');
+            // Retry storing
+            loginUser(userData, token, true);
+            setTimeout(() => navigate('/home', { replace: true }), 200);
+          }
+        }, 100);
       } catch (error) {
-        console.error('Error parsing social login data:', error);
+        console.error('❌ Error handling social login:', error);
+        // Clean up URL even on error
+        navigate('/login', { replace: true });
       }
     }
   }, [location.search, loginUser, navigate]);
@@ -116,20 +194,22 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-        <AppRoutes />
-      </Router>
+      <SocketProvider>
+        <Router>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+          <AppRoutes />
+        </Router>
+      </SocketProvider>
     </AuthProvider>
   );
 }

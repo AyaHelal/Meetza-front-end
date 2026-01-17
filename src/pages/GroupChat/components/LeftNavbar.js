@@ -1,28 +1,90 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import { House, User, Envelope, CalendarBlank, Bell, GearSix, SignOut } from '@phosphor-icons/react';
-import './LeftNavbar.css';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../../context/AuthContext';
-import { UsersThree } from '@phosphor-icons/react';
-import axiosInstance from '../../../API/axiosInstance';
-import NotificationPanel from './NotificationPanel';
+import React, { useContext, useState, useEffect, useRef } from "react";
+import {
+  House,
+  User,
+  Envelope,
+  CalendarBlank,
+  Bell,
+  GearSix,
+  SignOut,
+} from "@phosphor-icons/react";
+import "./LeftNavbar.css";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import { useSocket } from "../../../context/SocketContext";
+import { UsersThree } from "@phosphor-icons/react";
+import NotificationPanel from "./NotificationPanel";
 
-const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, onExternalNotificationPanelClose, onNotificationRead }) => {
-  console.log('🔔 LeftNavbar component rendering');
+const LeftNavbar = ({
+  activeNav,
+  setActiveNav,
+  externalNotificationPanelOpen,
+  onExternalNotificationPanelClose,
+  onNotificationRead,
+}) => {
+  console.log("🔔 LeftNavbar component rendering");
   const navigate = useNavigate();
   const { logoutUser } = useContext(AuthContext);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const {
+    socket,
+    isConnected,
+    unreadNotificationCount,
+    setUnreadNotificationCount,
+    markAllNotificationsRead,
+    getUnreadNotificationCount,
+  } = useSocket();
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const bellRef = useRef(null);
+  const hasFetchedInitialCount = useRef(false);
+
+  // Fetch initial unread count when socket connects (via socket) - only once
+  useEffect(() => {
+    if (socket && isConnected && !hasFetchedInitialCount.current) {
+      hasFetchedInitialCount.current = true;
+      getUnreadNotificationCount((ack) => {
+        if (ack && ack.ok && ack.unreadCount !== undefined) {
+          console.log("🔔 Initial unread count from socket:", ack.unreadCount);
+        }
+      });
+    }
+    
+    // Reset flag when socket disconnects
+    if (!socket || !isConnected) {
+      hasFetchedInitialCount.current = false;
+    }
+  }, [socket, isConnected, getUnreadNotificationCount]);
+
+  // Socket effect to update count on new notifications
+  // Note: The count is already updated in SocketContext, but we can listen here if needed
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // Listen for both event name variations (backend may use either)
+    const handleNewNotification = (notification) => {
+      console.log(
+        "🔔 New notification received via socket in LeftNavbar:",
+        notification
+      );
+      // Count is already updated in SocketContext, so this is just for logging
+    };
+
+    socket.on("newNotification", handleNewNotification);
+    socket.on("new_notification", handleNewNotification);
+
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, isConnected]);
 
   // Track mobile state
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Sync with external notification panel state (for mobile sidebar)
@@ -32,92 +94,9 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     }
   }, [externalNotificationPanelOpen]);
 
-  console.log('🔔 Current unreadCount state:', unreadCount);
-
-  // Fetch unread notification count
-  useEffect(() => {
-    console.log('🔔 LeftNavbar mounted, fetching unread count...');
-    fetchUnreadCount();
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(() => {
-      console.log('🔔 Polling unread count...');
-      fetchUnreadCount();
-    }, 30000);
-    return () => {
-      console.log('🔔 LeftNavbar unmounting, clearing interval...');
-      clearInterval(interval);
-    };
-  }, []);
-
-  const fetchUnreadCount = async () => {
-    console.log('🔔 fetchUnreadCount called');
-    try {
-      console.log('🔔 Making API call to /notification/unread-count');
-      const response = await axiosInstance.get('/notification/unread-count');
-      console.log('🔔 Unread count API response:', response);
-      console.log('🔔 Response data:', response.data);
-      console.log('🔔 Response data type:', typeof response.data);
-
-      // Handle different response formats
-      let count = 0;
-      const data = response.data;
-
-      if (data !== null && data !== undefined) {
-        // Case 1: Direct number
-        if (typeof data === 'number') {
-          count = data;
-        }
-        // Case 2: { success: true, unreadCount: number } - YOUR API FORMAT
-        else if (data.success && typeof data.unreadCount === 'number') {
-          count = data.unreadCount;
-        }
-        // Case 3: { success: true, data: number }
-        else if (data.success && data.data !== undefined) {
-          if (typeof data.data === 'number') {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
-            count = data.data.unreadCount;
-          }
-        }
-        // Case 4: { data: number } (without success field)
-        else if (data.data !== undefined) {
-          if (typeof data.data === 'number') {
-            count = data.data;
-          } else if (data.data && typeof data.data.count === 'number') {
-            count = data.data.count;
-          } else if (data.data && typeof data.data.unread_count === 'number') {
-            count = data.data.unread_count;
-          } else if (data.data && typeof data.data.unreadCount === 'number') {
-            count = data.data.unreadCount;
-          }
-        }
-        // Case 5: Direct properties on response.data
-        else if (typeof data.unreadCount === 'number') {
-          count = data.unreadCount;
-        } else if (typeof data.count === 'number') {
-          count = data.count;
-        } else if (typeof data.unread_count === 'number') {
-          count = data.unread_count;
-        } else if (typeof data.unread === 'number') {
-          count = data.unread;
-        }
-      }
-
-      // Ensure count is a valid number
-      count = Number(count) || 0;
-      console.log('🔔 Final parsed unread count:', count);
-      console.log('🔔 Setting unreadCount state to:', count);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('❌ Error fetching unread notification count:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      // Don't reset to 0 on error, keep previous count
-    }
+  const handleOpenPanel = () => {
+    markAllNotificationsRead();
+    setUnreadNotificationCount(0);
   };
 
   const handleBellClick = (e) => {
@@ -126,12 +105,9 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     setShowNotificationPanel(!showNotificationPanel);
 
     // If opening the panel, immediately hide the badge (optimistic update)
-    if (!wasOpen && unreadCount > 0) {
-      setUnreadCount(0);
+    if (!wasOpen) {
+      handleOpenPanel();
     }
-
-    // Always refresh count when toggling
-    fetchUnreadCount();
   };
 
   const handleNotificationClose = () => {
@@ -140,29 +116,15 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
     if (onExternalNotificationPanelClose) {
       onExternalNotificationPanelClose();
     }
-    // Refresh count after closing to get updated count
-    setTimeout(() => {
-      fetchUnreadCount();
-    }, 300);
-  };
-
-  // Handle notification read callback - refresh count after marking as read
-  const handleNotificationRead = () => {
-    // Immediately set count to 0 (optimistic update)
-    setUnreadCount(0);
-    // Also refresh from server to ensure accuracy
-    setTimeout(() => {
-      fetchUnreadCount();
-    }, 500);
   };
 
   const handleLogout = () => {
     try {
       logoutUser();
     } catch (err) {
-      console.warn('Logout error', err);
+      console.warn("Logout error", err);
     }
-    navigate('/login');
+    navigate("/login");
   };
 
   // Calculate position for notification panel
@@ -175,14 +137,16 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
       const panelTop = Math.max(10, bellCenter - 300); // 300 is half of 600px max height
       return {
         top: `${panelTop}px`, // Center panel vertically with bell
-        left: `${rect.right + 10}px` // Position to the right of the bell
+        left: `${rect.right + 10}px`, // Position to the right of the bell
       };
     }
     return {
-      top: '80px',
-      left: '90px' // Default position to the right of left navbar
+      top: "80px",
+      left: "90px", // Default position to the right of left navbar
     };
   };
+
+  console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
 
   return (
     <>
@@ -192,39 +156,39 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
             <img
               src="/assets/meetza_logo_1024.png"
               alt="logo"
-              style={{ width: '80px', height: '80px' }}
+              style={{ width: "80px", height: "80px" }}
             />
           </div>
         </div>
         <div className="nav-icons">
           <div className="nav-icons-group-top">
             <div
-              className={`nav-icon ${activeNav === 'home' ? 'active' : ''}`}
-              onClick={() => setActiveNav('home')}
+              className={`nav-icon ${activeNav === "home" ? "active" : ""}`}
+              onClick={() => setActiveNav("home")}
             >
               <House size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveNav('profile')}
+              className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
+              onClick={() => setActiveNav("profile")}
             >
               <User size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'messages' ? 'active' : ''}`}
-              onClick={() => setActiveNav('messages')}
+              className={`nav-icon ${activeNav === "messages" ? "active" : ""}`}
+              onClick={() => setActiveNav("messages")}
             >
               <Envelope size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveNav('users')}
+              className={`nav-icon ${activeNav === "users" ? "active" : ""}`}
+              onClick={() => setActiveNav("users")}
             >
               <UsersThree size={32} />
             </div>
             <div
-              className={`nav-icon ${activeNav === 'calendar' ? 'active' : ''}`}
-              onClick={() => setActiveNav('calendar')}
+              className={`nav-icon ${activeNav === "calendar" ? "active" : ""}`}
+              onClick={() => setActiveNav("calendar")}
             >
               <CalendarBlank size={32} />
             </div>
@@ -232,19 +196,28 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
           <div className="nav-icons-group-bottom">
             <div
               ref={bellRef}
-              className={`nav-icon notification-icon ${activeNav === 'notifications' ? 'active' : ''}`}
+              className={`nav-icon notification-icon ${
+                activeNav === "notifications" ? "active" : ""
+              }`}
               onClick={handleBellClick}
             >
               <Bell size={32} />
-              {unreadCount > 0 && (
-                <span className="notification-badge" title={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadNotificationCount > 0 && (
+                <span
+                  className="notification-badge"
+                  title={`${unreadNotificationCount} unread notification${
+                    unreadNotificationCount !== 1 ? "s" : ""
+                  }`}
+                >
+                  {unreadNotificationCount > 99
+                    ? "99+"
+                    : unreadNotificationCount}
                 </span>
               )}
             </div>
             <div
-              className={`nav-icon ${activeNav === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveNav('settings')}
+              className={`nav-icon ${activeNav === "settings" ? "active" : ""}`}
+              onClick={() => setActiveNav("settings")}
             >
               <GearSix size={32} />
             </div>
@@ -253,7 +226,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
               title="Logout"
               onClick={handleLogout}
             >
-              <SignOut size={32} />
+              <SignOut size={32} style={{ color: "red" }} />
             </div>
           </div>
         </div>
@@ -263,7 +236,7 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
         onClose={handleNotificationClose}
         position={getNotificationPanelPosition()}
         onNotificationRead={() => {
-          handleNotificationRead();
+          setUnreadNotificationCount(0);
           // Also call external callback if provided (for mobile header)
           if (onNotificationRead) {
             onNotificationRead();
@@ -276,4 +249,3 @@ const LeftNavbar = ({ activeNav, setActiveNav, externalNotificationPanelOpen, on
 };
 
 export default LeftNavbar;
-

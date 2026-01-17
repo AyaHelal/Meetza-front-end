@@ -209,7 +209,58 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                 ]
                 : [];
 
+    // Helper function to check if an item is a link (before getMediaType is defined)
+    const isLinkItem = (item) => {
+        const declaredType = item?.media_type || item?.file_type || '';
+        if (declaredType === 'link' || declaredType.includes('link')) {
+            return true;
+        }
+        const url = item?.media_url || item?.file_url || '';
+        return /^https?:\/\//i.test(url);
+    };
 
+    // Remove links from message text if they're already shown as media items
+    const getDisplayText = () => {
+        const messageText = message.message || message.text || '';
+        if (!messageText || !finalMedia || finalMedia.length === 0) {
+            return messageText;
+        }
+
+        // Get all link URLs from media items
+        const linkUrls = finalMedia
+            .filter(item => isLinkItem(item))
+            .map(item => {
+                const url = item.media_url || item.file_url || '';
+                // Remove trailing punctuation that might have been cleaned
+                return url.replace(/[.,;:!?)]+$/, '');
+            })
+            .filter(url => url);
+
+        if (linkUrls.length === 0) {
+            return messageText;
+        }
+
+        // Remove link URLs from the message text
+        let displayText = messageText;
+        linkUrls.forEach(url => {
+            // Escape special regex characters in URL
+            const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Remove the URL from text (with optional trailing punctuation)
+            displayText = displayText.replace(new RegExp(escapedUrl + '[.,;:!?)]*', 'gi'), '').trim();
+        });
+
+        // Clean up extra spaces
+        displayText = displayText.replace(/\s+/g, ' ').trim();
+
+        // If the message was only links, return empty string (link preview will show)
+        if (!displayText || displayText.length === 0) {
+            return '';
+        }
+
+        return displayText;
+    };
+
+    const displayText = getDisplayText();
 
     // Update editText when message changes (e.g., after successful edit)
     useEffect(() => {
@@ -232,7 +283,26 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
             return;
         }
         e.preventDefault();
-        setMenuPosition({ x: e.clientX, y: e.clientY });
+
+        // On mobile, position menu relative to message bubble
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile && messageRef.current) {
+            const rect = messageRef.current.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            // Position menu below the message, centered horizontally
+            const menuWidth = 140; // Approximate menu width on mobile
+            const leftPosition = Math.max(10, Math.min(
+                viewportWidth - menuWidth - 10,
+                rect.left + (rect.width / 2) - (menuWidth / 2)
+            ));
+            setMenuPosition({
+                x: leftPosition,
+                y: rect.bottom + 10 // 10px below message
+            });
+        } else {
+            // Desktop: use click position
+            setMenuPosition({ x: e.clientX, y: e.clientY });
+        }
         setShowContextMenu(true);
     };
 
@@ -286,26 +356,99 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
     };
 
     const getMediaType = (mediaItem) => {
+        // CRITICAL: Check media_type FIRST before anything else
+        // This must be the absolute first check to catch voice_note
+        const explicitMediaType = mediaItem?.media_type || '';
+        if (explicitMediaType === 'voice_note' || explicitMediaType === 'voice') {
+            return 'audio';
+        }
+
         const declaredType = mediaItem?.media_type || mediaItem?.file_type || '';
+        const mediaUrl = mediaItem?.media_url || mediaItem?.file_url || '';
+
+        // First, check if it's explicitly marked as a link
+        if (declaredType === 'link' || declaredType.includes('link')) {
+            return 'link';
+        }
+
+        // Check if it's an HTTP/HTTPS link (even if media_type is not set to 'link')
+        const isHttpLink = /^https?:\/\//i.test(mediaUrl);
+        if (isHttpLink) {
+            // List of file extensions that should be treated as documents/files, not links
+            const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z'];
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif'];
+            const videoExtensions = ['mp4', 'mov', 'webm', 'mkv', 'avi'];
+            const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm'];
+
+            const extension = getExtension(mediaItem);
+
+            // If it's a link but has a document extension, treat as document
+            if (documentExtensions.includes(extension)) {
+                return 'document';
+            }
+            // If it's a link but has an image extension, treat as image
+            if (imageExtensions.includes(extension)) {
+                return 'image';
+            }
+            // If it's a link but has a video extension, treat as video
+            if (videoExtensions.includes(extension)) {
+                return 'video';
+            }
+            // If it's a link but has an audio extension, treat as audio
+            if (audioExtensions.includes(extension)) {
+                return 'audio';
+            }
+
+            // Otherwise, it's a link (even if it has extensions like .html, .php, etc.)
+            return 'link';
+        }
+
+        // Not a link, check declared type
+        // IMPORTANT: Check voice_note FIRST before checking video, because voice notes might be saved as video/webm
         if (typeof declaredType === 'string' && declaredType.length > 0) {
+            // Check for voice_note first (even if it's stored as video/webm)
+            if (declaredType === 'voice_note' || declaredType === 'voice') return 'audio';
             if (declaredType.startsWith('image')) return 'image';
-            if (declaredType.startsWith('video')) return 'video';
-            // Treat both 'audio', 'voice', and 'voice_note' as audio for consistent rendering
-            if (declaredType.startsWith('audio') || declaredType === 'voice' || declaredType === 'voice_note') return 'audio';
+            // Check video only if it's not a voice note
+            if (declaredType.startsWith('video') && declaredType !== 'voice_note') {
+                // Double check: if media_type is explicitly voice_note, treat as audio
+                const explicitType = mediaItem?.media_type || '';
+                if (explicitType === 'voice_note' || explicitType === 'voice') {
+                    return 'audio';
+                }
+                return 'video';
+            }
+            // Treat 'audio' as audio for consistent rendering
+            if (declaredType.startsWith('audio')) return 'audio';
             if (declaredType === 'document' || declaredType === 'file') return 'document';
-            if (declaredType === 'link') return 'link';
             // Handle generic 'media' type by checking MIME type
             if (declaredType === 'media') {
                 const mimeType = mediaItem?.file_mime || mediaItem?.file_type || '';
+                // Check if it's a voice note first
+                const explicitType = mediaItem?.media_type || '';
+                if (explicitType === 'voice_note' || explicitType === 'voice') {
+                    return 'audio';
+                }
                 if (mimeType.startsWith('video/')) return 'video';
                 if (mimeType.startsWith('audio/')) return 'audio';
                 if (mimeType.startsWith('image/')) return 'image';
             }
         }
 
+        // Fallback to extension-based detection
+        // IMPORTANT: Check media_type first to avoid misclassifying voice notes as video
+        const explicitType = mediaItem?.media_type || '';
+        if (explicitType === 'voice_note' || explicitType === 'voice') {
+            return 'audio';
+        }
+
         const extension = getExtension(mediaItem);
         if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg'].includes(extension)) return 'image';
-        if (['mp4', 'mov', 'webm', 'mkv'].includes(extension)) return 'video';
+        // Check if webm is actually a voice note (might be saved as video/webm)
+        if (extension === 'webm' && (explicitType === 'voice_note' || explicitType === 'voice')) {
+            return 'audio';
+        }
+        if (['mp4', 'mov', 'mkv'].includes(extension)) return 'video';
         if (['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm'].includes(extension)) return 'audio';
         if (extension) return 'document';
         return 'document';
@@ -383,7 +526,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         );
                     }
 
-                    if (mediaItem.media_type === 'link') {
+                    if (type === 'link' || mediaItem.media_type === 'link') {
                         // Extract domain name from URL
                         let domainName = '';
                         let displayUrl = mediaUrl;
@@ -547,7 +690,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         <span className="message-time">{message.time}</span>
                     </div>
                 )}
-                {!isLinkMessage && (message.message || message.text) && (
+                {displayText && (
                     <div className="message-text">
                         {isEditing ? (
                             <input
@@ -560,7 +703,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                                 className="edit-input"
                             />
                         ) : (
-                            message.message || message.text || ''
+                            displayText
                         )}
                     </div>
                 )}

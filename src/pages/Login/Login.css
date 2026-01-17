@@ -192,6 +192,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 4px;
   }
 
   .role-radio-group .form-check .form-check-input {
@@ -299,12 +300,13 @@
   }
 
   .logo-container img {
-    width: 200px;
+    width: 17rem !important;
     height: auto;
-    max-height: 120px;
+    max-height: 320px;
     object-fit: contain;
     display: block;
     margin: 0 auto;
+
   }
 
   /* Adjust logo size for different screens */
@@ -339,14 +341,12 @@
 /* Smaller screens within 1500px */
 @media (max-height: 900px) {
   .logo-container img {
-    max-width: 150px !important;
-    height: 110px !important;
+    max-width: 20rem !important;
+    max-height: 5rem !important;
   }
-
   .logo-container {
-    margin-bottom: -20px !important;
-    margin-top: -60px !important;
-  }
+    margin-bottom: 10px !important;
+}
 }
 
 /* ============================================
@@ -509,7 +509,7 @@
   /* Welcome Back heading - 20px on mobile */
   h1.h2.fw-semibold.mb-2.font-size-lg,
   h1.h2.fw-semibold {
-    font-size: 20px !important;
+    font-size: 22px !important;
   }
 
   /* Please enter your details - 13px on mobile */
@@ -563,8 +563,8 @@
   }
 
   .logo-container {
-    margin-bottom: -30px;
-    margin-top: -100px;
+    margin-bottom: 0.5rem !important;
+    margin-top: 0 !important;
   }
 
   .rounded-3 {
@@ -588,6 +588,9 @@
     padding: 12px 16px !important;
     line-height: 1.2 !important;
   }
+  .role-radio-group {
+        gap: 20px !important;
+    }
 
   /* Larger tablets */
   @media (min-width: 576px) {
@@ -720,8 +723,8 @@
     .rounded-3 button.btn,
     .rounded-3 .d-flex.gap-1 .btn,
     .rounded-3 .d-flex.gap-1 button {
-      max-height: 53px !important;
-      min-height: 53px !important;
+      max-height: 43px !important;
+      min-height: 20px !important;
       height: 53px !important;
       padding: 12px 16px !important;
       line-height: 1.2 !important;
@@ -770,8 +773,8 @@
     }
 
     .logo-container img {
-      max-width: 200px;
-      height: 150px;
+      max-width: 30rem !important;
+      height: 30rem !important;
     }
   }
 }

@@ -45,7 +45,7 @@ const Groups = () => {
     const handleCreateGroup = async (groupData) => {
     try {
         const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                          JSON.parse(sessionStorage.getItem("user"));
+                            JSON.parse(sessionStorage.getItem("user"));
 
         if (!storedUser?.id) {
             smartToast.error("You must be logged in to create a group");
@@ -105,10 +105,13 @@ const Groups = () => {
                 : response.data?.data || [];
             setPositions(positionsData);
         } catch (error) {
-            console.error('Error fetching positions:', error);
+            // 403 is expected for non-admin users
+            if (error.response?.status !== 403) {
+                console.error('Error fetching positions:', error);
+            }
             // Only show error for administrators, not for members
             const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                              JSON.parse(sessionStorage.getItem("user"));
+                                JSON.parse(sessionStorage.getItem("user"));
             const rawRole = (storedUser?.role || 'Member')
                 .toString()
                 .toLowerCase();
@@ -179,12 +182,20 @@ const Groups = () => {
             groupsResponse = await api.get(`/group`);
             }
 
-            // Extract data
-            allResults = Array.isArray(groupsResponse?.data?.data)
-            ? groupsResponse.data.data
-            : Array.isArray(groupsResponse?.data)
-                ? groupsResponse.data
-                : groupsResponse;
+            // Extract data - ensure we always get an array
+            if (Array.isArray(groupsResponse?.data?.data)) {
+                allResults = groupsResponse.data.data;
+            } else if (Array.isArray(groupsResponse?.data)) {
+                allResults = groupsResponse.data;
+            } else if (groupsResponse?.data?.success && Array.isArray(groupsResponse?.data?.data)) {
+                allResults = groupsResponse.data.data;
+            } else if (groupsResponse?.data?.success && Array.isArray(groupsResponse?.data?.groups)) {
+                allResults = groupsResponse.data.groups;
+            } else {
+                // Fallback: ensure allResults is always an array
+                console.warn('Unexpected response structure:', groupsResponse?.data);
+                allResults = [];
+            }
 
 
 
@@ -226,7 +237,10 @@ const Groups = () => {
                                 ? groupId
                                 : null;
                         } catch (err) {
-                            console.error('Membership check error:', err);
+                            // 403 is expected for groups the user isn't a member of
+                            if (err.response?.status !== 403) {
+                                console.error('Membership check error:', err);
+                            }
                             return null;
                         }
                     })

@@ -252,6 +252,63 @@ body.group-chat-active {
   opacity: 0.6;
 }
 
+.no-groups-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 40px 20px;
+  max-width: 400px;
+}
+
+.no-groups-icon {
+  color: #999;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.no-groups-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.no-groups-subtext {
+  font-size: 15px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Poppins', sans-serif;
+}
+
+.go-to-groups-btn {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #1976d2 0%, #00dc85 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+}
+
+.go-to-groups-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
+}
+
+.go-to-groups-btn:active {
+  transform: translateY(0);
+}
+
 .chat-item {
   display: flex;
   gap: 12px;
@@ -803,6 +860,108 @@ body.group-chat-active {
   color: rgba(0, 0, 0, 0.7);
 }
 
+/* Mobile responsive styles - prevent time from overlapping waveform */
+@media (max-width: 768px) {
+  .whatsapp-voice-message {
+    min-width: 180px;
+    max-width: 85%;
+    padding: 6px 10px;
+  }
+
+  .voice-message-content {
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .voice-play-btn {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .voice-waveform-container {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: 0;
+    height: 35px;
+    overflow: hidden;
+  }
+
+  .voice-waveform {
+    gap: 1px;
+  }
+
+  .waveform-bar {
+    min-width: 1.5px;
+  }
+
+  .voice-time-info {
+    min-width: 42px;
+    width: 42px;
+    flex-shrink: 0;
+    margin-left: 3px;
+  }
+
+  .voice-current-time {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .whatsapp-voice-message {
+    min-width: 150px;
+    max-width: 80%;
+    padding: 5px 8px;
+  }
+
+  .voice-message-content {
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .voice-play-btn {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+  }
+
+  .voice-play-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .voice-waveform-container {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: 0;
+    height: 32px;
+    overflow: hidden;
+  }
+
+  .voice-waveform {
+    gap: 1px;
+  }
+
+  .waveform-bar {
+    min-width: 1px;
+  }
+
+  .voice-time-info {
+    min-width: 38px;
+    width: 38px;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+
+  .voice-current-time {
+    font-size: 9px;
+  }
+}
+
 /* Legacy styles for backward compatibility */
 .message-media-audio-wrapper {
   padding: 0;
@@ -1077,6 +1236,24 @@ body.group-chat-active {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid #e0e0e0;
+}
+
+/* Fix emoji picker search input styling */
+.emoji-picker-wrapper em-emoji-picker input[type="search"],
+.emoji-picker-wrapper em-emoji-picker input[type="text"],
+.emoji-picker-wrapper input[type="search"],
+.emoji-picker-wrapper input[type="text"] {
+  padding-left: 40px !important;
+  padding-right: 12px !important;
+}
+
+.emoji-picker-wrapper em-emoji-picker .epr-search-icon,
+.emoji-picker-wrapper .epr-search-icon,
+.emoji-picker-wrapper em-emoji-picker [class*="search-icon"],
+.emoji-picker-wrapper [class*="search-icon"] {
+  left: 12px !important;
+  pointer-events: none;
+  position: absolute !important;
 }
 
 /* Arrow icon responsive sizing for screens larger than 1450px */
@@ -2318,7 +2495,7 @@ body.group-chat-active {
     position: fixed;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 1003;
     transition: opacity 0.3s;
   }
 
@@ -2331,7 +2508,7 @@ body.group-chat-active {
     width: 100vw;
     background: white;
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 1004;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     display: flex;
@@ -2573,6 +2750,8 @@ body.group-chat-active {
 
   .input-wrapper {
     padding: 0;
+    position: relative;
+    overflow: visible;
   }
 
   .chat-input input {
@@ -2583,6 +2762,7 @@ body.group-chat-active {
   .input-icon {
     width: 28px;
     height: 28px;
+    position: absolute;
   }
 
   .input-icon-left {
@@ -2599,6 +2779,16 @@ body.group-chat-active {
 
   .input-icon.emoji-icon {
     right: 40px;
+    position: absolute;
+  }
+
+  .input-wrapper {
+    position: relative;
+    overflow: visible;
+  }
+
+  .input-icon.send {
+    right: 6px;
   }
 
   .right-sidebar {
@@ -2774,6 +2964,7 @@ body.group-chat-active {
   padding: 1rem;
   margin-bottom: 1rem;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .expanded-section1 {
@@ -2840,7 +3031,7 @@ body.group-chat-active {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0076EA, #00DC85);
+  background: linear-gradient(135deg, #0076ea, #00dc85);
   color: #ffffff;
   font-weight: 600;
   font-size: 20px;
@@ -2952,6 +3143,15 @@ body.group-chat-active {
   margin-bottom: 1rem;
   border-bottom: 1px solid #e0e0e0;
   padding-bottom: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tabs-header::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .tab-item {
@@ -2961,6 +3161,8 @@ body.group-chat-active {
   background: #f0f0f0;
   cursor: pointer;
   font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab-item.active {
   background: #1976d2;
@@ -2986,6 +3188,25 @@ body.group-chat-active {
 
 /* Smaller size for photos and videos only on mobile */
 @media (max-width: 768px) {
+  .expanded-section {
+    padding: 0.75rem;
+  }
+
+  .tabs-header {
+    gap: 0.4rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .tab-item {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
   /* Photos and videos - smaller size */
   .media-item-photo,
   .media-item-video {
@@ -2993,7 +3214,7 @@ body.group-chat-active {
     min-width: 100px;
     max-width: 120px;
   }
-  
+
   /* Audio and other items - keep original size */
   .media-item-audio {
     width: calc(50% - 0.5rem);
@@ -3003,6 +3224,25 @@ body.group-chat-active {
 }
 
 @media (max-width: 480px) {
+  .expanded-section {
+    padding: 0.5rem;
+  }
+
+  .tabs-header {
+    gap: 0.3rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .tab-item {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
   /* Photos and videos - smaller size */
   .media-item-photo,
   .media-item-video {
@@ -3010,7 +3250,7 @@ body.group-chat-active {
     min-width: 90px;
     max-width: 110px;
   }
-  
+
   /* Audio and other items - keep original size */
   .media-item-audio {
     width: 100%;
@@ -3293,6 +3533,7 @@ body.group-chat-active {
   color: #1976d2;
   margin-bottom: 0.25rem;
   font-size: 0.95rem;
+  word-break: break-all;
 }
 
 .link-url {
@@ -3482,6 +3723,42 @@ body.group-chat-active {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   min-width: 120px;
+  animation: contextMenuFadeIn 0.2s ease;
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Context Menu - Center around message */
+@media (max-width: 768px) {
+  .context-menu {
+    min-width: 140px;
+    max-width: 200px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    /* Ensure menu stays within viewport */
+    left: auto !important;
+    right: auto !important;
+  }
+
+  .context-menu button {
+    padding: 12px 16px;
+    font-size: 15px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .context-menu button:active {
+    background-color: #e9ecef;
+  }
 }
 
 .context-menu button {
