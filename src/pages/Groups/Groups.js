@@ -164,15 +164,15 @@ const Groups = () => {
 
             const params = new URLSearchParams();
 
-            // Year selected
-            if (selectedYears.length > 0) {
-            params.append("year", selectedYears[0]);
-            }
+            // Years selected (multiple)
+            selectedYears.forEach(year => {
+                params.append("year", year);
+            });
 
-            // Semester selected
-            if (selectedSemesters.length > 0) {
-            params.append("semester", selectedSemesters[0]);
-            }
+            // Semesters selected (multiple)
+            selectedSemesters.forEach(semester => {
+                params.append("semester", semester);
+            });
 
             // Final request
             let groupsResponse;
