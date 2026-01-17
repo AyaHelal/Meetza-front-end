@@ -1761,6 +1761,11 @@ export default function GroupChat() {
   const userRole = useMemo(() => {
     if (!user?.id || !groupInfo) return 'Member';
 
+    // Check if user is Super_Admin first
+    if (user?.role === "Super_Admin") {
+      return 'Super_Admin';
+    }
+
     const currentUserId = user.id;
     const adminId = groupInfo.group?.administrator_id || groupInfo.administrator_id;
 
@@ -1769,7 +1774,7 @@ export default function GroupChat() {
     }
 
     return 'Member';
-  }, [user?.id, groupInfo]);
+  }, [user?.id, user?.role, groupInfo]);
 
   const calendarEvents = [
     {
