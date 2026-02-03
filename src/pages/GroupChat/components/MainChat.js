@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import MessageItem from "./MessageItem";
 import ChatInput from "./ChatInput";
 import {
@@ -41,12 +42,12 @@ const MainChat = ({
   loadingMoreMessages = false,
   onLoadMoreMessages,
 }) => {
+  const navigate = useNavigate();
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isSuperAdmin = normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
+  // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
   const showJoinMeetingButton =
-    normalizedUserRole !== "administrator" &&
-    normalizedUserRole !== "super_admin" &&
-    normalizedUserRole !== "super-admin";
+    !!groupId && normalizedUserRole === "member";
 
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
@@ -1209,7 +1210,7 @@ const MainChat = ({
         </h3>
         <div className="chat-header-actions">
           {showJoinMeetingButton && (
-            <button className="join-meeting-btn">Join Meeting</button>
+            <button className="join-meeting-btn" onClick={() => navigate('/meetings')}>Join Meeting</button>
           )}
           <div className="search-icon-header">
             <MagnifyingGlass size={20} />
