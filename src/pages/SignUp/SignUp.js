@@ -57,8 +57,8 @@ const SignUp = () => {
             newErrors.username = "Name is required";
         } else if (formData.username.length < 3) {
             newErrors.username = "Username must be at least 3 characters";
-        } else if (!/^[a-zA-Z0-9\s]+$/.test(formData.username)) {
-            newErrors.username = "Username can only contain letters, numbers, and spaces";
+        } else if (!/^[a-zA-Z\s]+$/.test(formData.username)) {
+            newErrors.username = "Username can only contain letters and spaces";
         }
 
         // Email validation
@@ -322,7 +322,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} />
+                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"}  type={"signup"}/>
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>

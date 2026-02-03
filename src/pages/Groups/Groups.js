@@ -15,6 +15,7 @@ const Groups = () => {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // 'admin' or 'member'
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [joinedGroups, setJoinedGroups] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [positions, setPositions] = useState([]);
@@ -163,15 +164,15 @@ const Groups = () => {
 
             const params = new URLSearchParams();
 
-            // Year selected
-            if (selectedYears.length > 0) {
-            params.append("year", selectedYears[0]);
-            }
+            // Years selected (multiple)
+            selectedYears.forEach(year => {
+                params.append("year", year);
+            });
 
-            // Semester selected
-            if (selectedSemesters.length > 0) {
-            params.append("semester", selectedSemesters[0]);
-            }
+            // Semesters selected (multiple)
+            selectedSemesters.forEach(semester => {
+                params.append("semester", semester);
+            });
 
             // Final request
             let groupsResponse;
@@ -213,10 +214,12 @@ const Groups = () => {
             const rawRole = (userInfo?.role || 'Member')
                 .toString()
                 .toLowerCase();
-            const isAdminRole = rawRole.includes('administrator');
+            const isSuperAdminRole = rawRole.includes('super_admin') || rawRole.includes('super-admin');
+            const isAdminRole = rawRole.includes('administrator') || isSuperAdminRole;
             const normalizedRole = isAdminRole ? 'Administrator' : 'Member';
 
-            const visibleGroups = isAdminRole && currentUserId
+            // Super_Admin sees all groups, Administrator sees only their own groups
+            const visibleGroups = isAdminRole && !isSuperAdminRole && currentUserId
                 ? uniqueGroups.filter(
                     group => group.administrator_id === currentUserId
                 )
@@ -224,6 +227,7 @@ const Groups = () => {
 
             setGroups(visibleGroups);
             setUserRole(normalizedRole);
+            setIsSuperAdmin(isSuperAdminRole);
 
             if (currentUserId) {
                 const updatedJoinedGroups = await Promise.all(
@@ -417,7 +421,7 @@ const Groups = () => {
             <div className="groups-content">
                 <div className="groups-header">
                     <h1 className="groups-title">Groups</h1>
-                    {userRole === 'Administrator' && (
+                    {userRole === 'Administrator' && !isSuperAdmin && (
                             <button
                                 onClick={() => setShowCreateModal(true)}
                                 className="create-group-btn"

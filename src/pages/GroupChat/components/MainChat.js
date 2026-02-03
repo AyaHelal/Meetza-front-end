@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import MessageItem from "./MessageItem";
 import ChatInput from "./ChatInput";
 import {
@@ -41,6 +42,13 @@ const MainChat = ({
   loadingMoreMessages = false,
   onLoadMoreMessages,
 }) => {
+  const navigate = useNavigate();
+  const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
+  const isSuperAdmin = normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
+  // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
+  const showJoinMeetingButton =
+    !!groupId && normalizedUserRole === "member";
+
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
   const touchStartX = useRef(0);
@@ -258,7 +266,7 @@ const MainChat = ({
     const handleTouchStart = (e) => {
       // Only handle single touch
       if (e.touches.length !== 1) return;
-      
+
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
     };
@@ -303,7 +311,7 @@ const MainChat = ({
         // If a section is open (media/videos), close it and go back to chat
         if (activeSection && onCloseSection) {
           onCloseSection();
-        } 
+        }
         // Otherwise, go back to chat panel
         else if (onBackToChats) {
           onBackToChats();
@@ -1201,7 +1209,9 @@ const MainChat = ({
           {chatTitle}
         </h3>
         <div className="chat-header-actions">
-          <button className="join-meeting-btn">Join Meeting</button>
+          {showJoinMeetingButton && (
+            <button className="join-meeting-btn" onClick={() => navigate('/meetings')}>Join Meeting</button>
+          )}
           <div className="search-icon-header">
             <MagnifyingGlass size={20} />
           </div>
@@ -1316,7 +1326,7 @@ const MainChat = ({
           </>
         )}
       </div>
-      {!activeSection && !expandedSection && groupId && (
+      {!activeSection && !expandedSection && groupId && !isSuperAdmin && (
         <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />
       )}
       {modalPhoto && (

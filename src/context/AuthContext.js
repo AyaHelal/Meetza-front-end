@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
             let storedUser = localStorage.getItem("user");
             let storedToken = localStorage.getItem("token");
             const rememberFlag = localStorage.getItem("remember");
+            const loginTime = localStorage.getItem("loginTime");
 
             if (!storedUser || !storedToken) {
                 storedUser = sessionStorage.getItem("user");
@@ -20,10 +21,27 @@ export const AuthProvider = ({ children }) => {
             }
 
             if (storedUser && storedToken) {
+                // Check if token has expired (24 hours for remember me)
+                const rememberedInLocal = rememberFlag === "true";
+                if (rememberedInLocal && loginTime) {
+                    const currentTime = new Date().getTime();
+                    const storedTime = parseInt(loginTime);
+                    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+                    if (currentTime - storedTime > twentyFourHours) {
+                        // Token expired, clear stored data
+                        localStorage.removeItem("user");
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("remember");
+                        localStorage.removeItem("loginTime");
+                        setInitializing(false);
+                        return;
+                    }
+                }
+
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setToken(storedToken);
-                const rememberedInLocal = rememberFlag === "true";
                 setIsRemembered(rememberedInLocal);
             }
         } catch (error) {
@@ -82,6 +100,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         localStorage.removeItem("remember");
+        localStorage.removeItem("loginTime");
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
         setIsRemembered(false);

@@ -7,6 +7,7 @@ import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
 import Groups from './pages/Groups/Groups';
+import Meetings from './pages/Meetings/Meetings';
 import VerifyEmailCode from './pages/VerifyEmail/VerifyEmailCode';
 import ForgotPasswordForm from './pages/ForgotPassword/ForgotPasswordForm';
 import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
@@ -95,7 +96,7 @@ const AppRoutes = () => {
               avatar_url: userData?.avatar_url,
               google_photo: userData?.google_photo
             });
-            
+
             // Normalize Google photo field - Google OAuth typically returns 'picture'
             if (userData && !userData.user_photo && !userData.photo) {
               if (userData.picture) {
@@ -127,7 +128,7 @@ const AppRoutes = () => {
         console.log('✅ Token stored in localStorage:', storedToken ? 'Yes' : 'No');
         console.log('✅ Token value:', storedToken ? storedToken.substring(0, 20) + '...' : 'None');
         console.log('✅ User data stored:', userData ? 'Yes' : 'No');
-        
+
         // Wait a bit for state to update, then navigate
         setTimeout(() => {
           // Verify token is still there before navigating
@@ -183,6 +184,10 @@ const AppRoutes = () => {
       <Route
         path="/groups"
         element={token ? <AppLayout><Groups /></AppLayout> : <Navigate to="/landing" replace />}
+      />
+      <Route
+        path="/meetings"
+        element={token ? <AppLayout><Meetings /></AppLayout> : <Navigate to="/landing" replace />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
