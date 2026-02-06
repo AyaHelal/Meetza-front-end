@@ -51,24 +51,6 @@ padding: 16px 16px 0 10px;
 }
 
 
-/* Right: empty space for sidebar (same width as GroupChat right sidebar) */
-.meetings-right-placeholder {
-  width: 250px;
-  min-width: 250px;
-  flex-shrink: 0;
-  margin: 20px 20px 20px 20px;
-  height: calc(100vh - 40px);
-  border-radius: 12px;
-  /* empty - no content */
-}
-
-@media (max-width: 1200px) {
-  .meetings-right-placeholder {
-    width: 280px;
-    min-width: 280px;
-  }
-}
-
 @media (max-width: 768px) {
   .meetings-center {
     margin: 12px;
@@ -76,7 +58,11 @@ padding: 16px 16px 0 10px;
     min-height: 0;
   }
 
-  .meetings-right-placeholder {
-    display: none;
-  }
+  .meeting-right-sidebar {
+        width: 100%;
+        margin: 0;
+        height: auto;
+        max-height: 50vh;
+        border-radius: 0;
+    }
 }

@@ -1,6 +1,7 @@
-import React from "react";
+import React from 'react'
+import MeetingRightSidebar from './components/MeetingRightSidebar'
+import './Meetings.css'
 import MeetingRoom from "./components/MeetingRoom";
-import "./Meetings.css";
 
 const Meetings = () => {
     return (
@@ -14,8 +15,7 @@ const Meetings = () => {
             </div>
         </div>
 
-        {/* Right: empty space for sidebar */}
-        <div className="meetings-right-placeholder" aria-hidden="true" />
+        <MeetingRightSidebar />
         </div>
     );
 };
