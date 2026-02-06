@@ -1,26 +1,64 @@
+/* Meetings page: center = meeting card + comment placeholder, right = empty sidebar space */
 .meetings-container {
-    display: flex;
-    height: 100vh;
-    width: 100%;
-    overflow: hidden;
-    background-color: #f4f4f4;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+  box-sizing: border-box;
+  border-radius: 22px;
 }
 
-.meetings-main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
+/* Center: meeting room card + empty comment area */
+.meetings-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  border-radius: 22px;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 20px 0 0 0;
+  height: calc(100vh - 40px);
+  position: relative;
 }
 
-/* Mobile responsive */
+/* The meeting card grows; comments area is fixed empty space below */
+.meetings-center .meeting-room {
+  flex: 1;
+  min-height: 0;
+  border-radius: 22px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Empty place for comments - title + empty space */
+.meetings-comments-placeholder {
+  flex-shrink: 0;
+  position: relative;
+  margin-top: -36px;
+  padding: 36px 16px 0 10px;
+  background: #ffffff;
+  z-index: 1;
+  height: 174px;
+}
+
+.meetings-comments-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 10px 0;
+padding: 16px 16px 0 10px;
+}
+
+
 @media (max-width: 768px) {
-    .meetings-container {
-        flex-direction: column;
-    }
-    
-    .meeting-right-sidebar {
+  .meetings-center {
+    margin: 12px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .meeting-right-sidebar {
         width: 100%;
         margin: 0;
         height: auto;
@@ -28,4 +66,3 @@
         border-radius: 0;
     }
 }
-

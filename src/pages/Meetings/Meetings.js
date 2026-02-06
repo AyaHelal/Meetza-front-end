@@ -1,17 +1,23 @@
 import React from 'react'
 import MeetingRightSidebar from './components/MeetingRightSidebar'
 import './Meetings.css'
+import MeetingRoom from "./components/MeetingRoom";
 
 const Meetings = () => {
     return (
         <div className="meetings-container">
-            <div className="meetings-main-content">
-                {/* Main meeting content will go here */}
+        {/* Center: meeting room card + empty comment area */}
+        <div className="meetings-center">
+            <MeetingRoom />
+            {/* Empty place for comments */}
+            <div className="meetings-comments-placeholder">
+            <h4 className="meetings-comments-title">Comments during meeting</h4>
             </div>
-            <MeetingRightSidebar />
         </div>
-    )
-}
 
-export default Meetings
+        <MeetingRightSidebar />
+        </div>
+    );
+};
 
+export default Meetings;
