@@ -1,0 +1,82 @@
+/* Meetings page: center = meeting card + comment placeholder, right = empty sidebar space */
+.meetings-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+  box-sizing: border-box;
+  border-radius: 22px;
+}
+
+/* Center: meeting room card + empty comment area */
+.meetings-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  border-radius: 22px;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 20px 0 0 0;
+  height: calc(100vh - 40px);
+  position: relative;
+}
+
+/* The meeting card grows; comments area is fixed empty space below */
+.meetings-center .meeting-room {
+  flex: 1;
+  min-height: 0;
+  border-radius: 22px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Empty place for comments - title + empty space */
+.meetings-comments-placeholder {
+  flex-shrink: 0;
+  position: relative;
+  margin-top: -36px;
+  padding: 36px 16px 0 10px;
+  background: #ffffff;
+  z-index: 1;
+  height: 174px;
+}
+
+.meetings-comments-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 10px 0;
+padding: 16px 16px 0 10px;
+}
+
+
+/* Right: empty space for sidebar (same width as GroupChat right sidebar) */
+.meetings-right-placeholder {
+  width: 250px;
+  min-width: 250px;
+  flex-shrink: 0;
+  margin: 20px 20px 20px 20px;
+  height: calc(100vh - 40px);
+  border-radius: 12px;
+  /* empty - no content */
+}
+
+@media (max-width: 1200px) {
+  .meetings-right-placeholder {
+    width: 280px;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .meetings-center {
+    margin: 12px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .meetings-right-placeholder {
+    display: none;
+  }
+}
