@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import MessageItem from "./MessageItem";
 import ChatInput from "./ChatInput";
 import {
@@ -14,6 +14,7 @@ import "./MainChat.css";
 import { smartToast } from "../../../API/toastManager";
 import "../GroupChat.css";
 import { File } from "lucide-react";
+import api from "../../../API/axiosInstance";
 
 const MainChat = ({
   messages: initialMessages,
@@ -41,13 +42,130 @@ const MainChat = ({
   hasMoreMessages = false,
   loadingMoreMessages = false,
   onLoadMoreMessages,
+  meetingId, // Optional prop for meeting ID
+  onCreateMeeting, // Function to open create meeting modal
 }) => {
   const navigate = useNavigate();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isSuperAdmin = normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
+  const isAdministrator = normalizedUserRole === "administrator";
   // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
   const showJoinMeetingButton =
     !!groupId && normalizedUserRole === "member";
+  // Create Meeting: only for Administrator, and only when a group chat is open
+  const showCreateMeetingButton =
+    !!groupId && isAdministrator && onCreateMeeting;
+
+  // Handle join meeting API call
+  // Handle join meeting API call
+  // Handle join meeting API call
+  const handleJoinMeeting = async () => {
+    try {
+      // Debug: Log all possible sources of meeting ID
+      console.log("🔍 Debugging meeting ID sources:", {
+        meetingIdProp: meetingId,
+        paramsMeetingId: params.meetingId,
+        searchParamsMeetingId: searchParams.get('meetingId'),
+        groupInfoMeetingId: groupInfo?.meeting?.id,
+        groupInfoMeeting_id: groupInfo?.meeting_id,
+        groupInfoMeetingId2: groupInfo?.meetingId,
+        groupInfoGroupMeetingId: groupInfo?.group?.meeting?.id,
+        groupInfoGroupMeeting_id: groupInfo?.group?.meeting_id,
+        groupInfoGroupMeetingId2: groupInfo?.group?.meetingId,
+        fullGroupInfo: groupInfo,
+        groupId: groupId
+      });
+
+      // Get meeting ID from various sources (prop, URL param, search param, groupInfo)
+      let dynamicMeetingId = meetingId ||
+        params.meetingId ||
+        searchParams.get('meetingId') ||
+        groupInfo?.meeting?.id ||
+        groupInfo?.meeting_id ||
+        groupInfo?.meetingId ||
+        groupInfo?.group?.meeting?.id ||
+        groupInfo?.group?.meeting_id ||
+        groupInfo?.group?.meetingId;
+
+      console.log("📍 Dynamic meeting ID found:", dynamicMeetingId);
+
+      // If meeting ID not found, try to fetch from meetings API using groupId (works for members too)
+      if (!dynamicMeetingId && groupId) {
+        console.log("🔄 Attempting to fetch meetings from API...");
+        try {
+          // Backend endpoint to fetch meeting by group id
+          // (User-provided example: GET /meeting/group/{groupId})
+          const meetingsResponse = await api.get(`/meeting/group/${groupId}`);
+          console.log("✅ Meetings response:", meetingsResponse);
+          // Support multiple possible response shapes:
+          // - { success, data: [...] } or { success, data: {...} }
+          // - { data: { success, data: ... } } (nested)
+          // - plain meeting object / array
+          const root = meetingsResponse?.data;
+          const nested = root?.data && (root?.success === undefined) ? root?.data : null;
+          const effective = nested || root;
+          const payload = effective?.data ?? effective;
+          const meetings = Array.isArray(payload) ? payload : payload ? [payload] : [];
+
+          // If API doesn't send an explicit "success" boolean, fall back to "has data"
+          const isSuccess =
+            effective?.success === undefined ? meetings.length > 0 : !!effective?.success;
+
+          if (isSuccess && meetings.length > 0) {
+            const normalizeStatus = (s) => (s || "").toString().trim().toLowerCase();
+            // Find scheduled/active meeting, else take most recent (first)
+            const activeMeeting =
+              meetings.find((m) => ["scheduled", "active"].includes(normalizeStatus(m?.status))) ||
+              meetings[0];
+
+            dynamicMeetingId =
+              activeMeeting?.id ||
+              activeMeeting?.meeting_id ||
+              activeMeeting?.meetingId ||
+              activeMeeting?.meeting?.id;
+
+            console.log("✅ Found meeting from API:", activeMeeting, {
+              extractedMeetingId: dynamicMeetingId,
+            });
+          } else {
+            console.warn("⚠️ Meetings API returned no meetings for this group.");
+          }
+        } catch (fetchError) {
+          console.warn("⚠️ Could not fetch meetings for group:", fetchError);
+        }
+      }
+
+      if (!dynamicMeetingId) {
+        console.error("❌ No meeting ID found after all attempts");
+        smartToast.error("No meeting available to join. Please wait for an administrator to create a meeting.");
+        return;
+      }
+
+      // Validate that we're not accidentally using groupId as meetingId
+      if (dynamicMeetingId === groupId) {
+        console.warn("⚠️ Warning: Meeting ID matches group ID, this might be incorrect");
+        smartToast.error("Invalid meeting ID. Please contact your administrator.");
+        return;
+      }
+
+      console.log("🚀 Attempting to join meeting:", dynamicMeetingId);
+
+      // Join the meeting
+      await api.post(`/meeting/${dynamicMeetingId}/join`);
+
+      smartToast.success("Successfully joined the meeting!");
+
+      // Navigate to meetings page after successful join
+      navigate('/meetings', { state: { meetingId: dynamicMeetingId, groupId } });
+    } catch (error) {
+      console.error("❌ Error joining meeting:", error);
+      smartToast.error(
+        error.response?.data?.message || error.message || "Failed to join meeting. Please try again."
+      );
+    }
+  };
 
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
@@ -831,12 +949,12 @@ const MainChat = ({
           <div
             key={item.id || index}
             className={`media-item ${isImage
-                ? "media-item-photo"
-                : isVideo
-                  ? "media-item-video"
-                  : isAudio
-                    ? "media-item-audio"
-                    : ""
+              ? "media-item-photo"
+              : isVideo
+                ? "media-item-video"
+                : isAudio
+                  ? "media-item-audio"
+                  : ""
               }`}
             onClick={() => handlePhotoClick(item)}
           >
@@ -1209,8 +1327,21 @@ const MainChat = ({
           {chatTitle}
         </h3>
         <div className="chat-header-actions">
+          {showCreateMeetingButton && (
+            <button className="create-meeting-btn" onClick={onCreateMeeting} style={{
+              background: "#0076EA",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              marginRight: "8px"
+            }}>Create Meeting</button>
+          )}
           {showJoinMeetingButton && (
-            <button className="join-meeting-btn" onClick={() => navigate('/meetings')}>Join Meeting</button>
+            <button className="join-meeting-btn" onClick={handleJoinMeeting}>Join Meeting</button>
           )}
           <div className="search-icon-header">
             <MagnifyingGlass size={20} />

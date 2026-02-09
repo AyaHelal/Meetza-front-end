@@ -162,7 +162,7 @@ const normalizeMediaItems = (mediaItems, messageId) => {
     // CRITICAL: Check for voice_note FIRST before any other type checking
     // This handles cases where voice notes are saved as video/webm
     if (mediaType === "voice_note" || mediaType === "voice" ||
-        normalizedType === "voice_note" || normalizedType === "voice") {
+      normalizedType === "voice_note" || normalizedType === "voice") {
       normalizedType = "voice_note";
     } else if (normalizedType.startsWith("image")) {
       normalizedType = "image";
@@ -289,26 +289,26 @@ export default function GroupChat() {
       initials: msg.sender_name?.charAt(0)?.toUpperCase() || "U",
       time: msg.created_at
         ? new Date(msg.created_at).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
         : new Date().toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
       date: msg.created_at
         ? new Date(msg.created_at).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
         : new Date().toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
       created_at: msg.created_at || new Date().toISOString(),
       text: msg.message,
       senderPhoto: msg.sender_photo,
@@ -506,13 +506,13 @@ export default function GroupChat() {
           avatarImage: g.group_photo || null,
           date: g.last_message_at
             ? new Date(g.last_message_at).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-              })
+              day: "numeric",
+              month: "short",
+            })
             : new Date().toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-              }),
+              day: "numeric",
+              month: "short",
+            }),
           unread: 0,
           group_name: g.group_name,
           group_content_id: g.group_content_id,
@@ -560,13 +560,13 @@ export default function GroupChat() {
         avatarImage: group.group_photo || null,
         date: group.last_message_at
           ? new Date(group.last_message_at).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-            })
+            day: "numeric",
+            month: "short",
+          })
           : new Date().toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-            }),
+            day: "numeric",
+            month: "short",
+          }),
         unread: 0,
         group_name: group.group_name || group.name,
         group_content_id: group.group_content_id,
@@ -656,7 +656,7 @@ export default function GroupChat() {
               if (isFromCurrentUser && msg.text === messageData.message) {
                 const timeDiff = Math.abs(
                   new Date(msg.created_at).getTime() -
-                    new Date(messageData.created_at).getTime()
+                  new Date(messageData.created_at).getTime()
                 );
                 if (timeDiff < 10000) {
                   // Within 10 seconds
@@ -840,13 +840,13 @@ export default function GroupChat() {
           avatarImage: group.group_photo || null,
           date: group.last_message_at
             ? new Date(group.last_message_at).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-              })
+              day: "numeric",
+              month: "short",
+            })
             : new Date().toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-              }),
+              day: "numeric",
+              month: "short",
+            }),
           // Use unread count from API if available, otherwise default to 0
           unread: group.unread || group.unread_count || group.unreadCount || 0,
           group_name: group.group_name,
@@ -1328,8 +1328,8 @@ export default function GroupChat() {
 
       const newSubject = newLastMessage
         ? (newLastMessage.text || (newLastMessage.media && newLastMessage.media.length > 0
-            ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
-            : "Media attachment"))
+          ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
+          : "Media attachment"))
         : "No messages yet";
 
       // Update the subject in groupChats for the selected chat
@@ -1395,8 +1395,8 @@ export default function GroupChat() {
 
       const newSubject = newLastMessage
         ? (newLastMessage.text || (newLastMessage.media && newLastMessage.media.length > 0
-            ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
-            : "Media attachment"))
+          ? getMediaLabel(newLastMessage.media[0].media_type, newLastMessage.media[0].file_name)
+          : "Media attachment"))
         : "No messages yet";
 
       // Update the subject in groupChats for the selected chat
@@ -1436,8 +1436,8 @@ export default function GroupChat() {
       mediaCategory === "voice_note"
         ? "voice_note"
         : (file?.type?.startsWith("video/") && mediaCategory === "voice_note")
-        ? "voice_note"
-        : normalizedType || "document";
+          ? "voice_note"
+          : normalizedType || "document";
 
     const optimisticMessage = {
       id: tempId,
@@ -1861,6 +1861,7 @@ export default function GroupChat() {
         contentResources={contentResources}
         groupMediaItems={groupMediaItems}
         groupMembers={groupMembers}
+        groupInfo={groupInfo}
         currentUserEmail={user?.email}
         groupId={selectedChatData?.id || null}
         onMessageEdited={handleMessageEdited}
