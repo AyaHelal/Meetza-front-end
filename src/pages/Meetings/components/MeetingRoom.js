@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Microphone,
+  MicrophoneSlash,
   VideoCamera,
   HandWaving,
   ImageSquare,
@@ -40,6 +41,8 @@ const MeetingRoom = () => {
   const meetingIdRef = useRef(null);
   const startedRef = useRef(false);
   const localVideoRef = useRef(null);
+  const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
+  const sliderViewportRef = useRef(null);
 
   const meetingId = useMemo(() => {
     // Prefer navigation state (set when joining), then query string (?meetingId=...)
@@ -118,6 +121,7 @@ const MeetingRoom = () => {
 
   const ensureLocalMedia = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
+    console.log("🎥 Getting user media...");
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
@@ -128,16 +132,12 @@ const MeetingRoom = () => {
     // store camera track (used to restore after screen share)
     cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
 
-    // apply current mute flags
-    stream.getAudioTracks().forEach((t) => (t.enabled = !audioMuted));
-    stream.getVideoTracks().forEach((t) => (t.enabled = !videoMuted));
-
-    // attach to local video element
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
+    console.log("✅ Media stream obtained:", {
+      videoTracks: stream.getVideoTracks().length,
+      audioTracks: stream.getAudioTracks().length,
+    });
     return stream;
-  }, [audioMuted, videoMuted]);
+  }, []);
 
   const startAndJoinMeetingRtc = useCallback(async () => {
     if (!socket || !isConnected) return;
@@ -222,6 +222,9 @@ const MeetingRoom = () => {
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = null;
     }
+    if (localVideoRef2.current) {
+      localVideoRef2.current.srcObject = null;
+    }
 
     setScreenSharing(false);
     startedRef.current = false;
@@ -238,6 +241,38 @@ const MeetingRoom = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, socket, isConnected]);
+
+  // Attach stream to both video elements when it changes
+  useEffect(() => {
+    const stream = localStreamRef.current;
+    const videoEl1 = localVideoRef.current;
+    const videoEl2 = localVideoRef2.current;
+
+    if (stream && videoEl1 && videoEl1.srcObject !== stream) {
+      console.log("📹 Attaching stream to grid view video element");
+      videoEl1.srcObject = stream;
+    }
+
+    if (stream && videoEl2 && videoEl2.srcObject !== stream) {
+      console.log("📹 Attaching stream to single view video element");
+      videoEl2.srcObject = stream;
+    }
+  }, [videoMuted, audioMuted]);
+
+  // Handle video/audio track enabled state
+  useEffect(() => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    console.log("🔄 Updating track states - videoMuted:", videoMuted, "audioMuted:", audioMuted);
+    stream.getVideoTracks().forEach((t) => {
+      t.enabled = !videoMuted;
+      console.log("  Video track enabled:", t.enabled);
+    });
+    stream.getAudioTracks().forEach((t) => {
+      t.enabled = !audioMuted;
+      console.log("  Audio track enabled:", t.enabled);
+    });
+  }, [videoMuted, audioMuted]);
 
   // Fetch meeting participants (names/photos) via REST for in-room display
   useEffect(() => {
@@ -373,6 +408,21 @@ const MeetingRoom = () => {
     socket.on("webrtcOffer", onWebrtcOffer);
     socket.on("webrtcAnswer", onWebrtcAnswer);
     socket.on("webrtcIceCandidate", onIceCandidate);
+    const onReaction = (data) => {
+      try {
+        const mid = data?.meetingId;
+        if (!mid || mid !== meetingIdRef.current) return;
+        const type = data?.type || data?.reaction || "like";
+        const fromMemberId = data?.member_id || data?.memberId || null;
+        const fromSocketId = data?.fromSocketId || data?.from || null;
+        const fromName = data?.member_name || data?.memberName || data?.name || (fromSocketId ? getPeerLabel(fromSocketId) : null) || "Someone";
+        const key = fromMemberId || fromSocketId || fromName;
+        addReactionToMap(key, type, fromName);
+      } catch (e) {
+        console.warn("Error handling reaction event:", e);
+      }
+    };
+    socket.on("reaction", onReaction);
 
     return () => {
       socket.off("participantJoined", onParticipantJoined);
@@ -380,6 +430,7 @@ const MeetingRoom = () => {
       socket.off("webrtcOffer", onWebrtcOffer);
       socket.off("webrtcAnswer", onWebrtcAnswer);
       socket.off("webrtcIceCandidate", onIceCandidate);
+      socket.off("reaction", onReaction);
     };
   }, [closePeer, createPeerConnection, socket]);
 
@@ -390,6 +441,24 @@ const MeetingRoom = () => {
 
   const selfMemberId = useMemo(() => user?.id || user?.member_id || null, [user?.id, user?.member_id]);
   const selfEmail = useMemo(() => user?.email || null, [user?.email]);
+  const [reactionsMap, setReactionsMap] = useState({}); // { memberKey: { like: [names], ... } }
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const emojiList = ["👍", "❤️", "😂", "👏", "😮", "🎉"];
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+
+  const getReactionIcon = (type) => {
+    // If type already is an emoji character, show it
+    try {
+      if (typeof type === "string" && /[\p{Emoji}]/u.test(type)) return type;
+    } catch (e) {
+      // older engines may not support \p{Emoji}
+      if (typeof type === "string" && /[\u{1F300}-\u{1FAFF}\u{2700}-\u{27BF}]/u.test(type)) return type;
+    }
+    if (type === "like") return "👍";
+    if (type === "heart") return "❤️";
+    return type;
+  };
 
   const displayParticipants = useMemo(() => {
     const list = Array.isArray(participants) ? participants : [];
@@ -439,6 +508,130 @@ const MeetingRoom = () => {
     }
   };
 
+  const handleMeetingEnded = async () => {
+    try {
+      console.log("⏰ Meeting has ended, auto-exiting...");
+      if (!meetingId) return;
+
+      // Stop WebRTC first
+      stopMeetingRtc();
+
+      // Emit event so MainChat knows to hide Join button
+      if (socket) {
+        socket.emit("meetingEnded", { meetingId }, () => {});
+      }
+
+      // Try to call leave API (best effort)
+      try {
+        await api.post(`/meeting/${meetingId}/leave`);
+      } catch (e) {
+        console.warn("⚠️ Could not call leave API:", e);
+      }
+
+      // Show notification and redirect
+      smartToast.info("Meeting time has ended. Exiting...");
+      setTimeout(() => {
+        navigate("/home");
+      }, 1500);
+    } catch (error) {
+      console.error("❌ Error in handleMeetingEnded:", error);
+    }
+  };
+
+  // Socket listener for meeting end event
+  useEffect(() => {
+    if (!socket) return;
+
+    const onMeetingEnded = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+      handleMeetingEnded();
+    };
+
+    socket.on("meetingEnded", onMeetingEnded);
+
+    return () => {
+      socket.off("meetingEnded", onMeetingEnded);
+    };
+  }, [socket]);
+
+  // Periodically check if meeting is still active (every 10 seconds)
+  useEffect(() => {
+    if (!meetingId) return;
+
+    const checkMeetingStatus = async () => {
+      try {
+        const res = await api.get(`/meeting/${meetingId}`);
+        const root = res?.data;
+        
+        // Handle response format from API
+        // Response could be: { success: true, data: {...} } or { success: true, data: [{...}] } 
+        let meeting;
+        if (root?.data) {
+          // If data is an array, find the meeting with matching ID
+          if (Array.isArray(root.data)) {
+            meeting = root.data.find(m => m.id === meetingId);
+          } else {
+            // If data is an object, use it directly
+            meeting = root.data;
+          }
+        } else {
+          // Fallback: use root as meeting if it has required fields
+          meeting = root?.id ? root : null;
+        }
+
+        if (!meeting) {
+          console.log("⏰ Meeting not found, ending...");
+          handleMeetingEnded();
+          return;
+        }
+
+        console.log("📋 Meeting data:", {
+          id: meeting.id,
+          status: meeting.status,
+          end_time: meeting.end_time,
+          start_time: meeting.start_time
+        });
+
+        const status = meeting?.status || "";
+        const normalizedStatus = (status || "").toString().trim().toLowerCase();
+
+        // If meeting is finished, ended, or closed, end the session
+        if (["finished", "ended", "closed"].includes(normalizedStatus)) {
+          console.log("⏰ Meeting status is", normalizedStatus, ", ending...");
+          handleMeetingEnded();
+          return;
+        }
+
+        // Check if end_time has passed
+        const endTime = meeting?.end_time;
+        if (endTime) {
+          const endDateTime = new Date(endTime);
+          const now = new Date();
+          const timeUntilEnd = endDateTime - now;
+          console.log("⏰ Meeting end_time:", endDateTime.toISOString(), "Current time:", now.toISOString(), "Seconds remaining:", Math.round(timeUntilEnd / 1000));
+          
+          if (now >= endDateTime) {
+            console.log("⏰ Meeting end time reached, ending...");
+            handleMeetingEnded();
+            return;
+          }
+        }
+      } catch (error) {
+        // If API returns 404 or error, meeting likely ended
+        if (error.response?.status === 404) {
+          console.log("⏰ Meeting not found (404), ending...");
+          handleMeetingEnded();
+        } else {
+          console.warn("⚠️ Could not check meeting status:", error);
+        }
+      }
+    };
+
+    const interval = setInterval(checkMeetingStatus, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [meetingId]);
+
   const handleToggleAudio = () => {
     const next = !audioMuted;
     setAudioMuted(next);
@@ -477,8 +670,90 @@ const MeetingRoom = () => {
   const handleSendLike = () => {
     const mid = meetingIdRef.current;
     if (socket && mid) {
-      socket.emit("reaction", { meetingId: mid, type: "like" });
+      // include sender info so server can broadcast who reacted
+      const payload = {
+        meetingId: mid,
+        type: "like",
+        member_id: selfMemberId,
+        member_name: user?.name || user?.member_name || user?.email || "You",
+        fromSocketId: socket.id,
+      };
+      socket.emit("reaction", payload);
+
+      // Optimistically show local reaction on your own tile
+      try {
+        const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
+        const name = user?.name || user?.member_name || user?.email || "You";
+        addReactionToMap(key, "like", name);
+      } catch (e) {
+        console.warn("Could not add local reaction:", e);
+      }
     }
+  };
+
+  const selectEmoji = (emoji) => {
+    const mid = meetingIdRef.current;
+    if (!mid || !socket) return;
+    const payload = {
+      meetingId: mid,
+      type: emoji, // use emoji char as type
+      member_id: selfMemberId,
+      member_name: user?.name || user?.member_name || user?.email || "You",
+      fromSocketId: socket.id,
+    };
+    socket.emit("reaction", payload);
+    // update local map
+    try {
+      const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
+      const name = user?.name || user?.member_name || user?.email || "You";
+      addReactionToMap(key, emoji, name);
+    } catch (e) {
+      console.warn("Could not add emoji locally:", e);
+    }
+    // spawn floating emojis across the meeting viewport
+    spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 7);
+    setShowEmojiPicker(false);
+  };
+
+  const spawnFloatingEmojis = (emoji, name, count = 6) => {
+    const container = sliderViewportRef.current;
+    const rect = container ? container.getBoundingClientRect() : null;
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      // random positions inside container
+      const left = rect ? Math.max(8, Math.random() * (rect.width - 48)) : Math.random() * 400;
+      const top = rect ? Math.max(8, Math.random() * (rect.height - 48)) : Math.random() * 140;
+      items.push({ id, emoji, name, left, top });
+    }
+    setFloatingEmojis((prev) => [...prev, ...items]);
+    // remove them after 3.2s
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((f) => !items.find((it) => it.id === f.id)));
+    }, 3200);
+  };
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const onDocClick = (ev) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(ev.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showEmojiPicker]);
+
+  const addReactionToMap = (memberKey, type, name) => {
+    setReactionsMap((prev) => {
+      const next = { ...prev };
+      const entry = next[memberKey] ? { ...next[memberKey] } : {};
+      const list = Array.isArray(entry[type]) ? [...entry[type]] : [];
+      if (!list.includes(name)) list.push(name);
+      entry[type] = list;
+      next[memberKey] = entry;
+      return next;
+    });
   };
 
   const handleToggleScreenShare = async () => {
@@ -509,6 +784,9 @@ const MeetingRoom = () => {
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = newStream;
         }
+        if (localVideoRef2.current) {
+          localVideoRef2.current.srcObject = newStream;
+        }
 
         // when user stops share, restore camera
         screenTrack.onended = async () => {
@@ -529,6 +807,9 @@ const MeetingRoom = () => {
             setLocalStream(restored);
             if (localVideoRef.current) {
               localVideoRef.current.srcObject = restored;
+            }
+            if (localVideoRef2.current) {
+              localVideoRef2.current.srcObject = restored;
             }
           } finally {
             setScreenSharing(false);
@@ -565,7 +846,7 @@ const MeetingRoom = () => {
         </button>
       </div>
 
-      <div className="meeting-room-slider-viewport">
+      <div className="meeting-room-slider-viewport" ref={sliderViewportRef}>
         <div
           className={`meeting-room-slider-track ${activeSlide === 1 ? 'single-view' : ''}`}
           style={{ transform: `translateX(-${activeSlide * (100 / 3)}%)` }}
@@ -575,14 +856,32 @@ const MeetingRoom = () => {
               {/* Local tile */}
               <div className="meeting-room-tile">
                 <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
+                  {!videoMuted ? (
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : user?.photo || user?.member_photo ? (
+                    <img
+                      src={user?.photo || user?.member_photo}
+                      alt="Your profile"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => {
+                        console.warn("❌ Failed to load profile photo:", user?.photo || user?.member_photo);
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  ) : null}
                 </div>
+                {/* raised hand indicator for current user (local) */}
+                {handRaised && (
+                  <div className="meeting-room-hand-overlay" title="Raised hand">
+                    <HandWaving size={18} weight="bold" />
+                  </div>
+                )}
                 <span className="meeting-room-tile-badge you">You</span>
               </div>
 
@@ -624,6 +923,20 @@ const MeetingRoom = () => {
                           </span>
                         )}
                       </div>
+                        {/* reactions for this participant */}
+                        {(() => {
+                          const memberKey = p?.member_id || p?.member_email || p?.id || label;
+                          const entry = reactionsMap[memberKey];
+                          if (!entry) return null;
+                          return Object.entries(entry).map(([type, names]) => (
+                            <div key={type} className="meeting-room-reaction" title={type}>
+                              <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
+                              <div className="reaction-names">{names.map((n) => (
+                                <div key={n} className="reaction-name">{n}</div>
+                              ))}</div>
+                            </div>
+                          ));
+                        })()}
                       <span className="meeting-room-tile-badge admin">{label}</span>
                     </div>
                   );
@@ -648,6 +961,19 @@ const MeetingRoom = () => {
                         }}
                       />
                     </div>
+                    {(() => {
+                      const key = socketId;
+                      const entry = reactionsMap[key];
+                      if (!entry) return null;
+                      return Object.entries(entry).map(([type, names]) => (
+                        <div key={type} className="meeting-room-reaction" title={type}>
+                          <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
+                          <div className="reaction-names">{names.map((n) => (
+                            <div key={n} className="reaction-name">{n}</div>
+                          ))}</div>
+                        </div>
+                      ));
+                    })()}
                     <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
                   </div>
                 ))}
@@ -657,9 +983,33 @@ const MeetingRoom = () => {
           <div className="meeting-room-slide">
             <div className="meeting-room-single">
               <div className="meeting-room-tile-large">
-                <div className="meeting-room-tile-avatar large">
-                  <span className="meeting-room-tile-initial">U</span>
+                <div className="meeting-room-tile-avatar large" style={{ overflow: "hidden" }}>
+                  {!videoMuted ? (
+                    <video
+                      ref={localVideoRef2}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : user?.photo || user?.member_photo ? (
+                    <img
+                      src={user?.photo || user?.member_photo}
+                      alt="Your profile"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => {
+                        console.warn("❌ Failed to load profile photo:", user?.photo || user?.member_photo);
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  ) : null}
                 </div>
+                {/* raised hand indicator for single view */}
+                {handRaised && (
+                  <div className="meeting-room-hand-overlay" title="Raised hand">
+                    <HandWaving size={18} weight="bold" />
+                  </div>
+                )}
                 <span className="meeting-room-tile-badge you">You</span>
               </div>
             </div>
@@ -674,6 +1024,19 @@ const MeetingRoom = () => {
             </div>
           </div>
         </div>
+
+        {/* floating emojis rendered over the viewport */}
+        {floatingEmojis.map((f) => (
+          <div
+            key={f.id}
+            className="floating-emoji"
+            style={{ left: f.left, top: f.top }}
+            title={`Emoji by ${f.name}`}
+          >
+            <div className="floating-emoji-char">{f.emoji}</div>
+            <div className="floating-emoji-by">Emoji by {f.name}</div>
+          </div>
+        ))}
       </div>
 
       {/* Slider dots */}
@@ -700,7 +1063,11 @@ const MeetingRoom = () => {
             disabled={!meetingId}
             title={!meetingId ? "Missing meeting id" : audioMuted ? "Unmute" : "Mute"}
           >
-            <Microphone size={22} weight="regular" />
+            {audioMuted ? (
+              <MicrophoneSlash size={22} weight="regular" />
+            ) : (
+              <Microphone size={22} weight="regular" />
+            )}
           </button>
           <button
             type="button"
@@ -734,7 +1101,7 @@ const MeetingRoom = () => {
             type="button"
             className="meeting-room-control-btn"
             aria-label="Reactions"
-            onClick={handleSendLike}
+            onClick={() => setShowEmojiPicker((s) => !s)}
             disabled={!meetingId}
             title={!meetingId ? "Missing meeting id" : "Send like"}
           >
@@ -762,6 +1129,22 @@ const MeetingRoom = () => {
             </button>
           </div>
         )}
+      {/* Emoji picker popup */}
+      {showEmojiPicker && (
+        <div className="meeting-room-emoji-picker" ref={emojiPickerRef}>
+          {emojiList.map((e) => (
+            <button
+              key={e}
+              type="button"
+              className="emoji-btn"
+              onClick={() => selectEmoji(e)}
+              aria-label={`React ${e}`}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
       </div>
     </div>
   );
