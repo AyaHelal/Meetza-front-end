@@ -2,7 +2,7 @@
     width: 300px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 20px;
     overflow-y: auto;
     overflow-x: hidden;
     flex-shrink: 0;
@@ -35,10 +35,9 @@
 /* Video Description Card */
 .video-description-card {
     background: #1976d2;
-    margin-top: 10px;
     color: #ffffff;
     padding: 15px;
-    border-radius: 22px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -93,7 +92,7 @@
 .participate-card {
     background: #ffffff;
     padding: 1rem;
-    border-radius: 22px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -105,7 +104,6 @@
 
 .participate-title {
     font-size: 18px;
-    font-weight: 700;
     margin: 0;
     color: #000000;
 }
@@ -159,16 +157,16 @@
 /* Responsive adjustments for larger screens */
 @media (min-width: 1451px) {
     .meeting-right-sidebar {
-        width: 260px;
+        width: 250px;
         height: calc(100vh - 20px);
         margin: 10px;
     }
-
+    
     .video-description-card {
         padding: 10px;
-        min-height: 291px;
+        min-height: 330px;
     }
-
+    
     .video-description-title,
     .participate-title {
         font-size: 20px;
