@@ -15,6 +15,7 @@ import { smartToast } from "../../../API/toastManager";
 import "../GroupChat.css";
 import { File } from "lucide-react";
 import api from "../../../API/axiosInstance";
+import { useSocket } from "../../../context/SocketContext";
 
 const MainChat = ({
   messages: initialMessages,
@@ -48,12 +49,15 @@ const MainChat = ({
   const navigate = useNavigate();
   const params = useParams();
   const [searchParams] = useSearchParams();
+  const { socket } = useSocket();
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isSuperAdmin = normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
   const isAdministrator = normalizedUserRole === "administrator";
   // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
+  const [hasMeeting, setHasMeeting] = useState(false);
+
   const showJoinMeetingButton =
-    !!groupId && normalizedUserRole === "member";
+    !!groupId && normalizedUserRole === "member" && hasMeeting;
   // Create Meeting: only for Administrator, and only when a group chat is open
   const showCreateMeetingButton =
     !!groupId && isAdministrator && onCreateMeeting;
@@ -152,6 +156,54 @@ const MainChat = ({
 
       console.log("🚀 Attempting to join meeting:", dynamicMeetingId);
 
+      // Check if meeting is still active before joining
+      try {
+        const meetingCheckRes = await api.get(`/meeting/${dynamicMeetingId}`);
+        const meetingData = meetingCheckRes?.data;
+        
+        // Extract meeting from response (handle array or object)
+        let meeting;
+        if (Array.isArray(meetingData?.data)) {
+          meeting = meetingData.data.find(m => m.id === dynamicMeetingId);
+        } else if (meetingData?.data?.id) {
+          meeting = meetingData.data;
+        } else if (meetingData?.id) {
+          meeting = meetingData;
+        }
+
+        if (!meeting) {
+          smartToast.error("Meeting not found. It may have been deleted.");
+          return;
+        }
+
+        // Check meeting status
+        const status = meeting?.status || "";
+        const normalizedStatus = status.toString().trim().toLowerCase();
+        
+        if (["finished", "ended", "closed"].includes(normalizedStatus)) {
+          smartToast.error("This meeting has already ended.");
+          return;
+        }
+
+        // Check if end_time has passed
+        const endTime = meeting?.end_time;
+        if (endTime) {
+          const endDateTime = new Date(endTime);
+          const now = new Date();
+          
+          if (now >= endDateTime) {
+            smartToast.error("This meeting has already ended.");
+            return;
+          }
+        }
+
+        console.log("✅ Meeting is active, proceeding with join...");
+      } catch (checkError) {
+        console.warn("⚠️ Could not verify meeting status:", checkError);
+        smartToast.error("Could not verify meeting status. Please try again.");
+        return;
+      }
+
       // Join the meeting
       await api.post(`/meeting/${dynamicMeetingId}/join`);
 
@@ -166,6 +218,76 @@ const MainChat = ({
       );
     }
   };
+
+  // Determine whether the group has an active or scheduled meeting
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkMeetingExists = async () => {
+      try {
+        // If meetingId is already provided via props or groupInfo, consider it present
+        if (
+          meetingId ||
+          groupInfo?.meeting?.id ||
+          groupInfo?.meeting_id ||
+          groupInfo?.meetingId ||
+          groupInfo?.group?.meeting?.id ||
+          groupInfo?.group?.meeting_id ||
+          groupInfo?.group?.meetingId
+        ) {
+          if (!cancelled) setHasMeeting(true);
+          return;
+        }
+
+        if (!groupId) {
+          if (!cancelled) setHasMeeting(false);
+          return;
+        }
+
+        const res = await api.get(`/meeting/group/${groupId}`);
+        const root = res?.data;
+        const nested = root?.data && (root?.success === undefined) ? root?.data : null;
+        const effective = nested || root;
+        const payload = effective?.data ?? effective;
+        const meetings = Array.isArray(payload) ? payload : payload ? [payload] : [];
+
+        if (!meetings || meetings.length === 0) {
+          if (!cancelled) setHasMeeting(false);
+          return;
+        }
+
+        const normalizeStatus = (s) => (s || "").toString().trim().toLowerCase();
+        const active = meetings.find((m) => ["scheduled", "active"].includes(normalizeStatus(m?.status)));
+
+        if (!cancelled) setHasMeeting(!!active);
+      } catch (err) {
+        console.warn('Could not determine group meetings', err);
+        if (!cancelled) setHasMeeting(false);
+      }
+    };
+
+    checkMeetingExists();
+    return () => { cancelled = true; };
+  }, [groupId, groupInfo, meetingId]);
+
+  // Listen for meeting end event from socket
+  useEffect(() => {
+    if (!socket || !groupId) return;
+
+    const onMeetingEnded = (data) => {
+      // Only apply to this group
+      if (data?.groupId === groupId || !data?.groupId) {
+        console.log("📢 Received meetingEnded event, hiding Join button...");
+        setHasMeeting(false);
+      }
+    };
+
+    socket.on("meetingEnded", onMeetingEnded);
+
+    return () => {
+      socket.off("meetingEnded", onMeetingEnded);
+    };
+  }, [socket, groupId]);
 
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
