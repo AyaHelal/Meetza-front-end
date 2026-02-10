@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Microphone,
   VideoCamera,
   HandWaving,
-  ImageSquare  ,
+  ImageSquare,
   Smiley,
-  ChatCircleDots ,
+  ChatCircleDots,
   SignOut,
-  ArrowUp ,
+  ArrowUp,
 } from "@phosphor-icons/react";
 import "./MeetingRoom.css";
+import api from "../../../API/axiosInstance";
+import { smartToast } from "../../../API/toastManager";
 
 // Placeholder participants for design (first = You, second = Admin, rest = members)
 const PLACEHOLDER_MEMBERS = [
@@ -26,6 +29,37 @@ const PLACEHOLDER_MEMBERS = [
 const MeetingRoom = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [showCommentInput, setShowCommentInput] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const meetingId = useMemo(() => {
+    // Prefer navigation state (set when joining), then query string (?meetingId=...)
+    return (
+      location?.state?.meetingId ||
+      searchParams.get("meetingId") ||
+      null
+    );
+  }, [location?.state?.meetingId, searchParams]);
+
+  const handleLeaveMeeting = async () => {
+    try {
+      if (!meetingId) {
+        smartToast.error("Missing meeting id. Can't leave meeting.");
+        return;
+      }
+
+      await api.post(`/meeting/${meetingId}/leave`);
+      smartToast.success("Left the meeting.");
+      // Return user to chats after leaving
+      navigate("/home");
+    } catch (error) {
+      console.error("❌ Error leaving meeting:", error);
+      smartToast.error(
+        error.response?.data?.message || error.message || "Failed to leave meeting. Please try again."
+      );
+    }
+  };
 
   return (
     <div className="meeting-room">
@@ -35,7 +69,14 @@ const MeetingRoom = () => {
           <h1 className="meeting-room-title">Meeting room</h1>
           <p className="meeting-room-subtitle">Group Meeting name</p>
         </div>
-        <button type="button" className="meeting-room-expand-btn" aria-label="Expand">
+        <button
+          type="button"
+          className="meeting-room-expand-btn"
+          aria-label="Leave meeting"
+          onClick={handleLeaveMeeting}
+          disabled={!meetingId}
+          title={!meetingId ? "Missing meeting id" : "Leave meeting"}
+        >
           <SignOut size={20} weight="bold" />
         </button>
       </div>
@@ -112,13 +153,13 @@ const MeetingRoom = () => {
             <VideoCamera size={22} weight="regular" />
           </button>
           <button type="button" className="meeting-room-control-btn" aria-label="Share screen">
-            <ImageSquare   size={22} weight="regular" />
+            <ImageSquare size={22} weight="regular" />
           </button>
           <button type="button" className="meeting-room-control-btn" aria-label="Reactions">
             <Smiley size={22} weight="regular" />
           </button>
           <button type="button" className="meeting-room-control-btn" aria-label="Chat" onClick={() => setShowCommentInput(true)}>
-            <ChatCircleDots  size={22} weight="regular" />
+            <ChatCircleDots size={22} weight="regular" />
           </button>
         </div>
         {showCommentInput && (
@@ -135,7 +176,7 @@ const MeetingRoom = () => {
               className="meeting-room-comment-send-btn"
               aria-label="Send comment"
             >
-              <ArrowUp  size={18} weight="regular" />
+              <ArrowUp size={18} weight="regular" />
             </button>
           </div>
         )}
