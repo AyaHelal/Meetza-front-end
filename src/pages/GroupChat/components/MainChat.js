@@ -56,6 +56,34 @@ const MainChat = ({
   // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
   const [hasMeeting, setHasMeeting] = useState(false);
 
+  // A meeting is considered "currently active" only if:
+  // - status is *not* Completed/Cancelled, and
+  // - the current time is between start_time and end_time.
+  const isMeetingCurrentlyActive = (meeting) => {
+    if (!meeting) return false;
+
+    const normalizeStatus = (s) => (s || "").toString().trim().toLowerCase();
+    const status = normalizeStatus(meeting.status);
+
+    // Explicitly treat Completed / Cancelled as inactive
+    if (["completed", "cancelled"].includes(status)) {
+      return false;
+    }
+
+    const startRaw = meeting.start_time;
+    const endRaw = meeting.end_time;
+    if (!startRaw || !endRaw) return false;
+
+    const start = new Date(startRaw);
+    const end = new Date(endRaw);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return false;
+    }
+
+    const now = new Date();
+    return now >= start && now < end;
+  };
+
   const showJoinMeetingButton =
     !!groupId && normalizedUserRole === "member" && hasMeeting;
   // Create Meeting: only for Administrator, and only when a group chat is open
@@ -118,11 +146,9 @@ const MainChat = ({
             effective?.success === undefined ? meetings.length > 0 : !!effective?.success;
 
           if (isSuccess && meetings.length > 0) {
-            const normalizeStatus = (s) => (s || "").toString().trim().toLowerCase();
-            // Find scheduled/active meeting, else take most recent (first)
+            // Prefer a meeting that is *currently active* (based on time + status)
             const activeMeeting =
-              meetings.find((m) => ["scheduled", "active"].includes(normalizeStatus(m?.status))) ||
-              meetings[0];
+              meetings.find((m) => isMeetingCurrentlyActive(m)) || meetings[0];
 
             dynamicMeetingId =
               activeMeeting?.id ||
@@ -176,25 +202,10 @@ const MainChat = ({
           return;
         }
 
-        // Check meeting status
-        const status = meeting?.status || "";
-        const normalizedStatus = status.toString().trim().toLowerCase();
-        
-        if (["finished", "ended", "closed"].includes(normalizedStatus)) {
-          smartToast.error("This meeting has already ended.");
+        // Only allow join if meeting is currently active (based on time + status)
+        if (!isMeetingCurrentlyActive(meeting)) {
+          smartToast.error("This meeting is not currently active.");
           return;
-        }
-
-        // Check if end_time has passed
-        const endTime = meeting?.end_time;
-        if (endTime) {
-          const endDateTime = new Date(endTime);
-          const now = new Date();
-          
-          if (now >= endDateTime) {
-            smartToast.error("This meeting has already ended.");
-            return;
-          }
         }
 
         console.log("✅ Meeting is active, proceeding with join...");
@@ -219,22 +230,23 @@ const MainChat = ({
     }
   };
 
-  // Determine whether the group has an active or scheduled meeting
+  // Determine whether the group has a currently active meeting
   useEffect(() => {
     let cancelled = false;
+    let intervalId = null;
 
     const checkMeetingExists = async () => {
       try {
-        // If meetingId is already provided via props or groupInfo, consider it present
-        if (
-          meetingId ||
-          groupInfo?.meeting?.id ||
-          groupInfo?.meeting_id ||
-          groupInfo?.meetingId ||
-          groupInfo?.group?.meeting?.id ||
-          groupInfo?.group?.meeting_id ||
-          groupInfo?.group?.meetingId
-        ) {
+        // If we already know about a meeting from props / groupInfo,
+        // only treat it as "joinable" when it is currently active.
+        const candidateMeeting =
+          groupInfo?.meeting ||
+          groupInfo?.group?.meeting ||
+          null;
+
+        // If we already have meeting info attached to the group,
+        // prefer it, but still ensure it is currently active.
+        if (candidateMeeting && isMeetingCurrentlyActive(candidateMeeting)) {
           if (!cancelled) setHasMeeting(true);
           return;
         }
@@ -256,8 +268,8 @@ const MainChat = ({
           return;
         }
 
-        const normalizeStatus = (s) => (s || "").toString().trim().toLowerCase();
-        const active = meetings.find((m) => ["scheduled", "active"].includes(normalizeStatus(m?.status)));
+        // Only consider meetings that are currently active (time window + status)
+        const active = meetings.find((m) => isMeetingCurrentlyActive(m));
 
         if (!cancelled) setHasMeeting(!!active);
       } catch (err) {
@@ -266,8 +278,21 @@ const MainChat = ({
       }
     };
 
+    // Initial check
     checkMeetingExists();
-    return () => { cancelled = true; };
+
+    // Poll periodically so that when an admin creates / updates a meeting,
+    // the "Join Meeting" button appears/disappears without requiring a refresh.
+    if (groupId) {
+      intervalId = setInterval(checkMeetingExists, 10000); // every 10s
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [groupId, groupInfo, meetingId]);
 
   // Listen for meeting end event from socket
@@ -1465,9 +1490,11 @@ const MainChat = ({
           {showJoinMeetingButton && (
             <button className="join-meeting-btn" onClick={handleJoinMeeting}>Join Meeting</button>
           )}
-          <div className="search-icon-header">
-            <MagnifyingGlass size={20} />
-          </div>
+          {!!groupId && (
+            <div className="search-icon-header">
+              <MagnifyingGlass size={20} />
+            </div>
+          )}
         </div>
       </div>
       <div className="chat-messages" ref={messagesContainerRef}>

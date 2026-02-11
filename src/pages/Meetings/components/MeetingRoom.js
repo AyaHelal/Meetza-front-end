@@ -163,6 +163,14 @@ const MeetingRoom = () => {
         return;
       }
 
+      // Persist active meeting so that other parts of the app (e.g. logout handler)
+      // can perform a proper leave if the user logs out while in a meeting.
+      try {
+        sessionStorage.setItem("activeMeetingId", String(mid));
+      } catch (e) {
+        console.warn("Could not persist activeMeetingId to sessionStorage:", e);
+      }
+
       const participants = Array.isArray(ack?.participants) ? ack.participants : [];
       for (const p of participants) {
         const peerSocketId = p?.socketId || p?.id || p;
@@ -441,6 +449,10 @@ const MeetingRoom = () => {
 
   const selfMemberId = useMemo(() => user?.id || user?.member_id || null, [user?.id, user?.member_id]);
   const selfEmail = useMemo(() => user?.email || null, [user?.email]);
+  const selfPhoto = useMemo(
+    () => user?.user_photo || user?.photo || user?.member_photo || null,
+    [user?.user_photo, user?.photo, user?.member_photo]
+  );
   const [reactionsMap, setReactionsMap] = useState({}); // { memberKey: { like: [names], ... } }
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef(null);
@@ -497,6 +509,11 @@ const MeetingRoom = () => {
       stopMeetingRtc();
 
       await api.post(`/meeting/${meetingId}/leave`);
+      try {
+        sessionStorage.removeItem("activeMeetingId");
+      } catch (e) {
+        // ignore storage errors
+      }
       smartToast.success("Left the meeting.");
       // Return user to chats after leaving
       navigate("/home");
@@ -524,6 +541,11 @@ const MeetingRoom = () => {
       // Try to call leave API (best effort)
       try {
         await api.post(`/meeting/${meetingId}/leave`);
+        try {
+          sessionStorage.removeItem("activeMeetingId");
+        } catch (e) {
+          // ignore storage errors
+        }
       } catch (e) {
         console.warn("⚠️ Could not call leave API:", e);
       }
@@ -864,17 +886,25 @@ const MeetingRoom = () => {
                       muted
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
-                  ) : user?.photo || user?.member_photo ? (
+                  ) : selfPhoto ? (
                     <img
-                      src={user?.photo || user?.member_photo}
+                      src={selfPhoto}
                       alt="Your profile"
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       onError={(e) => {
-                        console.warn("❌ Failed to load profile photo:", user?.photo || user?.member_photo);
+                        console.warn("❌ Failed to load profile photo:", selfPhoto);
                         e.target.style.display = "none";
                       }}
                     />
-                  ) : null}
+                  ) : (
+                    <span className="meeting-room-tile-initial">
+                      {(user?.name || user?.member_name || user?.email || "You")
+                        .toString()
+                        .trim()
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 {/* raised hand indicator for current user (local) */}
                 {handRaised && (
@@ -992,17 +1022,25 @@ const MeetingRoom = () => {
                       muted
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
-                  ) : user?.photo || user?.member_photo ? (
+                  ) : selfPhoto ? (
                     <img
-                      src={user?.photo || user?.member_photo}
+                      src={selfPhoto}
                       alt="Your profile"
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       onError={(e) => {
-                        console.warn("❌ Failed to load profile photo:", user?.photo || user?.member_photo);
+                        console.warn("❌ Failed to load profile photo:", selfPhoto);
                         e.target.style.display = "none";
                       }}
                     />
-                  ) : null}
+                  ) : (
+                    <span className="meeting-room-tile-initial">
+                      {(user?.name || user?.member_name || user?.email || "You")
+                        .toString()
+                        .trim()
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 {/* raised hand indicator for single view */}
                 {handRaised && (
