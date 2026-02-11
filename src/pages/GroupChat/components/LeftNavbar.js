@@ -14,6 +14,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import { useSocket } from "../../../context/SocketContext";
 import { UsersThree } from "@phosphor-icons/react";
 import NotificationPanel from "./NotificationPanel";
+import api from "../../../API/axiosInstance";
 
 const LeftNavbar = ({
   activeNav,
@@ -118,8 +119,21 @@ const LeftNavbar = ({
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
+      // If user is currently in a meeting, make sure to call the same
+      // leave API used by the in-meeting "Leave" button so they are
+      // removed from participants when logging out.
+      try {
+        const activeMeetingId = sessionStorage.getItem("activeMeetingId");
+        if (activeMeetingId) {
+          await api.post(`/meeting/${activeMeetingId}/leave`);
+          sessionStorage.removeItem("activeMeetingId");
+        }
+      } catch (leaveErr) {
+        console.warn("Logout: failed to call leave meeting API", leaveErr);
+      }
+
       logoutUser();
     } catch (err) {
       console.warn("Logout error", err);

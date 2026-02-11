@@ -476,11 +476,46 @@ body.group-chat-active {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
+  position: relative;
+  box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+  /* subtle breathing animation when a meeting is available */
+  animation: joinMeetingPulse 1.6s ease-in-out infinite,
+             joinMeetingBounce 1.6s ease-in-out infinite;
 }
 
 .join-meeting-btn:hover {
   background: #0076ea;
+}
+
+/* Glowing / pulsing shadow to draw attention when a meeting is available */
+@keyframes joinMeetingPulse {
+  0% {
+    box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    box-shadow: 0 0 18px rgba(0, 118, 234, 0.55);
+    transform: translateY(-1px) scale(1.02);
+  }
+  70% {
+    box-shadow: 0 0 10px rgba(0, 118, 234, 0.25);
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Gentle up‑down motion to feel like the button is "calling" you */
+@keyframes joinMeetingBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .search-icon-header {
@@ -2696,6 +2731,9 @@ body.group-chat-active {
   .join-meeting-btn {
     padding: 6px 12px;
     font-size: 12px;
+    /* keep the pulse/bounce but a bit softer on mobile */
+    animation: joinMeetingPulse 1.8s ease-in-out infinite,
+               joinMeetingBounce 1.8s ease-in-out infinite;
   }
 
   .search-icon-header {
