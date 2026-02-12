@@ -11,7 +11,7 @@ const Meetings = () => {
             <MeetingRoom />
             {/* Empty place for comments */}
             <div className="meetings-comments-placeholder">
-            <h4 className="meetings-comments-title">Comments during meeting</h4>
+            <h4 className="meetings-comments-title">Meeting Chat</h4>
             </div>
         </div>
 

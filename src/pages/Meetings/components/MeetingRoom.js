@@ -5,7 +5,7 @@ import {
   MicrophoneSlash,
   VideoCamera,
   HandWaving,
-  ImageSquare,
+  MonitorArrowUp,
   Smiley,
   ChatCircleDots,
   SignOut,
@@ -43,6 +43,7 @@ const MeetingRoom = () => {
   const localVideoRef = useRef(null);
   const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
   const sliderViewportRef = useRef(null);
+  const screenTrackRef = useRef(null);
 
   const meetingId = useMemo(() => {
     // Prefer navigation state (set when joining), then query string (?meetingId=...)
@@ -585,9 +586,9 @@ const MeetingRoom = () => {
       try {
         const res = await api.get(`/meeting/${meetingId}`);
         const root = res?.data;
-        
+
         // Handle response format from API
-        // Response could be: { success: true, data: {...} } or { success: true, data: [{...}] } 
+        // Response could be: { success: true, data: {...} } or { success: true, data: [{...}] }
         let meeting;
         if (root?.data) {
           // If data is an array, find the meeting with matching ID
@@ -608,12 +609,12 @@ const MeetingRoom = () => {
           return;
         }
 
-        console.log("📋 Meeting data:", {
-          id: meeting.id,
-          status: meeting.status,
-          end_time: meeting.end_time,
-          start_time: meeting.start_time
-        });
+        // console.log("📋 Meeting data:", {
+        //   id: meeting.id,
+        //   status: meeting.status,
+        //   end_time: meeting.end_time,
+        //   start_time: meeting.start_time
+        // });
 
         const status = meeting?.status || "";
         const normalizedStatus = (status || "").toString().trim().toLowerCase();
@@ -631,8 +632,7 @@ const MeetingRoom = () => {
           const endDateTime = new Date(endTime);
           const now = new Date();
           const timeUntilEnd = endDateTime - now;
-          console.log("⏰ Meeting end_time:", endDateTime.toISOString(), "Current time:", now.toISOString(), "Seconds remaining:", Math.round(timeUntilEnd / 1000));
-          
+
           if (now >= endDateTime) {
             console.log("⏰ Meeting end time reached, ending...");
             handleMeetingEnded();
@@ -777,6 +777,7 @@ const MeetingRoom = () => {
       return next;
     });
   };
+  
 
   const handleToggleScreenShare = async () => {
     const stream = localStreamRef.current;
@@ -788,6 +789,7 @@ const MeetingRoom = () => {
         const screenTrack = displayStream.getVideoTracks()?.[0];
         if (!screenTrack) return;
 
+        screenTrackRef.current = screenTrack;
         setScreenSharing(true);
 
         // replace outgoing video track in all peer connections
@@ -835,6 +837,7 @@ const MeetingRoom = () => {
             }
           } finally {
             setScreenSharing(false);
+            screenTrackRef.current = null;
           }
         };
       } catch (e) {
@@ -842,9 +845,34 @@ const MeetingRoom = () => {
         smartToast.error("Screen share failed.");
       }
     } else {
-      // If already sharing, stopping is handled by track.onended
-      // (User can stop via browser UI)
-      smartToast.info("Stop screen share from your browser control.");
+      // Stop screen sharing manually
+      const screenTrack = screenTrackRef.current;
+      if (screenTrack) {
+        screenTrack.stop();
+        screenTrackRef.current = null;
+      }
+      // Restore camera track
+      const cameraTrack = cameraVideoTrackRef.current;
+      if (cameraTrack) {
+        for (const pc of peersRef.current.values()) {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(cameraTrack).catch(() => {});
+        }
+        const restored = new MediaStream([
+          ...stream.getAudioTracks(),
+          cameraTrack,
+        ]);
+        localStreamRef.current = restored;
+        setLocalStream(restored);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = restored;
+        }
+        if (localVideoRef2.current) {
+          localVideoRef2.current.srcObject = restored;
+        }
+      }
+      setScreenSharing(false);
+      smartToast.success("Screen share stopped.");
     }
   };
 
@@ -1133,7 +1161,7 @@ const MeetingRoom = () => {
             onClick={handleToggleScreenShare}
             disabled={!meetingId}
           >
-            <ImageSquare size={22} weight="regular" />
+            <MonitorArrowUp size={22} weight="regular" />
           </button>
           <button
             type="button"

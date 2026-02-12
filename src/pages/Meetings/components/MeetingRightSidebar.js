@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { Paperclip, UserCircle } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
@@ -60,6 +60,54 @@ const MeetingRightSidebar = () => {
 
     const [participants, setParticipants] = useState([]);
     const [loadingParticipants, setLoadingParticipants] = useState(false);
+    const [meetingDescription, setMeetingDescription] = useState('');
+    const [resources, setResources] = useState([]);
+    const [loadingResources, setLoadingResources] = useState(false);
+
+    const meetingIdRef = useRef(meetingId);
+    useEffect(() => {
+        meetingIdRef.current = meetingId;
+    }, [meetingId]);
+
+    const fetchMeetingDetails = useCallback(async (mid) => {
+        if (!mid) return;
+        try {
+            const res = await api.get(`/meeting/${mid}`);
+            const root = res?.data;
+            let meeting;
+            if (root?.data) {
+                meeting = Array.isArray(root.data)
+                    ? root.data.find((m) => String(m.id) === String(mid))
+                    : root.data;
+            } else if (root?.id) {
+                meeting = root;
+            }
+            setMeetingDescription(meeting?.description || '');
+        } catch (err) {
+            console.warn("Could not fetch meeting details:", err);
+            setMeetingDescription('');
+        }
+    }, []);
+
+    const fetchResources = useCallback(async (mid) => {
+        if (!mid) return;
+        setLoadingResources(true);
+        try {
+            const res = await api.get(`/group-contents/meeting/${mid}`);
+            const root = res?.data;
+            const payload = Array.isArray(root)
+                ? root
+                : Array.isArray(root?.data)
+                    ? root.data
+                    : [];
+            setResources(payload);
+        } catch (err) {
+            console.error("❌ Error fetching meeting resources:", err);
+            setResources([]);
+        } finally {
+            setLoadingResources(false);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchParticipants = async () => {
@@ -99,29 +147,86 @@ const MeetingRightSidebar = () => {
         fetchParticipants();
     }, [meetingId]);
 
+    // Fetch meeting details to get description
+    useEffect(() => {
+        fetchMeetingDetails(meetingId);
+    }, [fetchMeetingDetails, meetingId]);
+
+    // Fetch resources attached to this meeting
+    useEffect(() => {
+        fetchResources(meetingId);
+    }, [fetchResources, meetingId]);
+
+    useEffect(() => {
+        if (!meetingId) return;
+
+        const refresh = () => {
+            const mid = meetingIdRef.current;
+            if (!mid) return;
+            fetchMeetingDetails(mid);
+            fetchResources(mid);
+        };
+
+        const intervalMs = 5000;
+        const intervalId = setInterval(refresh, intervalMs);
+
+        const onFocus = () => refresh();
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') refresh();
+        };
+
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+    }, [fetchMeetingDetails, fetchResources, meetingId]);
+
     return (
         <div className="meeting-right-sidebar px-2">
-            {/* Video Description Card */}
+            {/* Meeting Description + Resources */}
             <div className="video-description-card p-4">
                 <div>
                     <h3 className="video-description-title fw-semibold">Video Description</h3>
-                    <p className="video-description-subtitle">All about attract not chasing</p>
+                    <p className="video-description-subtitle">
+                        {meetingDescription
+                            ? meetingDescription
+                            : "No description provided for this meeting."}
+                    </p>
                 </div>
 
                 <div className="video-description-items">
-                    <div className="description-item">
-                        <Paperclip size={20} weight="regular" className="item-icon" />
-                        <span>Lecture 101</span>
-                    </div>
-                    <div className="description-item">
-                        <Paperclip size={20} weight="regular" className="item-icon" />
-                        <span>Lecture 101</span>
-                    </div>
+                    {loadingResources ? (
+                        <div className="description-item">
+                            <span>Loading resources...</span>
+                        </div>
+                    ) : resources.length === 0 ? (
+                        <div className="description-item">
+                            <span>No resources attached to this meeting.</span>
+                        </div>
+                    ) : (
+                        resources.map((resItem) => (
+                            <div
+                                key={resItem.id}
+                                className="description-item"
+                                title={resItem.file_name || resItem.name}
+                            >
+                                <Paperclip size={20} weight="regular" className="item-icon" />
+                                <a
+                                    href={resItem.file_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                >
+                                    {resItem.file_name || 'Resource file'}
+                                </a>
+                            </div>
+                        ))
+                    )}
                 </div>
-
-                <p className="video-description-text">
-                    Stories we talk about from poem the rider about
-                </p>
             </div>
 
             {/* Participate Card */}
