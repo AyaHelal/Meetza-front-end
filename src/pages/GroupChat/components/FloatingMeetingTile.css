@@ -1,0 +1,78 @@
+.floating-meeting-tile {
+  position: fixed;
+  bottom: 19px;
+    right: 265px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0, 118, 234, 0.95);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 118, 234, 0.4);
+  cursor: pointer;
+  z-index: 9999;
+  transition: transform 0.2s, box-shadow 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.floating-meeting-tile:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 24px rgba(0, 118, 234, 0.5);
+}
+
+.floating-meeting-tile:active {
+  transform: scale(0.98);
+}
+
+.floating-meeting-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.floating-meeting-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.floating-meeting-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.floating-meeting-sub {
+  font-size: 11px;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .floating-meeting-tile {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 14px;
+  }
+
+  .floating-meeting-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .floating-meeting-title {
+    font-size: 13px;
+  }
+
+  .floating-meeting-sub {
+    font-size: 10px;
+  }
+}

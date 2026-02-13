@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Use environment variable or default to ngrok URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || " https://hulda-unglutted-curably.ngrok-free.dev/api";
+const API_BASE_URL = (process.env.REACT_APP_API_URL || "https://hulda-unglutted-curably.ngrok-free.dev/api").trim();
+export { API_BASE_URL };
 
 const api = axios.create({
   baseURL: API_BASE_URL,

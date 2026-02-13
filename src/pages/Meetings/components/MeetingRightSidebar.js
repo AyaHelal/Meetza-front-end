@@ -157,6 +157,7 @@ const MeetingRightSidebar = () => {
         fetchResources(meetingId);
     }, [fetchResources, meetingId]);
 
+    // Refresh meeting details and participants periodically; resources are loaded once only
     useEffect(() => {
         if (!meetingId) return;
 
@@ -164,7 +165,6 @@ const MeetingRightSidebar = () => {
             const mid = meetingIdRef.current;
             if (!mid) return;
             fetchMeetingDetails(mid);
-            fetchResources(mid);
         };
 
         const intervalMs = 5000;
@@ -183,7 +183,7 @@ const MeetingRightSidebar = () => {
             window.removeEventListener('focus', onFocus);
             document.removeEventListener('visibilitychange', onVisibility);
         };
-    }, [fetchMeetingDetails, fetchResources, meetingId]);
+    }, [fetchMeetingDetails, meetingId]);
 
     return (
         <div className="meeting-right-sidebar px-2">

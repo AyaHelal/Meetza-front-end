@@ -22,8 +22,8 @@ const MeetingRoom = () => {
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream }]
-  const [audioMuted, setAudioMuted] = useState(false);
-  const [videoMuted, setVideoMuted] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(true);
+  const [videoMuted, setVideoMuted] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [participants, setParticipants] = useState([]); // from REST: [{member_id, member_name, member_photo, ...}]
@@ -123,21 +123,31 @@ const MeetingRoom = () => {
   const ensureLocalMedia = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
     console.log("🎥 Getting user media...");
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    localStreamRef.current = stream;
-    setLocalStream(stream);
-
-    // store camera track (used to restore after screen share)
-    cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
-
-    console.log("✅ Media stream obtained:", {
-      videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length,
-    });
-    return stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
+      console.log("✅ Media stream obtained:", {
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+      });
+      return stream;
+    } catch (videoErr) {
+      console.warn("Camera denied, trying audio only...", videoErr);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      });
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      cameraVideoTrackRef.current = null;
+      console.log("✅ Audio-only stream obtained (camera not required)");
+      return stream;
+    }
   }, []);
 
   const startAndJoinMeetingRtc = useCallback(async () => {
@@ -164,10 +174,12 @@ const MeetingRoom = () => {
         return;
       }
 
-      // Persist active meeting so that other parts of the app (e.g. logout handler)
+      // Persist active meeting so that other parts of the app (e.g. logout handler, floating tile)
       // can perform a proper leave if the user logs out while in a meeting.
       try {
         sessionStorage.setItem("activeMeetingId", String(mid));
+        const groupId = location?.state?.groupId;
+        if (groupId) sessionStorage.setItem("activeMeetingGroupId", String(groupId));
       } catch (e) {
         console.warn("Could not persist activeMeetingId to sessionStorage:", e);
       }
@@ -251,22 +263,20 @@ const MeetingRoom = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, socket, isConnected]);
 
-  // Attach stream to both video elements when it changes
+  // Attach stream to both video elements when it changes (incl. when screen share starts)
   useEffect(() => {
     const stream = localStreamRef.current;
     const videoEl1 = localVideoRef.current;
     const videoEl2 = localVideoRef2.current;
 
     if (stream && videoEl1 && videoEl1.srcObject !== stream) {
-      console.log("📹 Attaching stream to grid view video element");
       videoEl1.srcObject = stream;
     }
 
     if (stream && videoEl2 && videoEl2.srcObject !== stream) {
-      console.log("📹 Attaching stream to single view video element");
       videoEl2.srcObject = stream;
     }
-  }, [videoMuted, audioMuted]);
+  }, [videoMuted, audioMuted, screenSharing]);
 
   // Handle video/audio track enabled state
   useEffect(() => {
@@ -512,6 +522,7 @@ const MeetingRoom = () => {
       await api.post(`/meeting/${meetingId}/leave`);
       try {
         sessionStorage.removeItem("activeMeetingId");
+        sessionStorage.removeItem("activeMeetingGroupId");
       } catch (e) {
         // ignore storage errors
       }
@@ -544,6 +555,7 @@ const MeetingRoom = () => {
         await api.post(`/meeting/${meetingId}/leave`);
         try {
           sessionStorage.removeItem("activeMeetingId");
+          sessionStorage.removeItem("activeMeetingGroupId");
         } catch (e) {
           // ignore storage errors
         }
@@ -689,6 +701,35 @@ const MeetingRoom = () => {
     }
   };
 
+  const toggleFullscreenForElement = (el) => {
+    if (!el) return;
+    const doc = document;
+    const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+    if (isFullscreen) {
+      const exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+      if (exit) exit.call(doc);
+    } else {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) req.call(el);
+    }
+  };
+
+  const isScreenShareStream = (stream) => {
+    if (!stream) return false;
+    return stream.getVideoTracks().some((t) => {
+      try {
+        const s = t.getSettings?.();
+        if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") {
+          return true;
+        }
+        const label = (t.label || "").toLowerCase();
+        return label.includes("screen") || label.includes("display");
+      } catch {
+        return false;
+      }
+    });
+  };
+
   const handleSendLike = () => {
     const mid = meetingIdRef.current;
     if (socket && mid) {
@@ -780,8 +821,15 @@ const MeetingRoom = () => {
   
 
   const handleToggleScreenShare = async () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
+    let stream = localStreamRef.current;
+    if (!stream) {
+      try {
+        stream = await ensureLocalMedia();
+      } catch {
+        smartToast.error("Could not start screen share. Please join the meeting first.");
+        return;
+      }
+    }
 
     if (!screenSharing) {
       try {
@@ -792,49 +840,45 @@ const MeetingRoom = () => {
         screenTrackRef.current = screenTrack;
         setScreenSharing(true);
 
-        // replace outgoing video track in all peer connections
-        for (const pc of peersRef.current.values()) {
+        const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
+        const mid = meetingIdRef.current;
+
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
           const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-          if (sender) await sender.replaceTrack(screenTrack);
+          if (sender) {
+            await sender.replaceTrack(screenTrack);
+          } else {
+            pc.addTrack(screenTrack, streamForScreen);
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+            } catch (err) {
+              console.error("❌ Renegotiation for screen share failed:", err);
+            }
+          }
         }
 
-        // show locally
-        const newStream = new MediaStream([
-          ...stream.getAudioTracks(),
-          screenTrack,
-        ]);
+        const newStream = new MediaStream([...stream.getAudioTracks(), screenTrack]);
         localStreamRef.current = newStream;
         setLocalStream(newStream);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = newStream;
-        }
-        if (localVideoRef2.current) {
-          localVideoRef2.current.srcObject = newStream;
-        }
+        if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
+        if (localVideoRef2.current) localVideoRef2.current.srcObject = newStream;
 
-        // when user stops share, restore camera
         screenTrack.onended = async () => {
           try {
             const cameraTrack = cameraVideoTrackRef.current;
-            if (!cameraTrack) return;
-
             for (const pc of peersRef.current.values()) {
               const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-              if (sender) await sender.replaceTrack(cameraTrack);
+              if (sender) await sender.replaceTrack(cameraTrack || null);
             }
-
-            const restored = new MediaStream([
-              ...stream.getAudioTracks(),
-              cameraTrack,
-            ]);
+            const restored = cameraTrack
+              ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
+              : new MediaStream(stream.getAudioTracks());
             localStreamRef.current = restored;
             setLocalStream(restored);
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = restored;
-            }
-            if (localVideoRef2.current) {
-              localVideoRef2.current.srcObject = restored;
-            }
+            if (localVideoRef.current) localVideoRef.current.srcObject = restored;
+            if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
           } finally {
             setScreenSharing(false);
             screenTrackRef.current = null;
@@ -845,32 +889,23 @@ const MeetingRoom = () => {
         smartToast.error("Screen share failed.");
       }
     } else {
-      // Stop screen sharing manually
       const screenTrack = screenTrackRef.current;
       if (screenTrack) {
         screenTrack.stop();
         screenTrackRef.current = null;
       }
-      // Restore camera track
       const cameraTrack = cameraVideoTrackRef.current;
-      if (cameraTrack) {
-        for (const pc of peersRef.current.values()) {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(cameraTrack).catch(() => {});
-        }
-        const restored = new MediaStream([
-          ...stream.getAudioTracks(),
-          cameraTrack,
-        ]);
-        localStreamRef.current = restored;
-        setLocalStream(restored);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = restored;
-        }
-        if (localVideoRef2.current) {
-          localVideoRef2.current.srcObject = restored;
-        }
+      for (const pc of peersRef.current.values()) {
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender) sender.replaceTrack(cameraTrack || null).catch(() => {});
       }
+      const restored = cameraTrack
+        ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
+        : new MediaStream(stream.getAudioTracks());
+      localStreamRef.current = restored;
+      setLocalStream(restored);
+      if (localVideoRef.current) localVideoRef.current.srcObject = restored;
+      if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
       setScreenSharing(false);
       smartToast.success("Screen share stopped.");
     }
@@ -903,10 +938,10 @@ const MeetingRoom = () => {
         >
           <div className="meeting-room-slide">
             <div className="meeting-room-grid">
-              {/* Local tile */}
+              {/* Local tile (no fullscreen on own screen share - it's your screen) */}
               <div className="meeting-room-tile">
                 <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                  {!videoMuted ? (
+                  {(!videoMuted || screenSharing) ? (
                     <video
                       ref={localVideoRef}
                       autoPlay
@@ -954,8 +989,27 @@ const MeetingRoom = () => {
                 displayParticipants.map((p) => {
                   const label = p?.member_name || "Member";
                   const stream = getParticipantStream(p);
+                  const isRemoteScreenShare = isScreenShareStream(stream);
                   return (
-                    <div key={p?.id || p?.member_id || label} className="meeting-room-tile">
+                    <div
+                      key={p?.id || p?.member_id || label}
+                      className="meeting-room-tile"
+                      role={isRemoteScreenShare ? "button" : undefined}
+                      tabIndex={isRemoteScreenShare ? 0 : undefined}
+                      onClick={(e) => {
+                        if (isRemoteScreenShare && e.currentTarget) {
+                          toggleFullscreenForElement(e.currentTarget);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
+                          e.preventDefault();
+                          toggleFullscreenForElement(e.currentTarget);
+                        }
+                      }}
+                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
+                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
+                    >
                       <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
                         {stream ? (
                           <video
@@ -1004,8 +1058,28 @@ const MeetingRoom = () => {
               {/* Unmatched remote streams (if backend doesn't provide member_id mapping) */}
               {remoteStreams
                 .filter(({ socketId }) => !peerMetaRef.current.get(socketId)?.member_id)
-                .map(({ socketId, stream }) => (
-                  <div key={`unmatched-${socketId}`} className="meeting-room-tile">
+                .map(({ socketId, stream }) => {
+                  const isRemoteScreenShare = isScreenShareStream(stream);
+                  return (
+                  <div
+                    key={`unmatched-${socketId}`}
+                    className="meeting-room-tile"
+                    role={isRemoteScreenShare ? "button" : undefined}
+                    tabIndex={isRemoteScreenShare ? 0 : undefined}
+                    onClick={(e) => {
+                      if (isRemoteScreenShare && e.currentTarget) {
+                        toggleFullscreenForElement(e.currentTarget);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
+                        e.preventDefault();
+                        toggleFullscreenForElement(e.currentTarget);
+                      }
+                    }}
+                    style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
+                    title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
+                  >
                     <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
                       <video
                         autoPlay
@@ -1034,15 +1108,17 @@ const MeetingRoom = () => {
                     })()}
                     <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
                   </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
 
           <div className="meeting-room-slide">
             <div className="meeting-room-single">
+              {/* Local tile large (no fullscreen on own screen share - it's your screen) */}
               <div className="meeting-room-tile-large">
                 <div className="meeting-room-tile-avatar large" style={{ overflow: "hidden" }}>
-                  {!videoMuted ? (
+                  {(!videoMuted || screenSharing) ? (
                     <video
                       ref={localVideoRef2}
                       autoPlay
