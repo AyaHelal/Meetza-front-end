@@ -44,6 +44,9 @@ const MeetingRoom = () => {
   const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
   const sliderViewportRef = useRef(null);
   const screenTrackRef = useRef(null);
+  const makingOffer = useRef(false); // Track if we're currently making an offer
+  const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
+  const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
 
   const meetingId = useMemo(() => {
     // Prefer navigation state (set when joining), then query string (?meetingId=...)
@@ -180,6 +183,52 @@ const MeetingRoom = () => {
     }
   }, [socket]);
 
+  // Create and send offer to a peer (only if we're the impolite peer)
+  const createAndSendOffer = useCallback(async (targetSocketId) => {
+    const pc = peersRef.current.get(targetSocketId);
+    if (!pc) {
+      console.warn("⚠️ Cannot create offer - no peer connection for", targetSocketId);
+      return;
+    }
+
+    try {
+      makingOffer.current = true;
+      console.log("📤 Creating offer for", targetSocketId);
+
+      // Ensure local tracks are added
+      const stream = localStreamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((t) => {
+          const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
+          if (!existing) {
+            pc.addTrack(t, stream);
+          }
+        });
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const mid = meetingIdRef.current;
+      socket.emit(
+        "webrtcOffer",
+        { toSocketId: targetSocketId, meetingId: mid, sdp: offer },
+        (ack) => {
+          if (ack && !ack.ok) {
+            console.error("❌ Offer send failed:", ack);
+          } else {
+            console.log("✅ Offer sent successfully to", targetSocketId);
+          }
+        }
+      );
+    } catch (err) {
+      console.error("❌ Error creating/sending offer:", err);
+    } finally {
+      makingOffer.current = false;
+    }
+  }, [socket]);
+
   const ensureLocalMedia = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
     console.log("🎥 Getting user media...");
@@ -303,43 +352,25 @@ const MeetingRoom = () => {
         const pc = createPeerConnection(peerSocketId);
         peersRef.current.set(peerSocketId, pc);
 
-        // Add tracks if stream is now available
-        const currentStream = localStreamRef.current;
-        if (currentStream) {
-          currentStream.getTracks().forEach((t) => {
-            const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
-            if (!existing) {
-              pc.addTrack(t, currentStream);
-              console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
-            }
-          });
-        }
-
-        try {
-          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          console.log("📤 Sending offer to", peerSocketId);
-          socket.emit(
-            "webrtcOffer",
-            { toSocketId: peerSocketId, meetingId: mid, sdp: offer },
-            (ack) => {
-              if (ack && !ack.ok) {
-                console.error("❌ Offer send failed:", ack);
-              } else {
-                console.log("✅ Offer sent successfully to", peerSocketId);
-              }
-            }
-          );
-        } catch (err) {
-          console.error("❌ Error creating/sending offer:", err);
+        // Determine polite/impolite based on socket.id comparison
+        // The peer with smaller socket.id is impolite (initiates offer)
+        if (socket.id < peerSocketId) {
+          polite.current.set(peerSocketId, false); // We are impolite
+          console.log("🔵 We are impolite for", peerSocketId, "(our id is smaller)");
+          // We initiate the offer
+          await createAndSendOffer(peerSocketId);
+        } else {
+          polite.current.set(peerSocketId, true); // We are polite
+          console.log("🟢 We are polite for", peerSocketId, "(their id is smaller)");
+          // We wait for their offer
         }
       }
 
       // Final check: add tracks to all peers after a short delay
       setTimeout(() => addTracksToAllPeers(), 200);
     });
-  }, [createPeerConnection, ensureLocalMedia, isConnected, socket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createPeerConnection, ensureLocalMedia, isConnected, socket, createAndSendOffer]);
 
   const stopMeetingRtc = useCallback(() => {
     const mid = meetingIdRef.current;
@@ -487,38 +518,17 @@ const MeetingRoom = () => {
       const pc = createPeerConnection(peerSocketId);
       peersRef.current.set(peerSocketId, pc);
 
-      // Ensure local stream tracks are added
-      const stream = localStreamRef.current;
-      if (stream) {
-        stream.getTracks().forEach((t) => {
-          const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
-          if (!existing) {
-            pc.addTrack(t, stream);
-            console.log("➕ Added local track to new peer", peerSocketId, { kind: t.kind });
-          }
-        });
+      // Determine polite/impolite based on socket.id comparison
+      // The peer with smaller socket.id is impolite (initiates offer)
+      if (socket.id < peerSocketId) {
+        polite.current.set(peerSocketId, false); // We are impolite
+        console.log("🔵 We are impolite for new participant", peerSocketId, "(our id is smaller)");
+        // We initiate the offer
+        await createAndSendOffer(peerSocketId);
       } else {
-        console.warn("⚠️ Local stream not ready when new participant joined");
-      }
-
-      try {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
-        console.log("📤 Creating offer for new participant", peerSocketId);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit(
-          "webrtcOffer",
-          { toSocketId: peerSocketId, meetingId: mid, sdp: offer },
-          (ack) => {
-            if (ack && !ack.ok) {
-              console.error("❌ Offer send failed for new participant:", ack);
-            } else {
-              console.log("✅ Offer sent successfully to new participant", peerSocketId);
-            }
-          }
-        );
-      } catch (err) {
-        console.error("❌ Error creating offer for new participant:", err);
+        polite.current.set(peerSocketId, true); // We are polite
+        console.log("🟢 We are polite for new participant", peerSocketId, "(their id is smaller)");
+        // We wait for their offer
       }
     };
 
@@ -534,7 +544,7 @@ const MeetingRoom = () => {
     const onWebrtcOffer = async (data) => {
       const fromSocketId = data?.fromSocketId || data?.socketId || data?.from;
       const mid = data?.meetingId;
-      const sdp = data?.sdp;
+      const sdp = data?.sdp || data?.offer; // Support both 'sdp' and 'offer' field names
       if (!fromSocketId || !mid || !sdp) {
         console.warn("⚠️ Received invalid offer:", { fromSocketId, mid, hasSdp: !!sdp });
         return;
@@ -549,23 +559,44 @@ const MeetingRoom = () => {
         console.log("🔗 Creating peer connection for incoming offer from", fromSocketId);
         pc = createPeerConnection(fromSocketId);
         peersRef.current.set(fromSocketId, pc);
-      } else {
-        const state = pc.signalingState;
-        if (state === "have-local-offer" || state === "have-remote-offer") {
-          console.warn("⚠️ Received offer but already negotiating with", fromSocketId, "state:", state);
-          return;
+        // Set polite flag based on socket.id comparison
+        if (socket.id < fromSocketId) {
+          polite.current.set(fromSocketId, false); // We are impolite
+        } else {
+          polite.current.set(fromSocketId, true); // We are polite
         }
       }
 
+      // Check for offer collision
+      const isPolite = polite.current.get(fromSocketId) ?? true; // Default to polite
+      const offerCollision = makingOffer.current || pc.signalingState !== "stable";
+      const ignoreOffer = !isPolite && offerCollision;
+
+      if (ignoreOffer) {
+        console.log("⚠️ Ignoring offer due to collision (we are impolite and making offer):", fromSocketId);
+        return;
+      }
+
       try {
-        const currentState = pc.signalingState;
-        if (currentState !== "stable" && currentState !== "have-local-offer") {
-          console.warn("⚠️ Cannot handle offer - wrong state:", currentState, "for", fromSocketId);
-          return;
+        console.log("📥 Setting remote offer from", fromSocketId, "state:", pc.signalingState);
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+        // Process queued ICE candidates after setting remote description
+        const queue = iceQueueRef.current.get(fromSocketId);
+        if (queue && queue.length > 0) {
+          console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
+          for (const candidate of queue) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+              if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
+                console.warn("⚠️ Failed to process queued ICE candidate:", err);
+              }
+            }
+          }
+          iceQueueRef.current.delete(fromSocketId);
         }
 
-        console.log("📥 Setting remote offer from", fromSocketId, "current state:", currentState);
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         console.log("📤 Sending answer to", fromSocketId);
@@ -606,10 +637,42 @@ const MeetingRoom = () => {
         if (currentState === "have-local-offer") {
           console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+          // Process queued ICE candidates after setting remote description
+          const queue = iceQueueRef.current.get(fromSocketId);
+          if (queue && queue.length > 0) {
+            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
+            for (const candidate of queue) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              } catch (err) {
+                if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
+                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
+                }
+              }
+            }
+            iceQueueRef.current.delete(fromSocketId);
+          }
         } else if (currentState === "stable" && !remoteDesc) {
           // If we're stable but don't have a remote description yet, try to set it
           console.log("⚠️ Setting remote answer in stable state (no remote desc yet) for", fromSocketId);
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+          // Process queued ICE candidates
+          const queue = iceQueueRef.current.get(fromSocketId);
+          if (queue && queue.length > 0) {
+            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
+            for (const candidate of queue) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              } catch (err) {
+                if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
+                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
+                }
+              }
+            }
+            iceQueueRef.current.delete(fromSocketId);
+          }
         } else if (currentState === "stable" && remoteDesc) {
           // Already have remote description, might be a duplicate answer
           console.log("ℹ️ Ignoring duplicate answer - already have remote description for", fromSocketId);
@@ -639,32 +702,18 @@ const MeetingRoom = () => {
         return;
       }
 
-      try {
-        const remoteDesc = pc.remoteDescription;
-        const localDesc = pc.localDescription;
-
-        // ICE candidates can arrive before remote description is set
-        // Wait a bit if remote description isn't ready yet
-        if (!remoteDesc && !localDesc) {
-          console.log("⏳ ICE candidate received but no descriptions yet, waiting...", fromSocketId);
-          // Wait up to 2 seconds for remote description
-          let attempts = 0;
-          const checkAndAdd = async () => {
-            if (pc.remoteDescription || pc.localDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              console.log("✅ Added queued ICE candidate for", fromSocketId);
-            } else if (attempts < 20) {
-              attempts++;
-              setTimeout(checkAndAdd, 100);
-            } else {
-              console.warn("⚠️ Could not add ICE candidate - no description after waiting", fromSocketId);
-            }
-          };
-          setTimeout(checkAndAdd, 100);
-          return;
+      // If remote description is not set yet, queue the candidate
+      if (!pc.remoteDescription) {
+        if (!iceQueueRef.current.has(fromSocketId)) {
+          iceQueueRef.current.set(fromSocketId, []);
         }
+        iceQueueRef.current.get(fromSocketId).push(candidate);
+        console.log("📦 Queued ICE candidate for", fromSocketId, "queue size:", iceQueueRef.current.get(fromSocketId).length);
+        return;
+      }
 
-        // If we have a description, add the candidate immediately
+      // If we have remote description, add the candidate immediately
+      try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
         console.log("✅ Added ICE candidate for", fromSocketId);
       } catch (err) {
@@ -682,28 +731,53 @@ const MeetingRoom = () => {
 
     console.log("👂 Setting up socket listeners for meeting room");
 
+    // Unified event names: participantJoined, participantLeft, participantsList
     socket.on("participantJoined", onParticipantJoined);
     socket.on("participantLeft", onParticipantLeft);
+    socket.on("participantsList", async (participants) => {
+      console.log("📋 Received participantsList event:", participants);
+      if (!Array.isArray(participants)) return;
+
+      const stream = localStreamRef.current;
+      if (!stream) {
+        console.warn("⚠️ Local stream not ready for participantsList");
+        return;
+      }
+
+      for (const p of participants) {
+        const peerSocketId = p?.socketId || p?.id || p;
+        if (!peerSocketId || peerSocketId === socket.id) continue;
+        if (peersRef.current.has(peerSocketId)) continue;
+
+        // Store metadata if provided
+        const meta = {
+          member_id: p?.member_id || p?.memberId || p?.userId || p?.user_id,
+          member_name: p?.member_name || p?.memberName || p?.name,
+          member_photo: p?.member_photo || p?.memberPhoto || p?.photo,
+        };
+        if (meta.member_id || meta.member_name || meta.member_photo) {
+          peerMetaRef.current.set(peerSocketId, meta);
+        }
+
+        console.log("🔗 Creating peer connection from participantsList for", peerSocketId);
+        const pc = createPeerConnection(peerSocketId);
+        peersRef.current.set(peerSocketId, pc);
+
+        // Determine polite/impolite based on socket.id comparison
+        if (socket.id < peerSocketId) {
+          polite.current.set(peerSocketId, false); // We are impolite
+          console.log("🔵 We are impolite for", peerSocketId, "(our id is smaller)");
+          await createAndSendOffer(peerSocketId);
+        } else {
+          polite.current.set(peerSocketId, true); // We are polite
+          console.log("🟢 We are polite for", peerSocketId, "(their id is smaller)");
+        }
+      }
+    });
+
     socket.on("webrtcOffer", onWebrtcOffer);
     socket.on("webrtcAnswer", onWebrtcAnswer);
     socket.on("webrtcIceCandidate", onIceCandidate);
-
-    // Also listen for alternative event names (backend might use different naming)
-    socket.on("userJoined", onParticipantJoined);
-    socket.on("participant_joined", onParticipantJoined);
-    socket.on("newParticipant", onParticipantJoined);
-    socket.on("user_joined", onParticipantJoined);
-    socket.on("memberJoined", onParticipantJoined);
-
-    // Log when we receive participant join events (for debugging)
-    const logParticipantEvent = (eventName) => {
-      socket.on(eventName, (data) => {
-        console.log(`📨 Received ${eventName} event:`, data);
-      });
-    };
-    logParticipantEvent("participantJoined");
-    logParticipantEvent("userJoined");
-    logParticipantEvent("participant_joined");
     const onReaction = (data) => {
       try {
         console.log("🎉 Received reaction event:", data);
@@ -732,19 +806,16 @@ const MeetingRoom = () => {
       console.log("🧹 Removing socket listeners");
       socket.off("participantJoined", onParticipantJoined);
       socket.off("participantLeft", onParticipantLeft);
+      socket.off("participantsList");
       socket.off("webrtcOffer", onWebrtcOffer);
       socket.off("webrtcAnswer", onWebrtcAnswer);
       socket.off("webrtcIceCandidate", onIceCandidate);
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);
-      socket.off("userJoined", onParticipantJoined);
-      socket.off("participant_joined", onParticipantJoined);
-      socket.off("newParticipant", onParticipantJoined);
-      socket.off("user_joined", onParticipantJoined);
-      socket.off("memberJoined", onParticipantJoined);
     };
-  }, [closePeer, createPeerConnection, socket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closePeer, createPeerConnection, socket, createAndSendOffer]);
 
   const getPeerLabel = useCallback((socketId) => {
     const meta = peerMetaRef.current.get(socketId);
@@ -790,7 +861,7 @@ const MeetingRoom = () => {
     (participant) => {
       const memberId = participant?.member_id;
       const email = participant?.member_email;
-      
+
       // Try to match REST participant -> socketId via metadata received in socket events/acks
       for (const [socketId, meta] of peerMetaRef.current.entries()) {
         if (memberId && meta?.member_id && String(meta.member_id) === String(memberId)) {
@@ -809,7 +880,7 @@ const MeetingRoom = () => {
           }
         }
       }
-      
+
       // If no match found, log for debugging
       if (memberId || email) {
         console.warn("⚠️ Could not match participant to stream:", { memberId, email, availableStreams: remoteStreams.length, availableMeta: Array.from(peerMetaRef.current.keys()) });
