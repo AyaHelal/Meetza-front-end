@@ -2,6 +2,7 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { API_BASE_URL } from './API/axiosInstance';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
@@ -27,6 +28,35 @@ const AppRoutes = () => {
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // When user closes tab/window while in a meeting, call leave API (same as Leave button)
+  // Uses sendBeacon (more reliable on unload) with token in URL - backend accepts it via verifyTokenOrQuery
+  useEffect(() => {
+    const sendLeaveOnUnload = () => {
+      try {
+        const activeMeetingId = sessionStorage.getItem("activeMeetingId");
+        if (!activeMeetingId) return;
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token) return;
+        const base = API_BASE_URL.includes("ngrok")
+          ? `${API_BASE_URL}/meeting/${activeMeetingId}/leave?token=${encodeURIComponent(token)}&ngrok-skip-browser-warning=true`
+          : `${API_BASE_URL}/meeting/${activeMeetingId}/leave?token=${encodeURIComponent(token)}`;
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(base, new Blob([], { type: "application/json" }));
+        } else {
+          fetch(base, { method: "POST", keepalive: true });
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener("beforeunload", sendLeaveOnUnload);
+    window.addEventListener("pagehide", sendLeaveOnUnload);
+    return () => {
+      window.removeEventListener("beforeunload", sendLeaveOnUnload);
+      window.removeEventListener("pagehide", sendLeaveOnUnload);
+    };
   }, []);
 
 

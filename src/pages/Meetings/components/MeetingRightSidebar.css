@@ -58,6 +58,7 @@
     font-size: 12px;
     font-weight: 400;
     margin: 0;
+    margin-top: 5px;
     color: #ffffff;
     opacity: 0.95;
 }
@@ -161,12 +162,12 @@
         height: calc(100vh - 20px);
         margin: 10px;
     }
-    
+
     .video-description-card {
         padding: 10px;
         min-height: 330px;
     }
-    
+
     .video-description-title,
     .participate-title {
         font-size: 20px;

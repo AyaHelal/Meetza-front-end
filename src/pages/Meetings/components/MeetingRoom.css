@@ -116,6 +116,40 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   }
 }
 
+/* Fullscreen: tile fills viewport for screen share */
+.meeting-room-tile:fullscreen,
+.meeting-room-tile:-webkit-full-screen,
+.meeting-room-tile:-moz-full-screen,
+.meeting-room-tile:-ms-fullscreen,
+.meeting-room-tile-large:fullscreen,
+.meeting-room-tile-large:-webkit-full-screen,
+.meeting-room-tile-large:-moz-full-screen,
+.meeting-room-tile-large:-ms-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #000;
+}
+
+.meeting-room-tile:fullscreen .meeting-room-tile-avatar,
+.meeting-room-tile:-webkit-full-screen .meeting-room-tile-avatar,
+.meeting-room-tile:-moz-full-screen .meeting-room-tile-avatar,
+.meeting-room-tile:-ms-fullscreen .meeting-room-tile-avatar,
+.meeting-room-tile-large:fullscreen .meeting-room-tile-avatar,
+.meeting-room-tile-large:-webkit-full-screen .meeting-room-tile-avatar,
+.meeting-room-tile-large:-moz-full-screen .meeting-room-tile-avatar,
+.meeting-room-tile-large:-ms-fullscreen .meeting-room-tile-avatar {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
 .meeting-room-tile {
   aspect-ratio: 1;
   width: 250px;

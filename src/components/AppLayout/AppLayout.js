@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
+import FloatingMeetingTile from "../../pages/GroupChat/components/FloatingMeetingTile";
 import MobileHeader from "../MobileHeader/MobileHeader";
 import UserPhoto from "../UserPhoto/UserPhoto";
 import { AuthContext } from "../../context/AuthContext";
@@ -243,6 +244,9 @@ const AppLayout = ({ children }) => {
           <UserStatus user={user} />
         </div>
       )}
+
+      {/* Floating meeting tile - shows when in meeting and not on meeting page */}
+      {location.pathname !== "/meetings" && <FloatingMeetingTile />}
     </div>
   );
 };

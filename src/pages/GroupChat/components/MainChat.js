@@ -55,6 +55,8 @@ const MainChat = ({
   const isAdministrator = normalizedUserRole === "administrator";
   // Join Meeting: only for Member, and only when a group chat is open (not on chat list)
   const [hasMeeting, setHasMeeting] = useState(false);
+  const [activeMeetingIdForGroup, setActiveMeetingIdForGroup] = useState(null);
+  const [isInMeeting, setIsInMeeting] = useState(false);
 
   // A meeting is considered "currently active" only if:
   // - status is *not* Completed/Cancelled, and
@@ -247,12 +249,20 @@ const MainChat = ({
         // If we already have meeting info attached to the group,
         // prefer it, but still ensure it is currently active.
         if (candidateMeeting && isMeetingCurrentlyActive(candidateMeeting)) {
-          if (!cancelled) setHasMeeting(true);
+          if (!cancelled) {
+            setHasMeeting(true);
+            setActiveMeetingIdForGroup(
+              candidateMeeting?.id || candidateMeeting?.meeting_id || candidateMeeting?.meetingId || null
+            );
+          }
           return;
         }
 
         if (!groupId) {
-          if (!cancelled) setHasMeeting(false);
+          if (!cancelled) {
+            setHasMeeting(false);
+            setActiveMeetingIdForGroup(null);
+          }
           return;
         }
 
@@ -264,14 +274,21 @@ const MainChat = ({
         const meetings = Array.isArray(payload) ? payload : payload ? [payload] : [];
 
         if (!meetings || meetings.length === 0) {
-          if (!cancelled) setHasMeeting(false);
+          if (!cancelled) {
+            setHasMeeting(false);
+            setActiveMeetingIdForGroup(null);
+          }
           return;
         }
 
         // Only consider meetings that are currently active (time window + status)
         const active = meetings.find((m) => isMeetingCurrentlyActive(m));
 
-        if (!cancelled) setHasMeeting(!!active);
+        if (!cancelled) {
+          setHasMeeting(!!active);
+          const mid = active?.id || active?.meeting_id || active?.meetingId || null;
+          setActiveMeetingIdForGroup(mid);
+        }
       } catch (err) {
         console.warn('Could not determine group meetings', err);
         if (!cancelled) setHasMeeting(false);
@@ -302,8 +319,9 @@ const MainChat = ({
     const onMeetingEnded = (data) => {
       // Only apply to this group
       if (data?.groupId === groupId || !data?.groupId) {
-        console.log("📢 Received meetingEnded event, hiding Join button...");
         setHasMeeting(false);
+        setActiveMeetingIdForGroup(null);
+        setIsInMeeting(false);
       }
     };
 
@@ -313,6 +331,25 @@ const MainChat = ({
       socket.off("meetingEnded", onMeetingEnded);
     };
   }, [socket, groupId]);
+
+  // Sync isInMeeting: true when we're in this group's meeting (sessionStorage has matching id)
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const stored = sessionStorage.getItem("activeMeetingId");
+        const match =
+          activeMeetingIdForGroup &&
+          stored &&
+          String(activeMeetingIdForGroup) === String(stored);
+        setIsInMeeting(!!match);
+      } catch {
+        setIsInMeeting(false);
+      }
+    };
+    sync();
+    const interval = setInterval(sync, 1000);
+    return () => clearInterval(interval);
+  }, [activeMeetingIdForGroup]);
 
   const messagesContainerRef = useRef(null);
   const mainChatRef = useRef(null);
@@ -1488,7 +1525,13 @@ const MainChat = ({
             }}>Create Meeting</button>
           )}
           {showJoinMeetingButton && (
-            <button className="join-meeting-btn" onClick={handleJoinMeeting}>Join Meeting</button>
+            <button
+              className={`join-meeting-btn ${isInMeeting ? "in-meeting" : ""}`}
+              onClick={handleJoinMeeting}
+              disabled={isInMeeting}
+            >
+              {isInMeeting ? "Joined" : "Join Meeting"}
+            </button>
           )}
           {!!groupId && (
             <div className="search-icon-header">
