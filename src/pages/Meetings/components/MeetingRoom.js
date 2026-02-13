@@ -60,13 +60,21 @@ const MeetingRoom = () => {
 
   const upsertRemoteStream = useCallback((socketId, stream) => {
     if (!socketId || !stream) return;
+    console.log("🔄 Upserting remote stream:", socketId, {
+      videoTracks: stream.getVideoTracks().length,
+      audioTracks: stream.getAudioTracks().length,
+      videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
+      audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
+    });
     setRemoteStreams((prev) => {
       const idx = prev.findIndex((x) => x.socketId === socketId);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = { socketId, stream };
+        console.log("✅ Updated existing remote stream for", socketId);
         return next;
       }
+      console.log("✅ Added new remote stream for", socketId);
       return [...prev, { socketId, stream }];
     });
   }, []);
@@ -108,17 +116,69 @@ const MeetingRoom = () => {
     pc.ontrack = (event) => {
       const [stream] = event.streams || [];
       if (stream) {
+        console.log("🎬 onTrack event received from", peerSocketId, {
+          trackKind: event.track.kind,
+          trackId: event.track.id,
+          streamId: stream.id,
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length,
+          trackEnabled: event.track.enabled,
+        });
         upsertRemoteStream(peerSocketId, stream);
+      } else {
+        console.warn("⚠️ onTrack event but no stream found for", peerSocketId);
       }
     };
 
+    // Add local tracks if stream is available
     const stream = localStreamRef.current;
     if (stream) {
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      stream.getTracks().forEach((t) => {
+        console.log("➕ Adding local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
+        pc.addTrack(t, stream);
+      });
+    } else {
+      console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);
     }
 
     return pc;
   }, [socket, upsertRemoteStream]);
+
+  // Add tracks to all existing peer connections when local stream becomes available
+  const addTracksToAllPeers = useCallback(() => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+
+    for (const [peerSocketId, pc] of peersRef.current.entries()) {
+      // Check if tracks are already added
+      const senders = pc.getSenders();
+      const hasVideo = senders.some(s => s.track && s.track.kind === 'video');
+      const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
+
+      if (!hasVideo || !hasAudio) {
+        console.log("🔄 Adding missing tracks to peer", peerSocketId);
+        stream.getTracks().forEach((t) => {
+          const existing = senders.find(s => s.track && s.track.kind === t.kind);
+          if (!existing) {
+            pc.addTrack(t, stream);
+            console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
+          }
+        });
+
+        // Trigger renegotiation if needed
+        if (!hasVideo || !hasAudio) {
+          pc.createOffer().then(offer => {
+            pc.setLocalDescription(offer).then(() => {
+              const mid = meetingIdRef.current;
+              if (socket && mid) {
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+              }
+            }).catch(err => console.error("❌ Error renegotiating after adding tracks:", err));
+          }).catch(err => console.error("❌ Error creating offer after adding tracks:", err));
+        }
+      }
+    }
+  }, [socket]);
 
   const ensureLocalMedia = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
@@ -135,6 +195,8 @@ const MeetingRoom = () => {
         videoTracks: stream.getVideoTracks().length,
         audioTracks: stream.getAudioTracks().length,
       });
+      // Add tracks to any existing peer connections
+      setTimeout(() => addTracksToAllPeers(), 100);
       return stream;
     } catch (videoErr) {
       console.warn("Camera denied, trying audio only...", videoErr);
@@ -146,9 +208,11 @@ const MeetingRoom = () => {
       setLocalStream(stream);
       cameraVideoTrackRef.current = null;
       console.log("✅ Audio-only stream obtained (camera not required)");
+      // Add tracks to any existing peer connections
+      setTimeout(() => addTracksToAllPeers(), 100);
       return stream;
     }
-  }, []);
+  }, [addTracksToAllPeers]);
 
   const startAndJoinMeetingRtc = useCallback(async () => {
     if (!socket || !isConnected) return;
@@ -166,13 +230,16 @@ const MeetingRoom = () => {
       return;
     }
 
+    console.log("📤 Emitting joinMeetingRoom for meeting:", mid);
     socket.emit("joinMeetingRoom", { meetingId: mid }, async (ack) => {
+      console.log("📥 joinMeetingRoom ack received:", ack);
       if (!ack?.ok) {
         console.error("❌ joinMeetingRoom failed:", ack);
         smartToast.error(ack?.message || "Failed to join meeting room.");
         startedRef.current = false;
         return;
       }
+      console.log("✅ Successfully joined meeting room");
 
       // Persist active meeting so that other parts of the app (e.g. logout handler, floating tile)
       // can perform a proper leave if the user logs out while in a meeting.
@@ -185,11 +252,42 @@ const MeetingRoom = () => {
       }
 
       const participants = Array.isArray(ack?.participants) ? ack.participants : [];
+      console.log("👥 Found existing participants:", participants.length, "Full ack:", ack);
+
+      // If backend doesn't send participants in ack, try to get them from REST API
+      if (participants.length === 0) {
+        console.log("⚠️ No participants in ack, will check REST API for current participants");
+        setTimeout(async () => {
+          try {
+            const res = await api.get(`/meeting/${mid}/participants`);
+            const root = res?.data;
+            const effective = root?.data && root?.success === undefined ? root.data : root;
+            const payload = effective?.data ?? effective;
+            const list = Array.isArray(payload) ? payload : [];
+            console.log("👥 REST API participants:", list.length);
+            // Note: REST API gives member_id, but we need socketId to create peer connections
+            // So we can't directly use this, but it confirms other people are in the meeting
+          } catch (e) {
+            console.warn("Could not fetch participants from REST:", e);
+          }
+        }, 1000);
+      }
+
+      // Ensure local stream is ready before creating peer connections
+      const stream = localStreamRef.current;
+      if (!stream) {
+        console.warn("⚠️ Local stream not ready, waiting...");
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       for (const p of participants) {
         const peerSocketId = p?.socketId || p?.id || p;
         if (!peerSocketId) continue;
         if (peerSocketId === socket.id) continue;
-        if (peersRef.current.has(peerSocketId)) continue;
+        if (peersRef.current.has(peerSocketId)) {
+          console.log("⚠️ Peer connection already exists for", peerSocketId);
+          continue;
+        }
 
         // Store any metadata if backend provides it
         const meta = {
@@ -201,21 +299,45 @@ const MeetingRoom = () => {
           peerMetaRef.current.set(peerSocketId, meta);
         }
 
+        console.log("🔗 Creating peer connection for", peerSocketId);
         const pc = createPeerConnection(peerSocketId);
         peersRef.current.set(peerSocketId, pc);
 
+        // Add tracks if stream is now available
+        const currentStream = localStreamRef.current;
+        if (currentStream) {
+          currentStream.getTracks().forEach((t) => {
+            const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
+            if (!existing) {
+              pc.addTrack(t, currentStream);
+              console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
+            }
+          });
+        }
+
         try {
+          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
+          console.log("📤 Sending offer to", peerSocketId);
           socket.emit(
             "webrtcOffer",
             { toSocketId: peerSocketId, meetingId: mid, sdp: offer },
-            () => { }
+            (ack) => {
+              if (ack && !ack.ok) {
+                console.error("❌ Offer send failed:", ack);
+              } else {
+                console.log("✅ Offer sent successfully to", peerSocketId);
+              }
+            }
           );
         } catch (err) {
           console.error("❌ Error creating/sending offer:", err);
         }
       }
+
+      // Final check: add tracks to all peers after a short delay
+      setTimeout(() => addTracksToAllPeers(), 200);
     });
   }, [createPeerConnection, ensureLocalMedia, isConnected, socket]);
 
@@ -253,11 +375,20 @@ const MeetingRoom = () => {
 
   // Auto-start RTC when entering meeting page with meetingId
   useEffect(() => {
-    if (!meetingId || !socket || !isConnected) return;
+    if (!meetingId || !socket || !isConnected) {
+      console.log("⏸️ Not starting RTC - missing:", { meetingId: !!meetingId, socket: !!socket, isConnected });
+      return;
+    }
+    if (startedRef.current) {
+      console.log("⏸️ RTC already started, skipping");
+      return;
+    }
+    console.log("🚀 Starting RTC meeting...");
     startAndJoinMeetingRtc();
 
     return () => {
       // cleanup on unmount
+      console.log("🧹 Cleaning up RTC on unmount");
       stopMeetingRtc();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -321,12 +452,26 @@ const MeetingRoom = () => {
     if (!socket) return;
 
     const onParticipantJoined = async (data) => {
+      console.log("🎉 participantJoined event received:", data);
       const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
       const mid = data?.meetingId;
-      if (!peerSocketId || !mid) return;
-      if (mid !== meetingIdRef.current) return;
-      if (peerSocketId === socket.id) return;
-      if (peersRef.current.has(peerSocketId)) return;
+      if (!peerSocketId || !mid) {
+        console.warn("⚠️ participantJoined - missing socketId or meetingId", { peerSocketId, mid });
+        return;
+      }
+      if (mid !== meetingIdRef.current) {
+        console.warn("⚠️ participantJoined - wrong meeting", { received: mid, current: meetingIdRef.current });
+        return;
+      }
+      if (peerSocketId === socket.id) {
+        console.log("ℹ️ participantJoined - ignoring self");
+        return;
+      }
+      if (peersRef.current.has(peerSocketId)) {
+        console.log("⚠️ participantJoined - peer already exists for", peerSocketId);
+        return;
+      }
+      console.log("✅ Processing participantJoined for", peerSocketId);
 
       // store metadata if provided
       const meta = {
@@ -338,16 +483,39 @@ const MeetingRoom = () => {
         peerMetaRef.current.set(peerSocketId, meta);
       }
 
+      console.log("🔗 Creating peer connection for new participant", peerSocketId);
       const pc = createPeerConnection(peerSocketId);
       peersRef.current.set(peerSocketId, pc);
 
+      // Ensure local stream tracks are added
+      const stream = localStreamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((t) => {
+          const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
+          if (!existing) {
+            pc.addTrack(t, stream);
+            console.log("➕ Added local track to new peer", peerSocketId, { kind: t.kind });
+          }
+        });
+      } else {
+        console.warn("⚠️ Local stream not ready when new participant joined");
+      }
+
       try {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
+        console.log("📤 Creating offer for new participant", peerSocketId);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit(
           "webrtcOffer",
           { toSocketId: peerSocketId, meetingId: mid, sdp: offer },
-          () => { }
+          (ack) => {
+            if (ack && !ack.ok) {
+              console.error("❌ Offer send failed for new participant:", ack);
+            } else {
+              console.log("✅ Offer sent successfully to new participant", peerSocketId);
+            }
+          }
         );
       } catch (err) {
         console.error("❌ Error creating offer for new participant:", err);
@@ -367,26 +535,53 @@ const MeetingRoom = () => {
       const fromSocketId = data?.fromSocketId || data?.socketId || data?.from;
       const mid = data?.meetingId;
       const sdp = data?.sdp;
-      if (!fromSocketId || !mid || !sdp) return;
-      if (mid !== meetingIdRef.current) return;
+      if (!fromSocketId || !mid || !sdp) {
+        console.warn("⚠️ Received invalid offer:", { fromSocketId, mid, hasSdp: !!sdp });
+        return;
+      }
+      if (mid !== meetingIdRef.current) {
+        console.warn("⚠️ Received offer for wrong meeting:", { received: mid, current: meetingIdRef.current });
+        return;
+      }
 
       let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
+        console.log("🔗 Creating peer connection for incoming offer from", fromSocketId);
         pc = createPeerConnection(fromSocketId);
         peersRef.current.set(fromSocketId, pc);
+      } else {
+        const state = pc.signalingState;
+        if (state === "have-local-offer" || state === "have-remote-offer") {
+          console.warn("⚠️ Received offer but already negotiating with", fromSocketId, "state:", state);
+          return;
+        }
       }
 
       try {
+        const currentState = pc.signalingState;
+        if (currentState !== "stable" && currentState !== "have-local-offer") {
+          console.warn("⚠️ Cannot handle offer - wrong state:", currentState, "for", fromSocketId);
+          return;
+        }
+
+        console.log("📥 Setting remote offer from", fromSocketId, "current state:", currentState);
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        console.log("📤 Sending answer to", fromSocketId);
         socket.emit(
           "webrtcAnswer",
           { toSocketId: fromSocketId, meetingId: mid, sdp: answer },
-          () => { }
+          (ack) => {
+            if (ack && !ack.ok) {
+              console.error("❌ Answer send failed:", ack);
+            } else {
+              console.log("✅ Answer sent successfully to", fromSocketId);
+            }
+          }
         );
       } catch (err) {
-        console.error("❌ Error handling offer:", err);
+        console.error("❌ Error handling offer:", err, "for", fromSocketId);
       }
     };
 
@@ -398,11 +593,36 @@ const MeetingRoom = () => {
       if (mid !== meetingIdRef.current) return;
 
       const pc = peersRef.current.get(fromSocketId);
-      if (!pc) return;
+      if (!pc) {
+        console.warn("⚠️ Received answer but no peer connection for", fromSocketId);
+        return;
+      }
+
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        const currentState = pc.signalingState;
+        const remoteDesc = pc.remoteDescription;
+
+        // Only set remote description if we're in the right state
+        if (currentState === "have-local-offer") {
+          console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
+          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        } else if (currentState === "stable" && !remoteDesc) {
+          // If we're stable but don't have a remote description yet, try to set it
+          console.log("⚠️ Setting remote answer in stable state (no remote desc yet) for", fromSocketId);
+          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        } else if (currentState === "stable" && remoteDesc) {
+          // Already have remote description, might be a duplicate answer
+          console.log("ℹ️ Ignoring duplicate answer - already have remote description for", fromSocketId);
+        } else {
+          console.warn("⚠️ Cannot set remote answer - wrong state:", currentState, "for", fromSocketId);
+        }
       } catch (err) {
-        console.error("❌ Error setting remote answer:", err);
+        // If it's just a state error and we already have a connection, it's okay
+        if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
+          console.log("ℹ️ Answer received but connection already established for", fromSocketId);
+        } else {
+          console.error("❌ Error setting remote answer:", err, "for", fromSocketId);
+        }
       }
     };
 
@@ -414,42 +634,115 @@ const MeetingRoom = () => {
       if (mid !== meetingIdRef.current) return;
 
       const pc = peersRef.current.get(fromSocketId);
-      if (!pc) return;
+      if (!pc) {
+        console.warn("⚠️ Received ICE candidate but no peer connection for", fromSocketId);
+        return;
+      }
+
       try {
+        const remoteDesc = pc.remoteDescription;
+        const localDesc = pc.localDescription;
+
+        // ICE candidates can arrive before remote description is set
+        // Wait a bit if remote description isn't ready yet
+        if (!remoteDesc && !localDesc) {
+          console.log("⏳ ICE candidate received but no descriptions yet, waiting...", fromSocketId);
+          // Wait up to 2 seconds for remote description
+          let attempts = 0;
+          const checkAndAdd = async () => {
+            if (pc.remoteDescription || pc.localDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              console.log("✅ Added queued ICE candidate for", fromSocketId);
+            } else if (attempts < 20) {
+              attempts++;
+              setTimeout(checkAndAdd, 100);
+            } else {
+              console.warn("⚠️ Could not add ICE candidate - no description after waiting", fromSocketId);
+            }
+          };
+          setTimeout(checkAndAdd, 100);
+          return;
+        }
+
+        // If we have a description, add the candidate immediately
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("✅ Added ICE candidate for", fromSocketId);
       } catch (err) {
-        console.error("❌ Error adding ICE candidate:", err);
+        // If it's just a state error and connection is already established, it's okay
+        if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
+          console.log("ℹ️ ICE candidate received but connection already established for", fromSocketId);
+        } else if (err.name === "OperationError" && err.message?.includes("already exists")) {
+          // Duplicate candidate, ignore
+          console.log("ℹ️ Duplicate ICE candidate ignored for", fromSocketId);
+        } else {
+          console.error("❌ Error adding ICE candidate:", err, "for", fromSocketId);
+        }
       }
     };
+
+    console.log("👂 Setting up socket listeners for meeting room");
 
     socket.on("participantJoined", onParticipantJoined);
     socket.on("participantLeft", onParticipantLeft);
     socket.on("webrtcOffer", onWebrtcOffer);
     socket.on("webrtcAnswer", onWebrtcAnswer);
     socket.on("webrtcIceCandidate", onIceCandidate);
+
+    // Also listen for alternative event names (backend might use different naming)
+    socket.on("userJoined", onParticipantJoined);
+    socket.on("participant_joined", onParticipantJoined);
+    socket.on("newParticipant", onParticipantJoined);
+    socket.on("user_joined", onParticipantJoined);
+    socket.on("memberJoined", onParticipantJoined);
+
+    // Log when we receive participant join events (for debugging)
+    const logParticipantEvent = (eventName) => {
+      socket.on(eventName, (data) => {
+        console.log(`📨 Received ${eventName} event:`, data);
+      });
+    };
+    logParticipantEvent("participantJoined");
+    logParticipantEvent("userJoined");
+    logParticipantEvent("participant_joined");
     const onReaction = (data) => {
       try {
+        console.log("🎉 Received reaction event:", data);
         const mid = data?.meetingId;
-        if (!mid || mid !== meetingIdRef.current) return;
+        if (!mid || mid !== meetingIdRef.current) {
+          console.log("⚠️ Ignoring reaction - wrong meeting or missing meetingId", { received: mid, current: meetingIdRef.current });
+          return;
+        }
         const type = data?.type || data?.reaction || "like";
         const fromMemberId = data?.member_id || data?.memberId || null;
-        const fromSocketId = data?.fromSocketId || data?.from || null;
+        const fromSocketId = data?.fromSocketId || data?.from || data?.socketId || null;
         const fromName = data?.member_name || data?.memberName || data?.name || (fromSocketId ? getPeerLabel(fromSocketId) : null) || "Someone";
         const key = fromMemberId || fromSocketId || fromName;
+        console.log("✅ Processing reaction:", { type, fromName, key });
         addReactionToMap(key, type, fromName);
       } catch (e) {
-        console.warn("Error handling reaction event:", e);
+        console.error("❌ Error handling reaction event:", e, data);
       }
     };
     socket.on("reaction", onReaction);
+    // Also listen for alternative event names in case backend uses different naming
+    socket.on("meetingReaction", onReaction);
+    socket.on("reactionReceived", onReaction);
 
     return () => {
+      console.log("🧹 Removing socket listeners");
       socket.off("participantJoined", onParticipantJoined);
       socket.off("participantLeft", onParticipantLeft);
       socket.off("webrtcOffer", onWebrtcOffer);
       socket.off("webrtcAnswer", onWebrtcAnswer);
       socket.off("webrtcIceCandidate", onIceCandidate);
       socket.off("reaction", onReaction);
+      socket.off("meetingReaction", onReaction);
+      socket.off("reactionReceived", onReaction);
+      socket.off("userJoined", onParticipantJoined);
+      socket.off("participant_joined", onParticipantJoined);
+      socket.off("newParticipant", onParticipantJoined);
+      socket.off("user_joined", onParticipantJoined);
+      socket.off("memberJoined", onParticipantJoined);
     };
   }, [closePeer, createPeerConnection, socket]);
 
@@ -496,13 +789,30 @@ const MeetingRoom = () => {
   const getParticipantStream = useCallback(
     (participant) => {
       const memberId = participant?.member_id;
-      if (!memberId) return null;
-
+      const email = participant?.member_email;
+      
       // Try to match REST participant -> socketId via metadata received in socket events/acks
       for (const [socketId, meta] of peerMetaRef.current.entries()) {
-        if (meta?.member_id && String(meta.member_id) === String(memberId)) {
-          return remoteStreams.find((x) => x.socketId === socketId)?.stream || null;
+        if (memberId && meta?.member_id && String(meta.member_id) === String(memberId)) {
+          const stream = remoteStreams.find((x) => x.socketId === socketId)?.stream;
+          if (stream) {
+            console.log("✅ Matched participant by member_id:", memberId, "to socketId:", socketId);
+            return stream;
+          }
         }
+        // Also try matching by email
+        if (email && meta?.member_email && String(meta.member_email).toLowerCase() === String(email).toLowerCase()) {
+          const stream = remoteStreams.find((x) => x.socketId === socketId)?.stream;
+          if (stream) {
+            console.log("✅ Matched participant by email:", email, "to socketId:", socketId);
+            return stream;
+          }
+        }
+      }
+      
+      // If no match found, log for debugging
+      if (memberId || email) {
+        console.warn("⚠️ Could not match participant to stream:", { memberId, email, availableStreams: remoteStreams.length, availableMeta: Array.from(peerMetaRef.current.keys()) });
       }
       return null;
     },
@@ -547,7 +857,7 @@ const MeetingRoom = () => {
 
       // Emit event so MainChat knows to hide Join button
       if (socket) {
-        socket.emit("meetingEnded", { meetingId }, () => {});
+        socket.emit("meetingEnded", { meetingId }, () => { });
       }
 
       // Try to call leave API (best effort)
@@ -732,31 +1042,43 @@ const MeetingRoom = () => {
 
   const handleSendLike = () => {
     const mid = meetingIdRef.current;
-    if (socket && mid) {
-      // include sender info so server can broadcast who reacted
-      const payload = {
-        meetingId: mid,
-        type: "like",
-        member_id: selfMemberId,
-        member_name: user?.name || user?.member_name || user?.email || "You",
-        fromSocketId: socket.id,
-      };
-      socket.emit("reaction", payload);
-
-      // Optimistically show local reaction on your own tile
-      try {
-        const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
-        const name = user?.name || user?.member_name || user?.email || "You";
-        addReactionToMap(key, "like", name);
-      } catch (e) {
-        console.warn("Could not add local reaction:", e);
+    if (!socket || !mid) {
+      console.warn("⚠️ Cannot send reaction - socket or meetingId missing");
+      return;
+    }
+    // include sender info so server can broadcast who reacted
+    const payload = {
+      meetingId: mid,
+      type: "like",
+      member_id: selfMemberId,
+      member_name: user?.name || user?.member_name || user?.email || "You",
+      fromSocketId: socket.id,
+    };
+    console.log("📤 Emitting reaction:", payload);
+    socket.emit("reaction", payload, (ack) => {
+      if (ack && !ack.ok) {
+        console.error("❌ Reaction emit failed:", ack);
+      } else {
+        console.log("✅ Reaction emit acknowledged:", ack);
       }
+    });
+
+    // Optimistically show local reaction on your own tile
+    try {
+      const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
+      const name = user?.name || user?.member_name || user?.email || "You";
+      addReactionToMap(key, "like", name);
+    } catch (e) {
+      console.warn("Could not add local reaction:", e);
     }
   };
 
   const selectEmoji = (emoji) => {
     const mid = meetingIdRef.current;
-    if (!mid || !socket) return;
+    if (!mid || !socket) {
+      console.warn("⚠️ Cannot send emoji - socket or meetingId missing");
+      return;
+    }
     const payload = {
       meetingId: mid,
       type: emoji, // use emoji char as type
@@ -764,7 +1086,14 @@ const MeetingRoom = () => {
       member_name: user?.name || user?.member_name || user?.email || "You",
       fromSocketId: socket.id,
     };
-    socket.emit("reaction", payload);
+    console.log("📤 Emitting emoji reaction:", payload);
+    socket.emit("reaction", payload, (ack) => {
+      if (ack && !ack.ok) {
+        console.error("❌ Emoji reaction emit failed:", ack);
+      } else {
+        console.log("✅ Emoji reaction emit acknowledged:", ack);
+      }
+    });
     // update local map
     try {
       const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
@@ -818,7 +1147,7 @@ const MeetingRoom = () => {
       return next;
     });
   };
-  
+
 
   const handleToggleScreenShare = async () => {
     let stream = localStreamRef.current;
@@ -843,16 +1172,31 @@ const MeetingRoom = () => {
         const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
         const mid = meetingIdRef.current;
 
+        console.log("🖥️ Replacing video tracks with screen share for", peersRef.current.size, "peers");
         for (const [peerSocketId, pc] of peersRef.current.entries()) {
           const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
           if (sender) {
-            await sender.replaceTrack(screenTrack);
+            console.log("🔄 Replacing track for peer", peerSocketId);
+            try {
+              await sender.replaceTrack(screenTrack);
+              console.log("✅ Screen share track replaced for", peerSocketId);
+            } catch (err) {
+              console.error("❌ Failed to replace track for", peerSocketId, ":", err);
+            }
           } else {
+            console.log("➕ Adding screen share track to peer", peerSocketId);
             pc.addTrack(screenTrack, streamForScreen);
             try {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+              console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
+              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
+                if (ack && !ack.ok) {
+                  console.error("❌ Screen share renegotiation failed:", ack);
+                } else {
+                  console.log("✅ Screen share renegotiation sent to", peerSocketId);
+                }
+              });
             } catch (err) {
               console.error("❌ Renegotiation for screen share failed:", err);
             }
@@ -897,7 +1241,7 @@ const MeetingRoom = () => {
       const cameraTrack = cameraVideoTrackRef.current;
       for (const pc of peersRef.current.values()) {
         const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) sender.replaceTrack(cameraTrack || null).catch(() => {});
+        if (sender) sender.replaceTrack(cameraTrack || null).catch(() => { });
       }
       const restored = cameraTrack
         ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
@@ -1017,10 +1361,24 @@ const MeetingRoom = () => {
                             playsInline
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             ref={(el) => {
-                              if (el && el.srcObject !== stream) {
-                                el.srcObject = stream;
-                                el.play?.().catch(() => { });
+                              if (el && stream) {
+                                if (el.srcObject !== stream) {
+                                  console.log("🎥 Setting video srcObject for participant:", label, "stream:", {
+                                    videoTracks: stream.getVideoTracks().length,
+                                    audioTracks: stream.getAudioTracks().length,
+                                  });
+                                  el.srcObject = stream;
+                                  el.play?.().catch((err) => {
+                                    console.warn("⚠️ Video play failed for", label, ":", err);
+                                  });
+                                }
                               }
+                            }}
+                            onLoadedMetadata={() => {
+                              console.log("✅ Video metadata loaded for participant:", label);
+                            }}
+                            onError={(e) => {
+                              console.error("❌ Video error for participant:", label, e);
                             }}
                           />
                         ) : p?.member_photo ? (
@@ -1035,20 +1393,20 @@ const MeetingRoom = () => {
                           </span>
                         )}
                       </div>
-                        {/* reactions for this participant */}
-                        {(() => {
-                          const memberKey = p?.member_id || p?.member_email || p?.id || label;
-                          const entry = reactionsMap[memberKey];
-                          if (!entry) return null;
-                          return Object.entries(entry).map(([type, names]) => (
-                            <div key={type} className="meeting-room-reaction" title={type}>
-                              <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                              <div className="reaction-names">{names.map((n) => (
-                                <div key={n} className="reaction-name">{n}</div>
-                              ))}</div>
-                            </div>
-                          ));
-                        })()}
+                      {/* reactions for this participant */}
+                      {(() => {
+                        const memberKey = p?.member_id || p?.member_email || p?.id || label;
+                        const entry = reactionsMap[memberKey];
+                        if (!entry) return null;
+                        return Object.entries(entry).map(([type, names]) => (
+                          <div key={type} className="meeting-room-reaction" title={type}>
+                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
+                            <div className="reaction-names">{names.map((n) => (
+                              <div key={n} className="reaction-name">{n}</div>
+                            ))}</div>
+                          </div>
+                        ));
+                      })()}
                       <span className="meeting-room-tile-badge admin">{label}</span>
                     </div>
                   );
@@ -1057,57 +1415,80 @@ const MeetingRoom = () => {
 
               {/* Unmatched remote streams (if backend doesn't provide member_id mapping) */}
               {remoteStreams
-                .filter(({ socketId }) => !peerMetaRef.current.get(socketId)?.member_id)
+                .filter(({ socketId }) => {
+                  // Show stream if it's not already matched to a participant
+                  const meta = peerMetaRef.current.get(socketId);
+                  const isMatched = meta?.member_id && displayParticipants.some(p => String(p.member_id) === String(meta.member_id));
+                  return !isMatched;
+                })
                 .map(({ socketId, stream }) => {
+                  console.log("🎥 Rendering unmatched remote stream:", socketId, {
+                    videoTracks: stream.getVideoTracks().length,
+                    audioTracks: stream.getAudioTracks().length,
+                  });
                   const isRemoteScreenShare = isScreenShareStream(stream);
                   return (
-                  <div
-                    key={`unmatched-${socketId}`}
-                    className="meeting-room-tile"
-                    role={isRemoteScreenShare ? "button" : undefined}
-                    tabIndex={isRemoteScreenShare ? 0 : undefined}
-                    onClick={(e) => {
-                      if (isRemoteScreenShare && e.currentTarget) {
-                        toggleFullscreenForElement(e.currentTarget);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
-                        e.preventDefault();
-                        toggleFullscreenForElement(e.currentTarget);
-                      }
-                    }}
-                    style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
-                    title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
-                  >
-                    <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                      <video
-                        autoPlay
-                        playsInline
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        ref={(el) => {
-                          if (el && stream && el.srcObject !== stream) {
-                            el.srcObject = stream;
-                            el.play?.().catch(() => { });
-                          }
-                        }}
-                      />
+                    <div
+                      key={`unmatched-${socketId}`}
+                      className="meeting-room-tile"
+                      role={isRemoteScreenShare ? "button" : undefined}
+                      tabIndex={isRemoteScreenShare ? 0 : undefined}
+                      onClick={(e) => {
+                        if (isRemoteScreenShare && e.currentTarget) {
+                          toggleFullscreenForElement(e.currentTarget);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
+                          e.preventDefault();
+                          toggleFullscreenForElement(e.currentTarget);
+                        }
+                      }}
+                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
+                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
+                    >
+                      <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
+                        <video
+                          autoPlay
+                          playsInline
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          ref={(el) => {
+                            if (el && stream) {
+                              if (el.srcObject !== stream) {
+                                console.log("🎥 Setting video srcObject for unmatched stream:", socketId, "stream:", {
+                                  videoTracks: stream.getVideoTracks().length,
+                                  audioTracks: stream.getAudioTracks().length,
+                                });
+                                el.srcObject = stream;
+                                el.play?.().catch((err) => {
+                                  console.warn("⚠️ Video play failed for unmatched stream", socketId, ":", err);
+                                });
+                              }
+                            }
+                          }}
+                          onLoadedMetadata={() => {
+                            console.log("✅ Video metadata loaded for unmatched stream:", socketId);
+                          }}
+                          onError={(e) => {
+                            console.error("❌ Video error for unmatched stream:", socketId, e);
+                          }}
+                        />
+                      </div>
+                      {(() => {
+                        const key = socketId;
+                        const entry = reactionsMap[key];
+                        if (!entry) return null;
+                        return Object.entries(entry).map(([type, names]) => (
+                          <div key={type} className="meeting-room-reaction" title={type}>
+                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
+                            <div className="reaction-names">{names.map((n) => (
+                              <div key={n} className="reaction-name">{n}</div>
+                            ))}</div>
+                          </div>
+                        ));
+                      })()}
+                      <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
                     </div>
-                    {(() => {
-                      const key = socketId;
-                      const entry = reactionsMap[key];
-                      if (!entry) return null;
-                      return Object.entries(entry).map(([type, names]) => (
-                        <div key={type} className="meeting-room-reaction" title={type}>
-                          <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                          <div className="reaction-names">{names.map((n) => (
-                            <div key={n} className="reaction-name">{n}</div>
-                          ))}</div>
-                        </div>
-                      ));
-                    })()}
-                    <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
-                  </div>
                   );
                 })}
             </div>
@@ -1271,22 +1652,22 @@ const MeetingRoom = () => {
             </button>
           </div>
         )}
-      {/* Emoji picker popup */}
-      {showEmojiPicker && (
-        <div className="meeting-room-emoji-picker" ref={emojiPickerRef}>
-          {emojiList.map((e) => (
-            <button
-              key={e}
-              type="button"
-              className="emoji-btn"
-              onClick={() => selectEmoji(e)}
-              aria-label={`React ${e}`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
+        {/* Emoji picker popup */}
+        {showEmojiPicker && (
+          <div className="meeting-room-emoji-picker" ref={emojiPickerRef}>
+            {emojiList.map((e) => (
+              <button
+                key={e}
+                type="button"
+                className="emoji-btn"
+                onClick={() => selectEmoji(e)}
+                aria-label={`React ${e}`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
