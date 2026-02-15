@@ -1,10 +1,10 @@
+/* Right sidebar - no global scroll; each section scrolls independently */
 .meeting-right-sidebar {
     width: 300px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     flex-shrink: 0;
     min-height: 0;
     margin: 20px;
@@ -14,38 +14,58 @@
     box-sizing: border-box;
 }
 
-/* Custom scrollbar */
-.meeting-right-sidebar::-webkit-scrollbar {
+/* Scrollbars for localized sections - sidebar itself does not scroll */
+.video-description-scroll::-webkit-scrollbar,
+.participants-list::-webkit-scrollbar {
     width: 6px;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-track {
+.video-description-scroll::-webkit-scrollbar-track,
+.participants-list::-webkit-scrollbar-track {
     background: transparent;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-thumb {
+.video-description-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+}
+.video-description-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+.participants-list::-webkit-scrollbar-thumb {
     background: #d0d0d0;
     border-radius: 3px;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-thumb:hover {
+.participants-list::-webkit-scrollbar-thumb:hover {
     background: #b0b0b0;
 }
 
-/* Video Description Card */
+/* Video Description Card - scroll localized inside content area only */
 .video-description-card {
     background: #1976d2;
     color: #ffffff;
-    padding: 15px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 45%;
     width: 100%;
     box-sizing: border-box;
     margin-top: 10px;
-    min-height: 400px;
+    overflow: hidden;
+}
+
+.video-description-card .video-description-title {
+    flex-shrink: 0;
+    padding: 15px 15px 0 15px;
+    margin: 0;
+}
+
+.video-description-scroll {
+    padding: 15px 15px 15px 15px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
 }
 
 .video-description-title {
@@ -60,6 +80,7 @@
     font-weight: 400;
     margin: 0;
     margin-top: 5px;
+    margin-bottom: 10px;
     color: #ffffff;
     opacity: 0.95;
 }
@@ -90,7 +111,7 @@
     line-height: 1.5;
 }
 
-/* Participate Card */
+/* Participate Card - scroll localized to participants list */
 .participate-card {
     background: #ffffff;
     padding: 1rem;
@@ -98,22 +119,29 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    overflow: hidden;
 }
 
 .participate-title {
     font-size: 18px;
     margin: 0;
     color: #000000;
+    flex-shrink: 0;
 }
 
 .participants-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .participant-item {
@@ -165,8 +193,13 @@
     }
 
     .video-description-card {
-        padding: 10px;
-        min-height: 330px;
+        max-height: 42%;
+    }
+
+    .video-description-card .video-description-title,
+    .video-description-scroll {
+        padding-left: 10px;
+        padding-right: 10px;
     }
 
     .video-description-title,

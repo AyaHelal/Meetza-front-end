@@ -9,11 +9,10 @@ import {
   GearSix,
   SignOut,
   UsersThree,
-  Plus,
+  VideoCamera,
 } from "@phosphor-icons/react";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
-import FloatingMeetingTile from "../../pages/GroupChat/components/FloatingMeetingTile";
 import MobileHeader from "../MobileHeader/MobileHeader";
 import UserPhoto from "../UserPhoto/UserPhoto";
 import { AuthContext } from "../../context/AuthContext";
@@ -29,7 +28,27 @@ const AppLayout = ({ children }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+  const [activeMeetingId, setActiveMeetingId] = useState(null);
+  const [activeGroupId, setActiveGroupId] = useState(null);
   const hasFetchedInitialCountRef = useRef(false);
+
+  // Sync active meeting from sessionStorage (user in meeting but navigated away)
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const mid = sessionStorage.getItem("activeMeetingId");
+        const gid = sessionStorage.getItem("activeMeetingGroupId");
+        setActiveMeetingId(mid || null);
+        setActiveGroupId(gid || null);
+      } catch {
+        setActiveMeetingId(null);
+        setActiveGroupId(null);
+      }
+    };
+    sync();
+    const interval = setInterval(sync, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch initial count when socket connects (only once)
   useEffect(() => {
@@ -200,6 +219,22 @@ const AppLayout = ({ children }) => {
                   showName={true}
                   className="sidebar-user-photo"
                 />
+                {activeMeetingId && location.pathname !== "/meetings" && (
+                  <button
+                    type="button"
+                    className="sidebar-return-to-meeting"
+                    onClick={() => {
+                      navigate("/meetings", {
+                        state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
+                      });
+                      setIsSidebarOpen(false);
+                    }}
+                    aria-label="Return to meeting"
+                  >
+                    <VideoCamera size={18} weight="fill" />
+                    <span>Return to meeting</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -241,12 +276,13 @@ const AppLayout = ({ children }) => {
       {/* Fixed UserStatus on all pages - Hidden on mobile */}
       {!isMobile && (
         <div className="fixed-user-status">
-          <UserStatus user={user} />
+          <UserStatus
+            user={user}
+            activeMeetingId={activeMeetingId}
+            activeGroupId={activeGroupId}
+          />
         </div>
       )}
-
-      {/* Floating meeting tile - shows when in meeting and not on meeting page */}
-      {location.pathname !== "/meetings" && <FloatingMeetingTile />}
     </div>
   );
 };

@@ -31,7 +31,7 @@
   z-index: 2;
 }
 
-/* Empty place for comments - title + empty space */
+/* Empty place for comments - scroll localized to this container only */
 .meetings-comments-placeholder {
   flex-shrink: 0;
   position: relative;
@@ -40,6 +40,23 @@
   background: #ffffff;
   z-index: 1;
   height: 174px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.meetings-comments-placeholder::-webkit-scrollbar {
+  width: 6px;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-track {
+  background: transparent;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
 }
 
 .meetings-comments-title {
@@ -47,7 +64,7 @@
   font-weight: 700;
   color: #333;
   margin: 0 0 10px 0;
-padding: 16px 16px 0 10px;
+  padding: 16px 16px 0 10px;
 }
 
 
@@ -61,8 +78,8 @@ padding: 16px 16px 0 10px;
   .meeting-right-sidebar {
         width: 100%;
         margin: 0;
-        height: auto;
-        max-height: 50vh;
+        height: 50vh;
+        min-height: 200px;
         border-radius: 0;
     }
 }

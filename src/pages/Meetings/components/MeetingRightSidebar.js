@@ -153,17 +153,15 @@ const MeetingRightSidebar = () => {
     return (
         <div className="meeting-right-sidebar px-2">
             {/* Meeting Description + Resources */}
-            <div className="video-description-card p-4">
-                <div>
-                    <h3 className="video-description-title fw-semibold">Video Description</h3>
+            <div className="video-description-card">
+                <h3 className="video-description-title fw-semibold">Video Description</h3>
+                <div className="video-description-scroll">
                     <p className="video-description-subtitle">
                         {meetingDescription
                             ? meetingDescription
                             : "No description provided for this meeting."}
                     </p>
-                </div>
-
-                <div className="video-description-items">
+                    <div className="video-description-items">
                     {loadingResources ? (
                         <div className="description-item">
                             <span>Loading resources...</span>
@@ -191,6 +189,7 @@ const MeetingRightSidebar = () => {
                             </div>
                         ))
                     )}
+                    </div>
                 </div>
             </div>
 
