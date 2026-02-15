@@ -4,6 +4,7 @@ import { Paperclip, UserCircle } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
 import api from '../../../API/axiosInstance';
 import { smartToast } from '../../../API/toastManager';
+import { useMeetingContext } from '../../../context/MeetingContext';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -58,8 +59,7 @@ const MeetingRightSidebar = () => {
         );
     }, [location?.state?.meetingId, searchParams]);
 
-    const [participants, setParticipants] = useState([]);
-    const [loadingParticipants, setLoadingParticipants] = useState(false);
+    const { participants: socketParticipants, hasJoined } = useMeetingContext();
     const [meetingDescription, setMeetingDescription] = useState('');
     const [resources, setResources] = useState([]);
     const [loadingResources, setLoadingResources] = useState(false);
@@ -109,43 +109,8 @@ const MeetingRightSidebar = () => {
         }
     }, []);
 
-    useEffect(() => {
-        const fetchParticipants = async () => {
-            if (!meetingId) return;
-
-            setLoadingParticipants(true);
-            try {
-                const res = await api.get(`/meeting/${meetingId}/participants`);
-
-                // Support common backend response shapes:
-                // - { success, data: [...] }
-                // - { data: { success, data: [...] } }
-                // - plain array/object
-                const root = res?.data;
-                const nested = root?.data && (root?.success === undefined) ? root?.data : null;
-                const effective = nested || root;
-                const payload = effective?.data ?? effective;
-
-                const list =
-                    Array.isArray(payload) ? payload :
-                        Array.isArray(payload?.participants) ? payload.participants :
-                            Array.isArray(payload?.users) ? payload.users :
-                                [];
-
-                setParticipants(list);
-            } catch (err) {
-                console.error("❌ Error fetching meeting participants:", err);
-                smartToast.error(
-                    err.response?.data?.message || err.message || "Failed to load meeting participants."
-                );
-                setParticipants([]);
-            } finally {
-                setLoadingParticipants(false);
-            }
-        };
-
-        fetchParticipants();
-    }, [meetingId]);
+    // Participants are socket-driven from MeetingContext - no REST fetch
+    const participants = hasJoined ? socketParticipants : [];
 
     // Fetch meeting details to get description
     useEffect(() => {
@@ -240,12 +205,6 @@ const MeetingRightSidebar = () => {
                                 <span className="participant-status offline">Open meeting from “Join Meeting” to load participants</span>
                             </div>
                         </div>
-                    ) : loadingParticipants ? (
-                        <div className="participant-item">
-                            <div className="participant-info">
-                                <span className="participant-name fw-semibold">Loading...</span>
-                            </div>
-                        </div>
                     ) : participants.length === 0 ? (
                         <div className="participant-item">
                             <div className="participant-info">
@@ -253,11 +212,11 @@ const MeetingRightSidebar = () => {
                             </div>
                         </div>
                     ) : participants.map((participant, index) => (
-                        <div key={participant?.id || index} className="participant-item">
+                        <div key={participant?.socketId || participant?.member_id || participant?.id || index} className="participant-item">
                             <div className="participant-avatar">
-                                {participant?.member_photo ? (
+                                {(participant?.member_photo || participant?.memberPhoto || participant?.user_photo) ? (
                                     <img
-                                        src={participant.member_photo}
+                                        src={participant.member_photo || participant.memberPhoto || participant.user_photo}
                                         alt={getParticipantDisplayName(participant, index)}
                                         style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
                                     />
