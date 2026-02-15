@@ -34,6 +34,7 @@ const MeetingRoom = () => {
   const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream, isScreenShare? }]
   const [handRaisedMap, setHandRaisedMap] = useState({}); // { [socketId]: boolean }
   const [mediaStateMap, setMediaStateMap] = useState({}); // { [socketId]: { audioMuted, videoMuted } }
+  const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -1043,6 +1044,32 @@ const MeetingRoom = () => {
     };
   }, [socket]);
 
+  // Fetch meeting title from API when meetingId changes
+  useEffect(() => {
+    if (!meetingId) {
+      setMeetingTitle("");
+      return;
+    }
+    const fetchMeetingTitle = async () => {
+      try {
+        const res = await api.get(`/meeting/${meetingId}`);
+        const root = res?.data;
+        let meeting;
+        if (root?.data) {
+          meeting = Array.isArray(root.data)
+            ? root.data.find((m) => String(m.id) === String(meetingId))
+            : root.data;
+        } else if (root?.id) {
+          meeting = root;
+        }
+        setMeetingTitle(meeting?.title || "");
+      } catch {
+        setMeetingTitle("");
+      }
+    };
+    fetchMeetingTitle();
+  }, [meetingId]);
+
   // Periodically check if meeting is still active (every 10 seconds)
   useEffect(() => {
     if (!meetingId) return;
@@ -1470,7 +1497,7 @@ const MeetingRoom = () => {
       <div className="meeting-room-header">
         <div className="meeting-room-title-wrap">
           <h1 className="meeting-room-title">Meeting room</h1>
-          <p className="meeting-room-subtitle">Group Meeting name</p>
+          <p className="meeting-room-subtitle">{meetingTitle || "Meeting"}</p>
         </div>
         <button
           type="button"

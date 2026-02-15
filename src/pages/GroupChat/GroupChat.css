@@ -1780,13 +1780,20 @@ body.group-chat-active {
 .user-status {
   margin-top: auto;
   margin: 0;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: #ffffff;
   border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  transition: padding 0.25s ease, min-width 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Expanded when Return to Meeting is visible */
+.user-status.user-status-expanded {
+  padding: 8px 12px;
+  gap: 12px;
 }
 
 .status-avatar-container {
@@ -1888,15 +1895,32 @@ body.group-chat-active {
   color: #000000;
   margin-bottom: 4px;
   white-space: nowrap;
+  transition: font-size 0.25s ease, margin 0.25s ease;
+}
+
+.user-status-expanded .status-name {
+  font-size: 15px;
+  margin-bottom: 4px;
 }
 
 .status-online-row {
   display: flex;
   align-items: center;
+  gap: 8px;
+  transition: gap 0.25s ease;
+}
+
+.user-status-expanded .status-online-row {
   gap: 12px;
 }
 
 .status-online {
+  font-size: 12px;
+  color: #999999;
+  transition: font-size 0.25s ease;
+}
+
+.user-status-expanded .status-online {
   font-size: 13px;
   color: #999999;
 }
@@ -1926,6 +1950,34 @@ body.group-chat-active {
   fill: none;
   color: black !important;
   stroke-width: 1.5;
+}
+
+/* Return to Meeting - replaces mic/ear when user is in meeting */
+.status-return-to-meeting {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #00dc85;
+  color: #fff !important;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.status-return-to-meeting:hover {
+  background: #00b86d;
+  transform: scale(1.02);
+}
+.status-return-to-meeting svg {
+  color: #fff !important;
+  stroke: currentColor;
+  fill: currentColor;
+}
+.status-return-label {
+  white-space: nowrap;
 }
 
 /* Responsive Design */
