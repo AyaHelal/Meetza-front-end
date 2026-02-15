@@ -137,6 +137,11 @@ const MeetingRoom = () => {
     const stream = localStreamRef.current;
     if (stream) {
       stream.getTracks().forEach((t) => {
+        // Only add tracks that are enabled or if they're audio (audio should always be added)
+        // For video, if it's disabled, we still add it but it won't send data until enabled
+        if (t.kind === 'video' && !t.enabled) {
+          console.log("⚠️ Adding disabled video track to peer", peerSocketId, "- will show black until enabled");
+        }
         console.log("➕ Adding local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
         pc.addTrack(t, stream);
       });
@@ -234,15 +239,28 @@ const MeetingRoom = () => {
     console.log("🎥 Getting user media...");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "user"
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
       cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
+      // Ensure video track is enabled initially (respects videoMuted state)
+      if (cameraVideoTrackRef.current) {
+        cameraVideoTrackRef.current.enabled = !videoMuted;
+      }
       console.log("✅ Media stream obtained:", {
         videoTracks: stream.getVideoTracks().length,
         audioTracks: stream.getAudioTracks().length,
+        videoEnabled: cameraVideoTrackRef.current?.enabled,
       });
       // Add tracks to any existing peer connections
       setTimeout(() => addTracksToAllPeers(), 100);
@@ -251,7 +269,11 @@ const MeetingRoom = () => {
       console.warn("Camera denied, trying audio only...", videoErr);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: false,
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
@@ -261,7 +283,7 @@ const MeetingRoom = () => {
       setTimeout(() => addTracksToAllPeers(), 100);
       return stream;
     }
-  }, [addTracksToAllPeers]);
+  }, [addTracksToAllPeers, videoMuted]);
 
   const startAndJoinMeetingRtc = useCallback(async () => {
     if (!socket || !isConnected) return;
@@ -445,15 +467,42 @@ const MeetingRoom = () => {
     const stream = localStreamRef.current;
     if (!stream) return;
     console.log("🔄 Updating track states - videoMuted:", videoMuted, "audioMuted:", audioMuted);
-    stream.getVideoTracks().forEach((t) => {
+    const videoTracks = stream.getVideoTracks();
+    const audioTracks = stream.getAudioTracks();
+
+    videoTracks.forEach((t) => {
+      const wasEnabled = t.enabled;
       t.enabled = !videoMuted;
-      console.log("  Video track enabled:", t.enabled);
+      console.log("  Video track enabled:", t.enabled, "was:", wasEnabled);
+
+      // If video was just enabled and we have peers, trigger renegotiation
+      if (!wasEnabled && t.enabled && peersRef.current.size > 0) {
+        console.log("🔄 Video enabled, triggering renegotiation for all peers");
+        const mid = meetingIdRef.current;
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+          // Check if video track is already in the connection
+          const hasVideoSender = pc.getSenders().some(s => s.track && s.track.kind === 'video');
+          if (!hasVideoSender && t) {
+            // Add video track if it's missing
+            pc.addTrack(t, stream);
+          }
+          // Trigger renegotiation
+          pc.createOffer().then(offer => {
+            pc.setLocalDescription(offer).then(() => {
+              if (socket && mid) {
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+              }
+            }).catch(err => console.error("❌ Error renegotiating after enabling video:", err));
+          }).catch(err => console.error("❌ Error creating offer after enabling video:", err));
+        }
+      }
     });
-    stream.getAudioTracks().forEach((t) => {
+
+    audioTracks.forEach((t) => {
       t.enabled = !audioMuted;
       console.log("  Audio track enabled:", t.enabled);
     });
-  }, [videoMuted, audioMuted]);
+  }, [videoMuted, audioMuted, socket]);
 
   // Fetch meeting participants (names/photos) via REST for in-room display
   useEffect(() => {
@@ -1233,7 +1282,14 @@ const MeetingRoom = () => {
 
     if (!screenSharing) {
       try {
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            displaySurface: "monitor",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: true
+        });
         const screenTrack = displayStream.getVideoTracks()?.[0];
         if (!screenTrack) return;
 
@@ -1250,6 +1306,21 @@ const MeetingRoom = () => {
             console.log("🔄 Replacing track for peer", peerSocketId);
             try {
               await sender.replaceTrack(screenTrack);
+              // Always trigger renegotiation after replacing track
+              try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
+                  if (ack && !ack.ok) {
+                    console.error("❌ Screen share renegotiation failed:", ack);
+                  } else {
+                    console.log("✅ Screen share renegotiation sent to", peerSocketId);
+                  }
+                });
+              } catch (renegErr) {
+                console.error("❌ Renegotiation for screen share failed:", renegErr);
+              }
               console.log("✅ Screen share track replaced for", peerSocketId);
             } catch (err) {
               console.error("❌ Failed to replace track for", peerSocketId, ":", err);
@@ -1283,9 +1354,22 @@ const MeetingRoom = () => {
         screenTrack.onended = async () => {
           try {
             const cameraTrack = cameraVideoTrackRef.current;
-            for (const pc of peersRef.current.values()) {
+            const mid = meetingIdRef.current;
+            for (const [peerSocketId, pc] of peersRef.current.entries()) {
               const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-              if (sender) await sender.replaceTrack(cameraTrack || null);
+              if (sender) {
+                await sender.replaceTrack(cameraTrack || null);
+                // Trigger renegotiation after replacing back to camera
+                try {
+                  const offer = await pc.createOffer();
+                  await pc.setLocalDescription(offer);
+                  if (socket && mid) {
+                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+                  }
+                } catch (err) {
+                  console.error("❌ Renegotiation after screen share ended failed:", err);
+                }
+              }
             }
             const restored = cameraTrack
               ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
@@ -1302,6 +1386,7 @@ const MeetingRoom = () => {
       } catch (e) {
         console.error("❌ Screen share failed:", e);
         smartToast.error("Screen share failed.");
+        setScreenSharing(false);
       }
     } else {
       const screenTrack = screenTrackRef.current;
@@ -1310,9 +1395,23 @@ const MeetingRoom = () => {
         screenTrackRef.current = null;
       }
       const cameraTrack = cameraVideoTrackRef.current;
-      for (const pc of peersRef.current.values()) {
+      const mid = meetingIdRef.current;
+      for (const [peerSocketId, pc] of peersRef.current.entries()) {
         const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) sender.replaceTrack(cameraTrack || null).catch(() => { });
+        if (sender) {
+          sender.replaceTrack(cameraTrack || null).then(async () => {
+            // Trigger renegotiation after replacing back to camera
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              if (socket && mid) {
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+              }
+            } catch (err) {
+              console.error("❌ Renegotiation after stopping screen share failed:", err);
+            }
+          }).catch(() => { });
+        }
       }
       const restored = cameraTrack
         ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
