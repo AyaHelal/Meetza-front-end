@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Microphone,
@@ -25,9 +26,11 @@ const MeetingRoom = () => {
   const [audioMuted, setAudioMuted] = useState(true);
   const [videoMuted, setVideoMuted] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
+  const [handRaisedMap, setHandRaisedMap] = useState({}); // { memberKey: true } for remote participants
   const [screenSharing, setScreenSharing] = useState(false);
   const [participants, setParticipants] = useState([]); // from REST: [{member_id, member_name, member_photo, ...}]
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [fullscreenOverlay, setFullscreenOverlay] = useState(null); // { stream, label }
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -40,6 +43,7 @@ const MeetingRoom = () => {
   const cameraVideoTrackRef = useRef(null);
   const meetingIdRef = useRef(null);
   const startedRef = useRef(false);
+  const selfMemberIdRef = useRef(null);
   const localVideoRef = useRef(null);
   const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
   const sliderViewportRef = useRef(null);
@@ -47,6 +51,8 @@ const MeetingRoom = () => {
   const makingOffer = useRef(false); // Track if we're currently making an offer
   const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
   const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
+  const addTracksToAllPeersRef = useRef(() => {});
+  const fullscreenVideoRef = useRef(null);
 
   const meetingId = useMemo(() => {
     // Prefer navigation state (set when joining), then query string (?meetingId=...)
@@ -60,6 +66,12 @@ const MeetingRoom = () => {
   useEffect(() => {
     meetingIdRef.current = meetingId;
   }, [meetingId]);
+
+  // Always start with mic and camera OFF for everyone (join or refresh)
+  useEffect(() => {
+    setAudioMuted(true);
+    setVideoMuted(true);
+  }, []);
 
   const upsertRemoteStream = useCallback((socketId, stream) => {
     if (!socketId || !stream) return;
@@ -128,8 +140,20 @@ const MeetingRoom = () => {
           trackEnabled: event.track.enabled,
         });
         upsertRemoteStream(peerSocketId, stream);
+        stream.getVideoTracks().forEach((t) => {
+          const onTrackChange = () => setRemoteStreams((prev) => [...prev]);
+          t.addEventListener("ended", onTrackChange);
+          t.addEventListener("mute", onTrackChange);
+          t.addEventListener("unmute", onTrackChange);
+        });
       } else {
         console.warn("⚠️ onTrack event but no stream found for", peerSocketId);
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected") {
+        addTracksToAllPeersRef.current?.();
       }
     };
 
@@ -147,41 +171,52 @@ const MeetingRoom = () => {
     return pc;
   }, [socket, upsertRemoteStream]);
 
-  // Add tracks to all existing peer connections when local stream becomes available
-  const addTracksToAllPeers = useCallback(() => {
+  // Add tracks to all existing peer connections and renegotiate so others see the new tracks
+  const addTracksToAllPeers = useCallback(async () => {
     const stream = localStreamRef.current;
     if (!stream) return;
 
-    for (const [peerSocketId, pc] of peersRef.current.entries()) {
-      // Check if tracks are already added
-      const senders = pc.getSenders();
-      const hasVideo = senders.some(s => s.track && s.track.kind === 'video');
-      const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
+    const peers = Array.from(peersRef.current.entries());
+    for (let i = 0; i < peers.length; i++) {
+      const [peerSocketId, pc] = peers[i];
+      if (i > 0) await new Promise((r) => setTimeout(r, 120));
 
-      if (!hasVideo || !hasAudio) {
-        console.log("🔄 Adding missing tracks to peer", peerSocketId);
+      const senders = pc.getSenders();
+      const hasVideo = senders.some((s) => s.track && s.track.kind === "video");
+      const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
+      const streamHasVideo = stream.getVideoTracks().length > 0;
+      const streamHasAudio = stream.getAudioTracks().length > 0;
+
+      const needVideo = streamHasVideo && !hasVideo;
+      const needAudio = streamHasAudio && !hasAudio;
+
+      if (needVideo || needAudio) {
+        console.log("🔄 Adding missing tracks to peer", peerSocketId, { needVideo, needAudio });
         stream.getTracks().forEach((t) => {
-          const existing = senders.find(s => s.track && s.track.kind === t.kind);
+          const existing = senders.find((s) => s.track && s.track.kind === t.kind);
           if (!existing) {
             pc.addTrack(t, stream);
             console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
           }
         });
 
-        // Trigger renegotiation if needed
-        if (!hasVideo || !hasAudio) {
-          pc.createOffer().then(offer => {
-            pc.setLocalDescription(offer).then(() => {
-              const mid = meetingIdRef.current;
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            }).catch(err => console.error("❌ Error renegotiating after adding tracks:", err));
-          }).catch(err => console.error("❌ Error creating offer after adding tracks:", err));
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const mid = meetingIdRef.current;
+          if (socket && mid) {
+            socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
+              if (ack && !ack.ok) console.warn("⚠️ Renegotiation offer failed:", ack);
+              else console.log("✅ Renegotiation offer sent to", peerSocketId);
+            });
+          }
+        } catch (err) {
+          console.error("❌ Error renegotiating after adding tracks:", err);
         }
       }
     }
   }, [socket]);
+  addTracksToAllPeersRef.current = addTracksToAllPeers;
 
   // Create and send offer to a peer (only if we're the impolite peer)
   const createAndSendOffer = useCallback(async (targetSocketId) => {
@@ -231,37 +266,14 @@ const MeetingRoom = () => {
 
   const ensureLocalMedia = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
-    console.log("🎥 Getting user media...");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
-      console.log("✅ Media stream obtained:", {
-        videoTracks: stream.getVideoTracks().length,
-        audioTracks: stream.getAudioTracks().length,
-      });
-      // Add tracks to any existing peer connections
-      setTimeout(() => addTracksToAllPeers(), 100);
-      return stream;
-    } catch (videoErr) {
-      console.warn("Camera denied, trying audio only...", videoErr);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: true,
-      });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      cameraVideoTrackRef.current = null;
-      console.log("✅ Audio-only stream obtained (camera not required)");
-      // Add tracks to any existing peer connections
-      setTimeout(() => addTracksToAllPeers(), 100);
-      return stream;
-    }
-  }, [addTracksToAllPeers]);
+    // No getUserMedia on join - mic and camera stay OFF until user clicks to enable
+    console.log("🎥 Starting with empty stream - mic/camera off until you enable them");
+    const stream = new MediaStream();
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    cameraVideoTrackRef.current = null;
+    return stream;
+  }, []);
 
   const startAndJoinMeetingRtc = useCallback(async () => {
     if (!socket || !isConnected) return;
@@ -273,8 +285,8 @@ const MeetingRoom = () => {
     try {
       await ensureLocalMedia();
     } catch (e) {
-      console.error("❌ getUserMedia failed:", e);
-      smartToast.error("Could not access camera/microphone.");
+      console.error("❌ Failed to init local stream:", e);
+      smartToast.error("Could not initialize meeting.");
       startedRef.current = false;
       return;
     }
@@ -290,6 +302,11 @@ const MeetingRoom = () => {
       }
       console.log("✅ Successfully joined meeting room");
 
+      // Force mic and camera OFF on join - only turn on when user clicks
+      setAudioMuted(true);
+      setVideoMuted(true);
+      socket.emit("updateMediaState", { meetingId: mid, audioMuted: true, videoMuted: true });
+
       // Persist active meeting so that other parts of the app (e.g. logout handler, floating tile)
       // can perform a proper leave if the user logs out while in a meeting.
       try {
@@ -302,6 +319,26 @@ const MeetingRoom = () => {
 
       const participants = Array.isArray(ack?.participants) ? ack.participants : [];
       console.log("👥 Found existing participants:", participants.length, "Full ack:", ack);
+
+      // Add existing participants to state so we have their tiles (for hand raise, reactions, etc.)
+      if (participants.length > 0) {
+        setParticipants((prev) => {
+          const next = [...prev];
+          for (const p of participants) {
+            const userId = p?.userId || p?.member_id || p?.memberId || p?.user_id;
+            if (!userId) continue;
+            const exists = next.some((x) => String(x?.member_id) === String(userId));
+            if (exists) continue;
+            next.push({
+              member_id: userId,
+              member_name: p?.name || p?.member_name || p?.memberName,
+              member_email: p?.email || p?.member_email,
+              member_photo: p?.user_photo || p?.member_photo || p?.memberPhoto,
+            });
+          }
+          return next;
+        });
+      }
 
       // If backend doesn't send participants in ack, try to get them from REST API
       if (participants.length === 0) {
@@ -404,6 +441,14 @@ const MeetingRoom = () => {
     startedRef.current = false;
   }, [closePeer, socket]);
 
+  // Ensure mic and camera stay OFF when entering meeting (reset on mount/meetingId)
+  useEffect(() => {
+    if (meetingId) {
+      setAudioMuted(true);
+      setVideoMuted(true);
+    }
+  }, [meetingId]);
+
   // Auto-start RTC when entering meeting page with meetingId
   useEffect(() => {
     if (!meetingId || !socket || !isConnected) {
@@ -425,6 +470,19 @@ const MeetingRoom = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, socket, isConnected]);
 
+  // Periodically re-sync tracks to peers (fixes camera/mic/screen after someone refreshes)
+  useEffect(() => {
+    if (!meetingId || !socket) return;
+    const syncTracks = () => {
+      const stream = localStreamRef.current;
+      if (!stream) return;
+      if (peersRef.current.size === 0) return;
+      addTracksToAllPeers();
+    };
+    const interval = setInterval(syncTracks, 1500);
+    return () => clearInterval(interval);
+  }, [meetingId, socket, addTracksToAllPeers]);
+
   // Attach stream to both video elements when it changes (incl. when screen share starts)
   useEffect(() => {
     const stream = localStreamRef.current;
@@ -440,20 +498,17 @@ const MeetingRoom = () => {
     }
   }, [videoMuted, audioMuted, screenSharing]);
 
-  // Handle video/audio track enabled state
+  // Handle video/audio track enabled state (when screen sharing, keep video track enabled - it's the screen)
   useEffect(() => {
     const stream = localStreamRef.current;
     if (!stream) return;
-    console.log("🔄 Updating track states - videoMuted:", videoMuted, "audioMuted:", audioMuted);
     stream.getVideoTracks().forEach((t) => {
-      t.enabled = !videoMuted;
-      console.log("  Video track enabled:", t.enabled);
+      t.enabled = screenSharing ? true : !videoMuted;
     });
     stream.getAudioTracks().forEach((t) => {
       t.enabled = !audioMuted;
-      console.log("  Audio track enabled:", t.enabled);
     });
-  }, [videoMuted, audioMuted]);
+  }, [videoMuted, audioMuted, screenSharing]);
 
   // Fetch meeting participants (names/photos) via REST for in-room display
   useEffect(() => {
@@ -509,9 +564,28 @@ const MeetingRoom = () => {
         member_id: data?.member_id || data?.memberId || data?.userId || data?.user_id,
         member_name: data?.member_name || data?.memberName || data?.name,
         member_photo: data?.member_photo || data?.memberPhoto || data?.photo,
+        member_email: data?.member_email || data?.email,
       };
-      if (meta.member_id || meta.member_name || meta.member_photo) {
+      if (meta.member_id || meta.member_name || meta.member_photo || meta.member_email) {
         peerMetaRef.current.set(peerSocketId, meta);
+      }
+
+      // Add to participants list so they appear in meeting room without refresh
+      const userId = meta.member_id || data?.userId || data?.user_id;
+      if (userId) {
+        setParticipants((prev) => {
+          const exists = prev.some((p) => String(p.member_id) === String(userId));
+          if (exists) return prev;
+          return [
+            ...prev,
+            {
+              member_id: userId,
+              member_name: meta.member_name || data?.name,
+              member_email: meta.member_email || data?.email,
+              member_photo: meta.member_photo || data?.user_photo,
+            },
+          ];
+        });
       }
 
       console.log("🔗 Creating peer connection for new participant", peerSocketId);
@@ -523,21 +597,37 @@ const MeetingRoom = () => {
       if (socket.id < peerSocketId) {
         polite.current.set(peerSocketId, false); // We are impolite
         console.log("🔵 We are impolite for new participant", peerSocketId, "(our id is smaller)");
-        // We initiate the offer
         await createAndSendOffer(peerSocketId);
       } else {
         polite.current.set(peerSocketId, true); // We are polite
         console.log("🟢 We are polite for new participant", peerSocketId, "(their id is smaller)");
         // We wait for their offer
       }
+      // Re-sync tracks multiple times (participant may have just refreshed - connection takes time)
+      [400, 1000, 2200, 4000, 7000, 11000].forEach((ms) => setTimeout(() => addTracksToAllPeers(), ms));
     };
 
     const onParticipantLeft = (data) => {
       const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
+      const userId = data?.userId || data?.user_id || data?.member_id;
       const mid = data?.meetingId;
       if (!peerSocketId || !mid) return;
       if (mid !== meetingIdRef.current) return;
+
+      const meta = peerMetaRef.current.get(peerSocketId);
+      const memberId = userId || meta?.member_id;
+
+      removeRemoteStream(peerSocketId);
       peerMetaRef.current.delete(peerSocketId);
+      setParticipants((prev) =>
+        memberId ? prev.filter((p) => String(p.member_id) !== String(memberId)) : prev
+      );
+      setHandRaisedMap((prev) => {
+        const next = { ...prev };
+        delete next[String(peerSocketId)];
+        if (memberId) delete next[String(memberId)];
+        return next;
+      });
       closePeer(peerSocketId);
     };
 
@@ -734,9 +824,32 @@ const MeetingRoom = () => {
     // Unified event names: participantJoined, participantLeft, participantsList
     socket.on("participantJoined", onParticipantJoined);
     socket.on("participantLeft", onParticipantLeft);
+    socket.on("requestMedia", (data) => {
+      const mid = data?.meetingId;
+      if (mid && mid === meetingIdRef.current) {
+        [0, 300, 800, 1800].forEach((ms) => setTimeout(() => addTracksToAllPeersRef.current?.(), ms));
+      }
+    });
     socket.on("participantsList", async (participants) => {
       console.log("📋 Received participantsList event:", participants);
       if (!Array.isArray(participants)) return;
+
+      setParticipants((prev) => {
+        const next = [...prev];
+        for (const p of participants) {
+          const userId = p?.userId || p?.member_id || p?.memberId;
+          if (!userId) continue;
+          const exists = next.some((x) => String(x?.member_id) === String(userId));
+          if (exists) continue;
+          next.push({
+            member_id: userId,
+            member_name: p?.member_name || p?.name || p?.memberName,
+            member_email: p?.member_email || p?.email,
+            member_photo: p?.member_photo || p?.user_photo || p?.photo,
+          });
+        }
+        return next;
+      });
 
       const stream = localStreamRef.current;
       if (!stream) {
@@ -753,9 +866,10 @@ const MeetingRoom = () => {
         const meta = {
           member_id: p?.member_id || p?.memberId || p?.userId || p?.user_id,
           member_name: p?.member_name || p?.memberName || p?.name,
+          member_email: p?.member_email || p?.email,
           member_photo: p?.member_photo || p?.memberPhoto || p?.photo,
         };
-        if (meta.member_id || meta.member_name || meta.member_photo) {
+        if (meta.member_id || meta.member_name || meta.member_photo || meta.member_email) {
           peerMetaRef.current.set(peerSocketId, meta);
         }
 
@@ -780,19 +894,27 @@ const MeetingRoom = () => {
     socket.on("webrtcIceCandidate", onIceCandidate);
     const onReaction = (data) => {
       try {
-        console.log("🎉 Received reaction event:", data);
         const mid = data?.meetingId;
-        if (!mid || mid !== meetingIdRef.current) {
-          console.log("⚠️ Ignoring reaction - wrong meeting or missing meetingId", { received: mid, current: meetingIdRef.current });
-          return;
-        }
-        const type = data?.type || data?.reaction || "like";
-        const fromMemberId = data?.member_id || data?.memberId || null;
+        if (!mid || mid !== meetingIdRef.current) return;
+        const fromMemberId = data?.member_id || data?.memberId || data?.userId || null;
         const fromSocketId = data?.fromSocketId || data?.from || data?.socketId || null;
+        if (fromMemberId && String(fromMemberId) === String(selfMemberIdRef.current)) return;
+        if (fromSocketId && fromSocketId === socket.id) return;
+        const type = data?.type || data?.reaction || "like";
         const fromName = data?.member_name || data?.memberName || data?.name || (fromSocketId ? getPeerLabel(fromSocketId) : null) || "Someone";
-        const key = fromMemberId || fromSocketId || fromName;
-        console.log("✅ Processing reaction:", { type, fromName, key });
-        addReactionToMap(key, type, fromName);
+        const keysToAdd = [fromMemberId && String(fromMemberId), fromSocketId && String(fromSocketId), fromName && fromName !== "Someone" ? fromName : null].filter(Boolean);
+        if (keysToAdd.length === 0) return;
+        setReactionsMap((prev) => {
+          const next = { ...prev };
+          for (const k of keysToAdd) {
+            const entry = next[k] ? { ...next[k] } : {};
+            const list = Array.isArray(entry[type]) ? [...entry[type]] : [];
+            if (!list.includes(fromName)) list.push(fromName);
+            entry[type] = list;
+            next[k] = entry;
+          }
+          return next;
+        });
       } catch (e) {
         console.error("❌ Error handling reaction event:", e, data);
       }
@@ -802,10 +924,33 @@ const MeetingRoom = () => {
     socket.on("meetingReaction", onReaction);
     socket.on("reactionReceived", onReaction);
 
+    const onHandRaised = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+      const userId = data?.userId || data?.member_id || data?.memberId;
+      const socketId = data?.socketId || data?.fromSocketId;
+      if (userId && String(userId) === String(selfMemberIdRef.current)) return;
+      if (socketId && socketId === socket.id) return;
+      const raised = data?.raised !== false;
+      const peerLabel = socketId ? getPeerLabel(socketId) : null;
+      const keysToUpdate = [userId && String(userId), socketId && String(socketId), peerLabel && peerLabel !== "Someone" ? peerLabel : null].filter(Boolean);
+      if (keysToUpdate.length === 0) return;
+      setHandRaisedMap((prev) => {
+        const next = raised ? { ...prev } : { ...prev };
+        for (const k of keysToUpdate) {
+          if (raised) next[k] = true;
+          else delete next[k];
+        }
+        return next;
+      });
+    };
+    socket.on("handRaised", onHandRaised);
+
     return () => {
       console.log("🧹 Removing socket listeners");
       socket.off("participantJoined", onParticipantJoined);
       socket.off("participantLeft", onParticipantLeft);
+      socket.off("requestMedia");
       socket.off("participantsList");
       socket.off("webrtcOffer", onWebrtcOffer);
       socket.off("webrtcAnswer", onWebrtcAnswer);
@@ -813,9 +958,10 @@ const MeetingRoom = () => {
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);
+      socket.off("handRaised", onHandRaised);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closePeer, createPeerConnection, socket, createAndSendOffer]);
+  }, [closePeer, createPeerConnection, socket, createAndSendOffer, removeRemoteStream]);
 
   const getPeerLabel = useCallback((socketId) => {
     const meta = peerMetaRef.current.get(socketId);
@@ -823,6 +969,7 @@ const MeetingRoom = () => {
   }, []);
 
   const selfMemberId = useMemo(() => user?.id || user?.member_id || null, [user?.id, user?.member_id]);
+  selfMemberIdRef.current = selfMemberId;
   const selfEmail = useMemo(() => user?.email || null, [user?.email]);
   const selfPhoto = useMemo(
     () => user?.user_photo || user?.photo || user?.member_photo || null,
@@ -889,6 +1036,69 @@ const MeetingRoom = () => {
     },
     [remoteStreams]
   );
+
+  // Unified tiles: exactly one per person. Stream-first: camera/screen or photo. No duplicates.
+  const unifiedParticipantTiles = useMemo(() => {
+    const tiles = [];
+    const seenMemberIds = new Set();
+    const seenSocketIds = new Set();
+
+    for (const { socketId, stream } of remoteStreams) {
+      if (seenSocketIds.has(socketId)) continue;
+      seenSocketIds.add(socketId);
+      const meta = peerMetaRef.current.get(socketId);
+      const memberId = meta?.member_id;
+      const p = displayParticipants.find((x) => memberId && String(x?.member_id) === String(memberId));
+      const key = memberId ? String(memberId) : socketId;
+      if (seenMemberIds.has(key)) continue;
+      seenMemberIds.add(key);
+      tiles.push({
+        key: `tile-${key}`,
+        label: p?.member_name || meta?.member_name || meta?.member_id || getPeerLabel(socketId),
+        member_photo: p?.member_photo || meta?.member_photo,
+        member_id: memberId,
+        member_email: p?.member_email || meta?.member_email,
+        stream,
+        socketId,
+      });
+    }
+
+    for (const p of displayParticipants) {
+      const memberId = p?.member_id ?? p?.id;
+      const key = memberId ? String(memberId) : p?.member_email || `p-${Math.random()}`;
+      if (seenMemberIds.has(String(key))) continue;
+      const stream = getParticipantStream(p);
+      if (stream) continue;
+      seenMemberIds.add(String(key));
+      tiles.push({
+        key: `tile-${key}`,
+        label: p?.member_name || "Member",
+        member_photo: p?.member_photo,
+        member_id: memberId,
+        member_email: p?.member_email,
+        stream: null,
+        socketId: null,
+      });
+    }
+    return tiles;
+  }, [displayParticipants, remoteStreams, getParticipantStream, getPeerLabel]);
+
+  // Get all possible keys for a tile (for reaction/handRaised lookup) - maximizes match chance
+  const getTileLookupKeys = useCallback((tile) => {
+    const keys = new Set();
+    const add = (v) => v != null && v !== "" && keys.add(String(v));
+    add(tile?.member_id);
+    add(tile?.member_email);
+    add(tile?.socketId);
+    add(tile?.label);
+    const memberId = tile?.member_id;
+    if (memberId) {
+      for (const [sid, meta] of peerMetaRef.current.entries()) {
+        if (meta?.member_id && String(meta.member_id) === String(memberId)) add(sid);
+      }
+    }
+    return Array.from(keys);
+  }, []);
 
   const handleLeaveMeeting = async () => {
     try {
@@ -1047,30 +1257,110 @@ const MeetingRoom = () => {
     return () => clearInterval(interval);
   }, [meetingId]);
 
-  const handleToggleAudio = () => {
-    const next = !audioMuted;
-    setAudioMuted(next);
+  const handleToggleAudio = async () => {
     const stream = localStreamRef.current;
-    if (stream) {
-      stream.getAudioTracks().forEach((t) => (t.enabled = !next));
-    }
+    const audioTracks = stream?.getAudioTracks?.() || [];
     const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted: next, videoMuted });
+
+    if (!audioMuted) {
+      setAudioMuted(true);
+      audioTracks.forEach((t) => (t.enabled = false));
+      for (const pc of peersRef.current.values()) {
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+        if (sender) sender.replaceTrack(null).catch(() => {});
+      }
+      if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted: true, videoMuted });
+      return;
     }
+
+    if (audioTracks.length === 0) {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioTrack = audioStream.getAudioTracks()[0];
+        if (audioTrack && stream) {
+          stream.addTrack(audioTrack);
+          await addTracksToAllPeers();
+          [500, 1200].forEach((ms) => setTimeout(() => addTracksToAllPeers(), ms));
+        }
+      } catch (err) {
+        console.error("❌ Could not get microphone:", err);
+        smartToast.error("Could not access microphone.");
+        return;
+      }
+    }
+
+    setAudioMuted(false);
+    const audioTrack = localStreamRef.current?.getAudioTracks?.()?.[0];
+    localStreamRef.current?.getAudioTracks?.().forEach((t) => (t.enabled = true));
+    for (const pc of peersRef.current.values()) {
+      const sender = pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+      if (sender && audioTrack) sender.replaceTrack(audioTrack).catch(() => {});
+    }
+    addTracksToAllPeers();
+    setTimeout(() => addTracksToAllPeers(), 800);
+    if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted: false, videoMuted });
   };
 
-  const handleToggleVideo = () => {
-    const next = !videoMuted;
-    setVideoMuted(next);
+  const handleToggleVideo = async () => {
     const stream = localStreamRef.current;
-    if (stream) {
-      stream.getVideoTracks().forEach((t) => (t.enabled = !next));
-    }
+    const videoTracks = stream?.getVideoTracks?.() || [];
     const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: next });
+
+    if (!videoMuted) {
+      setVideoMuted(true);
+      videoTracks.forEach((t) => (t.enabled = false));
+      if (!screenSharing) {
+        for (const pc of peersRef.current.values()) {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(null).catch(() => {});
+        }
+      }
+      if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: true });
+      return;
     }
+
+    if (videoTracks.length === 0) {
+      try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTrack = videoStream.getVideoTracks()[0];
+        if (videoTrack && stream) {
+          stream.addTrack(videoTrack);
+          cameraVideoTrackRef.current = videoTrack;
+          setVideoMuted(false);
+          await addTracksToAllPeers();
+          [500, 1200].forEach((ms) => setTimeout(() => addTracksToAllPeers(), ms));
+          setTimeout(() => {
+            const s = localStreamRef.current;
+            if (localVideoRef.current && s) {
+              localVideoRef.current.srcObject = s;
+              localVideoRef.current.play?.().catch(() => {});
+            }
+            if (localVideoRef2.current && s) {
+              localVideoRef2.current.srcObject = s;
+              localVideoRef2.current.play?.().catch(() => {});
+            }
+          }, 0);
+          return;
+        }
+      } catch (err) {
+        console.error("❌ Could not get camera:", err);
+        smartToast.error("Could not access camera.");
+        return;
+      }
+    }
+
+    setVideoMuted(false);
+    localStreamRef.current?.getVideoTracks?.().forEach((t) => (t.enabled = true));
+    if (!screenSharing) {
+      const camTrack = cameraVideoTrackRef.current || localStreamRef.current?.getVideoTracks?.()?.[0];
+      for (const pc of peersRef.current.values()) {
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender && camTrack) sender.replaceTrack(camTrack).catch(() => {});
+      }
+      addTracksToAllPeers();
+      setTimeout(() => addTracksToAllPeers(), 800);
+    }
+    if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: false });
   };
 
   const handleToggleHand = () => {
@@ -1091,9 +1381,40 @@ const MeetingRoom = () => {
       if (exit) exit.call(doc);
     } else {
       const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-      if (req) req.call(el);
+      if (req) {
+        const p = req.call(el);
+        if (p && typeof p.catch === "function") p.catch((err) => console.warn("Fullscreen failed:", err));
+      }
     }
   };
+
+  useEffect(() => {
+    if (!fullscreenOverlay) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onEsc = (e) => {
+      if (e.key === "Escape") setFullscreenOverlay(null);
+    };
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("keydown", onEsc);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [fullscreenOverlay]);
+
+  // Set fullscreen video srcObject and play - ensure screen share displays (no black screen)
+  useEffect(() => {
+    if (!fullscreenOverlay?.stream) return;
+    const el = fullscreenVideoRef.current;
+    if (!el) return;
+    const stream = fullscreenOverlay.stream;
+    stream.getVideoTracks().forEach((t) => { t.enabled = true; });
+    el.srcObject = stream;
+    const play = () => el.play?.().catch(() => {});
+    play();
+    [100, 300, 500].forEach((ms) => setTimeout(play, ms));
+    return () => {};
+  }, [fullscreenOverlay]);
 
   const isScreenShareStream = (stream) => {
     if (!stream) return false;
@@ -1109,6 +1430,12 @@ const MeetingRoom = () => {
         return false;
       }
     });
+  };
+
+  // Stream has visible video (enabled live track) - avoid black screen, show photo when video off/ended
+  const hasVisibleVideo = (stream) => {
+    if (!stream) return false;
+    return stream.getVideoTracks().some((t) => t.enabled && t.readyState === "live");
   };
 
   const handleSendLike = () => {
@@ -1243,30 +1570,24 @@ const MeetingRoom = () => {
         const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
         const mid = meetingIdRef.current;
 
-        console.log("🖥️ Replacing video tracks with screen share for", peersRef.current.size, "peers");
-        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+        const peerEntries = Array.from(peersRef.current.entries());
+        for (let i = 0; i < peerEntries.length; i++) {
+          if (i > 0) await new Promise((r) => setTimeout(r, 120));
+          const [peerSocketId, pc] = peerEntries[i];
           const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
           if (sender) {
-            console.log("🔄 Replacing track for peer", peerSocketId);
             try {
               await sender.replaceTrack(screenTrack);
-              console.log("✅ Screen share track replaced for", peerSocketId);
             } catch (err) {
               console.error("❌ Failed to replace track for", peerSocketId, ":", err);
             }
           } else {
-            console.log("➕ Adding screen share track to peer", peerSocketId);
             pc.addTrack(screenTrack, streamForScreen);
             try {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-              console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
               socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                if (ack && !ack.ok) {
-                  console.error("❌ Screen share renegotiation failed:", ack);
-                } else {
-                  console.log("✅ Screen share renegotiation sent to", peerSocketId);
-                }
+                if (ack && !ack.ok) console.error("❌ Screen share renegotiation failed:", ack);
               });
             } catch (err) {
               console.error("❌ Renegotiation for screen share failed:", err);
@@ -1277,8 +1598,15 @@ const MeetingRoom = () => {
         const newStream = new MediaStream([...stream.getAudioTracks(), screenTrack]);
         localStreamRef.current = newStream;
         setLocalStream(newStream);
-        if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
-        if (localVideoRef2.current) localVideoRef2.current.srcObject = newStream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = newStream;
+          localVideoRef.current.play?.().catch(() => {});
+        }
+        if (localVideoRef2.current) {
+          localVideoRef2.current.srcObject = newStream;
+          localVideoRef2.current.play?.().catch(() => {});
+        }
+        setTimeout(() => addTracksToAllPeers(), 500);
 
         screenTrack.onended = async () => {
           try {
@@ -1310,9 +1638,12 @@ const MeetingRoom = () => {
         screenTrackRef.current = null;
       }
       const cameraTrack = cameraVideoTrackRef.current;
-      for (const pc of peersRef.current.values()) {
+      const peerList = Array.from(peersRef.current.values());
+      for (let i = 0; i < peerList.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 80));
+        const pc = peerList[i];
         const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) sender.replaceTrack(cameraTrack || null).catch(() => { });
+        if (sender) await sender.replaceTrack(cameraTrack || null).catch(() => {});
       }
       const restored = cameraTrack
         ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
@@ -1393,175 +1724,89 @@ const MeetingRoom = () => {
                 <span className="meeting-room-tile-badge you">You</span>
               </div>
 
-              {/* Participants tiles (from GET /meeting/{id}/participants) */}
+              {/* Unified participant tiles: one per person, shows stream (screen/camera) or photo or initial */}
               {loadingParticipants ? (
                 <div className="meeting-room-tile">
                   <div className="meeting-room-tile-avatar">
                     <span className="meeting-room-tile-initial">...</span>
                   </div>
                 </div>
-              ) : displayParticipants.length === 0 ? null : (
-                displayParticipants.map((p) => {
-                  const label = p?.member_name || "Member";
-                  const stream = getParticipantStream(p);
-                  const isRemoteScreenShare = isScreenShareStream(stream);
-                  return (
-                    <div
-                      key={p?.id || p?.member_id || label}
-                      className="meeting-room-tile"
-                      role={isRemoteScreenShare ? "button" : undefined}
-                      tabIndex={isRemoteScreenShare ? 0 : undefined}
-                      onClick={(e) => {
-                        if (isRemoteScreenShare && e.currentTarget) {
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
-                          e.preventDefault();
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
-                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
-                    >
-                      <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                        {stream ? (
-                          <video
-                            autoPlay
-                            playsInline
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            ref={(el) => {
-                              if (el && stream) {
-                                if (el.srcObject !== stream) {
-                                  console.log("🎥 Setting video srcObject for participant:", label, "stream:", {
-                                    videoTracks: stream.getVideoTracks().length,
-                                    audioTracks: stream.getAudioTracks().length,
-                                  });
-                                  el.srcObject = stream;
-                                  el.play?.().catch((err) => {
-                                    console.warn("⚠️ Video play failed for", label, ":", err);
-                                  });
-                                }
-                              }
-                            }}
-                            onLoadedMetadata={() => {
-                              console.log("✅ Video metadata loaded for participant:", label);
-                            }}
-                            onError={(e) => {
-                              console.error("❌ Video error for participant:", label, e);
-                            }}
-                          />
-                        ) : p?.member_photo ? (
-                          <img
-                            src={p.member_photo}
-                            alt={label}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          <span className="meeting-room-tile-initial">
-                            {String(label).trim().charAt(0).toUpperCase() || "M"}
-                          </span>
-                        )}
-                      </div>
-                      {/* reactions for this participant */}
-                      {(() => {
-                        const memberKey = p?.member_id || p?.member_email || p?.id || label;
-                        const entry = reactionsMap[memberKey];
-                        if (!entry) return null;
-                        return Object.entries(entry).map(([type, names]) => (
-                          <div key={type} className="meeting-room-reaction" title={type}>
-                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                            <div className="reaction-names">{names.map((n) => (
-                              <div key={n} className="reaction-name">{n}</div>
-                            ))}</div>
-                          </div>
-                        ));
-                      })()}
-                      <span className="meeting-room-tile-badge admin">{label}</span>
-                    </div>
-                  );
-                })
-              )}
-
-              {/* Unmatched remote streams (if backend doesn't provide member_id mapping) */}
-              {remoteStreams
-                .filter(({ socketId }) => {
-                  // Show stream if it's not already matched to a participant
-                  const meta = peerMetaRef.current.get(socketId);
-                  const isMatched = meta?.member_id && displayParticipants.some(p => String(p.member_id) === String(meta.member_id));
-                  return !isMatched;
-                })
-                .map(({ socketId, stream }) => {
-                  console.log("🎥 Rendering unmatched remote stream:", socketId, {
-                    videoTracks: stream.getVideoTracks().length,
-                    audioTracks: stream.getAudioTracks().length,
-                  });
-                  const isRemoteScreenShare = isScreenShareStream(stream);
-                  return (
-                    <div
-                      key={`unmatched-${socketId}`}
-                      className="meeting-room-tile"
-                      role={isRemoteScreenShare ? "button" : undefined}
-                      tabIndex={isRemoteScreenShare ? 0 : undefined}
-                      onClick={(e) => {
-                        if (isRemoteScreenShare && e.currentTarget) {
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
-                          e.preventDefault();
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
-                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
-                    >
-                      <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
+              ) : unifiedParticipantTiles.map((tile) => {
+                const { key, label, member_photo, member_id, member_email, stream } = tile;
+                const showVideo = stream && hasVisibleVideo(stream);
+                const isRemoteScreenShare = showVideo && isScreenShareStream(stream);
+                const canFullscreen = showVideo;
+                const memberKey = member_id || member_email || tile.socketId || label;
+                const lookupKeys = getTileLookupKeys(tile);
+                return (
+                  <div
+                    key={key}
+                    className="meeting-room-tile"
+                    role={canFullscreen ? "button" : undefined}
+                    tabIndex={canFullscreen ? 0 : undefined}
+                    onClick={(e) => {
+                      if (canFullscreen && stream) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFullscreenOverlay({ stream, label });
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (canFullscreen && (e.key === "Enter" || e.key === " ") && stream) {
+                        e.preventDefault();
+                        setFullscreenOverlay({ stream, label });
+                      }
+                    }}
+                    style={canFullscreen ? { cursor: "pointer" } : undefined}
+                    title={canFullscreen ? "Click to fullscreen, ESC to exit" : undefined}
+                  >
+                    <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
+                      {showVideo ? (
                         <video
                           autoPlay
                           playsInline
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           ref={(el) => {
-                            if (el && stream) {
-                              if (el.srcObject !== stream) {
-                                console.log("🎥 Setting video srcObject for unmatched stream:", socketId, "stream:", {
-                                  videoTracks: stream.getVideoTracks().length,
-                                  audioTracks: stream.getAudioTracks().length,
-                                });
-                                el.srcObject = stream;
-                                el.play?.().catch((err) => {
-                                  console.warn("⚠️ Video play failed for unmatched stream", socketId, ":", err);
-                                });
-                              }
+                            if (el && stream && el.srcObject !== stream) {
+                              el.srcObject = stream;
+                              el.play?.().catch(() => {});
                             }
                           }}
-                          onLoadedMetadata={() => {
-                            console.log("✅ Video metadata loaded for unmatched stream:", socketId);
-                          }}
-                          onError={(e) => {
-                            console.error("❌ Video error for unmatched stream:", socketId, e);
-                          }}
                         />
-                      </div>
-                      {(() => {
-                        const key = socketId;
-                        const entry = reactionsMap[key];
-                        if (!entry) return null;
-                        return Object.entries(entry).map(([type, names]) => (
-                          <div key={type} className="meeting-room-reaction" title={type}>
-                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                            <div className="reaction-names">{names.map((n) => (
-                              <div key={n} className="reaction-name">{n}</div>
-                            ))}</div>
-                          </div>
-                        ));
-                      })()}
-                      <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
+                      ) : (member_photo ? (
+                        <img
+                          src={member_photo}
+                          alt={label}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span className="meeting-room-tile-initial">
+                          {String(label).trim().charAt(0).toUpperCase() || "M"}
+                        </span>
+                      ))}
                     </div>
-                  );
-                })}
+                    {(() => {
+                      const entry = lookupKeys.reduce((acc, k) => acc || reactionsMap[k], null);
+                      if (!entry) return null;
+                      return Object.entries(entry).map(([type, names]) => (
+                        <div key={type} className="meeting-room-reaction" title={type}>
+                          <div className="reaction-icon">{getReactionIcon(type)}</div>
+                          <div className="reaction-names">{names.map((n) => (
+                            <div key={n} className="reaction-name">{n}</div>
+                          ))}</div>
+                        </div>
+                      ));
+                    })()}
+                    {/* Raised hand indicator for remote participants */}
+                    {lookupKeys.some((k) => handRaisedMap[k]) && (
+                      <div className="meeting-room-hand-overlay" title="Raised hand">
+                        <HandWaving size={18} weight="bold" />
+                      </div>
+                    )}
+                    <span className="meeting-room-tile-badge admin">{label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1740,6 +1985,36 @@ const MeetingRoom = () => {
           </div>
         )}
       </div>
+
+      {fullscreenOverlay && createPortal(
+        <div
+          className="meeting-room-fullscreen-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen video"
+          onClick={() => setFullscreenOverlay(null)}
+          onKeyDown={(e) => e.key === "Escape" && setFullscreenOverlay(null)}
+        >
+          <video
+            ref={fullscreenVideoRef}
+            autoPlay
+            playsInline
+            muted={false}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span className="meeting-room-fullscreen-label">{fullscreenOverlay.label}</span>
+          <button
+            type="button"
+            className="meeting-room-fullscreen-close"
+            onClick={(e) => { e.stopPropagation(); setFullscreenOverlay(null); }}
+            aria-label="Close fullscreen"
+          >
+            ✕
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

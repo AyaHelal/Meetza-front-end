@@ -4,6 +4,7 @@ import { Paperclip, UserCircle } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
 import api from '../../../API/axiosInstance';
 import { smartToast } from '../../../API/toastManager';
+import { useSocket } from '../../../context/SocketContext';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -58,6 +59,7 @@ const MeetingRightSidebar = () => {
         );
     }, [location?.state?.meetingId, searchParams]);
 
+    const { socket } = useSocket();
     const [participants, setParticipants] = useState([]);
     const [loadingParticipants, setLoadingParticipants] = useState(false);
     const [meetingDescription, setMeetingDescription] = useState('');
@@ -68,6 +70,34 @@ const MeetingRightSidebar = () => {
     useEffect(() => {
         meetingIdRef.current = meetingId;
     }, [meetingId]);
+
+    const fetchParticipants = useCallback(async () => {
+        const mid = meetingIdRef.current;
+        if (!mid) return;
+
+        setLoadingParticipants(true);
+        try {
+            const res = await api.get(`/meeting/${mid}/participants`);
+            const root = res?.data;
+            const nested = root?.data && (root?.success === undefined) ? root?.data : null;
+            const effective = nested || root;
+            const payload = effective?.data ?? effective;
+            const list =
+                Array.isArray(payload) ? payload :
+                    Array.isArray(payload?.participants) ? payload.participants :
+                        Array.isArray(payload?.users) ? payload.users :
+                            [];
+            setParticipants(list);
+        } catch (err) {
+            console.error("❌ Error fetching meeting participants:", err);
+            smartToast.error(
+                err.response?.data?.message || err.message || "Failed to load meeting participants."
+            );
+            setParticipants([]);
+        } finally {
+            setLoadingParticipants(false);
+        }
+    }, []);
 
     const fetchMeetingDetails = useCallback(async (mid) => {
         if (!mid) return;
@@ -110,42 +140,23 @@ const MeetingRightSidebar = () => {
     }, []);
 
     useEffect(() => {
-        const fetchParticipants = async () => {
-            if (!meetingId) return;
-
-            setLoadingParticipants(true);
-            try {
-                const res = await api.get(`/meeting/${meetingId}/participants`);
-
-                // Support common backend response shapes:
-                // - { success, data: [...] }
-                // - { data: { success, data: [...] } }
-                // - plain array/object
-                const root = res?.data;
-                const nested = root?.data && (root?.success === undefined) ? root?.data : null;
-                const effective = nested || root;
-                const payload = effective?.data ?? effective;
-
-                const list =
-                    Array.isArray(payload) ? payload :
-                        Array.isArray(payload?.participants) ? payload.participants :
-                            Array.isArray(payload?.users) ? payload.users :
-                                [];
-
-                setParticipants(list);
-            } catch (err) {
-                console.error("❌ Error fetching meeting participants:", err);
-                smartToast.error(
-                    err.response?.data?.message || err.message || "Failed to load meeting participants."
-                );
-                setParticipants([]);
-            } finally {
-                setLoadingParticipants(false);
-            }
-        };
-
         fetchParticipants();
-    }, [meetingId]);
+    }, [meetingId, fetchParticipants]);
+
+    // Refetch participants when someone joins/leaves (real-time update without refresh)
+    useEffect(() => {
+        if (!socket || !meetingId) return;
+        const onJoinOrLeave = (data) => {
+            if (data?.meetingId && data.meetingId !== meetingId) return;
+            fetchParticipants();
+        };
+        socket.on("participantJoined", onJoinOrLeave);
+        socket.on("participantLeft", onJoinOrLeave);
+        return () => {
+            socket.off("participantJoined", onJoinOrLeave);
+            socket.off("participantLeft", onJoinOrLeave);
+        };
+    }, [socket, meetingId, fetchParticipants]);
 
     // Fetch meeting details to get description
     useEffect(() => {
