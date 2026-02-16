@@ -11,6 +11,8 @@ import {
   SignOut,
   ArrowUp,
   ArrowsOut,
+  SpeakerHigh,
+  SpeakerSlash,
 } from "@phosphor-icons/react";
 import "./MeetingRoom.css";
 import api from "../../../API/axiosInstance";
@@ -53,6 +55,8 @@ const MeetingRoom = () => {
     return {};
   });
   const [mediaStateMap, setMediaStateMap] = useState({}); // { [socketId]: { audioMuted, videoMuted } }
+  const [localParticipantAudioMuted, setLocalParticipantAudioMuted] = useState({}); // { [socketId]: boolean } - local mute for each participant
+  const [localParticipantVolume, setLocalParticipantVolume] = useState({}); // { [socketId]: number } - 0-1, default 1
   const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,12 +101,16 @@ const MeetingRoom = () => {
   const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
 
   const meetingId = useMemo(() => {
-    // Prefer navigation state (set when joining), then query string (?meetingId=...)
-    return (
-      location?.state?.meetingId ||
-      searchParams.get("meetingId") ||
-      null
-    );
+    // Prefer navigation state (set when joining), then query string (?meetingId=...),
+    // then sessionStorage (persists across navigation so meeting stays connected)
+    const fromLocation =
+      location?.state?.meetingId || searchParams.get("meetingId") || null;
+    if (fromLocation) return fromLocation;
+    try {
+      return sessionStorage.getItem("activeMeetingId") || null;
+    } catch {
+      return null;
+    }
   }, [location?.state?.meetingId, searchParams]);
 
   useEffect(() => {
@@ -586,11 +594,8 @@ const MeetingRoom = () => {
     console.log("🚀 Starting RTC meeting...");
     startAndJoinMeetingRtc();
 
-    return () => {
-      // cleanup on unmount
-      console.log("🧹 Cleaning up RTC on unmount");
-      stopMeetingRtc();
-    };
+    // Do NOT cleanup on unmount: meeting persists across navigation.
+    // Only disconnect on explicit "Leave Meeting" (handleLeaveMeeting calls stopMeetingRtc).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, socket, isConnected]);
 
@@ -1083,7 +1088,7 @@ const MeetingRoom = () => {
       if (stored) {
         const reactions = JSON.parse(stored);
         // Filter out reactions older than 24 hours (optional cleanup)
-        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const oneDayAgo = Date.now() - 60 * 1000;
         const filtered = {};
         Object.entries(reactions).forEach(([memberKey, reactionEntry]) => {
           const filteredEntry = {};
@@ -1162,6 +1167,7 @@ const MeetingRoom = () => {
   const fullscreenSocketIdRef = useRef(null); // Track which socketId is in fullscreen
   const screenShareVideoRef = useRef(null);
   const memberVideoVideoRef = useRef(null);
+  const remoteVideoRefsMap = useRef(new Map()); // socketId -> video element (for local audio control sync)
 
   const toggleFullscreenForScreenShare = useCallback((tile) => {
     if (!tile?.isScreenShare || tile?.isSelf || !tile?.stream) return;
@@ -1183,6 +1189,8 @@ const MeetingRoom = () => {
 
     // Set stream and ensure it plays smoothly
     video.srcObject = tile.stream;
+    video.muted = !!localParticipantAudioMuted[tile.socketId];
+    video.volume = localParticipantVolume[tile.socketId] ?? 1;
 
     // Use a small delay to ensure stream is ready before fullscreen
     setTimeout(() => {
@@ -1193,7 +1201,7 @@ const MeetingRoom = () => {
         el.requestFullscreen?.().then(() => { }).catch(() => { });
       });
     }, 50);
-  }, []);
+  }, [localParticipantAudioMuted, localParticipantVolume]);
 
   const toggleFullscreenForMember = useCallback((tile) => {
     if (tile?.isSelf || !tile?.stream) return;
@@ -1215,6 +1223,8 @@ const MeetingRoom = () => {
 
     // Set stream and ensure it plays smoothly
     video.srcObject = tile.stream;
+    video.muted = !!localParticipantAudioMuted[tile.socketId];
+    video.volume = localParticipantVolume[tile.socketId] ?? 1;
 
     // Use a small delay to ensure stream is ready before fullscreen
     setTimeout(() => {
@@ -1225,7 +1235,7 @@ const MeetingRoom = () => {
         el.requestFullscreen?.().then(() => { }).catch(() => { });
       });
     }, 50);
-  }, []);
+  }, [localParticipantAudioMuted, localParticipantVolume]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -1317,6 +1327,16 @@ const MeetingRoom = () => {
       // If tracks are the same, don't update - prevents flickering from stream object recreation
     }
   }, [remoteStreams]);
+
+  // Sync local participant audio control to fullscreen video when in fullscreen
+  useEffect(() => {
+    const sid = fullscreenSocketIdRef.current;
+    if (!sid || !document.fullscreenElement) return;
+    const video = screenShareVideoRef.current || memberVideoVideoRef.current;
+    if (!video) return;
+    video.muted = !!localParticipantAudioMuted[sid];
+    video.volume = localParticipantVolume[sid] ?? 1;
+  }, [localParticipantAudioMuted, localParticipantVolume]);
 
   const getParticipantStream = useCallback(
     (participant) => {
@@ -1575,6 +1595,33 @@ const MeetingRoom = () => {
     const mid = meetingIdRef.current;
     if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: nextMuted });
   };
+
+  // Sync local participant audio control (muted/volume) to video elements when state changes
+  useEffect(() => {
+    remoteVideoRefsMap.current.forEach((el, socketId) => {
+      if (el) {
+        el.muted = !!localParticipantAudioMuted[socketId];
+        el.volume = localParticipantVolume[socketId] ?? 1;
+      }
+    });
+  }, [localParticipantAudioMuted, localParticipantVolume]);
+
+  /** Mute/unmute all participants locally (affects only this user's listening) */
+  const handleMuteUnmuteAllParticipants = useCallback(() => {
+    const remoteIds = unifiedTiles
+      .filter((t) => !t?.isSelf && t?.socketId)
+      .map((t) => t.socketId);
+    if (remoteIds.length === 0) return;
+    const allMuted = remoteIds.every((sid) => !!localParticipantAudioMuted[sid]);
+    const nextMuted = !allMuted;
+    setLocalParticipantAudioMuted((prev) => {
+      const next = { ...prev };
+      remoteIds.forEach((sid) => {
+        next[sid] = nextMuted;
+      });
+      return next;
+    });
+  }, [unifiedTiles, localParticipantAudioMuted]);
 
   const handleToggleHand = () => {
     const next = !handRaised;
@@ -2085,17 +2132,19 @@ const MeetingRoom = () => {
                               key={`video-${tile.socketId}-${tile.stream?.id || 'no-stream'}`}
                               autoPlay
                               playsInline
+                              muted={!!localParticipantAudioMuted[tile.socketId]}
                               style={{ width: "100%", height: "100%", objectFit: "cover" }}
                               ref={(el) => {
-                                if (el && tile.stream) {
-                                  if (el.srcObject !== tile.stream) {
-                                    console.log("🎥 Setting video srcObject for", tile.socketId, "stream:", tile.stream.id, "tracks:", tile.stream.getVideoTracks().length);
-                                    el.srcObject = tile.stream;
+                                if (el) {
+                                  remoteVideoRefsMap.current.set(tile.socketId, el);
+                                  if (tile.stream) {
+                                    if (el.srcObject !== tile.stream) el.srcObject = tile.stream;
+                                    el.muted = !!localParticipantAudioMuted[tile.socketId];
+                                    el.volume = localParticipantVolume[tile.socketId] ?? 1;
+                                    el.play().catch(() => {});
                                   }
-                                  // Always try to play, even if already playing
-                                  el.play().catch((err) => {
-                                    console.warn("⚠️ Could not play video for", tile.socketId, err);
-                                  });
+                                } else {
+                                  remoteVideoRefsMap.current.delete(tile.socketId);
                                 }
                               }}
                             />
@@ -2303,6 +2352,27 @@ const MeetingRoom = () => {
           <button type="button" className="meeting-room-control-btn" aria-label="Chat" onClick={() => setShowCommentInput(true)}>
             <ChatCircleDots size={22} weight="regular" />
           </button>
+          {(() => {
+            const remoteIds = unifiedTiles.filter((t) => !t?.isSelf && t?.socketId).map((t) => t.socketId);
+            const hasRemote = remoteIds.length > 0;
+            const allMuted = hasRemote && remoteIds.every((sid) => !!localParticipantAudioMuted[sid]);
+            return (
+              <button
+                type="button"
+                className={`meeting-room-control-btn ${allMuted ? "muted-all" : "active"}`}
+                aria-label={allMuted ? "Unmute all participants (for you)" : "Mute all participants (for you)"}
+                onClick={handleMuteUnmuteAllParticipants}
+                disabled={!meetingId || !hasRemote}
+                title={!hasRemote ? "No other participants" : allMuted ? "Unmute all (for you)" : "Mute all (for you)"}
+              >
+                {allMuted ? (
+                  <SpeakerSlash size={22} weight="regular" />
+                ) : (
+                  <SpeakerHigh size={22} weight="regular" />
+                )}
+              </button>
+            );
+          })()}
         </div>
         {showCommentInput && (
           <div className="meeting-room-comment-wrapper">

@@ -49,17 +49,21 @@ const MeetingRightSidebar = () => {
 
     const location = useLocation();
     const [searchParams] = useSearchParams();
+    const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId } = useMeetingContext();
 
     const meetingId = useMemo(() => {
-        // Prefer navigation state (set when joining), then query string (?meetingId=...)
-        return (
-            location?.state?.meetingId ||
-            searchParams.get("meetingId") ||
-            null
-        );
-    }, [location?.state?.meetingId, searchParams]);
-
-    const { participants: socketParticipants, hasJoined } = useMeetingContext();
+        // Prefer context (set by MeetingRoom, persists across navigation), then location,
+        // then sessionStorage (persists across navigation)
+        if (contextMeetingId) return contextMeetingId;
+        const fromLocation =
+            location?.state?.meetingId || searchParams.get("meetingId") || null;
+        if (fromLocation) return fromLocation;
+        try {
+            return sessionStorage.getItem("activeMeetingId") || null;
+        } catch {
+            return null;
+        }
+    }, [contextMeetingId, location?.state?.meetingId, searchParams]);
     const [meetingDescription, setMeetingDescription] = useState('');
     const [resources, setResources] = useState([]);
     const [loadingResources, setLoadingResources] = useState(false);

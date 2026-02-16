@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   X,
   House,
@@ -17,9 +17,14 @@ import MobileHeader from "../MobileHeader/MobileHeader";
 import UserPhoto from "../UserPhoto/UserPhoto";
 import { AuthContext } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import { MeetingProvider } from "../../context/MeetingContext";
+import MeetingRoom from "../../pages/Meetings/components/MeetingRoom";
+import MeetingChat from "../../pages/Meetings/components/MeetingChat";
+import MeetingRightSidebar from "../../pages/Meetings/components/MeetingRightSidebar";
+import "../../pages/Meetings/Meetings.css";
 import "./AppLayout.css";
 
-const AppLayout = ({ children }) => {
+const AppLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useContext(AuthContext);
@@ -32,7 +37,7 @@ const AppLayout = ({ children }) => {
   const [activeGroupId, setActiveGroupId] = useState(null);
   const hasFetchedInitialCountRef = useRef(false);
 
-  // Sync active meeting from sessionStorage (user in meeting but navigated away)
+  // Sync active meeting from sessionStorage (for Return to meeting)
   useEffect(() => {
     const sync = () => {
       try {
@@ -265,23 +270,34 @@ const AppLayout = ({ children }) => {
         </div>
       )}
 
-      <div className="app-layout-content">
-        {React.cloneElement(children, {
-          activeNav,
-          setActiveNav: handleNavClick,
-          onOpenSidebar: () => setIsSidebarOpen(true),
-        })}
-      </div>
-
-      {/* Fixed UserStatus on all pages - Hidden on mobile */}
-      {!isMobile && (
-        <div className="fixed-user-status">
-          <UserStatus
-            user={user}
-            activeMeetingId={activeMeetingId}
-            activeGroupId={activeGroupId}
-          />
-        </div>
+      {location.pathname === "/meetings" ? (
+        <MeetingProvider>
+          <div className="app-layout-content">
+            <div className="meetings-container">
+              <div className="meetings-center">
+                <MeetingRoom />
+                <MeetingChat />
+              </div>
+              <MeetingRightSidebar />
+            </div>
+          </div>
+          {!isMobile && (
+            <div className="fixed-user-status">
+              <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+            </div>
+          )}
+        </MeetingProvider>
+      ) : (
+        <>
+          <div className="app-layout-content">
+            <Outlet />
+          </div>
+          {!isMobile && (
+            <div className="fixed-user-status">
+              <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -206,19 +206,16 @@ const AppRoutes = () => {
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Protected Home: if no token, go to Landing */}
+      {/* Protected routes: single AppLayout stays mounted across /home, /groups, /meetings */}
       <Route
-        path="/home"
-        element={token ? <AppLayout><GroupChat /></AppLayout> : <Navigate to="/landing" replace />}
-      />
-      <Route
-        path="/groups"
-        element={token ? <AppLayout><Groups /></AppLayout> : <Navigate to="/landing" replace />}
-      />
-      <Route
-        path="/meetings"
-        element={token ? <AppLayout><Meetings /></AppLayout> : <Navigate to="/landing" replace />}
-      />
+        path="/"
+        element={token ? <AppLayout /> : <Navigate to="/landing" replace />}
+      >
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<GroupChat />} />
+        <Route path="groups" element={<Groups />} />
+        <Route path="meetings" element={<Meetings />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
 

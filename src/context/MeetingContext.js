@@ -16,7 +16,7 @@ export const MeetingProvider = ({ children }) => {
   const [participants, setParticipantsState] = useState([]);
   const [meetingId, setMeetingIdState] = useState(null);
   const [hasJoined, setHasJoined] = useState(false);
-  
+
   // Load chat messages from localStorage on mount
   const loadChatMessagesFromStorage = useCallback((mid) => {
     if (!mid) return [];
@@ -73,8 +73,8 @@ export const MeetingProvider = ({ children }) => {
           return true;
         }
         // Same text, same sender, within 2 seconds (for optimistic updates)
-        if (msg.text === message.text && 
-            msg.senderName === message.senderName && 
+        if (msg.text === message.text &&
+            msg.senderName === message.senderName &&
             msg.senderId && message.senderId &&
             String(msg.senderId) === String(message.senderId) &&
             Math.abs((msg.timestamp || 0) - (message.timestamp || 0)) < 2000) {
@@ -92,17 +92,17 @@ export const MeetingProvider = ({ children }) => {
         return prev;
       }
       const newMessages = [...prev, message];
-      
+
       // Persist to localStorage
       const currentMeetingId = meetingId;
       if (currentMeetingId) {
         try {
           localStorage.setItem(`meeting_chat_${currentMeetingId}`, JSON.stringify(newMessages));
-        } catch (error) {
-          console.warn("Failed to save chat messages to localStorage:", error);
+        } catch (e) {
+          console.warn("Failed to save chat messages to localStorage:", e);
         }
       }
-      
+
       console.log("✅ Adding new message to chat, total messages:", newMessages.length);
       return newMessages;
     });
