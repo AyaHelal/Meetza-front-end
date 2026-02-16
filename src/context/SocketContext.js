@@ -34,7 +34,7 @@ export const SocketProvider = ({ children }) => {
 
   // Use environment variable or default to ngrok URL
   // Socket.io connects at root, not /api, so remove /api suffix if present
-  const apiUrl = process.env.REACT_APP_SOCKET_URL || "https://hulda-unglutted-curably.ngrok-free.dev";
+  const apiUrl = process.env.REACT_APP_SOCKET_URL || " http://localhost:4000";
   const SERVER_URL = apiUrl.replace(/\/api$/, '');
 
   useEffect(() => {
@@ -89,147 +89,147 @@ export const SocketProvider = ({ children }) => {
         socketRef.current = null;
       }
 
-    console.log(`🔌 Connecting to Socket.IO at ${SERVER_URL}...`);
+      console.log(`🔌 Connecting to Socket.IO at ${SERVER_URL}...`);
 
-    // Create socket connection with authentication
-    const newSocket = io(SERVER_URL, {
-      auth: {
-        token: token, // JWT token is required for authentication
-      },
-      transports: ["websocket", "polling"], // fallback options
-      reconnection: false,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity,
-      timeout: 20000,
-    });
-
-    // Connection successful
-    newSocket.on("connect", () => {
-      console.log("✅ Socket connected:", newSocket.id);
-      setIsConnected(true);
-
-      // Join notification room (backend does this automatically, but we can also explicitly join)
-      newSocket.emit("join_notifications", (ack) => {
-        if (ack && ack.ok) {
-          console.log("✅ Joined notifications room");
-        }
+      // Create socket connection with authentication
+      const newSocket = io(SERVER_URL, {
+        auth: {
+          token: token, // JWT token is required for authentication
+        },
+        transports: ["websocket", "polling"], // fallback options
+        reconnection: false,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: Infinity,
+        timeout: 20000,
       });
-      
-      // Get initial unread notification count after socket connects
-      // Use REST API directly since socket event doesn't seem to work reliably
-      setTimeout(() => {
-        console.log("🔔 Fetching initial unread notification count from API...");
-        api.get("/notification")
-          .then((response) => {
-            let notificationsData = [];
-            if (response.data) {
-              if (response.data.success && response.data.data) {
-                notificationsData = Array.isArray(response.data.data) ? response.data.data : [];
-              } else if (Array.isArray(response.data)) {
-                notificationsData = response.data;
-              } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
-                notificationsData = response.data.notifications;
+
+      // Connection successful
+      newSocket.on("connect", () => {
+        console.log("✅ Socket connected:", newSocket.id);
+        setIsConnected(true);
+
+        // Join notification room (backend does this automatically, but we can also explicitly join)
+        newSocket.emit("join_notifications", (ack) => {
+          if (ack && ack.ok) {
+            console.log("✅ Joined notifications room");
+          }
+        });
+
+        // Get initial unread notification count after socket connects
+        // Use REST API directly since socket event doesn't seem to work reliably
+        setTimeout(() => {
+          console.log("🔔 Fetching initial unread notification count from API...");
+          api.get("/notification")
+            .then((response) => {
+              let notificationsData = [];
+              if (response.data) {
+                if (response.data.success && response.data.data) {
+                  notificationsData = Array.isArray(response.data.data) ? response.data.data : [];
+                } else if (Array.isArray(response.data)) {
+                  notificationsData = response.data;
+                } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
+                  notificationsData = response.data.notifications;
+                }
               }
-            }
-            const unreadCount = notificationsData.filter(n => !n.is_read && n.is_read !== true).length;
-            setUnreadNotificationCount(unreadCount);
-            console.log("🔔 Initial unread notification count from API:", unreadCount, `(${notificationsData.length} total notifications)`);
-          })
-          .catch((error) => {
-            console.warn("⚠️ Failed to fetch notification count from API:", error);
-          });
-      }, 500);
+              const unreadCount = notificationsData.filter(n => !n.is_read && n.is_read !== true).length;
+              setUnreadNotificationCount(unreadCount);
+              console.log("🔔 Initial unread notification count from API:", unreadCount, `(${notificationsData.length} total notifications)`);
+            })
+            .catch((error) => {
+              console.warn("⚠️ Failed to fetch notification count from API:", error);
+            });
+        }, 500);
 
-      setConnectionError(null);
-      hasLoggedSocketErrorRef.current = false;
-    });
-
-    // Listen for new notifications (emitted to the user's notification room)
-    newSocket.on("newNotification", (notification) => {
-      setUnreadNotificationCount((prevCount) => {
-        const newCount = prevCount + 1;
-        console.log("🔔 Received new notification, updated count:", newCount);
-        return newCount;
+        setConnectionError(null);
+        hasLoggedSocketErrorRef.current = false;
       });
-    });
 
-    // Also listen for 'new_notification' event name (backup)
-    newSocket.on("new_notification", (notification) => {
-      setUnreadNotificationCount((prevCount) => {
-        const newCount = prevCount + 1;
-        console.log("🔔 Received new notification (new_notification), updated count:", newCount);
-        return newCount;
-      });
-    });
-
-    // Listen for notification_count_update event (backend sends the actual count)
-    newSocket.on("notification_count_update", (data) => {
-      console.log("🔔 Received notification_count_update event, raw data:", data);
-      // data can be an array with count, or an object with count property
-      const count = Array.isArray(data) && data[0]?.unreadCount !== undefined 
-        ? data[0].unreadCount 
-        : (data?.unreadCount !== undefined ? data.unreadCount : (typeof data === 'number' ? data : null));
-      
-      console.log("🔔 Parsed count from notification_count_update:", count);
-      
-      if (count !== null && count !== undefined) {
-        setUnreadNotificationCount(count);
-        console.log("🔔 Updated notification count to:", count);
-      } else {
-        // If count is not provided, increment (fallback behavior)
+      // Listen for new notifications (emitted to the user's notification room)
+      newSocket.on("newNotification", (notification) => {
         setUnreadNotificationCount((prevCount) => {
           const newCount = prevCount + 1;
-          console.log("🔔 Received notification_count_update without count, incrementing:", newCount);
+          console.log("🔔 Received new notification, updated count:", newCount);
           return newCount;
         });
-      }
-    });
+      });
 
-    // Connection error
-    newSocket.on("connect_error", (error) => {
-      setIsConnected(false);
-      setConnectionError(error.message);
+      // Also listen for 'new_notification' event name (backup)
+      newSocket.on("new_notification", (notification) => {
+        setUnreadNotificationCount((prevCount) => {
+          const newCount = prevCount + 1;
+          console.log("🔔 Received new notification (new_notification), updated count:", newCount);
+          return newCount;
+        });
+      });
 
-      if (!hasLoggedSocketErrorRef.current) {
-        console.error("❌ Socket connection error:", error.message);
-        console.error("❌ Attempted URL:", SERVER_URL);
+      // Listen for notification_count_update event (backend sends the actual count)
+      newSocket.on("notification_count_update", (data) => {
+        console.log("🔔 Received notification_count_update event, raw data:", data);
+        // data can be an array with count, or an object with count property
+        const count = Array.isArray(data) && data[0]?.unreadCount !== undefined
+          ? data[0].unreadCount
+          : (data?.unreadCount !== undefined ? data.unreadCount : (typeof data === 'number' ? data : null));
 
-        if (
-          error.message.includes("websocket") ||
-          error.message.includes("WebSocket")
-        ) {
-          console.warn(
-            "⚠️ WebSocket connection failed, will fallback to polling transport"
-          );
+        console.log("🔔 Parsed count from notification_count_update:", count);
+
+        if (count !== null && count !== undefined) {
+          setUnreadNotificationCount(count);
+          console.log("🔔 Updated notification count to:", count);
+        } else {
+          // If count is not provided, increment (fallback behavior)
+          setUnreadNotificationCount((prevCount) => {
+            const newCount = prevCount + 1;
+            console.log("🔔 Received notification_count_update without count, incrementing:", newCount);
+            return newCount;
+          });
         }
+      });
 
-        hasLoggedSocketErrorRef.current = true;
-      }
-    });
+      // Connection error
+      newSocket.on("connect_error", (error) => {
+        setIsConnected(false);
+        setConnectionError(error.message);
+
+        if (!hasLoggedSocketErrorRef.current) {
+          console.error("❌ Socket connection error:", error.message);
+          console.error("❌ Attempted URL:", SERVER_URL);
+
+          if (
+            error.message.includes("websocket") ||
+            error.message.includes("WebSocket")
+          ) {
+            console.warn(
+              "⚠️ WebSocket connection failed, will fallback to polling transport"
+            );
+          }
+
+          hasLoggedSocketErrorRef.current = true;
+        }
+      });
 
 
-    // Disconnected
-    newSocket.on("disconnect", (reason) => {
-      console.log("🔌 Socket disconnected:", reason);
-      setIsConnected(false);
-      // Remove all notification listeners on disconnect
-      newSocket.off("newNotification");
-      newSocket.off("new_notification");
-      newSocket.off("notification_count_update");
-    });
+      // Disconnected
+      newSocket.on("disconnect", (reason) => {
+        console.log("🔌 Socket disconnected:", reason);
+        setIsConnected(false);
+        // Remove all notification listeners on disconnect
+        newSocket.off("newNotification");
+        newSocket.off("new_notification");
+        newSocket.off("notification_count_update");
+      });
 
-    // Reconnection attempt
-    newSocket.on("reconnect_attempt", (attemptNumber) => {
-      console.log("🔄 Reconnection attempt:", attemptNumber);
-    });
+      // Reconnection attempt
+      newSocket.on("reconnect_attempt", (attemptNumber) => {
+        console.log("🔄 Reconnection attempt:", attemptNumber);
+      });
 
-    // Reconnection successful
-    newSocket.on("reconnect", (attemptNumber) => {
-      console.log("✅ Reconnected after", attemptNumber, "attempts");
-      setIsConnected(true);
-      setConnectionError(null);
-    });
+      // Reconnection successful
+      newSocket.on("reconnect", (attemptNumber) => {
+        console.log("✅ Reconnected after", attemptNumber, "attempts");
+        setIsConnected(true);
+        setConnectionError(null);
+      });
 
       socketRef.current = newSocket;
       setSocket(newSocket);
@@ -242,7 +242,7 @@ export const SocketProvider = ({ children }) => {
         clearTimeout(connectionTimeoutRef.current);
         connectionTimeoutRef.current = null;
       }
-      
+
       console.log("🔌 Cleaning up socket connection...");
       if (socketRef.current) {
         socketRef.current.disconnect();

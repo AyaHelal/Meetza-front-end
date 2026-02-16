@@ -10,6 +10,7 @@ import {
   ChatCircleDots,
   SignOut,
   ArrowUp,
+  ArrowsOut,
 } from "@phosphor-icons/react";
 import "./MeetingRoom.css";
 import api from "../../../API/axiosInstance";
@@ -30,9 +31,27 @@ const toParticipant = (p) => ({
 const MeetingRoom = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentText, setCommentText] = useState("");
   const [, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream, isScreenShare? }]
-  const [handRaisedMap, setHandRaisedMap] = useState({}); // { [socketId]: boolean }
+  // Load handRaisedMap from localStorage on mount
+  const loadHandRaisedMapFromStorage = useCallback((mid) => {
+    if (!mid) return {};
+    try {
+      const stored = localStorage.getItem(`meeting_handRaised_${mid}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn("Failed to load handRaisedMap from localStorage:", error);
+    }
+    return {};
+  }, []);
+
+  const [handRaisedMap, setHandRaisedMap] = useState(() => {
+    // Initialize with empty object, will load when meetingId is set
+    return {};
+  });
   const [mediaStateMap, setMediaStateMap] = useState({}); // { [socketId]: { audioMuted, videoMuted } }
   const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
@@ -40,7 +59,7 @@ const MeetingRoom = () => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const { participants, setParticipants, setMeetingId, setHasJoined } = useMeetingContext();
+  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage } = useMeetingContext();
 
   // Persisted media state (no auto-enable: start muted)
   const [audioMuted, setAudioMuted] = useState(() => {
@@ -55,7 +74,12 @@ const MeetingRoom = () => {
       return v !== null ? v === "true" : true;
     } catch { return true; }
   });
-  const [handRaised, setHandRaised] = useState(false);
+  const [handRaised, setHandRaised] = useState(() => {
+    try {
+      const v = sessionStorage.getItem("meetza_handRaised");
+      return v !== null ? v === "true" : false;
+    } catch { return false; }
+  });
   const [screenSharing, setScreenSharing] = useState(false);
 
   const peersRef = useRef(new Map()); // socketId -> RTCPeerConnection
@@ -219,6 +243,57 @@ const MeetingRoom = () => {
     }
   }, [socket]);
 
+  /** Get user media only when needed. Does NOT auto-enable - respects audioMuted/videoMuted. */
+  const ensureLocalMedia = useCallback(async () => {
+    if (localStreamRef.current) {
+      // If stream exists but has no tracks, ensure we have at least audio for WebRTC negotiation
+      const stream = localStreamRef.current;
+      if (stream.getTracks().length === 0) {
+        // Always request audio (even if muted) to ensure WebRTC negotiation works
+        // This allows us to receive remote tracks even when camera/mic are off
+        try {
+          const mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false,
+          });
+          mediaStream.getAudioTracks().forEach((t) => {
+            t.enabled = false; // Keep it disabled (muted) but present for negotiation
+            stream.addTrack(t);
+          });
+          console.log("✅ Added muted audio track for WebRTC negotiation");
+        } catch (e) {
+          console.warn("⚠️ Could not get audio track for negotiation:", e);
+        }
+      }
+      return stream;
+    }
+
+    // Start with empty stream - media activated only when user explicitly enables
+    // However, we need at least one track for WebRTC negotiation to work properly
+    const stream = new MediaStream();
+
+    // Always request audio (even if muted) to ensure WebRTC negotiation works
+    // This allows us to receive remote tracks even when camera/mic are off
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
+      mediaStream.getAudioTracks().forEach((t) => {
+        t.enabled = false; // Keep it disabled (muted) but present for negotiation
+        stream.addTrack(t);
+      });
+      console.log("✅ Added muted audio track for WebRTC negotiation");
+    } catch (e) {
+      console.warn("⚠️ Could not get audio track for negotiation:", e);
+    }
+
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    console.log("✅ Created local stream with muted audio for negotiation");
+    return stream;
+  }, []);
+
   // Create and send offer to a peer (only if we're the impolite peer)
   const createAndSendOffer = useCallback(async (targetSocketId) => {
     const pc = peersRef.current.get(targetSocketId);
@@ -231,15 +306,29 @@ const MeetingRoom = () => {
       makingOffer.current = true;
       console.log("📤 Creating offer for", targetSocketId);
 
-      // Ensure local tracks are added
-      const stream = localStreamRef.current;
+      // Ensure local stream has tracks - this is critical for WebRTC negotiation
+      let stream = localStreamRef.current;
+      if (!stream || stream.getTracks().length === 0) {
+        console.log("🔄 Ensuring local media has tracks before creating offer...");
+        try {
+          await ensureLocalMedia();
+          stream = localStreamRef.current;
+        } catch (e) {
+          console.error("❌ Failed to ensure local media:", e);
+        }
+      }
+
+      // Ensure local tracks are added to peer connection
       if (stream) {
         stream.getTracks().forEach((t) => {
           const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
           if (!existing) {
+            console.log("➕ Adding track to peer connection before offer:", { kind: t.kind, enabled: t.enabled });
             pc.addTrack(t, stream);
           }
         });
+      } else {
+        console.warn("⚠️ No local stream available - offer may fail");
       }
 
       await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
@@ -263,18 +352,7 @@ const MeetingRoom = () => {
     } finally {
       makingOffer.current = false;
     }
-  }, [socket]);
-
-  /** Get user media only when needed. Does NOT auto-enable - respects audioMuted/videoMuted. */
-  const ensureLocalMedia = useCallback(async () => {
-    if (localStreamRef.current) return localStreamRef.current;
-    // Start with empty stream - media activated only when user explicitly enables
-    const stream = new MediaStream();
-    localStreamRef.current = stream;
-    setLocalStream(stream);
-    console.log("✅ Created empty local stream (media off by default)");
-    return stream;
-  }, []);
+  }, [socket, ensureLocalMedia]);
 
   /** Get camera track only (exclude screen share) from stream. */
   const getCameraTrack = useCallback((stream) => {
@@ -425,6 +503,38 @@ const MeetingRoom = () => {
 
       // Final check: add tracks to all peers after a short delay
       setTimeout(() => addTracksToAllPeers(), 200);
+
+      // After rejoining, give other participants time to create peer connections to us
+      // and ensure we re-negotiate properly. Also trigger a renegotiation for existing peers
+      // to ensure streams are re-established after refresh.
+      setTimeout(() => {
+        console.log("🔄 Ensuring all peer connections are properly established after rejoin...");
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+          if (pc.connectionState === 'connected' || pc.connectionState === 'connecting') {
+            // Connection is good, but ensure tracks are being received
+            const receivers = pc.getReceivers();
+            const hasVideo = receivers.some(r => r.track && r.track.kind === 'video');
+            const hasAudio = receivers.some(r => r.track && r.track.kind === 'audio');
+
+            if (!hasVideo && !hasAudio) {
+              console.log("⚠️ No tracks received from", peerSocketId, "- triggering renegotiation");
+              // Trigger renegotiation by creating a new offer
+              createAndSendOffer(peerSocketId).catch(err => {
+                console.warn("Failed to renegotiate with", peerSocketId, err);
+              });
+            }
+          } else if (pc.connectionState === 'new' || pc.connectionState === 'closed') {
+            // Connection not established, try to create offer if we're impolite
+            const isPolite = polite.current.get(peerSocketId);
+            if (!isPolite) {
+              console.log("🔄 Retrying connection to", peerSocketId);
+              createAndSendOffer(peerSocketId).catch(err => {
+                console.warn("Failed to retry connection to", peerSocketId, err);
+              });
+            }
+          }
+        }
+      }, 1000); // Wait 1 second for initial negotiation to complete
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createPeerConnection, ensureLocalMedia, isConnected, socket, createAndSendOffer]);
@@ -490,12 +600,14 @@ const MeetingRoom = () => {
     const videoEl1 = localVideoRef.current;
     const videoEl2 = localVideoRef2.current;
 
-    if (stream && videoEl1 && videoEl1.srcObject !== stream) {
-      videoEl1.srcObject = stream;
-    }
-
-    if (stream && videoEl2 && videoEl2.srcObject !== stream) {
-      videoEl2.srcObject = stream;
+    if (stream) {
+      // Always update srcObject to ensure video elements show the latest stream
+      if (videoEl1) {
+        videoEl1.srcObject = stream;
+      }
+      if (videoEl2) {
+        videoEl2.srcObject = stream;
+      }
     }
   }, [videoMuted, audioMuted, screenSharing]);
 
@@ -507,6 +619,68 @@ const MeetingRoom = () => {
     if (cameraTrack) cameraTrack.enabled = !videoMuted;
     stream.getAudioTracks().forEach((t) => (t.enabled = !audioMuted));
   }, [videoMuted, audioMuted]);
+
+  // Restore camera/mic state on mount if they were enabled before refresh
+  useEffect(() => {
+    if (!hasJoined || !localStreamRef.current) return;
+
+    const restoreMediaState = async () => {
+      try {
+        // If video was unmuted (camera was on), request camera track
+        if (!videoMuted) {
+          const cameraTrack = cameraVideoTrackRef.current;
+          if (!cameraTrack) {
+            console.log("📹 Restoring camera after refresh...");
+            await ensureMediaTracks({ needVideo: true });
+            const restoredTrack = cameraVideoTrackRef.current;
+            if (restoredTrack) {
+              restoredTrack.enabled = true;
+              // Force update video elements to show the restored camera
+              const stream = localStreamRef.current;
+              if (stream) {
+                setTimeout(() => {
+                  if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                  }
+                  if (localVideoRef2.current) {
+                    localVideoRef2.current.srcObject = stream;
+                  }
+                }, 100);
+              }
+            }
+          } else {
+            cameraTrack.enabled = true;
+            // Force update video elements
+            const stream = localStreamRef.current;
+            if (stream) {
+              setTimeout(() => {
+                if (localVideoRef.current) {
+                  localVideoRef.current.srcObject = stream;
+                }
+                if (localVideoRef2.current) {
+                  localVideoRef2.current.srcObject = stream;
+                }
+              }, 100);
+            }
+          }
+        }
+
+        // If audio was unmuted (mic was on), request audio track
+        if (!audioMuted) {
+          const hasAudio = localStreamRef.current.getAudioTracks().length > 0;
+          if (!hasAudio) {
+            console.log("🎤 Restoring microphone after refresh...");
+            await ensureMediaTracks({ needAudio: true });
+          }
+          localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = true));
+        }
+      } catch (error) {
+        console.warn("⚠️ Failed to restore media state after refresh:", error);
+      }
+    };
+
+    restoreMediaState();
+  }, [hasJoined, videoMuted, audioMuted, ensureMediaTracks]);
 
   // Socket listeners (signaling) - participants are socket-driven, no REST fetch
   useEffect(() => {
@@ -540,6 +714,12 @@ const MeetingRoom = () => {
         member_photo: data?.user_photo ?? data?.member_photo,
         member_email: data?.email ?? data?.member_email,
       });
+      console.log("📸 Participant joined with photo:", {
+        socketId: peerSocketId,
+        name: entry.member_name,
+        photo: entry.member_photo,
+        rawData: { user_photo: data?.user_photo, member_photo: data?.member_photo }
+      });
       setParticipants((prev) => {
         if (prev.some((p) => (p?.socketId || p?.id) === peerSocketId)) return prev;
         return [...prev, entry];
@@ -547,6 +727,19 @@ const MeetingRoom = () => {
 
       const meta = { member_id: entry.member_id, member_name: entry.member_name, member_photo: entry.member_photo, member_email: entry.member_email };
       peerMetaRef.current.set(peerSocketId, meta);
+
+      // Ensure local stream has tracks before creating peer connection
+      // This is critical for WebRTC negotiation to work properly
+      let stream = localStreamRef.current;
+      if (!stream || stream.getTracks().length === 0) {
+        console.log("🔄 Ensuring local media has tracks before creating peer connection...");
+        try {
+          await ensureLocalMedia();
+          stream = localStreamRef.current;
+        } catch (e) {
+          console.error("❌ Failed to ensure local media:", e);
+        }
+      }
 
       console.log("🔗 Creating peer connection for new participant", peerSocketId);
       const pc = createPeerConnection(peerSocketId);
@@ -574,7 +767,20 @@ const MeetingRoom = () => {
       const meta = peerMetaRef.current.get(peerSocketId);
       const memberId = meta?.member_id || data?.userId || data?.user_id;
       setParticipants((prev) => prev.filter((p) => (p?.socketId || p?.id) !== peerSocketId));
-      setHandRaisedMap((m) => { const n = { ...m }; delete n[peerSocketId]; return n; });
+      setHandRaisedMap((m) => {
+        const n = { ...m };
+        delete n[peerSocketId];
+        // Persist to localStorage
+        const currentMeetingId = meetingIdRef.current;
+        if (currentMeetingId) {
+          try {
+            localStorage.setItem(`meeting_handRaised_${currentMeetingId}`, JSON.stringify(n));
+          } catch (error) {
+            console.warn("Failed to save handRaisedMap to localStorage:", error);
+          }
+        }
+        return n;
+      });
       setReactionsMap((m) => {
         const n = { ...m };
         [peerSocketId, memberId].filter(Boolean).forEach((k) => delete n[String(k)]);
@@ -783,7 +989,19 @@ const MeetingRoom = () => {
       const mid = data?.meetingId;
       const raised = data?.raised !== false;
       if (!sid || !mid || mid !== meetingIdRef.current) return;
-      setHandRaisedMap((m) => ({ ...m, [sid]: raised }));
+      setHandRaisedMap((m) => {
+        const next = { ...m, [sid]: raised };
+        // Persist to localStorage
+        const currentMeetingId = meetingIdRef.current;
+        if (currentMeetingId) {
+          try {
+            localStorage.setItem(`meeting_handRaised_${currentMeetingId}`, JSON.stringify(next));
+          } catch (error) {
+            console.warn("Failed to save handRaisedMap to localStorage:", error);
+          }
+        }
+        return next;
+      });
     };
     const onMediaStateUpdated = (data) => {
       const sid = data?.socketId || data?.id;
@@ -807,6 +1025,12 @@ const MeetingRoom = () => {
         const type = data?.type || data?.reaction || "like";
         const fromSocketId = data?.socketId || data?.fromSocketId || data?.from;
         const fromMemberId = data?.userId ?? data?.user_id ?? data?.member_id;
+
+        // Skip if this is our own reaction (already added optimistically)
+        if (fromSocketId === socket.id || (selfMemberId && String(fromMemberId) === String(selfMemberId))) {
+          return;
+        }
+
         const meta = fromSocketId ? peerMetaRef.current.get(fromSocketId) : null;
         const fromName = data?.name ?? data?.member_name ?? meta?.member_name ?? "Someone";
         const key = String(fromMemberId || fromSocketId || fromName);
@@ -833,7 +1057,7 @@ const MeetingRoom = () => {
       socket.off("reactionReceived", onReaction);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closePeer, createPeerConnection, socket, createAndSendOffer]);
+  }, [closePeer, createPeerConnection, socket, createAndSendOffer, ensureLocalMedia]);
 
   const getPeerLabel = useCallback((socketId) => {
     const meta = peerMetaRef.current.get(socketId);
@@ -846,7 +1070,40 @@ const MeetingRoom = () => {
     () => user?.user_photo || user?.photo || user?.member_photo || null,
     [user?.user_photo, user?.photo, user?.member_photo]
   );
-  const [reactionsMap, setReactionsMap] = useState({}); // { memberKey: { like: [names], ... } }
+  // Load reactions from localStorage on mount
+  const loadReactionsFromStorage = useCallback((mid) => {
+    if (!mid) return {};
+    try {
+      const stored = localStorage.getItem(`meeting_reactions_${mid}`);
+      if (stored) {
+        const reactions = JSON.parse(stored);
+        // Filter out reactions older than 24 hours (optional cleanup)
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const filtered = {};
+        Object.entries(reactions).forEach(([memberKey, reactionEntry]) => {
+          const filteredEntry = {};
+          Object.entries(reactionEntry).forEach(([type, data]) => {
+            const timestamp = typeof data === 'object' && data.timestamp ? data.timestamp : 0;
+            if (timestamp > oneDayAgo) {
+              filteredEntry[type] = data;
+            }
+          });
+          if (Object.keys(filteredEntry).length > 0) {
+            filtered[memberKey] = filteredEntry;
+          }
+        });
+        return filtered;
+      }
+    } catch (error) {
+      console.warn("Failed to load reactions from localStorage:", error);
+    }
+    return {};
+  }, []);
+
+  const [reactionsMap, setReactionsMap] = useState(() => {
+    // Initialize with empty object, will load when meetingId is set
+    return {};
+  });
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef(null);
   const emojiList = ["👍", "❤️", "😂", "👏", "😮", "🎉"];
@@ -879,56 +1136,182 @@ const MeetingRoom = () => {
         stream = entry?.stream ?? null;
         isScreenShare = entry?.isScreenShare ?? false;
       }
-      const showVideo = stream && (isSelf ? (!videoMuted || isScreenShare) : true);
+      // Only show video if stream exists AND has video tracks (for remote) or is enabled (for self)
+      const hasVideoTracks = stream && stream.getVideoTracks().length > 0;
+      const showVideo = stream && hasVideoTracks && (isSelf ? (!videoMuted || isScreenShare) : true);
       return {
         ...p,
         isSelf,
         stream: showVideo ? stream : null,
         isScreenShare,
         label: p?.member_name || p?.member_email || "Participant",
+        // Ensure member_photo is included from participant data
+        member_photo: p?.member_photo || p?.memberPhoto || p?.user_photo || p?.photo || null,
       };
     });
   }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing]);
 
   const screenShareFullscreenRef = useRef(null);
+  const memberVideoFullscreenRef = useRef(null);
+  const fullscreenStreamRef = useRef(null); // Store stable stream reference for fullscreen
+  const fullscreenSocketIdRef = useRef(null); // Track which socketId is in fullscreen
+  const screenShareVideoRef = useRef(null);
+  const memberVideoVideoRef = useRef(null);
 
   const toggleFullscreenForScreenShare = useCallback((tile) => {
     if (!tile?.isScreenShare || tile?.isSelf || !tile?.stream) return;
     const el = screenShareFullscreenRef.current;
-    if (!el) return;
-    const video = el.querySelector("video");
-    if (!video) return;
+    const video = screenShareVideoRef.current;
+    if (!el || !video) return;
+
     if (document.fullscreenElement) {
       document.exitFullscreen?.();
       return;
     }
+
+    // Store stable references
+    fullscreenStreamRef.current = tile.stream;
+    fullscreenSocketIdRef.current = tile.socketId;
+
     el.style.visibility = "visible";
     el.style.pointerEvents = "auto";
+
+    // Set stream and ensure it plays smoothly
     video.srcObject = tile.stream;
-    video.play?.().then(() => {
-      el.requestFullscreen?.().then(() => {}).catch(() => {});
-    }).catch(() => {
-      el.requestFullscreen?.().then(() => {}).catch(() => {});
-    });
+
+    // Use a small delay to ensure stream is ready before fullscreen
+    setTimeout(() => {
+      video.play?.().then(() => {
+        el.requestFullscreen?.().then(() => { }).catch(() => { });
+      }).catch(() => {
+        // Even if play fails, try fullscreen
+        el.requestFullscreen?.().then(() => { }).catch(() => { });
+      });
+    }, 50);
+  }, []);
+
+  const toggleFullscreenForMember = useCallback((tile) => {
+    if (tile?.isSelf || !tile?.stream) return;
+    const el = memberVideoFullscreenRef.current;
+    const video = memberVideoVideoRef.current;
+    if (!el || !video) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+      return;
+    }
+
+    // Store stable references
+    fullscreenStreamRef.current = tile.stream;
+    fullscreenSocketIdRef.current = tile.socketId;
+
+    el.style.visibility = "visible";
+    el.style.pointerEvents = "auto";
+
+    // Set stream and ensure it plays smoothly
+    video.srcObject = tile.stream;
+
+    // Use a small delay to ensure stream is ready before fullscreen
+    setTimeout(() => {
+      video.play?.().then(() => {
+        el.requestFullscreen?.().then(() => { }).catch(() => { });
+      }).catch(() => {
+        // Even if play fails, try fullscreen
+        el.requestFullscreen?.().then(() => { }).catch(() => { });
+      });
+    }, 50);
   }, []);
 
   useEffect(() => {
     const onFullscreenChange = () => {
-      if (!document.fullscreenElement && screenShareFullscreenRef.current) {
-        const el = screenShareFullscreenRef.current;
-        el.style.visibility = "hidden";
-        el.style.pointerEvents = "none";
-        const v = el.querySelector("video");
-        if (v) v.srcObject = null;
+      if (!document.fullscreenElement) {
+        if (screenShareFullscreenRef.current) {
+          const el = screenShareFullscreenRef.current;
+          el.style.visibility = "hidden";
+          el.style.pointerEvents = "none";
+          const v = screenShareVideoRef.current;
+          if (v) {
+            // Pause before clearing to prevent flicker
+            v.pause();
+            v.srcObject = null;
+          }
+        }
+        if (memberVideoFullscreenRef.current) {
+          const el = memberVideoFullscreenRef.current;
+          el.style.visibility = "hidden";
+          el.style.pointerEvents = "none";
+          const v = memberVideoVideoRef.current;
+          if (v) {
+            // Pause before clearing to prevent flicker
+            v.pause();
+            v.srcObject = null;
+          }
+        }
+        // Clear the stored references
+        fullscreenStreamRef.current = null;
+        fullscreenSocketIdRef.current = null;
       }
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    document.addEventListener("mozfullscreenchange", onFullscreenChange);
+    document.addEventListener("MSFullscreenChange", onFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
       document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", onFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", onFullscreenChange);
     };
   }, []);
+
+  // Keep fullscreen video synchronized with stream updates, but be very conservative to prevent flickering
+  // Only update if the stream is completely missing or the video element has no stream
+  useEffect(() => {
+    if (!document.fullscreenElement || !fullscreenSocketIdRef.current) return;
+
+    const video = screenShareVideoRef.current || memberVideoVideoRef.current;
+    if (!video) return;
+
+    // Find the current stream for the fullscreen socketId
+    const streamEntry = remoteStreams.find(s => s.socketId === fullscreenSocketIdRef.current);
+
+    // If stream is missing and video has no srcObject, that's fine - don't update
+    if (!streamEntry?.stream) {
+      // Only update if video has a stream but the remote stream is gone
+      if (video.srcObject && !fullscreenStreamRef.current) {
+        // Stream was lost, but we'll keep showing the last frame
+        return;
+      }
+      return;
+    }
+
+    const currentStream = streamEntry.stream;
+
+    // Only update if video has no srcObject at all (initial setup)
+    // OR if the current stream is completely different (different track IDs)
+    if (!video.srcObject) {
+      // Initial setup - set the stream
+      video.srcObject = currentStream;
+      fullscreenStreamRef.current = currentStream;
+      video.play?.().catch(() => { });
+    } else if (fullscreenStreamRef.current && fullscreenStreamRef.current !== currentStream) {
+      // Stream reference changed - check if tracks are actually different
+      const oldTracks = fullscreenStreamRef.current.getVideoTracks() || [];
+      const newTracks = currentStream.getVideoTracks() || [];
+
+      // Only update if track IDs are different (meaning it's a truly different stream)
+      const trackIdsChanged = oldTracks.length !== newTracks.length ||
+        oldTracks.some((t, i) => t.id !== newTracks[i]?.id);
+
+      if (trackIdsChanged) {
+        // Tracks are different - update the stream
+        video.srcObject = currentStream;
+        fullscreenStreamRef.current = currentStream;
+        video.play?.().catch(() => { });
+      }
+      // If tracks are the same, don't update - prevents flickering from stream object recreation
+    }
+  }, [remoteStreams]);
 
   const getParticipantStream = useCallback(
     (participant) => {
@@ -1191,6 +1574,12 @@ const MeetingRoom = () => {
   const handleToggleHand = () => {
     const next = !handRaised;
     setHandRaised(next);
+    // Persist local hand raised state
+    try {
+      sessionStorage.setItem("meetza_handRaised", String(next));
+    } catch (error) {
+      console.warn("Failed to save handRaised to sessionStorage:", error);
+    }
     const mid = meetingIdRef.current;
     if (socket && mid) {
       socket.emit("raiseHand", { meetingId: mid, raised: next });
@@ -1224,6 +1613,73 @@ const MeetingRoom = () => {
         return false;
       }
     });
+  };
+
+  const handleSendComment = () => {
+    const currentMeetingId = meetingIdRef.current || meetingId;
+
+    if (!socket || !isConnected || !currentMeetingId) {
+      console.warn("Cannot send comment - socket, connection, or meetingId missing", {
+        socket: !!socket,
+        isConnected,
+        meetingId: currentMeetingId
+      });
+      return;
+    }
+
+    const trimmedText = commentText.trim();
+    if (!trimmedText) {
+      console.warn("Cannot send empty comment");
+      return;
+    }
+
+    const senderName = user?.name || user?.member_name || user?.email || "You";
+    const senderId = user?.id || user?.member_id || null;
+
+    const payload = {
+      meetingId: String(currentMeetingId),
+      text: trimmedText,
+      senderName: senderName,
+      senderId: senderId,
+    };
+
+    console.log("Sending meetingChatMessage:", payload);
+    console.log("Socket connected:", socket.connected);
+    console.log("Socket id:", socket.id);
+
+    // Add message optimistically (show immediately)
+    const senderPhoto = user?.user_photo || user?.photo || null;
+    const optimisticMessage = {
+      id: `opt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: trimmedText,
+      senderName: senderName,
+      senderId: senderId,
+      senderPhoto: senderPhoto,
+      timestamp: Date.now(),
+      isOwn: true,
+    };
+    addChatMessage(optimisticMessage);
+
+    // Clear input immediately for better UX
+    const messageText = trimmedText;
+    setCommentText("");
+    setShowCommentInput(false);
+
+    socket.emit(
+      "meetingChatMessage",
+      payload,
+      (ack) => {
+        console.log("meetingChatMessage ack:", ack);
+        if (ack && !ack.ok) {
+          console.error("Failed to send comment:", ack);
+          // Restore text if send failed
+          setCommentText(messageText);
+          // Optionally remove optimistic message on failure
+        } else {
+          console.log("Comment sent successfully");
+        }
+      }
+    );
   };
 
   const handleSendLike = () => {
@@ -1288,8 +1744,8 @@ const MeetingRoom = () => {
     } catch (e) {
       console.warn("Could not add emoji locally:", e);
     }
-    // spawn floating emojis across the meeting viewport
-    spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 7);
+    // Floating emojis animation disabled
+    // spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 7);
     setShowEmojiPicker(false);
   };
 
@@ -1322,17 +1778,50 @@ const MeetingRoom = () => {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [showEmojiPicker]);
 
-  const addReactionToMap = (memberKey, type, name) => {
+  const addReactionToMap = useCallback((memberKey, type, name) => {
     setReactionsMap((prev) => {
       const next = { ...prev };
       const entry = next[memberKey] ? { ...next[memberKey] } : {};
-      const list = Array.isArray(entry[type]) ? [...entry[type]] : [];
-      if (!list.includes(name)) list.push(name);
-      entry[type] = list;
+      // Store reaction with timestamp for ordering
+      entry[type] = { name, timestamp: Date.now() };
       next[memberKey] = entry;
+
+      // Persist to localStorage
+      const currentMeetingId = meetingIdRef.current;
+      if (currentMeetingId) {
+        try {
+          localStorage.setItem(`meeting_reactions_${currentMeetingId}`, JSON.stringify(next));
+        } catch (error) {
+          console.warn("Failed to save reactions to localStorage:", error);
+        }
+      }
+
       return next;
     });
-  };
+  }, []);
+
+  // Load reactions from localStorage when meetingId is set
+  useEffect(() => {
+    if (meetingId) {
+      const storedReactions = loadReactionsFromStorage(meetingId);
+      if (Object.keys(storedReactions).length > 0) {
+        setReactionsMap(storedReactions);
+      } else {
+        setReactionsMap({});
+      }
+
+      // Load handRaisedMap from localStorage
+      const storedHandRaised = loadHandRaisedMapFromStorage(meetingId);
+      if (Object.keys(storedHandRaised).length > 0) {
+        setHandRaisedMap(storedHandRaised);
+      } else {
+        setHandRaisedMap({});
+      }
+    } else {
+      setReactionsMap({});
+      setHandRaisedMap({});
+    }
+  }, [meetingId, loadReactionsFromStorage, loadHandRaisedMapFromStorage]);
 
 
   const handleToggleScreenShare = async () => {
@@ -1517,7 +2006,26 @@ const MeetingRoom = () => {
         className="meeting-room-fullscreen-video"
         style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000", pointerEvents: "none", visibility: "hidden" }}
       >
-        <video autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+        <video
+          ref={screenShareVideoRef}
+          autoPlay
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      </div>
+
+      {/* Dedicated fullscreen video for remote member videos */}
+      <div
+        ref={memberVideoFullscreenRef}
+        className="meeting-room-fullscreen-video"
+        style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000", pointerEvents: "none", visibility: "hidden" }}
+      >
+        <video
+          ref={memberVideoVideoRef}
+          autoPlay
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
       </div>
 
       <div className="meeting-room-slider-viewport" ref={sliderViewportRef}>
@@ -1531,6 +2039,7 @@ const MeetingRoom = () => {
               {unifiedTiles.map((tile) => {
                 const key = tile?.socketId || tile?.member_id || tile?.label;
                 const isRemoteScreenShare = tile?.isScreenShare && !tile?.isSelf && !!tile?.stream;
+                const isRemoteMember = !tile?.isSelf && !!tile?.stream;
                 const handRaisedForTile = tile?.isSelf ? handRaised : handRaisedMap[tile?.socketId];
                 const memberKey = tile?.member_id || tile?.socketId || tile?.member_email || tile?.label;
                 const reactionEntry = reactionsMap[memberKey];
@@ -1541,7 +2050,11 @@ const MeetingRoom = () => {
                     className="meeting-room-tile"
                     role={isRemoteScreenShare ? "button" : undefined}
                     tabIndex={isRemoteScreenShare ? 0 : undefined}
-                    onClick={() => isRemoteScreenShare && toggleFullscreenForScreenShare(tile)}
+                    onClick={() => {
+                      if (isRemoteScreenShare) {
+                        toggleFullscreenForScreenShare(tile);
+                      }
+                    }}
                     onKeyDown={(e) => {
                       if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
                         e.preventDefault();
@@ -1551,54 +2064,113 @@ const MeetingRoom = () => {
                     style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
                     title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
                   >
-                    <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                      {tile?.stream ? (
-                        tile.isSelf ? (
-                          <video
-                            ref={localVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          <video
-                            autoPlay
-                            playsInline
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            ref={(el) => {
-                              if (el && tile.stream && el.srcObject !== tile.stream) {
-                                el.srcObject = tile.stream;
-                                el.play?.().catch(() => {});
-                              }
-                            }}
-                          />
-                        )
-                      ) : tile?.member_photo ? (
-                        <img
-                          src={tile.member_photo}
-                          alt={tile.label}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <span className="meeting-room-tile-initial">
-                          {String(tile.label).trim().charAt(0).toUpperCase() || "?"}
-                        </span>
-                      )}
+                    <div className="meeting-room-tile-avatar" style={{ overflow: "hidden", position: "relative" }}>
+                      {(() => {
+                        // Check if stream exists and has video tracks (don't check readyState as it may not be 'live' immediately)
+                        // We'll show the video element and let it handle the stream, even if tracks aren't fully ready yet
+                        const hasVideoTracks = tile?.stream && tile.stream.getVideoTracks().length > 0;
+                        const hasValidStream = hasVideoTracks;
+
+                        if (hasValidStream) {
+                          return tile.isSelf ? (
+                            <video
+                              ref={localVideoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <video
+                              key={`video-${tile.socketId}-${tile.stream?.id || 'no-stream'}`}
+                              autoPlay
+                              playsInline
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              ref={(el) => {
+                                if (el && tile.stream) {
+                                  if (el.srcObject !== tile.stream) {
+                                    console.log("🎥 Setting video srcObject for", tile.socketId, "stream:", tile.stream.id, "tracks:", tile.stream.getVideoTracks().length);
+                                    el.srcObject = tile.stream;
+                                  }
+                                  // Always try to play, even if already playing
+                                  el.play().catch((err) => {
+                                    console.warn("⚠️ Could not play video for", tile.socketId, err);
+                                  });
+                                }
+                              }}
+                            />
+                          );
+                        }
+
+                        // No valid stream - show photo or initial
+                        const photoUrl = tile?.member_photo || tile?.memberPhoto || tile?.user_photo || tile?.photo;
+                        if (photoUrl) {
+                          return (
+                            <>
+                              <img
+                                src={photoUrl}
+                                alt={tile.label}
+                                style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
+                                onError={(e) => {
+                                  // If image fails to load, hide it
+                                  e.target.style.display = 'none';
+                                  // Show initial fallback
+                                  const initial = e.target.nextElementSibling;
+                                  if (initial) initial.style.display = 'flex';
+                                }}
+                              />
+                              <span
+                                className="meeting-room-tile-initial"
+                                style={{ display: 'none' }}
+                              >
+                                {String(tile.label).trim().charAt(0).toUpperCase() || "?"}
+                              </span>
+                            </>
+                          );
+                        }
+                        return (
+                          <span className="meeting-room-tile-initial">
+                            {String(tile.label).trim().charAt(0).toUpperCase() || "?"}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {handRaisedForTile && (
                       <div className="meeting-room-hand-overlay" title="Raised hand">
                         <HandWaving size={18} weight="bold" />
                       </div>
                     )}
-                    {reactionEntry && Object.entries(reactionEntry).map(([type, names]) => (
-                      <div key={type} className="meeting-room-reaction" title={type}>
-                        <div className="reaction-icon">{getReactionIcon(type)}</div>
-                        <div className="reaction-names">
-                          {names.map((n) => <div key={n} className="reaction-name">{n}</div>)}
-                        </div>
-                      </div>
-                    ))}
+                    {reactionEntry && (() => {
+                      // Get the most recent reaction (latest timestamp)
+                      const reactions = Object.entries(reactionEntry).map(([type, data]) => {
+                        const timestamp = typeof data === 'string' ? 0 : (data.timestamp || 0);
+                        return { type, timestamp };
+                      });
+                      const latestReaction = reactions.sort((a, b) => b.timestamp - a.timestamp)[0];
+
+                      if (latestReaction) {
+                        return (
+                          <div key={latestReaction.type} className="meeting-room-reaction-icon" title={latestReaction.type}>
+                            <div className="reaction-icon">{getReactionIcon(latestReaction.type)}</div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {isRemoteMember && (
+                      <button
+                        type="button"
+                        className="meeting-room-fullscreen-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFullscreenForMember(tile);
+                        }}
+                        aria-label="Fullscreen"
+                        title="Fullscreen"
+                      >
+                        <ArrowsOut size={16} weight="bold" />
+                      </button>
+                    )}
                     <span className={`meeting-room-tile-badge ${tile?.isSelf ? "you" : "admin"}`}>
                       {tile?.isSelf ? "You" : tile.label}
                     </span>
@@ -1662,18 +2234,7 @@ const MeetingRoom = () => {
           </div>
         </div>
 
-        {/* floating emojis rendered over the viewport */}
-        {floatingEmojis.map((f) => (
-          <div
-            key={f.id}
-            className="floating-emoji"
-            style={{ left: f.left, top: f.top }}
-            title={`Emoji by ${f.name}`}
-          >
-            <div className="floating-emoji-char">{f.emoji}</div>
-            <div className="floating-emoji-by">Emoji by {f.name}</div>
-          </div>
-        ))}
+        {/* Floating emojis animation disabled */}
       </div>
 
       {/* Slider dots */}
@@ -1754,13 +2315,30 @@ const MeetingRoom = () => {
               type="text"
               placeholder="Type a Comment..."
               className="meeting-room-comment-input visible"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendComment();
+                }
+              }}
               autoFocus
-              onBlur={() => setShowCommentInput(false)}
+              onBlur={() => {
+                // Delay to allow button click
+                setTimeout(() => {
+                  if (!commentText.trim()) {
+                    setShowCommentInput(false);
+                  }
+                }, 200);
+              }}
             />
             <button
               type="button"
               className="meeting-room-comment-send-btn"
               aria-label="Send comment"
+              onClick={handleSendComment}
+              disabled={!commentText.trim() || !socket || !isConnected || !meetingId}
             >
               <ArrowUp size={18} weight="regular" />
             </button>
@@ -1782,6 +2360,33 @@ const MeetingRoom = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Reactions display in bottom right - show only 2 most recent, latest at bottom */}
+      <div className="meeting-room-reactions-container">
+        {(() => {
+          // Collect all reactions with their timestamps
+          const allReactions = [];
+          Object.entries(reactionsMap).forEach(([memberKey, reactionEntry]) => {
+            Object.entries(reactionEntry).forEach(([type, data]) => {
+              const name = typeof data === 'string' ? data : data.name;
+              const timestamp = typeof data === 'string' ? 0 : (data.timestamp || 0);
+              allReactions.push({ memberKey, type, name, timestamp });
+            });
+          });
+          // Sort by timestamp (most recent first), take only 2, then reverse so latest is at bottom
+          const recentReactions = allReactions
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 2)
+            .reverse();
+
+          return recentReactions.map((reaction) => (
+            <div key={`${reaction.memberKey}-${reaction.type}-${reaction.timestamp}`} className="meeting-room-reaction-item">
+              <div className="reaction-icon-small">{getReactionIcon(reaction.type)}</div>
+              <div className="reaction-name-text">Emoji by {reaction.name}</div>
+            </div>
+          ));
+        })()}
       </div>
     </div>
   );
