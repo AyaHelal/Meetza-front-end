@@ -17,6 +17,7 @@
 box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   z-index: 5;
   overflow: hidden;
+  position: relative;
 }
 
 /* Header */
@@ -142,6 +143,31 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
   }
+}
+
+/* Fullscreen video containers */
+.meeting-room-fullscreen-video {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  pointer-events: none;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meeting-room-fullscreen-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Prevent flickering and ensure smooth rendering */
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: contents;
 }
 
 /* Fullscreen: tile fills viewport for screen share */
@@ -364,28 +390,25 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
 
-/* Reaction overlay (icon + stacked names) */
-.meeting-room-reaction {
+/* Reaction icon overlay on tile */
+.meeting-room-reaction-icon {
   position: absolute;
   top: 8px;
   right: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   z-index: 30;
   pointer-events: none;
 }
 .reaction-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #ffffffcc;
+  width: 60px;
+  height: 60px;
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  border: 1px solid rgba(0,0,0,0.06);
+  font-size: 48px;
+  box-shadow: none;
+  border: none;
 }
 .meeting-room-hand-overlay {
   position: absolute;
@@ -403,20 +426,48 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   z-index: 40;
   border: 2px solid rgba(255,255,255,0.85);
 }
-.reaction-names {
-  margin-top: 6px;
+
+/* When both hand and reaction are present, adjust positioning */
+.meeting-room-tile:has(.meeting-room-hand-overlay) .meeting-room-reaction-icon {
+  top: 50px;
+}
+
+.meeting-room-fullscreen-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 35;
+  transition: background 0.2s, transform 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.meeting-room-fullscreen-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.meeting-room-fullscreen-btn:active {
+  transform: scale(0.95);
 }
 .reaction-name {
   font-size: 11px;
   color: #07324a;
   background: rgba(255,255,255,0.85);
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 8px;
-  margin-top: 4px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  white-space: nowrap;
+  font-weight: 500;
 }
 
 /* Emoji picker popup */
@@ -577,4 +628,49 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
     width: 42px;
     height: 42px;
   }
+}
+
+/* Reactions container in bottom right */
+.meeting-room-reactions-container {
+  position: absolute;
+  bottom: 80px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+  max-width: 250px;
+}
+
+.meeting-room-reaction-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background: #00dc85;
+  padding: 6px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+.reaction-icon-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reaction-name-text {
+  font-size: 12px;
+  color: #07324a;
+  font-weight: 500;
+  white-space: nowrap;
 }
