@@ -1035,6 +1035,11 @@ const MeetingRoom = () => {
         const fromName = data?.name ?? data?.member_name ?? meta?.member_name ?? "Someone";
         const key = String(fromMemberId || fromSocketId || fromName);
         addReactionToMap(key, type, fromName);
+
+        // Trigger floating emoji animation for reactions from others
+        // Convert type to emoji character using getReactionIcon
+        const emojiChar = getReactionIcon(type);
+        spawnFloatingEmojis(emojiChar, fromName, 1);
       } catch (e) {
         console.error("❌ Error handling reaction event:", e, data);
       }
@@ -1744,28 +1749,25 @@ const MeetingRoom = () => {
     } catch (e) {
       console.warn("Could not add emoji locally:", e);
     }
-    // Floating emojis animation disabled
-    // spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 7);
+    // Spawn single floating emoji animation from bottom to top
+    spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 1);
     setShowEmojiPicker(false);
   };
 
-  const spawnFloatingEmojis = (emoji, name, count = 6) => {
-    const container = sliderViewportRef.current;
-    const rect = container ? container.getBoundingClientRect() : null;
-    const items = [];
-    for (let i = 0; i < count; i++) {
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      // random positions inside container
-      const left = rect ? Math.max(8, Math.random() * (rect.width - 48)) : Math.random() * 400;
-      const top = rect ? Math.max(8, Math.random() * (rect.height - 48)) : Math.random() * 140;
-      items.push({ id, emoji, name, left, top });
-    }
-    setFloatingEmojis((prev) => [...prev, ...items]);
-    // remove them after 3.2s
+  const spawnFloatingEmojis = useCallback((emoji, name, count = 1) => {
+    // Create only one emoji that animates upward from control bar area
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    // Position at center horizontally, near the control bar (above bottom)
+    const left = window.innerWidth / 2; // Center horizontally
+    const top = window.innerHeight - 150; // Above control bar area
+    const item = { id, emoji, name, left, top };
+
+    setFloatingEmojis((prev) => [...prev, item]);
+    // Remove after animation completes (3s)
     setTimeout(() => {
-      setFloatingEmojis((prev) => prev.filter((f) => !items.find((it) => it.id === f.id)));
-    }, 3200);
-  };
+      setFloatingEmojis((prev) => prev.filter((f) => f.id !== item.id));
+    }, 3000);
+  }, []);
 
   useEffect(() => {
     if (!showEmojiPicker) return;
@@ -2041,8 +2043,6 @@ const MeetingRoom = () => {
                 const isRemoteScreenShare = tile?.isScreenShare && !tile?.isSelf && !!tile?.stream;
                 const isRemoteMember = !tile?.isSelf && !!tile?.stream;
                 const handRaisedForTile = tile?.isSelf ? handRaised : handRaisedMap[tile?.socketId];
-                const memberKey = tile?.member_id || tile?.socketId || tile?.member_email || tile?.label;
-                const reactionEntry = reactionsMap[memberKey];
 
                 return (
                   <div
@@ -2140,23 +2140,6 @@ const MeetingRoom = () => {
                         <HandWaving size={18} weight="bold" />
                       </div>
                     )}
-                    {reactionEntry && (() => {
-                      // Get the most recent reaction (latest timestamp)
-                      const reactions = Object.entries(reactionEntry).map(([type, data]) => {
-                        const timestamp = typeof data === 'string' ? 0 : (data.timestamp || 0);
-                        return { type, timestamp };
-                      });
-                      const latestReaction = reactions.sort((a, b) => b.timestamp - a.timestamp)[0];
-
-                      if (latestReaction) {
-                        return (
-                          <div key={latestReaction.type} className="meeting-room-reaction-icon" title={latestReaction.type}>
-                            <div className="reaction-icon">{getReactionIcon(latestReaction.type)}</div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
                     {isRemoteMember && (
                       <button
                         type="button"
@@ -2234,7 +2217,19 @@ const MeetingRoom = () => {
           </div>
         </div>
 
-        {/* Floating emojis animation disabled */}
+        {/* Floating emoji animation - single emoji from bottom to top */}
+        {floatingEmojis.map((item) => (
+          <div
+            key={item.id}
+            className="floating-emoji"
+            style={{
+              left: `${item.left}px`,
+              top: `${item.top}px`,
+            }}
+          >
+            <div className="floating-emoji-char">{item.emoji}</div>
+          </div>
+        ))}
       </div>
 
       {/* Slider dots */}

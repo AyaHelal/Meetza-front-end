@@ -38,16 +38,14 @@
     background: #b0b0b0;
 }
 
-/* Video Description Card - scroll localized inside content area only */
+/* Video Description Card - fixed height with scrollable content */
 .video-description-card {
     background: #1976d2;
     color: #ffffff;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    flex: 0 1 auto;
-    min-height: 0;
-    max-height: 45%;
+    height: 300px; /* Fixed height like the photo tiles */
     width: 100%;
     box-sizing: border-box;
     margin-top: 10px;
@@ -193,7 +191,7 @@
     }
 
     .video-description-card {
-        max-height: 42%;
+        height: 300px; /* Fixed height maintained on larger screens */
     }
 
     .video-description-card .video-description-title,
