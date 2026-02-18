@@ -1936,20 +1936,84 @@ body.group-chat-active {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #888888 !important;
+  color: #333333 !important;
   cursor: pointer;
   transition: all 0.3s ease;
+  background: transparent !important;
+  border: none !important;
+  padding: 0;
 }
 
-.status-icon:hover {
-  color: #333333;
+/* Mic and Camera icons - darker gray by default, black on hover */
+.status-icon.status-mic,
+.status-icon.status-camera {
+  color: #333333 !important;
+}
+
+.status-icon.status-mic:hover,
+.status-icon.status-camera:hover {
+  color: #000000 !important;
 }
 
 .status-icon svg {
   stroke: currentColor;
   fill: none;
-  color: black !important;
+  color: #333333 !important;
   stroke-width: 1.5;
+}
+
+.status-icon.status-mic svg,
+.status-icon.status-camera svg {
+  color: #333333 !important;
+  stroke-width: 1.5;
+}
+
+.status-icon.status-mic:hover svg,
+.status-icon.status-camera:hover svg {
+  color: #000000 !important;
+  stroke-width: ;
+}
+
+/* When mic/camera is enabled (active), show green color with thicker stroke */
+.status-icon.status-mic.active svg,
+.status-icon.status-camera.active svg {
+  color: #00dc85 !important;
+  stroke-width: 4;
+}
+
+/* Keep hover state even when active, but prefer active color with thick stroke */
+.status-icon.status-mic.active:hover svg,
+.status-icon.status-camera.active:hover svg {
+  color: #00dc85 !important;
+  stroke-width: 4;
+}
+
+/* Return to Meeting button - keep green background, white text */
+.status-return-to-meeting {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #00dc85 !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.status-return-to-meeting:hover {
+  background: #00b86d !important;
+  transform: scale(1.02);
+  color: #fff !important;
+}
+
+.status-return-to-meeting svg {
+  color: #fff !important;
+  stroke: currentColor;
+  fill: currentColor;
 }
 
 /* Return to Meeting - replaces mic/ear when user is in meeting */
