@@ -20,6 +20,7 @@ import { smartToast } from "../../../API/toastManager";
 import { useSocket } from "../../../context/SocketContext";
 import { AuthContext } from "../../../context/AuthContext";
 import { useMeetingContext } from "../../../context/MeetingContext";
+import { useMediaContext } from "../../../context/MediaContext";
 
 /** Normalize backend participant to unified shape { socketId, member_id, member_name, member_photo, member_email } */
 const toParticipant = (p) => ({
@@ -65,19 +66,34 @@ const MeetingRoom = () => {
   const { user } = useContext(AuthContext);
   const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage } = useMeetingContext();
 
-  // Persisted media state (no auto-enable: start muted)
-  const [audioMuted, setAudioMuted] = useState(() => {
-    try {
-      const v = sessionStorage.getItem("meetza_audioMuted");
-      return v !== null ? v === "true" : true;
-    } catch { return true; }
-  });
-  const [videoMuted, setVideoMuted] = useState(() => {
-    try {
-      const v = sessionStorage.getItem("meetza_videoMuted");
-      return v !== null ? v === "true" : true;
-    } catch { return true; }
-  });
+  // Get persistent media streams and state from MediaContext
+  const {
+    localStreamRef,
+    cameraVideoTrackRef,
+    screenTrackRef,
+    audioMuted: contextAudioMuted,
+    videoMuted: contextVideoMuted,
+    setAudioMuted: setContextAudioMuted,
+    setVideoMuted: setContextVideoMuted,
+    registerPeerConnection,
+    unregisterPeerConnection,
+    getPeerConnections,
+    setMeetingId: setMediaContextMeetingId,
+    setHasJoined: setMediaContextHasJoined,
+  } = useMediaContext();
+
+  // Use MediaContext state, but keep local state for UI updates
+  const [audioMuted, setAudioMuted] = useState(contextAudioMuted);
+  const [videoMuted, setVideoMuted] = useState(contextVideoMuted);
+
+  // Sync with MediaContext state changes
+  useEffect(() => {
+    setAudioMuted(contextAudioMuted);
+  }, [contextAudioMuted]);
+
+  useEffect(() => {
+    setVideoMuted(contextVideoMuted);
+  }, [contextVideoMuted]);
   const [handRaised, setHandRaised] = useState(() => {
     try {
       const v = sessionStorage.getItem("meetza_handRaised");
@@ -88,14 +104,12 @@ const MeetingRoom = () => {
 
   const peersRef = useRef(new Map()); // socketId -> RTCPeerConnection
   const peerMetaRef = useRef(new Map()); // socketId -> { member_id, member_name, member_photo }
-  const localStreamRef = useRef(null);
-  const cameraVideoTrackRef = useRef(null);
   const meetingIdRef = useRef(null);
   const startedRef = useRef(false);
   const localVideoRef = useRef(null);
   const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
   const sliderViewportRef = useRef(null);
-  const screenTrackRef = useRef(null);
+  // Note: localStreamRef, cameraVideoTrackRef, and screenTrackRef come from MediaContext
   const makingOffer = useRef(false); // Track if we're currently making an offer
   const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
   const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
@@ -116,7 +130,9 @@ const MeetingRoom = () => {
   useEffect(() => {
     meetingIdRef.current = meetingId;
     setMeetingId(meetingId);
-  }, [meetingId, setMeetingId]);
+    // Also update MediaContext so it knows the meeting ID
+    setMediaContextMeetingId(meetingId);
+  }, [meetingId, setMeetingId, setMediaContextMeetingId]);
 
   // Persist media state to sessionStorage
   useEffect(() => {
@@ -159,9 +175,11 @@ const MeetingRoom = () => {
         // ignore
       }
       peersRef.current.delete(peerSocketId);
+      // Unregister from MediaContext
+      unregisterPeerConnection(peerSocketId);
     }
     removeRemoteStream(peerSocketId);
-  }, [removeRemoteStream]);
+  }, [removeRemoteStream, unregisterPeerConnection]);
 
   const createPeerConnection = useCallback((peerSocketId) => {
     const pc = new RTCPeerConnection({
@@ -212,8 +230,11 @@ const MeetingRoom = () => {
       console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);
     }
 
+    // Register peer connection in MediaContext so it can trigger renegotiation even when not on meeting page
+    registerPeerConnection(peerSocketId, pc);
+
     return pc;
-  }, [socket, upsertRemoteStream]);
+  }, [socket, upsertRemoteStream, registerPeerConnection]);
 
   // Add tracks to all existing peer connections when local stream becomes available
   const addTracksToAllPeers = useCallback(() => {
@@ -265,7 +286,7 @@ const MeetingRoom = () => {
             video: false,
           });
           mediaStream.getAudioTracks().forEach((t) => {
-            t.enabled = false; // Keep it disabled (muted) but present for negotiation
+            t.enabled = false; // Keep it disabled (muted)n but present for negotiation
             stream.addTrack(t);
           });
           console.log("✅ Added muted audio track for WebRTC negotiation");
@@ -382,36 +403,91 @@ const MeetingRoom = () => {
     const needVideo = options.needVideo ?? !videoMuted;
     let stream = localStreamRef.current;
     if (!stream) stream = await ensureLocalMedia();
-    const hasAudio = stream.getAudioTracks().length > 0;
+
+    // Check if we have enabled audio tracks (not just disabled ones)
+    const audioTracks = stream.getAudioTracks();
+    const hasEnabledAudio = audioTracks.some(t => t.enabled && t.readyState === 'live');
+    const hasAudio = audioTracks.length > 0;
+
     const hasCamera = !!getCameraTrack(stream);
-    if ((needAudio && !hasAudio) || (needVideo && !hasCamera)) {
+
+    // If we need audio but don't have enabled audio tracks, get new ones
+    // This handles the case where we have disabled tracks from ensureLocalMedia
+    if (needAudio && (!hasAudio || !hasEnabledAudio)) {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: needVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } : false,
-          audio: needAudio ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
         });
-        if (needAudio && !hasAudio) {
-          mediaStream.getAudioTracks().forEach((t) => {
-            t.enabled = true;
-            stream.addTrack(t);
-          });
-        }
-        if (needVideo && !hasCamera) {
-          const vt = mediaStream.getVideoTracks()[0];
-          if (vt) {
-            vt.enabled = true;
-            stream.addTrack(vt);
-            cameraVideoTrackRef.current = vt;
+
+        // Remove old disabled audio tracks if they exist
+        // Also remove them from peer connections before adding new ones
+        if (hasAudio && !hasEnabledAudio) {
+          // First, remove tracks from peer connections
+          for (const [, pc] of peersRef.current.entries()) {
+            const audioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+            audioSenders.forEach(sender => {
+              try {
+                sender.track.stop();
+                pc.removeTrack(sender);
+                console.log("🗑️ Removed old audio track from peer connection");
+              } catch (err) {
+                console.error("❌ Error removing old audio track:", err);
+              }
+            });
           }
+
+          // Then remove from stream
+          audioTracks.forEach(t => {
+            t.stop();
+            stream.removeTrack(t);
+          });
+          console.log("🗑️ Removed disabled audio tracks before adding new ones");
         }
-        setLocalStream(stream);
-        setTimeout(() => addTracksToAllPeers(), 100);
+
+        // Add new enabled audio tracks
+        const newAudioTracks = [];
+        mediaStream.getAudioTracks().forEach((t) => {
+          t.enabled = true;
+          stream.addTrack(t);
+          newAudioTracks.push(t);
+          console.log("✅ Added enabled audio track to stream");
+        });
+
+        // Note: Don't add tracks to peer connections here - let handleToggleAudio do it
+        // This avoids duplicate track issues and ensures proper renegotiation
       } catch (e) {
-        console.error("getUserMedia failed:", e);
-        smartToast.error("Could not access camera/microphone.");
+        console.error("getUserMedia failed for audio:", e);
         throw e;
       }
     }
+
+    // Handle video tracks
+    if (needVideo && !hasCamera) {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+          audio: false,
+        });
+        const vt = mediaStream.getVideoTracks()[0];
+        if (vt) {
+          vt.enabled = true;
+          stream.addTrack(vt);
+          cameraVideoTrackRef.current = vt;
+        }
+      } catch (e) {
+        console.error("getUserMedia failed for video:", e);
+        throw e;
+      }
+    }
+
+    setLocalStream(stream);
+
+    // If we added audio tracks, ensure they're added to all peers
+    if (needAudio && (!hasAudio || !hasEnabledAudio)) {
+      setTimeout(() => addTracksToAllPeers(), 100);
+    }
+
     return stream;
   }, [audioMuted, videoMuted, ensureLocalMedia, addTracksToAllPeers, getCameraTrack]);
 
@@ -420,6 +496,36 @@ const MeetingRoom = () => {
     const mid = meetingIdRef.current;
     if (!mid) return;
     if (startedRef.current) return;
+
+    // Check if this is the first time joining (not returning to an existing meeting)
+    // If activeMeetingId exists in sessionStorage and matches current meeting, we're returning
+    const isReturning = (() => {
+      try {
+        const stored = sessionStorage.getItem("activeMeetingId");
+        return stored === String(mid);
+      } catch {
+        return false;
+      }
+    })();
+
+    // Also check if we have hasJoined in sessionStorage for this meeting
+    const storedHasJoined = (() => {
+      try {
+        const stored = sessionStorage.getItem(`meeting_hasJoined_${mid}`);
+        return stored === "true";
+      } catch {
+        return false;
+      }
+    })();
+
+    const isFirstJoin = !isReturning && !hasJoined && !storedHasJoined;
+
+    if (isReturning) {
+      console.log("🔄 Returning to existing meeting - preserving all state");
+    } else if (isFirstJoin) {
+      console.log("🆕 First time joining meeting");
+    }
+
     startedRef.current = true;
 
     try {
@@ -429,6 +535,28 @@ const MeetingRoom = () => {
       smartToast.error("Could not access camera/microphone.");
       startedRef.current = false;
       return;
+    }
+
+    // Ensure camera is off by default when first entering a meeting
+    // But preserve state when returning (don't force it off)
+    if (isFirstJoin) {
+      console.log("📹 Ensuring camera is off by default when first entering meeting");
+      setVideoMuted(true);
+      setContextVideoMuted(true);
+      // Disable any existing camera track
+      const cameraTrack = cameraVideoTrackRef.current;
+      if (cameraTrack) {
+        cameraTrack.enabled = false;
+      }
+    } else if (isReturning) {
+      // When returning, restore camera state from sessionStorage/context
+      // The state should already be loaded, but ensure the track matches
+      console.log("🔄 Returning to meeting - preserving camera state:", { videoMuted, contextVideoMuted });
+      const cameraTrack = cameraVideoTrackRef.current;
+      if (cameraTrack) {
+        cameraTrack.enabled = !videoMuted;
+        console.log("📹 Restored camera track state on return:", { videoMuted, trackEnabled: cameraTrack.enabled });
+      }
     }
 
     console.log("📤 Emitting joinMeetingRoom for meeting:", mid);
@@ -463,7 +591,89 @@ const MeetingRoom = () => {
       };
       setParticipants([selfEntry, ...othersNorm]);
       setHasJoined(true);
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted });
+      setMediaContextHasJoined(true);
+
+      // Persist hasJoined state so we know we're returning next time
+      try {
+        sessionStorage.setItem(`meeting_hasJoined_${mid}`, "true");
+      } catch (e) {
+        console.warn("Could not persist hasJoined to sessionStorage:", e);
+      }
+
+      // When returning, restore remote streams from existing peer connections in MediaContext
+      if (isReturning && getPeerConnections) {
+        console.log("🔄 Restoring remote streams from existing peer connections...");
+        const existingPeers = getPeerConnections();
+        const restoredStreams = [];
+
+        for (const [peerSocketId, pc] of existingPeers.entries()) {
+          // Check if this peer is in the current participants list
+          const isCurrentParticipant = othersNorm.some(p => (p?.socketId || p?.id) === peerSocketId);
+          if (!isCurrentParticipant) continue;
+
+          // Get receivers from peer connection
+          const receivers = pc.getReceivers();
+          if (receivers.length === 0) continue;
+
+          // Create stream from receivers
+          const restoredStream = new MediaStream();
+          receivers.forEach(receiver => {
+            if (receiver.track) {
+              restoredStream.addTrack(receiver.track);
+            }
+          });
+
+          if (restoredStream.getTracks().length > 0) {
+            // Check if it's a screen share
+            const videoTrack = restoredStream.getVideoTracks()[0];
+            const isScreenShare = videoTrack && (() => {
+              try {
+                const s = videoTrack.getSettings?.();
+                if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") return true;
+                if ((videoTrack.label || "").toLowerCase().includes("screen")) return true;
+              } catch { }
+              return false;
+            })();
+
+            restoredStreams.push({ socketId: peerSocketId, stream: restoredStream, isScreenShare });
+            console.log("✅ Restored stream for", peerSocketId, {
+              videoTracks: restoredStream.getVideoTracks().length,
+              audioTracks: restoredStream.getAudioTracks().length,
+              isScreenShare
+            });
+
+            // If we have video tracks, optimistically set media state
+            if (videoTrack && !isScreenShare && videoTrack.enabled && videoTrack.readyState === 'live') {
+              setMediaStateMap((prev) => ({
+                ...prev,
+                [peerSocketId]: {
+                  ...prev[peerSocketId],
+                  videoMuted: false, // Camera appears to be on
+                },
+              }));
+            }
+          }
+
+          // Sync peer connection to MeetingRoom's peersRef
+          peersRef.current.set(peerSocketId, pc);
+        }
+
+        if (restoredStreams.length > 0) {
+          setRemoteStreams(restoredStreams);
+          console.log(`✅ Restored ${restoredStreams.length} remote streams`);
+
+          // Small delay to ensure video elements are ready, then force update
+          setTimeout(() => {
+            // The unifiedTiles will automatically update when remoteStreams changes
+            // But we can also trigger a re-render by updating a dependency
+            console.log("🔄 Remote streams restored, video elements should update automatically");
+          }, 100);
+        }
+      }
+
+      // Use current state (camera should be off if first join, or preserved if returning)
+      const currentVideoMuted = isFirstJoin ? true : videoMuted;
+      socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: currentVideoMuted });
 
       // Ensure local stream is ready before creating peer connections
       const stream = localStreamRef.current;
@@ -476,9 +686,30 @@ const MeetingRoom = () => {
         const peerSocketId = p?.socketId || p?.id || p;
         if (!peerSocketId) continue;
         if (peerSocketId === socket.id) continue;
+
+        // Check if peer connection already exists (might persist from MediaContext or previous mount)
+        // If returning, we might have existing connections in MediaContext that we've already synced
         if (peersRef.current.has(peerSocketId)) {
-          console.log("⚠️ Peer connection already exists for", peerSocketId);
+          console.log("✅ Peer connection already exists for", peerSocketId, "- reusing existing connection");
+          // Ensure it's registered with MediaContext
+          const existingPc = peersRef.current.get(peerSocketId);
+          if (existingPc) {
+            registerPeerConnection(peerSocketId, existingPc);
+          }
           continue;
+        }
+
+        // Also check MediaContext's peer connections (they persist across navigation)
+        // If we're returning and MediaContext has the connection, reuse it
+        if (isReturning && getPeerConnections) {
+          const existingPeers = getPeerConnections();
+          if (existingPeers.has(peerSocketId)) {
+            const existingPc = existingPeers.get(peerSocketId);
+            console.log("✅ Reusing existing peer connection from MediaContext for", peerSocketId);
+            peersRef.current.set(peerSocketId, existingPc);
+            // Connection is already registered with MediaContext, just continue
+            continue;
+          }
         }
 
         // Store any metadata if backend provides it
@@ -561,6 +792,18 @@ const MeetingRoom = () => {
     setRemoteStreams([]);
     setParticipants([]);
     setHasJoined(false);
+    setMediaContextHasJoined(false);
+
+    // Clear persisted hasJoined state when explicitly leaving
+    try {
+      if (mid) {
+        sessionStorage.removeItem(`meeting_hasJoined_${mid}`);
+      }
+      sessionStorage.removeItem("activeMeetingId");
+      sessionStorage.removeItem("activeMeetingGroupId");
+    } catch (e) {
+      console.warn("Could not clear hasJoined from sessionStorage:", e);
+    }
 
     // stop local tracks
     const stream = localStreamRef.current;
@@ -1012,6 +1255,7 @@ const MeetingRoom = () => {
       const sid = data?.socketId || data?.id;
       const mid = data?.meetingId;
       if (!sid || !mid || mid !== meetingIdRef.current) return;
+      console.log("📹 Received mediaStateUpdated for", sid, { audioMuted: !!data.audioMuted, videoMuted: !!data.videoMuted });
       setMediaStateMap((m) => ({
         ...m,
         [sid]: { audioMuted: !!data.audioMuted, videoMuted: !!data.videoMuted },
@@ -1146,9 +1390,18 @@ const MeetingRoom = () => {
         stream = entry?.stream ?? null;
         isScreenShare = entry?.isScreenShare ?? false;
       }
-      // Only show video if stream exists AND has video tracks (for remote) or is enabled (for self)
+      // Check mediaStateMap for remote participants' camera state
+      // Default to muted (true) if no state is known - we'll show camera only when explicitly unmuted
+      const remoteMediaState = !isSelf ? mediaStateMap[sid] : null;
+      const remoteVideoMuted = remoteMediaState?.videoMuted ?? true; // Default to muted (camera off)
+
+      // Only show video if stream exists AND has video tracks AND camera is not muted
       const hasVideoTracks = stream && stream.getVideoTracks().length > 0;
-      const showVideo = stream && hasVideoTracks && (isSelf ? (!videoMuted || isScreenShare) : true);
+      const showVideo = stream && hasVideoTracks && (
+        isSelf
+          ? (!videoMuted || isScreenShare)
+          : (!remoteVideoMuted || isScreenShare) // For remote: check mediaStateMap
+      );
       return {
         ...p,
         isSelf,
@@ -1159,7 +1412,7 @@ const MeetingRoom = () => {
         member_photo: p?.member_photo || p?.memberPhoto || p?.user_photo || p?.photo || null,
       };
     });
-  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing]);
+  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap]);
 
   const screenShareFullscreenRef = useRef(null);
   const memberVideoFullscreenRef = useRef(null);
@@ -1564,7 +1817,156 @@ const MeetingRoom = () => {
       try {
         await ensureMediaTracks({ needAudio: true });
         const stream = localStreamRef.current;
-        if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = true));
+        if (stream) {
+          const audioTracks = stream.getAudioTracks();
+          audioTracks.forEach((t) => {
+            t.enabled = true;
+          });
+
+          // Ensure audio tracks are added to all peer connections and trigger renegotiation
+          // Filter to only enabled, live audio tracks
+          const enabledAudioTracks = audioTracks.filter(t => t.readyState === 'live');
+
+          for (const [peerSocketId, pc] of peersRef.current.entries()) {
+            const audioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+
+            // Remove any stopped/ended audio senders first
+            audioSenders.forEach(sender => {
+              if (sender.track && sender.track.readyState === 'ended') {
+                try {
+                  pc.removeTrack(sender);
+                  console.log("🗑️ Removed ended audio track from peer", peerSocketId);
+                } catch (err) {
+                  console.error("❌ Error removing ended audio track:", err);
+                }
+              }
+            });
+
+            // Get updated senders after cleanup
+            const updatedAudioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+
+            // If no audio senders, add all enabled audio tracks
+            if (updatedAudioSenders.length === 0) {
+              enabledAudioTracks.forEach(track => {
+                try {
+                  pc.addTrack(track, stream);
+                  console.log("➕ Added enabled audio track to peer connection", peerSocketId, { trackId: track.id, enabled: track.enabled });
+                } catch (err) {
+                  console.error("❌ Error adding audio track to peer:", err);
+                }
+              });
+            } else {
+              // Replace existing audio tracks with new enabled ones
+              const replacementPromises = [];
+              enabledAudioTracks.forEach((track, index) => {
+                const sender = updatedAudioSenders[index];
+                if (sender) {
+                  // Check if track is different or if current track is disabled/ended
+                  if (sender.track !== track || sender.track.readyState === 'ended' || !sender.track.enabled) {
+                    // Different track or track is bad, replace it
+                    try {
+                      const replacePromise = sender.replaceTrack(track).then(() => {
+                        console.log("🔄 Replaced audio track in peer connection", peerSocketId, {
+                          oldTrackId: sender.track?.id,
+                          newTrackId: track.id,
+                          enabled: track.enabled
+                        });
+                      }).catch(err => {
+                        console.error("❌ Error replacing audio track:", err);
+                        throw err;
+                      });
+                      replacementPromises.push(replacePromise);
+                    } catch (err) {
+                      console.error("❌ Error replacing audio track:", err);
+                    }
+                  } else {
+                    // Same track, just ensure it's enabled
+                    if (!sender.track.enabled) {
+                      sender.track.enabled = true;
+                      console.log("✅ Enabled existing audio track in peer connection", peerSocketId);
+                    }
+                  }
+                } else {
+                  // More tracks than senders, add the new one
+                  try {
+                    pc.addTrack(track, stream);
+                    console.log("➕ Added additional audio track to peer connection", peerSocketId);
+                  } catch (err) {
+                    console.error("❌ Error adding additional audio track:", err);
+                  }
+                }
+              });
+
+              // Wait for all track replacements to complete, then trigger renegotiation
+              Promise.all(replacementPromises).then(() => {
+                // Small delay to ensure everything is settled
+                setTimeout(() => {
+                  try {
+                    pc.createOffer().then(offer => {
+                      pc.setLocalDescription(offer).then(() => {
+                        const mid = meetingIdRef.current;
+                        if (socket && mid) {
+                          socket.emit("webrtcOffer", {
+                            toSocketId: peerSocketId,
+                            meetingId: mid,
+                            sdp: offer
+                          }, () => { });
+                          console.log("📤 Sent renegotiation offer for audio to", peerSocketId);
+                        }
+                      }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
+                    }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
+                  } catch (err) {
+                    console.error("❌ Error in audio toggle renegotiation:", err);
+                  }
+                }, 100);
+              }).catch(() => {
+                // Even if some replacements failed, try renegotiation anyway
+                setTimeout(() => {
+                  try {
+                    pc.createOffer().then(offer => {
+                      pc.setLocalDescription(offer).then(() => {
+                        const mid = meetingIdRef.current;
+                        if (socket && mid) {
+                          socket.emit("webrtcOffer", {
+                            toSocketId: peerSocketId,
+                            meetingId: mid,
+                            sdp: offer
+                          }, () => { });
+                          console.log("📤 Sent renegotiation offer for audio to", peerSocketId, "(after some failures)");
+                        }
+                      }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
+                    }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
+                  } catch (err) {
+                    console.error("❌ Error in audio toggle renegotiation:", err);
+                  }
+                }, 100);
+              });
+            }
+
+            // If no replacements were needed (tracks were just added), trigger renegotiation immediately
+            if (updatedAudioSenders.length === 0) {
+              setTimeout(() => {
+                try {
+                  pc.createOffer().then(offer => {
+                    pc.setLocalDescription(offer).then(() => {
+                      const mid = meetingIdRef.current;
+                      if (socket && mid) {
+                        socket.emit("webrtcOffer", {
+                          toSocketId: peerSocketId,
+                          meetingId: mid,
+                          sdp: offer
+                        }, () => { });
+                        console.log("📤 Sent renegotiation offer for audio to", peerSocketId);
+                      }
+                    }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
+                  }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
+                } catch (err) {
+                  console.error("❌ Error in audio toggle renegotiation:", err);
+                }
+              }, 100);
+            }
+          }
+        }
         setAudioMuted(false);
       } catch {
         setAudioMuted(true);
@@ -2141,7 +2543,7 @@ const MeetingRoom = () => {
                                     if (el.srcObject !== tile.stream) el.srcObject = tile.stream;
                                     el.muted = !!localParticipantAudioMuted[tile.socketId];
                                     el.volume = localParticipantVolume[tile.socketId] ?? 1;
-                                    el.play().catch(() => {});
+                                    el.play().catch(() => { });
                                   }
                                 } else {
                                   remoteVideoRefsMap.current.delete(tile.socketId);

@@ -18,6 +18,7 @@ import UserPhoto from "../UserPhoto/UserPhoto";
 import { AuthContext } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { MeetingProvider } from "../../context/MeetingContext";
+import { MediaProvider } from "../../context/MediaContext";
 import MeetingRoom from "../../pages/Meetings/components/MeetingRoom";
 import MeetingChat from "../../pages/Meetings/components/MeetingChat";
 import MeetingRightSidebar from "../../pages/Meetings/components/MeetingRightSidebar";
@@ -28,7 +29,7 @@ const AppLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useContext(AuthContext);
-  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead, getUnreadNotificationCount} = useSocket();
+  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead, getUnreadNotificationCount } = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -65,7 +66,7 @@ const AppLayout = () => {
         }
       });
     }
-    
+
     // Reset flag when socket disconnects
     if (!socket || !isConnected) {
       hasFetchedInitialCountRef.current = false;
@@ -178,128 +179,129 @@ const AppLayout = () => {
   ];
 
   return (
-    <div className="app-layout">
-      <LeftNavbar
-        activeNav={activeNav}
-        setActiveNav={handleNavClick}
-        externalNotificationPanelOpen={
-          isMobile ? showNotificationPanel : undefined
-        }
-        onExternalNotificationPanelClose={handleNotificationPanelClose}
-        onNotificationRead={handleNotificationRead}
-      />
-
-      {/* Mobile Header - Static on all pages */}
-      {isMobile && (
-        <MobileHeader
-          onOpenNotifications={handleNotificationBellClick}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
-          unreadNotificationCount={unreadNotificationCount}
+    <MediaProvider>
+      <div className="app-layout">
+        <LeftNavbar
+          activeNav={activeNav}
+          setActiveNav={handleNavClick}
+          externalNotificationPanelOpen={
+            isMobile ? showNotificationPanel : undefined
+          }
+          onExternalNotificationPanelClose={handleNotificationPanelClose}
+          onNotificationRead={handleNotificationRead}
         />
-      )}
 
-      {/* Overlay and Sidebar - Mobile Only */}
-      {isMobile && (
-        <div
-          className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
-          onClick={() => setIsSidebarOpen(false)}
-        >
-          <div 
-            className={`mobile-sidebar ${isSidebarOpen ? "open" : ""}`}
-            onClick={(e) => e.stopPropagation()}
+        {/* Mobile Header - Static on all pages */}
+        {isMobile && (
+          <MobileHeader
+            onOpenNotifications={handleNotificationBellClick}
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            unreadNotificationCount={unreadNotificationCount}
+          />
+        )}
+
+        {/* Overlay and Sidebar - Mobile Only */}
+        {isMobile && (
+          <div
+            className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
+            onClick={() => setIsSidebarOpen(false)}
           >
-            {/* Profile Section */}
-            <div className="sidebar-profile">
-              <button
-                className="close-sidebar"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <X size={20} weight="bold" />
-              </button>
-              <div className="profile-info">
-                <UserPhoto 
-                  user={user} 
-                  variant="sidebar" 
-                  size="large"
-                  showName={true}
-                  className="sidebar-user-photo"
-                />
-                {activeMeetingId && location.pathname !== "/meetings" && (
-                  <button
-                    type="button"
-                    className="sidebar-return-to-meeting"
-                    onClick={() => {
-                      navigate("/meetings", {
-                        state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
-                      });
-                      setIsSidebarOpen(false);
-                    }}
-                    aria-label="Return to meeting"
-                  >
-                    <VideoCamera size={18} weight="fill" />
-                    <span>Return to meeting</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Menu Items */}
-            <div className="sidebar-menu-items">
-              {menuItems.map((item, index) => (
+            <div
+              className={`mobile-sidebar ${isSidebarOpen ? "open" : ""}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Profile Section */}
+              <div className="sidebar-profile">
                 <button
-                  key={index}
-                  className={`sidebar-item ${
-                    activeNav === item.nav ? "active" : ""
-                  }`}
-                  onClick={() => {
-                    if (handleNavClick && typeof handleNavClick === "function") {
-                      handleNavClick(item.nav);
-                    }
-                  }}
+                  className="close-sidebar"
+                  onClick={() => setIsSidebarOpen(false)}
                 >
-                  <item.icon size={24} weight="regular" />
-                  <span>{item.label}</span>
+                  <X size={20} weight="bold" />
                 </button>
-              ))}
-              <button className="sidebar-item logout-item" onClick={handleLogout}>
-                <SignOut size={24} weight="regular" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {location.pathname === "/meetings" ? (
-        <MeetingProvider>
-          <div className="app-layout-content">
-            <div className="meetings-container">
-              <div className="meetings-center">
-                <MeetingRoom />
-                <MeetingChat />
+                <div className="profile-info">
+                  <UserPhoto
+                    user={user}
+                    variant="sidebar"
+                    size="large"
+                    showName={true}
+                    className="sidebar-user-photo"
+                  />
+                  {activeMeetingId && location.pathname !== "/meetings" && (
+                    <button
+                      type="button"
+                      className="sidebar-return-to-meeting"
+                      onClick={() => {
+                        navigate("/meetings", {
+                          state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
+                        });
+                        setIsSidebarOpen(false);
+                      }}
+                      aria-label="Return to meeting"
+                    >
+                      <VideoCamera size={18} weight="fill" />
+                      <span>Return to meeting</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <MeetingRightSidebar />
+
+              {/* Menu Items */}
+              <div className="sidebar-menu-items">
+                {menuItems.map((item, index) => (
+                  <button
+                    key={index}
+                    className={`sidebar-item ${activeNav === item.nav ? "active" : ""
+                      }`}
+                    onClick={() => {
+                      if (handleNavClick && typeof handleNavClick === "function") {
+                        handleNavClick(item.nav);
+                      }
+                    }}
+                  >
+                    <item.icon size={24} weight="regular" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+                <button className="sidebar-item logout-item" onClick={handleLogout}>
+                  <SignOut size={24} weight="regular" />
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           </div>
-          {!isMobile && (
-            <div className="fixed-user-status">
-              <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+        )}
+
+        {location.pathname === "/meetings" ? (
+          <MeetingProvider>
+            <div className="app-layout-content">
+              <div className="meetings-container">
+                <div className="meetings-center">
+                  <MeetingRoom />
+                  <MeetingChat />
+                </div>
+                <MeetingRightSidebar />
+              </div>
             </div>
-          )}
-        </MeetingProvider>
-      ) : (
-        <>
-          <div className="app-layout-content">
-            <Outlet />
-          </div>
-          {!isMobile && (
-            <div className="fixed-user-status">
-              <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+            {!isMobile && (
+              <div className="fixed-user-status">
+                <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+              </div>
+            )}
+          </MeetingProvider>
+        ) : (
+          <>
+            <div className="app-layout-content">
+              <Outlet />
             </div>
-          )}
-        </>
-      )}
-    </div>
+            {!isMobile && (
+              <div className="fixed-user-status">
+                <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </MediaProvider>
   );
 };
 

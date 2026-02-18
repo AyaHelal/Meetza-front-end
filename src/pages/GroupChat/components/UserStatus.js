@@ -1,8 +1,9 @@
 import React, { useContext } from 'react';
-import { VideoCamera, GearSix } from '@phosphor-icons/react';
+import { VideoCamera, GearSix, Microphone, MicrophoneSlash, VideoCameraSlash } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserPhoto from '../../../components/UserPhoto/UserPhoto';
 import { AuthContext } from '../../../context/AuthContext';
+import { useMediaContext } from '../../../context/MediaContext';
 import './UserStatus.css';
 
 const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
@@ -10,6 +11,9 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const userName = user?.name || authUser?.name;
+    
+    // Get media controls from MediaContext
+    const { audioMuted, videoMuted, toggleAudio, toggleVideo } = useMediaContext();
 
     const showReturnToMeeting = activeMeetingId && location.pathname !== '/meetings';
 
@@ -34,7 +38,27 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                 <div className="status-online-row">
                     <span className="status-online">{user?.status || 'Online'}</span>
                     <div className="status-icons ps-0">
-                        {showReturnToMeeting ? (
+                        {/* Always show mic and camera controls */}
+                        <button
+                            type="button"
+                            className={`status-icon status-mic ${!audioMuted ? 'active' : ''}`}
+                            onClick={toggleAudio}
+                            aria-label={audioMuted ? "Unmute microphone" : "Mute microphone"}
+                            title={audioMuted ? "Unmute microphone" : "Mute microphone"}
+                        >
+                            {audioMuted ? <MicrophoneSlash size={20} /> : <Microphone size={20} weight="fill" />}
+                        </button>
+                        <button
+                            type="button"
+                            className={`status-icon status-camera ${!videoMuted ? 'active' : ''}`}
+                            onClick={toggleVideo}
+                            aria-label={videoMuted ? "Turn on camera" : "Turn off camera"}
+                            title={videoMuted ? "Turn on camera" : "Turn off camera"}
+                        >
+                            {videoMuted ? <VideoCameraSlash size={20} /> : <VideoCamera size={20} weight="fill" />}
+                        </button>
+                        {/* Show "Return to meeting" button if in a meeting but not on meeting page */}
+                        {showReturnToMeeting && (
                             <button
                                 type="button"
                                 className="status-icon status-return-to-meeting"
@@ -45,7 +69,7 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                                 <VideoCamera size={20} weight="fill" />
                                 <span className="status-return-label">Return to meeting</span>
                             </button>
-                        ) : null}
+                        )}
                         <div className="status-icon">
                             <GearSix size={20} />
                         </div>
