@@ -113,6 +113,7 @@ const MeetingRoom = () => {
   const makingOffer = useRef(false); // Track if we're currently making an offer
   const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
   const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
+  const createAndSendOfferRef = useRef(null); // Ref to store createAndSendOffer function
 
   const meetingId = useMemo(() => {
     // Prefer navigation state (set when joining), then query string (?meetingId=...),
@@ -149,6 +150,8 @@ const MeetingRoom = () => {
       audioTracks: stream.getAudioTracks().length,
       videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
       audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
+      videoTrackReadyState: stream.getVideoTracks()[0]?.readyState,
+      audioTrackReadyState: stream.getAudioTracks()[0]?.readyState,
     });
     setRemoteStreams((prev) => {
       const idx = prev.findIndex((x) => x.socketId === socketId);
@@ -160,7 +163,25 @@ const MeetingRoom = () => {
       }
       return [...prev, entry];
     });
-  }, []);
+
+    // Ensure video element plays when stream is updated
+    setTimeout(() => {
+      const videoEl = remoteVideoRefsMap.current.get(socketId);
+      if (videoEl && stream) {
+        if (videoEl.srcObject !== stream) {
+          videoEl.srcObject = stream;
+          console.log("🔄 Updated video srcObject for", socketId);
+        }
+        videoEl.muted = !!localParticipantAudioMuted[socketId];
+        videoEl.volume = localParticipantVolume[socketId] ?? 1;
+        if (videoEl.paused) {
+          videoEl.play().catch(err => {
+            console.warn("⚠️ Failed to play video after stream update:", err);
+          });
+        }
+      }
+    }, 100);
+  }, [localParticipantAudioMuted, localParticipantVolume]);
 
   const removeRemoteStream = useCallback((socketId) => {
     setRemoteStreams((prev) => prev.filter((x) => x.socketId !== socketId));
@@ -198,9 +219,59 @@ const MeetingRoom = () => {
       );
     };
 
+    // Monitor connection state changes
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      console.log(`🔗 Peer connection state changed for ${peerSocketId}:`, state);
+
+      if (state === 'failed' || state === 'disconnected') {
+        console.warn(`⚠️ Connection ${state} for ${peerSocketId}, attempting to recover...`);
+        // Try to recover by creating a new offer if we're impolite
+        const isPolite = polite.current.get(peerSocketId);
+        if (!isPolite && state === 'failed') {
+          setTimeout(() => {
+            if (createAndSendOfferRef.current) {
+              createAndSendOfferRef.current(peerSocketId).catch(err => {
+                console.error("❌ Failed to recover connection:", err);
+              });
+            }
+          }, 1000);
+        }
+      } else if (state === 'connected') {
+        console.log(`✅ Connection established with ${peerSocketId}`);
+      }
+    };
+
+    // Monitor ICE connection state
+    pc.oniceconnectionstatechange = () => {
+      const iceState = pc.iceConnectionState;
+      console.log(`🧊 ICE connection state for ${peerSocketId}:`, iceState);
+
+      if (iceState === 'failed' || iceState === 'disconnected') {
+        console.warn(`⚠️ ICE connection ${iceState} for ${peerSocketId}`);
+        // ICE failed, might need to restart
+        if (iceState === 'failed') {
+          // Try to restart ICE
+          try {
+            pc.restartIce();
+            console.log("🔄 Restarted ICE for", peerSocketId);
+          } catch (err) {
+            console.error("❌ Failed to restart ICE:", err);
+          }
+        }
+      }
+    };
+
     pc.ontrack = (event) => {
       const [stream] = event.streams || [];
       if (stream) {
+        console.log("📥 Received track from", peerSocketId, {
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length,
+          videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
+          audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
+        });
+
         const vt = stream.getVideoTracks()[0];
         const isScreenShare = vt && (() => {
           try {
@@ -210,7 +281,70 @@ const MeetingRoom = () => {
           } catch { }
           return false;
         })();
+        // Always upsert the stream when we receive tracks - this ensures video elements get updated
         upsertRemoteStream(peerSocketId, stream, isScreenShare);
+
+        // Optimistically update media state if we receive enabled tracks
+        // vt is already declared above, so we can use it directly
+        if (vt && !isScreenShare && vt.enabled && vt.readyState === 'live') {
+          setMediaStateMap((prev) => ({
+            ...prev,
+            [peerSocketId]: {
+              ...prev[peerSocketId],
+              videoMuted: false, // Camera is on
+            },
+          }));
+        }
+
+        const at = stream.getAudioTracks()[0];
+        if (at && at.enabled && at.readyState === 'live') {
+          setMediaStateMap((prev) => ({
+            ...prev,
+            [peerSocketId]: {
+              ...prev[peerSocketId],
+              audioMuted: false, // Audio is on
+            },
+          }));
+        }
+
+        // Monitor track state changes
+        stream.getTracks().forEach(track => {
+          track.onended = () => {
+            console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
+            // Remove stream if all tracks ended
+            if (stream.getTracks().every(t => t.readyState === 'ended')) {
+              setRemoteStreams(prev => prev.filter(s => s.socketId !== peerSocketId));
+            }
+          };
+          track.onmute = () => {
+            console.log(`🔇 Track muted for ${peerSocketId}:`, track.kind);
+            if (track.kind === 'video') {
+              setMediaStateMap((prev) => ({
+                ...prev,
+                [peerSocketId]: { ...prev[peerSocketId], videoMuted: true },
+              }));
+            } else if (track.kind === 'audio') {
+              setMediaStateMap((prev) => ({
+                ...prev,
+                [peerSocketId]: { ...prev[peerSocketId], audioMuted: true },
+              }));
+            }
+          };
+          track.onunmute = () => {
+            console.log(`🔊 Track unmuted for ${peerSocketId}:`, track.kind);
+            if (track.kind === 'video') {
+              setMediaStateMap((prev) => ({
+                ...prev,
+                [peerSocketId]: { ...prev[peerSocketId], videoMuted: false },
+              }));
+            } else if (track.kind === 'audio') {
+              setMediaStateMap((prev) => ({
+                ...prev,
+                [peerSocketId]: { ...prev[peerSocketId], audioMuted: false },
+              }));
+            }
+          };
+        });
       }
     };
 
@@ -242,31 +376,60 @@ const MeetingRoom = () => {
     if (!stream) return;
 
     for (const [peerSocketId, pc] of peersRef.current.entries()) {
-      // Check if tracks are already added
+      // Skip if connection is not in a stable state (negotiating)
+      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer' && pc.signalingState !== 'have-remote-offer') {
+        console.log("⏸️ Skipping track addition for", peerSocketId, "- connection is negotiating (state:", pc.signalingState + ")");
+        continue;
+      }
+
       const senders = pc.getSenders();
       const hasVideo = senders.some(s => s.track && s.track.kind === 'video');
       const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
 
-      if (!hasVideo || !hasAudio) {
-        console.log("🔄 Adding missing tracks to peer", peerSocketId);
+      // Only add tracks if they're truly missing and connection is stable
+      const streamHasVideo = stream.getVideoTracks().length > 0;
+      const streamHasAudio = stream.getAudioTracks().length > 0;
+
+      const needsVideo = streamHasVideo && !hasVideo;
+      const needsAudio = streamHasAudio && !hasAudio;
+
+      if (needsVideo || needsAudio) {
+        console.log("🔄 Adding missing tracks to peer", peerSocketId, { needsVideo, needsAudio });
+        let addedAny = false;
         stream.getTracks().forEach((t) => {
           const existing = senders.find(s => s.track && s.track.kind === t.kind);
           if (!existing) {
-            pc.addTrack(t, stream);
-            console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
+            try {
+              pc.addTrack(t, stream);
+              console.log("➕ Added track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
+              addedAny = true;
+            } catch (err) {
+              console.warn("⚠️ Failed to add track to peer", peerSocketId, ":", err);
+            }
           }
         });
 
-        // Trigger renegotiation if needed
-        if (!hasVideo || !hasAudio) {
-          pc.createOffer().then(offer => {
-            pc.setLocalDescription(offer).then(() => {
-              const mid = meetingIdRef.current;
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            }).catch(err => console.error("❌ Error renegotiating after adding tracks:", err));
-          }).catch(err => console.error("❌ Error creating offer after adding tracks:", err));
+        // Only trigger renegotiation if we actually added tracks and connection is stable
+        if (addedAny && pc.signalingState === 'stable' && !makingOffer.current) {
+          // Use a small delay to batch multiple track additions
+          setTimeout(() => {
+            // Double-check state is still stable before renegotiating
+            if (pc.signalingState === 'stable' && !makingOffer.current) {
+              pc.createOffer().then(offer => {
+                return pc.setLocalDescription(offer);
+              }).then(() => {
+                const mid = meetingIdRef.current;
+                if (socket && mid) {
+                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => { });
+                  console.log("📤 Renegotiated after adding tracks to", peerSocketId);
+                }
+              }).catch(err => {
+                if (err.name !== "InvalidStateError") {
+                  console.error("❌ Error renegotiating after adding tracks:", err);
+                }
+              });
+            }
+          }, 100);
         }
       }
     }
@@ -382,6 +545,11 @@ const MeetingRoom = () => {
       makingOffer.current = false;
     }
   }, [socket, ensureLocalMedia]);
+
+  // Update ref when createAndSendOffer changes
+  useEffect(() => {
+    createAndSendOfferRef.current = createAndSendOffer;
+  }, [createAndSendOffer]);
 
   /** Get camera track only (exclude screen share) from stream. */
   const getCameraTrack = useCallback((stream) => {
@@ -600,74 +768,88 @@ const MeetingRoom = () => {
         console.warn("Could not persist hasJoined to sessionStorage:", e);
       }
 
-      // When returning, restore remote streams from existing peer connections in MediaContext
+      // When returning, try to restore remote streams from existing peer connections in MediaContext
+      // Note: After page refresh, peer connections are lost (they're in memory), so this will only work
+      // if we navigated away without refreshing (e.g., using React Router navigation)
       if (isReturning && getPeerConnections) {
-        console.log("🔄 Restoring remote streams from existing peer connections...");
+        console.log("🔄 Attempting to restore remote streams from existing peer connections...");
         const existingPeers = getPeerConnections();
-        const restoredStreams = [];
 
-        for (const [peerSocketId, pc] of existingPeers.entries()) {
-          // Check if this peer is in the current participants list
-          const isCurrentParticipant = othersNorm.some(p => (p?.socketId || p?.id) === peerSocketId);
-          if (!isCurrentParticipant) continue;
+        // Only try to restore if we actually have peer connections (not after refresh)
+        if (existingPeers.size > 0) {
+          const restoredStreams = [];
 
-          // Get receivers from peer connection
-          const receivers = pc.getReceivers();
-          if (receivers.length === 0) continue;
+          for (const [peerSocketId, pc] of existingPeers.entries()) {
+            // Check if this peer is in the current participants list
+            const isCurrentParticipant = othersNorm.some(p => (p?.socketId || p?.id) === peerSocketId);
+            if (!isCurrentParticipant) continue;
 
-          // Create stream from receivers
-          const restoredStream = new MediaStream();
-          receivers.forEach(receiver => {
-            if (receiver.track) {
-              restoredStream.addTrack(receiver.track);
+            // Check if peer connection is still valid (not closed)
+            if (pc.connectionState === 'closed' || pc.signalingState === 'closed') {
+              console.log("⚠️ Skipping closed peer connection for", peerSocketId);
+              continue;
             }
-          });
 
-          if (restoredStream.getTracks().length > 0) {
-            // Check if it's a screen share
-            const videoTrack = restoredStream.getVideoTracks()[0];
-            const isScreenShare = videoTrack && (() => {
-              try {
-                const s = videoTrack.getSettings?.();
-                if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") return true;
-                if ((videoTrack.label || "").toLowerCase().includes("screen")) return true;
-              } catch { }
-              return false;
-            })();
+            // Get receivers from peer connection
+            const receivers = pc.getReceivers();
+            if (receivers.length === 0) {
+              console.log("⚠️ No receivers found for", peerSocketId, "- will wait for ontrack events");
+              continue;
+            }
 
-            restoredStreams.push({ socketId: peerSocketId, stream: restoredStream, isScreenShare });
-            console.log("✅ Restored stream for", peerSocketId, {
-              videoTracks: restoredStream.getVideoTracks().length,
-              audioTracks: restoredStream.getAudioTracks().length,
-              isScreenShare
+            // Create stream from receivers
+            const restoredStream = new MediaStream();
+            receivers.forEach(receiver => {
+              if (receiver.track && receiver.track.readyState !== 'ended') {
+                restoredStream.addTrack(receiver.track);
+              }
             });
 
-            // If we have video tracks, optimistically set media state
-            if (videoTrack && !isScreenShare && videoTrack.enabled && videoTrack.readyState === 'live') {
-              setMediaStateMap((prev) => ({
-                ...prev,
-                [peerSocketId]: {
-                  ...prev[peerSocketId],
-                  videoMuted: false, // Camera appears to be on
-                },
-              }));
+            if (restoredStream.getTracks().length > 0) {
+              // Check if it's a screen share
+              const videoTrack = restoredStream.getVideoTracks()[0];
+              const isScreenShare = videoTrack && (() => {
+                try {
+                  const s = videoTrack.getSettings?.();
+                  if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") return true;
+                  if ((videoTrack.label || "").toLowerCase().includes("screen")) return true;
+                } catch { }
+                return false;
+              })();
+
+              restoredStreams.push({ socketId: peerSocketId, stream: restoredStream, isScreenShare });
+              console.log("✅ Restored stream for", peerSocketId, {
+                videoTracks: restoredStream.getVideoTracks().length,
+                audioTracks: restoredStream.getAudioTracks().length,
+                isScreenShare,
+                videoTrackReadyState: videoTrack?.readyState,
+                videoTrackEnabled: videoTrack?.enabled,
+              });
+
+              // If we have video tracks, optimistically set media state
+              if (videoTrack && !isScreenShare && videoTrack.enabled && videoTrack.readyState === 'live') {
+                setMediaStateMap((prev) => ({
+                  ...prev,
+                  [peerSocketId]: {
+                    ...prev[peerSocketId],
+                    videoMuted: false, // Camera appears to be on
+                  },
+                }));
+              }
             }
+
+            // Sync peer connection to MeetingRoom's peersRef
+            peersRef.current.set(peerSocketId, pc);
           }
 
-          // Sync peer connection to MeetingRoom's peersRef
-          peersRef.current.set(peerSocketId, pc);
-        }
-
-        if (restoredStreams.length > 0) {
-          setRemoteStreams(restoredStreams);
-          console.log(`✅ Restored ${restoredStreams.length} remote streams`);
-
-          // Small delay to ensure video elements are ready, then force update
-          setTimeout(() => {
-            // The unifiedTiles will automatically update when remoteStreams changes
-            // But we can also trigger a re-render by updating a dependency
-            console.log("🔄 Remote streams restored, video elements should update automatically");
-          }, 100);
+          if (restoredStreams.length > 0) {
+            setRemoteStreams(restoredStreams);
+            console.log(`✅ Restored ${restoredStreams.length} remote streams from existing connections`);
+          } else {
+            console.log("ℹ️ No streams to restore - will wait for ontrack events from new connections");
+          }
+        } else {
+          console.log("ℹ️ No existing peer connections found (likely after page refresh) - will create new connections");
         }
       }
 
@@ -699,16 +881,23 @@ const MeetingRoom = () => {
           continue;
         }
 
-        // Also check MediaContext's peer connections (they persist across navigation)
-        // If we're returning and MediaContext has the connection, reuse it
+        // Also check MediaContext's peer connections (they persist across navigation, but NOT across page refresh)
+        // If we're returning and MediaContext has a valid connection, reuse it
         if (isReturning && getPeerConnections) {
           const existingPeers = getPeerConnections();
           if (existingPeers.has(peerSocketId)) {
             const existingPc = existingPeers.get(peerSocketId);
-            console.log("✅ Reusing existing peer connection from MediaContext for", peerSocketId);
-            peersRef.current.set(peerSocketId, existingPc);
-            // Connection is already registered with MediaContext, just continue
-            continue;
+            // Only reuse if connection is still valid (not closed)
+            if (existingPc.connectionState !== 'closed' && existingPc.signalingState !== 'closed') {
+              console.log("✅ Reusing existing peer connection from MediaContext for", peerSocketId);
+              peersRef.current.set(peerSocketId, existingPc);
+              // Connection is already registered with MediaContext, just continue
+              continue;
+            } else {
+              console.log("⚠️ Existing peer connection is closed for", peerSocketId, "- creating new one");
+              // Remove the closed connection from MediaContext
+              unregisterPeerConnection(peerSocketId);
+            }
           }
         }
 
@@ -755,7 +944,9 @@ const MeetingRoom = () => {
             const hasVideo = receivers.some(r => r.track && r.track.kind === 'video');
             const hasAudio = receivers.some(r => r.track && r.track.kind === 'audio');
 
-            if (!hasVideo && !hasAudio) {
+            // Only trigger renegotiation if we truly have no tracks and connection is stable
+            // Don't renegotiate if we're already negotiating
+            if (!hasVideo && !hasAudio && pc.signalingState === 'stable' && !makingOffer.current) {
               console.log("⚠️ No tracks received from", peerSocketId, "- triggering renegotiation");
               // Trigger renegotiation by creating a new offer
               createAndSendOffer(peerSocketId).catch(err => {
@@ -2004,9 +2195,35 @@ const MeetingRoom = () => {
       if (el) {
         el.muted = !!localParticipantAudioMuted[socketId];
         el.volume = localParticipantVolume[socketId] ?? 1;
+        // Ensure video is playing after audio state change
+        if (el.paused && el.srcObject) {
+          el.play().catch(err => {
+            console.warn("⚠️ Failed to play video after audio state change:", err);
+          });
+        }
       }
     });
   }, [localParticipantAudioMuted, localParticipantVolume]);
+
+  // Ensure remote videos play when streams are updated
+  useEffect(() => {
+    remoteStreams.forEach(({ socketId, stream }) => {
+      const videoEl = remoteVideoRefsMap.current.get(socketId);
+      if (videoEl && stream) {
+        // Update srcObject if it changed
+        if (videoEl.srcObject !== stream) {
+          videoEl.srcObject = stream;
+          console.log("🔄 Updated video srcObject for", socketId);
+        }
+        // Ensure it's playing
+        if (videoEl.paused) {
+          videoEl.play().catch(err => {
+            console.warn("⚠️ Failed to play video for", socketId, ":", err);
+          });
+        }
+      }
+    });
+  }, [remoteStreams]);
 
   /** Mute/unmute all participants locally (affects only this user's listening) */
   const handleMuteUnmuteAllParticipants = useCallback(() => {
@@ -2540,13 +2757,50 @@ const MeetingRoom = () => {
                                 if (el) {
                                   remoteVideoRefsMap.current.set(tile.socketId, el);
                                   if (tile.stream) {
-                                    if (el.srcObject !== tile.stream) el.srcObject = tile.stream;
+                                    if (el.srcObject !== tile.stream) {
+                                      el.srcObject = tile.stream;
+                                      console.log("📹 Set stream for remote video", tile.socketId);
+                                    }
                                     el.muted = !!localParticipantAudioMuted[tile.socketId];
                                     el.volume = localParticipantVolume[tile.socketId] ?? 1;
-                                    el.play().catch(() => { });
+
+                                    // Ensure video plays - retry if it fails
+                                    const playVideo = async () => {
+                                      try {
+                                        await el.play();
+                                        console.log("✅ Video playing for", tile.socketId);
+                                      } catch (err) {
+                                        console.warn("⚠️ Video play failed for", tile.socketId, "- retrying...", err);
+                                        // Retry after a short delay
+                                        setTimeout(() => {
+                                          el.play().catch(e => {
+                                            console.error("❌ Video play retry failed for", tile.socketId, e);
+                                          });
+                                        }, 500);
+                                      }
+                                    };
+                                    playVideo();
                                   }
                                 } else {
                                   remoteVideoRefsMap.current.delete(tile.socketId);
+                                }
+                              }}
+                              onLoadedMetadata={() => {
+                                // Ensure video plays when metadata is loaded
+                                const el = remoteVideoRefsMap.current.get(tile.socketId);
+                                if (el && tile.stream) {
+                                  el.play().catch(err => {
+                                    console.warn("⚠️ Video play on metadata load failed:", err);
+                                  });
+                                }
+                              }}
+                              onCanPlay={() => {
+                                // Ensure video plays when it can play
+                                const el = remoteVideoRefsMap.current.get(tile.socketId);
+                                if (el && tile.stream) {
+                                  el.play().catch(err => {
+                                    console.warn("⚠️ Video play on canPlay failed:", err);
+                                  });
                                 }
                               }}
                             />
