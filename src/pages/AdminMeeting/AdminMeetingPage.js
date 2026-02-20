@@ -1,80 +1,150 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../API/axiosInstance";
 import { smartToast } from "../../API/toastManager";
 import "./AdminMeetingPage.css";
-import { VideoCamera, VideoCameraIcon, VideoCameraSlashIcon } from "@phosphor-icons/react";
-import UserPhoto from "../../components/UserPhoto/UserPhoto";
+import { VideoCamera, VideoCameraIcon, VideoCameraSlashIcon, PencilSimple, Trash } from "@phosphor-icons/react";
 
-// Helper function to get today's date with time in datetime-local format
-const getDefaultDateTime = (hours, minutes) => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+const getCurrentDateTimeLocal = () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const getCurrentEndDateTimeLocal = () => {
+    const d = new Date();
+    d.setHours(d.getHours() + 1);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// Format datetime for API (same as meetza-admin): "YYYY-MM-DD HH:mm:00"
+const formatForAPI = (inputValue) => {
+    if (!inputValue) return "";
+    const d = new Date(inputValue);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+};
+
+// لتعبئة datetime-local من الـ API (Edit)
+const formatForInput = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const isRecording = (value) =>
+    value === true || value === 1 || value === "1";
+
+const STORAGE_KEY_RECORD_FLAGS = "meetza_admin_meeting_record_flags";
+
+const getStoredRecordFlags = () => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY_RECORD_FLAGS);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+};
+
+const setStoredRecordFlag = (meetingId, value) => {
+    const flags = getStoredRecordFlags();
+    flags[meetingId] = value;
+    localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
 };
 
 const AdminMeetingPage = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // Static meeting cards for design preview
-    const staticMeetings = [
-        {
-            id: "static-1",
-            title: "Introduction to React",
-            course: "Web Development",
-            description: "Learn the fundamentals of React including components, props, and state management. This session will cover the basics and help you get started with building modern web applications.",
-            start_time: new Date().toISOString(),
-            end_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-            record_meeting: true,
-            poster: null
-        },
-        {
-            id: "static-2",
-            title: "Database Design Principles",
-            course: "Database Systems",
-            description: "Understanding relational database design, normalization, and SQL queries. We'll explore best practices for creating efficient and scalable database schemas.",
-            start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            end_time: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString(),
-            record_meeting: false,
-            poster: null
-        }
-    ];
-
-    const [meetings, setMeetings] = useState(staticMeetings);
+    const [meetings, setMeetings] = useState([]);
+    const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [groupsLoading, setGroupsLoading] = useState(false);
+    const [editingMeetingId, setEditingMeetingId] = useState(null);
 
     const [formData, setFormData] = useState({
         title: "",
-        startTime: getDefaultDateTime(8, 25),
-        endTime: getDefaultDateTime(10, 20),
-        status: "",
+        startTime: getCurrentDateTimeLocal(),
+        endTime: getCurrentEndDateTimeLocal(),
+        status: "Scheduled",
+        group_id: "",
+        description: "",
         recordMeeting: "Recording",
-        poster: null,
-        resources: "",
+        poster_file: null,
+        files: [],
     });
 
+    // Fetch groups for create-meeting dropdown (same API as meetza-admin)
+    const fetchGroups = async () => {
+        try {
+            setGroupsLoading(true);
+            const res = await api.get("/group");
+            const payload = Array.isArray(res.data) ? res.data : res.data?.data || [];
+            const currentUser = user || JSON.parse(localStorage.getItem("user") || "{}");
+            const isSuperAdmin = currentUser?.role === "Super_Admin";
+            const isAdministrator = currentUser?.role === "Administrator";
+            let list = payload;
+            if (isAdministrator && !isSuperAdmin) {
+                list = payload.filter(
+                    (g) =>
+                        g.admin_id === currentUser?.id ||
+                        g.adminId === currentUser?.id ||
+                        g.administrator_id === currentUser?.id ||
+                        g.user_id === currentUser?.id
+                );
+            }
+            setGroups(list.map((g) => ({ id: g.id, name: g.name || g.group_name })));
+        } catch (error) {
+            console.error("Error fetching groups:", error);
+            smartToast.error("Failed to load groups");
+        } finally {
+            setGroupsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        // Uncomment to fetch real meetings
-        // fetchMeetings();
+        fetchMeetings();
+        fetchGroups();
     }, []);
 
-    const fetchMeetings = async () => {
+    // GET /meeting with token – backend returns only this admin's meetings for Administrator role
+    const fetchMeetings = async (options) => {
         try {
             setLoading(true);
             const response = await api.get("/meeting");
             const data = response?.data;
             let meetingsList = [];
-            if (Array.isArray(data?.data)) {
+            if (data?.success && Array.isArray(data?.data)) {
+                meetingsList = data.data;
+            } else if (Array.isArray(data?.data)) {
                 meetingsList = data.data;
             } else if (Array.isArray(data)) {
                 meetingsList = data;
-            } else if (data?.success && Array.isArray(data?.data)) {
-                meetingsList = data.data;
             }
+            // Client-side filter: show only meetings where current user is administrator (if backend didn't)
+            const currentUser = user || JSON.parse(localStorage.getItem("user") || "{}");
+            const isAdmin = currentUser?.role === "Administrator" || currentUser?.role === "Super_Admin";
+            if (isAdmin && currentUser?.id) {
+                const filtered = meetingsList.filter(
+                    (m) => m.administrator_id === currentUser.id || currentUser.role === "Super_Admin"
+                );
+                meetingsList = currentUser.role === "Super_Admin" ? meetingsList : filtered;
+            }
+            const patch = options?.patchRecordMeeting;
+            if (patch?.id != null) {
+                meetingsList = meetingsList.map((m) =>
+                    (m.id === patch.id || m.meeting_id === patch.id) ? { ...m, record_meeting: patch.value } : m
+                );
+            }
+            const storedFlags = getStoredRecordFlags();
+            meetingsList = meetingsList.map((m) => {
+                const id = m.id || m.meeting_id;
+                const stored = id != null ? storedFlags[id] : undefined;
+                const recordMeeting = m.record_meeting !== undefined && m.record_meeting !== null ? m.record_meeting : stored;
+                return { ...m, record_meeting: recordMeeting };
+            });
             setMeetings(meetingsList);
         } catch (error) {
             console.error("Error fetching meetings:", error);
@@ -86,51 +156,63 @@ const AdminMeetingPage = () => {
 
     const handleInputChange = (e) => {
         const { name, value, files } = e.target;
-        if (name === "poster") {
-            setFormData((prev) => ({ ...prev, poster: files[0] || null }));
+        if (name === "poster_file") {
+            setFormData((prev) => ({ ...prev, poster_file: files?.[0] || null }));
+        } else if (name === "files") {
+            const newFiles = files ? Array.from(files) : [];
+            setFormData((prev) => ({ ...prev, files: [...(prev.files || []), ...newFiles] }));
         } else {
             setFormData((prev) => ({ ...prev, [name]: value }));
         }
     };
 
+    // Create meeting – same API as meetza-admin (POST /meeting with FormData)
     const handleCreateMeeting = async (e) => {
         e.preventDefault();
+        if (!formData.group_id) {
+            smartToast.error("Please select a group");
+            return;
+        }
+        if (!editingMeetingId && !formData.poster_file) {
+            smartToast.error("Poster image is required");
+            return;
+        }
         try {
-            // Convert datetime-local to ISO format for API
-            const startDateTime = formData.startTime
-                ? new Date(formData.startTime).toISOString()
-                : "";
-            const endDateTime = formData.endTime
-                ? new Date(formData.endTime).toISOString()
-                : "";
+            const form = new FormData();
+            form.append("title", formData.title);
+            form.append("start_time", formatForAPI(formData.startTime));
+            form.append("end_time", formatForAPI(formData.endTime));
+            form.append("group_id", formData.group_id);
+            form.append("status", formData.status);
+            form.append("record_meeting", formData.recordMeeting === "Recording" ? "1" : "0");
+            if (formData.description) form.append("description", formData.description);
+            form.append("poster_file", formData.poster_file);
+            if (Array.isArray(formData.files)) {
+                formData.files.forEach((file) => {
+                    if (file instanceof File) form.append("files", file);
+                });
+            }
 
-            const meetingData = new FormData();
-            meetingData.append("title", formData.title);
-            if (startDateTime) meetingData.append("start_time", startDateTime);
-            if (endDateTime) meetingData.append("end_time", endDateTime);
-            meetingData.append("status", formData.status);
-            meetingData.append(
-                "record_meeting",
-                formData.recordMeeting === "Recording"
-            );
-            if (formData.poster) meetingData.append("poster", formData.poster);
-            if (formData.resources) meetingData.append("resources", formData.resources);
-
-            await api.post("/meeting", meetingData, {
+            const res = await api.post("/meeting", form, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
+            const createdMeeting = res.data?.data;
+            const recordValue = formData.recordMeeting === "Recording" ? 1 : 0;
+            if (createdMeeting?.id) setStoredRecordFlag(createdMeeting.id, recordValue);
 
             smartToast.success("Meeting created successfully!");
             setFormData({
                 title: "",
-                startTime: getDefaultDateTime(8, 25),
-                endTime: getDefaultDateTime(10, 20),
-                status: "",
+                startTime: getCurrentDateTimeLocal(),
+                endTime: getCurrentEndDateTimeLocal(),
+                status: "Scheduled",
+                group_id: "",
+                description: "",
                 recordMeeting: "Recording",
-                poster: null,
-                resources: "",
+                poster_file: null,
+                files: [],
             });
-            fetchMeetings();
+            fetchMeetings(createdMeeting?.id ? { patchRecordMeeting: { id: createdMeeting.id, value: recordValue } } : undefined);
         } catch (error) {
             console.error("Error creating meeting:", error);
             smartToast.error(
@@ -139,8 +221,119 @@ const AdminMeetingPage = () => {
         }
     };
 
-    const handleJoinMeeting = (meetingId) => {
-        navigate("/meetings", { state: { meetingId } });
+    const handleJoinMeeting = async (meetingId) => {
+        if (!meetingId) return;
+        try {
+            await api.post(`/meeting/${meetingId}/join`);
+            navigate("/meetings", { state: { meetingId } });
+        } catch (err) {
+            smartToast.error(err.response?.data?.message || "Failed to join meeting");
+        }
+    };
+
+    const resetFormForCreate = () => {
+        setEditingMeetingId(null);
+        setFormData({
+            title: "",
+            startTime: getCurrentDateTimeLocal(),
+            endTime: getCurrentEndDateTimeLocal(),
+            status: "Scheduled",
+            group_id: "",
+            description: "",
+            recordMeeting: "Recording",
+            poster_file: null,
+            files: [],
+        });
+    };
+
+    const handleDeleteMeeting = async (meetingId) => {
+        if (!window.confirm("Are you sure you want to delete this meeting?")) return;
+        try {
+            const res = await api.delete(`/meeting/${meetingId}`);
+            if (res.data?.success !== false) {
+                setMeetings((prev) => prev.filter((m) => (m.id || m.meeting_id) !== meetingId));
+                smartToast.success("Meeting deleted successfully");
+                const flags = getStoredRecordFlags();
+                delete flags[meetingId];
+                localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
+            } else {
+                smartToast.error(res.data?.message || "Failed to delete meeting");
+            }
+        } catch (err) {
+            smartToast.error(err.response?.data?.message || "Error deleting meeting");
+        }
+    };
+
+    const handleEditMeeting = (meeting) => {
+        const id = meeting.id || meeting.meeting_id;
+        setEditingMeetingId(id);
+        setFormData({
+            title: meeting.title || "",
+            startTime: formatForInput(meeting.start_time) || getCurrentDateTimeLocal(),
+            endTime: formatForInput(meeting.end_time) || getCurrentEndDateTimeLocal(),
+            status: meeting.status || "Scheduled",
+            group_id: meeting.group_id || "",
+            description: meeting.description || "",
+            recordMeeting: isRecording(meeting.record_meeting) ? "Recording" : "Not Recording",
+            poster_file: null,
+            files: [],
+        });
+    };
+
+    const handleUpdateMeeting = async (e) => {
+        e.preventDefault();
+        if (!editingMeetingId) return;
+        if (!formData.group_id) {
+            smartToast.error("Please select a group");
+            return;
+        }
+        const originalMeeting = meetings.find((m) => (m.id || m.meeting_id) === editingMeetingId);
+        if (!originalMeeting) return;
+        try {
+            const hasPoster = formData.poster_file instanceof File;
+            const hasDescription = formData.description != null;
+            if (hasPoster || hasDescription) {
+                const form = new FormData();
+                form.append("title", formData.title);
+                form.append("start_time", formatForAPI(formData.startTime));
+                form.append("end_time", formatForAPI(formData.endTime));
+                form.append("status", formData.status);
+                form.append("group_id", formData.group_id || originalMeeting.group_id);
+                if (formData.description != null) form.append("description", formData.description);
+                if (hasPoster) form.append("poster_file", formData.poster_file);
+                const res = await api.put(`/meeting/${editingMeetingId}`, form, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                if (res.data?.success) {
+                    smartToast.success("Meeting updated successfully");
+                    setStoredRecordFlag(editingMeetingId, formData.recordMeeting === "Recording" ? 1 : 0);
+                    resetFormForCreate();
+                    fetchMeetings();
+                } else smartToast.error(res.data?.message || "Failed to update meeting");
+            } else {
+                const payload = {
+                    title: formData.title,
+                    start_time: formatForAPI(formData.startTime),
+                    end_time: formatForAPI(formData.endTime),
+                    status: formData.status,
+                    group_id: formData.group_id || originalMeeting.group_id,
+                };
+                const res = await api.put(`/meeting/${editingMeetingId}`, payload);
+                if (res.data?.success) {
+                    smartToast.success("Meeting updated successfully");
+                    setStoredRecordFlag(editingMeetingId, formData.recordMeeting === "Recording" ? 1 : 0);
+                    resetFormForCreate();
+                    fetchMeetings();
+                } else smartToast.error(res.data?.message || "Failed to update meeting");
+            }
+        } catch (err) {
+            smartToast.error(err.response?.data?.message || "Error updating meeting");
+        }
+    };
+
+    const handleFormSubmit = (e) => {
+        if (editingMeetingId) handleUpdateMeeting(e);
+        else handleCreateMeeting(e);
     };
 
     const formatDate = (dateString) => {
@@ -178,7 +371,6 @@ const AdminMeetingPage = () => {
                 {/* Header */}
                 <div className="admin-meeting-header">
                     <h1>Admin Meeting page</h1>
-                    <p>Group Meeting name</p>
                 </div>
 
                 {/* Meetings Grid */}
@@ -193,9 +385,9 @@ const AdminMeetingPage = () => {
                                 {/* Top: thumbnail + info + date */}
                                 <div className="meeting-card-top">
                                     <div className="meeting-thumbnail">
-                                        {meeting.poster ? (
+                                        {(meeting.poster_url || meeting.poster) ? (
                                             <img
-                                                src={meeting.poster}
+                                                src={meeting.poster_url || meeting.poster}
                                                 alt="meeting"
                                                 onError={(e) => {
                                                     e.target.style.display = "none";
@@ -203,7 +395,7 @@ const AdminMeetingPage = () => {
                                             />
                                         ) : (
                                             <div className="default-thumbnail">
-                                                <VideoCamera size={28} weight="fill" />
+                                                <VideoCamera size={18} weight="fill" />
                                             </div>
                                         )}
                                     </div>
@@ -213,7 +405,17 @@ const AdminMeetingPage = () => {
                                             {meeting.title || meeting.group_name || "Group name"}
                                         </p>
                                         <p className="meeting-subtitle">
-                                            {meeting.course || "OOP 1st semester"}
+                                            {meeting.group_id ? (
+                                                <Link
+                                                    to="/home"
+                                                    state={{ groupId: meeting.group_id }}
+                                                    className="meeting-group-link"
+                                                >
+                                                    {meeting.course || groups.find((g) => g.id === meeting.group_id)?.name || "—"}
+                                                </Link>
+                                            ) : (
+                                                meeting.course || groups.find((g) => g.id === meeting.group_id)?.name || "—"
+                                            )}
                                         </p>
                                     </div>
 
@@ -230,40 +432,14 @@ const AdminMeetingPage = () => {
                                     <p className="meeting-description">
                                         <strong>Description : </strong>
                                         {meeting.description ||
-                                            "It's all about the attraction of someone towards you and how that effects the brain"}
+                                            "No description"}
                                     </p>
 
-                                    <div className={`recorded-meeting ${meeting.record_meeting ? 'recorded' : 'not-recorded'}`}>
-                                        {meeting.record_meeting ? (
-                                            /* Camera icon - Recording enabled */
-                                            <svg
-                                                width="18"
-                                                height="18"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <VideoCameraIcon size={24} />
-
-                                            </svg>
+                                    <div className={`recorded-meeting ${isRecording(meeting.record_meeting) ? "recorded" : "not-recorded"}`}>
+                                        {isRecording(meeting.record_meeting) ? (
+                                            <VideoCameraIcon size={32} weight="fill" />
                                         ) : (
-                                            /* Camera icon with slash - Recording disabled */
-                                            <svg
-                                                width="18"
-                                                height="18"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            ><VideoCameraSlashIcon size={24} />
-
-
-                                            </svg>
+                                            <VideoCameraSlashIcon size={18} weight="fill" />
                                         )}
                                         Recorded Meeting
                                     </div>
@@ -281,6 +457,27 @@ const AdminMeetingPage = () => {
                                     >
                                         Join
                                     </button>
+
+                                    <div className="meeting-card-actions">
+                                        <button
+                                            type="button"
+                                            className="meeting-card-action-btn edit-btn"
+                                            onClick={() => handleEditMeeting(meeting)}
+                                            title="Edit"
+                                            aria-label="Edit meeting"
+                                        >
+                                            <PencilSimple size={18} weight="regular" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="meeting-card-action-btn delete-btn"
+                                            onClick={() => handleDeleteMeeting(meeting.id || meeting.meeting_id)}
+                                            title="Delete"
+                                            aria-label="Delete meeting"
+                                        >
+                                            <Trash size={18} weight="regular" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -290,24 +487,24 @@ const AdminMeetingPage = () => {
 
             {/* ── RIGHT SIDEBAR ── */}
             <div className="create-meeting-sidebar">
-                <h2>Create Meeting</h2>
+                <h2>{editingMeetingId ? "Edit Meeting" : "Create Meeting"}</h2>
 
-                <form className="create-meeting-form" onSubmit={handleCreateMeeting}>
+                <form className="create-meeting-form" onSubmit={handleFormSubmit}>
                     {/* Title */}
                     <div className="form-group">
-                        <label>Title</label>
+                        <label>Title <span className="required">*</span></label>
                         <input
                             type="text"
                             name="title"
                             value={formData.title}
                             onChange={handleInputChange}
-                            placeholder=""
+                            placeholder="Meeting title"
                         />
                     </div>
 
                     {/* Start – End time */}
                     <div className="form-group">
-                        <label>Start - End time</label>
+                        <label>Start - End time <span className="required">*</span></label>
                         <div className="time-inputs">
                             <input
                                 type="datetime-local"
@@ -326,25 +523,39 @@ const AdminMeetingPage = () => {
                         </div>
                     </div>
 
+                    {/* Group – same as meetza-admin */}
+                    <div className="form-group">
+                        <label>Group <span className="required">*</span></label>
+                        <select
+                            name="group_id"
+                            value={formData.group_id}
+                            onChange={handleInputChange}
+                            disabled={groupsLoading}
+                        >
+                            <option value="">Select group...</option>
+                            {groups.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                    {g.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Status */}
                     <div className="form-group">
-                        <label>Status</label>
+                        <label>Status <span className="required">*</span></label>
                         <select
                             name="status"
                             value={formData.status}
                             onChange={handleInputChange}
                         >
-                            <option value="" disabled>
-                                Select
-                            </option>
                             <option value="Scheduled">Scheduled</option>
-                            <option value="Active">Active</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
 
-                    {/* Record Meeting */}
+                    {/* Record Meeting – يتبعت في create كـ 0 أو 1 */}
                     <div className="form-group">
                         <label className="mb-2">Record Meeting</label>
                         <div className="radio-group">
@@ -358,31 +569,45 @@ const AdminMeetingPage = () => {
                                 />
                                 Recording
                             </label>
+                            <label className="radio-label">
+                                <input
+                                    type="radio"
+                                    name="recordMeeting"
+                                    value="Not Recording"
+                                    checked={formData.recordMeeting === "Not Recording"}
+                                    onChange={handleInputChange}
+                                />
+                                Not Recording
+                            </label>
                         </div>
                     </div>
 
-                    {/* Poster */}
+                    {/* Description */}
                     <div className="form-group">
-                        <label>Poster</label>
+                        <label>Description (optional)</label>
+                        <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            rows={3}
+                            placeholder="Short description"
+                        />
+                    </div>
+
+                    {/* Poster – مطلوب في Create فقط */}
+                    <div className="form-group">
+                        <label>Poster {!editingMeetingId && <span className="required">*</span>}</label>
                         <div className="file-upload">
                             <input
                                 type="file"
                                 id="poster-upload"
-                                name="poster"
+                                name="poster_file"
                                 accept="image/*"
                                 onChange={handleInputChange}
                             />
                             <label htmlFor="poster-upload" className="file-upload-label">
                                 <div className="upload-icon">
-                                    {/* Upload arrow icon */}
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="16 16 12 12 8 16" />
                                         <line x1="12" y1="12" x2="12" y2="21" />
                                         <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
@@ -390,28 +615,50 @@ const AdminMeetingPage = () => {
                                 </div>
                             </label>
                         </div>
-                        {formData.poster && (
-                            <span style={{ fontSize: 10, color: "#666", marginTop: 2 }}>
-                                {formData.poster.name}
-                            </span>
+                        {formData.poster_file && (
+                            <span className="file-selected-name">{formData.poster_file.name}</span>
                         )}
                     </div>
 
-                    {/* Resources */}
-                    <div className="form-group">
-                        <label>Resources</label>
-                        <textarea
-                            name="resources"
-                            value={formData.resources}
-                            onChange={handleInputChange}
-                            rows={4}
-                        />
-                    </div>
+                    {!editingMeetingId && (
+                        <div className="form-group">
+                            <label>Resources files (optional)</label>
+                            <input
+                                type="file"
+                                name="files"
+                                multiple
+                                accept="*"
+                                onChange={handleInputChange}
+                                className="create-meeting-file-input"
+                            />
+                            {Array.isArray(formData.files) && formData.files.length > 0 && (
+                                <div className="selected-files-list">
+                                    <strong>Selected resources:</strong>
+                                    <ul>
+                                        {formData.files.map((f, i) => (
+                                            <li key={i}>{f.name}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                    {/* Submit */}
-                    <button type="submit" className="create-meeting-btn">
-                        Create Meeting
-                    </button>
+                    {/* Submit / Cancel */}
+                    <div className="form-actions-row">
+                        <button type="submit" className="create-meeting-btn">
+                            {editingMeetingId ? "Edit Meeting" : "Create Meeting"}
+                        </button>
+                        {editingMeetingId && (
+                            <button
+                                type="button"
+                                className="cancel-edit-btn"
+                                onClick={resetFormForCreate}
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
                 </form>
 
             </div>

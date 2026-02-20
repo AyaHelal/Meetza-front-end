@@ -11,6 +11,7 @@ import {
   UsersThree,
   VideoCamera,
 } from "@phosphor-icons/react";
+import api from "../../API/axiosInstance";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
 import MobileHeader from "../MobileHeader/MobileHeader";
@@ -166,8 +167,18 @@ const AppLayout = () => {
     setUnreadNotificationCount(0);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
+      const activeMeetingId = sessionStorage.getItem("activeMeetingId");
+      if (activeMeetingId) {
+        try {
+          await api.post(`/meeting/${activeMeetingId}/leave`);
+        } catch (leaveErr) {
+          console.warn("Logout: failed to call leave meeting API", leaveErr);
+        }
+        sessionStorage.removeItem("activeMeetingId");
+        sessionStorage.removeItem("activeMeetingGroupId");
+      }
       logoutUser();
     } catch (err) {
       console.warn("Logout error", err);

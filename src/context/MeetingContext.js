@@ -16,6 +16,7 @@ export const MeetingProvider = ({ children }) => {
   const [participants, setParticipantsState] = useState([]);
   const [meetingId, setMeetingIdState] = useState(null);
   const [hasJoined, setHasJoined] = useState(false);
+  const [localParticipantAudioMuted, setLocalParticipantAudioMutedState] = useState({});
 
   // Load chat messages from localStorage on mount
   const loadChatMessagesFromStorage = useCallback((mid) => {
@@ -46,6 +47,10 @@ export const MeetingProvider = ({ children }) => {
   const setMeetingId = useCallback((id) => {
     setMeetingIdState(id);
     // Messages will be loaded via useEffect when meetingId changes
+  }, []);
+
+  const setLocalParticipantAudioMuted = useCallback((updater) => {
+    setLocalParticipantAudioMutedState((prev) => (typeof updater === "function" ? updater(prev) : updater));
   }, []);
 
   // Load messages when meetingId is set (including on initial mount)
@@ -117,6 +122,8 @@ export const MeetingProvider = ({ children }) => {
     setHasJoined,
     chatMessages,
     addChatMessage,
+    localParticipantAudioMuted,
+    setLocalParticipantAudioMuted,
   };
 
   return (

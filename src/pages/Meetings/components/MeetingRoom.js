@@ -48,7 +48,6 @@ const MeetingRoom = () => {
     return {};
   });
   const [mediaStateMap, setMediaStateMap] = useState({}); // { [socketId]: { audioMuted, videoMuted } }
-  const [localParticipantAudioMuted, setLocalParticipantAudioMuted] = useState({}); // { [socketId]: boolean } - local mute for each participant
   const [localParticipantVolume, setLocalParticipantVolume] = useState({}); // { [socketId]: number } - 0-1, default 1
   const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ const MeetingRoom = () => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage } = useMeetingContext();
+  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted } = useMeetingContext();
 
   // Get persistent media streams and state from MediaContext
   const {

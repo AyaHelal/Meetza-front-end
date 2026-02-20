@@ -148,6 +148,55 @@
     gap: 12px;
 }
 
+.participant-item--admin-pinned {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+    padding: 4px 0;
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.participant-badge-admin {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1976d2;
+    background: #e3f2fd;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.participant-mute-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.participant-mute-btn:hover {
+    background: transparent;
+    color: #1976d2;
+}
+.participant-mute-btn[title="Unmute"] {
+    color: #d32f2f;
+}
+.participant-mute-btn[title="Unmute"]:hover {
+    background: #ffebee;
+    color: #b71c1c;
+}
+
 .participant-avatar {
     width: 40px;
     height: 40px;
@@ -194,6 +243,7 @@
         height: 300px; /* Fixed height maintained on larger screens */
     }
 
+    .video-description-header,
     .video-description-card .video-description-title,
     .video-description-scroll {
         padding-left: 10px;
