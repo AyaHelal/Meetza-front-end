@@ -86,6 +86,11 @@ const AppLayout = () => {
       location.pathname.startsWith("/groups")
     ) {
       setActiveNav("users");
+    } else if (
+      location.pathname === "/admin-meetings" ||
+      location.pathname.startsWith("/admin-meetings")
+    ) {
+      setActiveNav("admin-meetings");
     }
   }, [location]);
 
@@ -132,6 +137,9 @@ const AppLayout = () => {
     } else if (nav === "messages" && location.pathname !== "/home") {
       setActiveNav(nav);
       navigate("/home", { replace: false });
+    } else if (nav === "admin-meetings" && location.pathname !== "/admin-meetings") {
+      setActiveNav(nav);
+      navigate("/admin-meetings", { replace: false });
     } else {
       // Just update active state if already on the route
       setActiveNav(nav);
