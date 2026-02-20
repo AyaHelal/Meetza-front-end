@@ -15,6 +15,8 @@ import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
+import AdminRoute from './components/AdminRoute';
+import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import { useState, useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -215,6 +217,14 @@ const AppRoutes = () => {
         <Route path="home" element={<GroupChat />} />
         <Route path="groups" element={<Groups />} />
         <Route path="meetings" element={<Meetings />} />
+        <Route
+          path="admin-meetings"
+          element={
+            <AdminRoute>
+              <AdminMeetingPage />
+            </AdminRoute>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

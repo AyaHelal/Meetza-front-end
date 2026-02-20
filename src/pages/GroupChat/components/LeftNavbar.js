@@ -7,6 +7,7 @@ import {
   Bell,
   GearSix,
   SignOut,
+  VideoCamera,
 } from "@phosphor-icons/react";
 import "./LeftNavbar.css";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +26,11 @@ const LeftNavbar = ({
 }) => {
   console.log("🔔 LeftNavbar component rendering");
   const navigate = useNavigate();
-  const { logoutUser } = useContext(AuthContext);
+  const { logoutUser, user } = useContext(AuthContext);
+  
+  // Check if user is admin
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
   const {
     socket,
     isConnected,
@@ -206,6 +211,18 @@ const LeftNavbar = ({
             >
               <CalendarBlank size={32} />
             </div>
+            {isAdmin && (
+              <div
+                className={`nav-icon ${activeNav === "admin-meetings" ? "active" : ""}`}
+                onClick={() => {
+                  navigate("/admin-meetings");
+                  setActiveNav("admin-meetings");
+                }}
+                title="Admin Meetings"
+              >
+                <VideoCamera size={32} />
+              </div>
+            )}
           </div>
           <div className="nav-icons-group-bottom">
             <div
