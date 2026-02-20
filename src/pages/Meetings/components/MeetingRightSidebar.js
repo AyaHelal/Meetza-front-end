@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, UserCircle } from '@phosphor-icons/react';
+import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, Trash, UserCircle } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
 import api from '../../../API/axiosInstance';
 import { smartToast } from '../../../API/toastManager';
 import { AuthContext } from '../../../context/AuthContext';
 import { useMeetingContext } from '../../../context/MeetingContext';
+import { useSocket } from '../../../context/SocketContext';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -50,7 +51,17 @@ const MeetingRightSidebar = () => {
 
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const { user } = React.useContext(AuthContext);
+    const authUser = React.useContext(AuthContext)?.user;
+    const user = useMemo(() => {
+        if (authUser) return authUser;
+        try {
+            const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    }, [authUser]);
+    const { socket } = useSocket();
     const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId, localParticipantAudioMuted, setLocalParticipantAudioMuted } = useMeetingContext();
 
     const meetingId = useMemo(() => {
@@ -72,6 +83,7 @@ const MeetingRightSidebar = () => {
     const [resources, setResources] = useState([]);
     const [loadingResources, setLoadingResources] = useState(false);
     const [uploadingResource, setUploadingResource] = useState(false);
+    const [deletingResourceId, setDeletingResourceId] = useState(null);
     const fileInputRef = useRef(null);
 
     const meetingIdRef = useRef(meetingId);
@@ -113,6 +125,8 @@ const MeetingRightSidebar = () => {
                     ? root.data
                     : [];
             setResources(payload);
+            const contentId = root?.group_content_id ?? payload[0]?.group_content_id ?? null;
+            setGroupContentId(contentId);
         } catch (err) {
             console.error("❌ Error fetching meeting resources:", err);
             setResources([]);
@@ -121,10 +135,12 @@ const MeetingRightSidebar = () => {
         }
     }, []);
 
+    const currentUserId = user?.id ?? user?.user_id ?? null;
     const isMeetingAdmin = Boolean(
-        user?.id && meetingInfo?.administrator_id && String(user.id) === String(meetingInfo.administrator_id)
+        currentUserId && meetingInfo?.administrator_id && String(currentUserId) === String(meetingInfo.administrator_id)
     );
-    const canAddResource = isMeetingAdmin && groupContentId && meetingId;
+    const showAddResourceBtn = isMeetingAdmin && meetingId;
+    const canAddResource = showAddResourceBtn && groupContentId;
 
     const handleAddResource = useCallback(
         async (e) => {
@@ -143,6 +159,7 @@ const MeetingRightSidebar = () => {
                 });
                 smartToast.success('Resource(s) added.');
                 await fetchResources(meetingId);
+                if (socket) socket.emit('meetingResourceAdded', { meetingId });
             } catch (err) {
                 const msg = err?.response?.data?.message || err?.message || 'Failed to add resource';
                 smartToast.error(msg);
@@ -151,7 +168,27 @@ const MeetingRightSidebar = () => {
                 e.target.value = '';
             }
         },
-        [groupContentId, meetingId, fetchResources]
+        [groupContentId, meetingId, fetchResources, socket]
+    );
+
+    const handleDeleteResource = useCallback(
+        async (resourceId) => {
+            if (!groupContentId || !meetingId || !resourceId) return;
+            if (!window.confirm('Delete this resource?')) return;
+            setDeletingResourceId(resourceId);
+            try {
+                await api.delete(`/group-contents/${groupContentId}/files/${resourceId}`);
+                smartToast.success('Resource removed.');
+                await fetchResources(meetingId);
+                if (socket) socket.emit('meetingResourceAdded', { meetingId });
+            } catch (err) {
+                const msg = err?.response?.data?.message || err?.message || 'Failed to delete resource';
+                smartToast.error(msg);
+            } finally {
+                setDeletingResourceId(null);
+            }
+        },
+        [groupContentId, meetingId, fetchResources, socket]
     );
 
     // Participants are socket-driven from MeetingContext - no REST fetch
@@ -174,32 +211,39 @@ const MeetingRightSidebar = () => {
         fetchMeetingDetails(meetingId);
     }, [fetchMeetingDetails, meetingId]);
 
-    // Resolve group_content_id from meeting's group (for admin add resource API)
-    useEffect(() => {
-        if (!meetingInfo?.group_id) {
-            setGroupContentId(null);
-            return;
-        }
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await api.get('/group');
-                const list = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-                const group = list.find((g) => String(g.id) === String(meetingInfo.group_id));
-                if (!cancelled) setGroupContentId(group?.group_content_id || null);
-            } catch {
-                if (!cancelled) setGroupContentId(null);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [meetingInfo?.group_id]);
+    // group_content_id comes from GET /group-contents/meeting/:id response (set in fetchResources)
 
-    // Fetch resources attached to this meeting
+    // Fetch resources attached to this meeting (also sets group_content_id from API for add-resource)
     useEffect(() => {
         fetchResources(meetingId);
     }, [fetchResources, meetingId]);
 
-    // Refresh meeting details and resources periodically so members see new resources
+    // When admin adds a resource, server broadcasts meetingResourceAdded → members refetch immediately (if socket used)
+    useEffect(() => {
+        if (!socket || !meetingId) return;
+        const onResourceAdded = (data) => {
+            if (data?.meetingId && String(data.meetingId) === String(meetingId)) {
+                fetchResources(meetingId);
+            }
+        };
+        socket.on('meetingResourceAdded', onResourceAdded);
+        return () => {
+            socket.off('meetingResourceAdded', onResourceAdded);
+        };
+    }, [socket, meetingId, fetchResources]);
+
+    // Poll resources periodically so members see new resources without refresh (frontend-only, no socket required)
+    useEffect(() => {
+        if (!meetingId) return;
+        const intervalMs = 12000;
+        const tid = setInterval(() => {
+            const mid = meetingIdRef.current;
+            if (mid) fetchResources(mid);
+        }, intervalMs);
+        return () => clearInterval(tid);
+    }, [meetingId, fetchResources]);
+
+    // Refresh meeting details periodically (description, admin info).
     useEffect(() => {
         if (!meetingId) return;
 
@@ -207,7 +251,6 @@ const MeetingRightSidebar = () => {
             const mid = meetingIdRef.current;
             if (!mid) return;
             fetchMeetingDetails(mid);
-            fetchResources(mid);
         };
 
         const intervalMs = 5000;
@@ -226,15 +269,15 @@ const MeetingRightSidebar = () => {
             window.removeEventListener('focus', onFocus);
             document.removeEventListener('visibilitychange', onVisibility);
         };
-    }, [fetchMeetingDetails, fetchResources, meetingId]);
+    }, [fetchMeetingDetails, meetingId]);
 
     return (
-        <div className="meeting-right-sidebar px-2">
+        <div className="meeting-right-sidebar px-0">
             {/* Meeting Description + Resources */}
             <div className="video-description-card">
                 <div className="video-description-header">
                     <h3 className="video-description-title fw-semibold">Video Description</h3>
-                    {canAddResource && (
+                    {showAddResourceBtn && (
                         <>
                             <input
                                 ref={fileInputRef}
@@ -247,12 +290,19 @@ const MeetingRightSidebar = () => {
                             <button
                                 type="button"
                                 className="add-resource-btn"
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => {
+                                    if (!groupContentId) {
+                                        smartToast.error('Group content not available for this meeting.');
+                                        return;
+                                    }
+                                    fileInputRef.current?.click();
+                                }}
                                 disabled={uploadingResource}
-                                title="Add resource"
+                                title={!groupContentId ? 'Preparing...' : 'Add resource'}
+                                aria-label="Add resource"
                             >
-                                <PlusCircle size={20} weight="regular" />
-                                {uploadingResource ? 'Uploading...' : 'Add resource'}
+                                <PlusCircle size={18} weight="regular" />
+                                {uploadingResource ? ' ...' : ''}
                             </button>
                         </>
                     )}
@@ -276,7 +326,7 @@ const MeetingRightSidebar = () => {
                         resources.map((resItem) => (
                             <div
                                 key={resItem.id}
-                                className="description-item"
+                                className="description-item description-item--with-actions"
                                 title={resItem.file_name || resItem.name}
                             >
                                 <Paperclip size={20} weight="regular" className="item-icon" />
@@ -284,10 +334,22 @@ const MeetingRightSidebar = () => {
                                     href={resItem.file_url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                    className="description-item-link"
                                 >
                                     {resItem.file_name || 'Resource file'}
                                 </a>
+                                {showAddResourceBtn && groupContentId && (
+                                    <button
+                                        type="button"
+                                        className="resource-delete-btn"
+                                        onClick={() => handleDeleteResource(resItem.id)}
+                                        disabled={deletingResourceId === resItem.id}
+                                        title="Delete resource"
+                                        aria-label="Delete resource"
+                                    >
+                                        <Trash size={14} weight="regular" />
+                                    </button>
+                                )}
                             </div>
                         ))
                     )}
@@ -351,9 +413,9 @@ const MeetingRightSidebar = () => {
                                     aria-label={isMuted ? 'Unmute' : 'Mute'}
                                 >
                                     {isMuted ? (
-                                        <MicrophoneSlash size={20} weight="fill" />
+                                        <MicrophoneSlash size={20} weight="regular" />
                                     ) : (
-                                        <Microphone size={20} weight="fill" />
+                                        <Microphone size={20} weight="regular" />
                                     )}
                                 </button>
                             )}
