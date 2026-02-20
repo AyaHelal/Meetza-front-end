@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./GroupChat.css";
 import { categorizeResources, categorizeMediaItems } from "./components/utils";
 import GroupChatLayout from "./components/GroupChatLayout";
@@ -18,6 +19,8 @@ import { smartToast } from "../../API/toastManager";
 
 export default function GroupChat() {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     socket,
     isConnected,
@@ -776,6 +779,21 @@ export default function GroupChat() {
   useEffect(() => {
     refreshGroupsList(true);
   }, []);
+
+  const openGroupIdFromStateRef = useRef(false);
+  useEffect(() => {
+    const groupId = location.state?.groupId;
+    if (!groupId || !groupChats.length || openGroupIdFromStateRef.current) return;
+    const index = groupChats.findIndex(
+      (g) => String(g.id) === String(groupId)
+    );
+    if (index !== -1) {
+      openGroupIdFromStateRef.current = true;
+      setSelectedChat(index);
+      if (window.innerWidth <= 768) setShowMainChat(true);
+      navigate("/home", { replace: true, state: {} });
+    }
+  }, [groupChats, location.state?.groupId, navigate]);
 
   // Join all groups via Socket.IO when groups are loaded and socket is connected
   // This ensures we receive messages for all groups, not just the selected one

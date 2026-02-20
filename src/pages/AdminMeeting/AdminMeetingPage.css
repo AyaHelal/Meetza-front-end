@@ -127,6 +127,17 @@
   margin: 0;
 }
 
+.meeting-group-link {
+  color: #0076ea;
+  text-decoration: none;
+  transition: color 0.18s, text-decoration 0.18s;
+}
+
+.meeting-group-link:hover {
+  text-decoration: underline;
+  color: #005fb8;
+}
+
 .meeting-date {
   font-size: 12px;
   color: #888888;
@@ -229,7 +240,43 @@
   background: #005fb8;
 }
 
+/* Edit / Delete تحت على اليمين */
+.meeting-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.meeting-card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  background: transparent;
+  color: #666;
+}
+
+.meeting-card-action-btn.edit-btn:hover {
+  background: #e3f2fd;
+  color: #0076ea;
+}
+
+.meeting-card-action-btn.delete-btn:hover {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
 /* ── RIGHT SIDEBAR ── */
+/* Height leaves space at bottom so Create Meeting button can scroll above fixed user status */
 .create-meeting-sidebar {
   width: 290px;
   flex-shrink: 0;
@@ -241,8 +288,9 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  height: calc(100vh - 35px);
-  max-height: calc(100vh - 24px);
+  overflow-x: hidden;
+  height: calc(100vh - 100px);
+  max-height: calc(100vh - 120px);
 }
 
 .create-meeting-sidebar h2 {
@@ -256,6 +304,8 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
+  padding-bottom: 48px;
 }
 
 /* Form groups */
@@ -414,7 +464,7 @@
   flex-shrink: 0;
 }
 
-/* Poster upload */
+
 .file-upload {
   width: 100%;
 }
@@ -454,12 +504,76 @@
   height: 16px;
 }
 
+.file-selected-name {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.create-meeting-file-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 12px;
+  font-family: "Poppins", sans-serif;
+  background: #fff;
+  color: #111;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.18s;
+}
+
+.create-meeting-file-input:hover,
+.create-meeting-file-input:focus {
+  border-color: #0076ea;
+  box-shadow: 0 0 0 3px rgba(0, 118, 234, 0.1);
+}
+
+.create-meeting-file-input::file-selector-button {
+  padding: 4px 10px;
+  margin-right: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f5f5f5;
+  font-size: 11px;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  color: #555;
+}
+
+.create-meeting-file-input::file-selector-button:hover {
+  background: #ebebeb;
+  border-color: #ccc;
+}
+
+.selected-files-list {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 6px;
+}
+
+.selected-files-list ul {
+  margin: 4px 0 0;
+  padding-left: 1.25rem;
+}
+
+.selected-files-list li {
+  margin-bottom: 2px;
+}
+
 /* Resources textarea */
 .form-group textarea {
   resize: vertical;
   min-height: 50px;
   font-family: "Poppins", sans-serif;
 }
+
+.form-group label .required {
+  color: #c00;
+}
+
 
 /* Create Meeting button */
 .create-meeting-btn {
@@ -473,7 +587,6 @@
   cursor: pointer;
   transition: background 0.18s;
   font-family: "Poppins", sans-serif;
-  margin-top: 2px;
   width: 75%;
   margin-left: auto;
   margin-right: auto;
@@ -482,6 +595,38 @@
 
 .create-meeting-btn:hover {
   background: #005fb8;
+}
+
+.form-actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.form-actions-row .create-meeting-btn,
+.form-actions-row .cancel-edit-btn {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.cancel-edit-btn {
+  background: #f5f5f5;
+  color: #555;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  transition: background 0.18s, border-color 0.18s;
+}
+
+.cancel-edit-btn:hover {
+  background: #ebebeb;
+  border-color: #ccc;
 }
 
 /* User status bar */
