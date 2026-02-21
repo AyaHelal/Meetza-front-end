@@ -184,7 +184,7 @@ const AdminMeetingPage = () => {
             form.append("end_time", formatForAPI(formData.endTime));
             form.append("group_id", formData.group_id);
             form.append("status", formData.status);
-            form.append("record_meeting", formData.recordMeeting === "Recording" ? "1" : "0");
+            form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
             if (formData.description) form.append("description", formData.description);
             form.append("poster_file", formData.poster_file);
             if (Array.isArray(formData.files)) {
@@ -299,6 +299,7 @@ const AdminMeetingPage = () => {
                 form.append("end_time", formatForAPI(formData.endTime));
                 form.append("status", formData.status);
                 form.append("group_id", formData.group_id || originalMeeting.group_id);
+                form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
                 if (formData.description != null) form.append("description", formData.description);
                 if (hasPoster) form.append("poster_file", formData.poster_file);
                 const res = await api.put(`/meeting/${editingMeetingId}`, form, {
@@ -317,6 +318,7 @@ const AdminMeetingPage = () => {
                     end_time: formatForAPI(formData.endTime),
                     status: formData.status,
                     group_id: formData.group_id || originalMeeting.group_id,
+                    recording: formData.recordMeeting === "Recording" ? "1" : "0",
                 };
                 const res = await api.put(`/meeting/${editingMeetingId}`, payload);
                 if (res.data?.success) {
