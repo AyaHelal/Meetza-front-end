@@ -129,9 +129,8 @@ const MainChat = ({
       if (!dynamicMeetingId && groupId) {
         console.log("🔄 Attempting to fetch meetings from API...");
         try {
-          // Backend endpoint to fetch meeting by group id
-          // (User-provided example: GET /meeting/group/{groupId})
-          const meetingsResponse = await api.get(`/meeting/group/${groupId}`);
+          // Backend: GET /meeting?group_id=... (getAllMeetings with group filter)
+          const meetingsResponse = await api.get("/meeting", { params: { group_id: groupId } });
           console.log("✅ Meetings response:", meetingsResponse);
           // Support multiple possible response shapes:
           // - { success, data: [...] } or { success, data: {...} }
@@ -188,7 +187,7 @@ const MainChat = ({
       try {
         const meetingCheckRes = await api.get(`/meeting/${dynamicMeetingId}`);
         const meetingData = meetingCheckRes?.data;
-        
+
         // Extract meeting from response (handle array or object)
         let meeting;
         if (Array.isArray(meetingData?.data)) {
@@ -266,7 +265,7 @@ const MainChat = ({
           return;
         }
 
-        const res = await api.get(`/meeting/group/${groupId}`);
+        const res = await api.get("/meeting", { params: { group_id: groupId } });
         const root = res?.data;
         const nested = root?.data && (root?.success === undefined) ? root?.data : null;
         const effective = nested || root;
@@ -1526,7 +1525,7 @@ const MainChat = ({
           )}
           {showJoinMeetingButton && (
             <button
-              className={`join-meeting-btn ${isInMeeting ? "in-meeting" : ""}`}
+              className={`join-meetings-btn ${isInMeeting ? "in-meeting" : ""}`}
               onClick={handleJoinMeeting}
               disabled={isInMeeting}
             >

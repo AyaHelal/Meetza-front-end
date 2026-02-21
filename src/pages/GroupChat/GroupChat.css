@@ -467,7 +467,7 @@ body.group-chat-active {
   flex-shrink: 0;
 }
 
-.join-meeting-btn {
+.join-meetings-btn {
   padding: 8px 16px;
   background: #0076ea;
   color: #ffffff;
@@ -484,18 +484,18 @@ body.group-chat-active {
              joinMeetingBounce 1.6s ease-in-out infinite;
 }
 
-.join-meeting-btn:hover {
+.join-meetings-btn:hover {
   background: #0076ea;
 }
 
-.join-meeting-btn.in-meeting {
+.join-meetings-btn.in-meeting {
   background: #00c853;
   cursor: not-allowed;
   animation: none;
   box-shadow: 0 2px 8px rgba(0, 200, 83, 0.3);
 }
 
-.join-meeting-btn.in-meeting:hover {
+.join-meetings-btn.in-meeting:hover {
   background: #00c853;
 }
 
@@ -2855,7 +2855,7 @@ body.group-chat-active {
     font-size: 16px;
   }
 
-  .join-meeting-btn {
+  .join-meetings-btn {
     padding: 6px 12px;
     font-size: 12px;
     /* keep the pulse/bounce but a bit softer on mobile */
@@ -3067,7 +3067,7 @@ body.group-chat-active {
     font-size: 14px;
   }
 
-  .join-meeting-btn {
+  .join-meetings-btn {
     padding: 5px 10px;
     font-size: 11px;
   }

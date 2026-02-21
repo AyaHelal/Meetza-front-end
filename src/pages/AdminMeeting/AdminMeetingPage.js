@@ -557,7 +557,6 @@ const AdminMeetingPage = () => {
                         </select>
                     </div>
 
-                    {/* Record Meeting – يتبعت في create كـ 0 أو 1 */}
                     <div className="form-group">
                         <label className="mb-2">Record Meeting</label>
                         <div className="radio-group">
@@ -596,7 +595,6 @@ const AdminMeetingPage = () => {
                         />
                     </div>
 
-                    {/* Poster – مطلوب في Create فقط */}
                     <div className="form-group">
                         <label>Poster {!editingMeetingId && <span className="required">*</span>}</label>
                         <div className="file-upload">
