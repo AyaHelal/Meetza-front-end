@@ -230,17 +230,18 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s;
+  transition: all 0.25s ease;
   margin-top: 12px;
   align-self: center;
   font-family: "Poppins", sans-serif;
+  animation: joinMeetingPulse 1.8s ease-in-out infinite,
+               joinMeetingBounce 1.8s ease-in-out infinite;
 }
 
 .join-meeting-btn:hover {
   background: #005fb8;
 }
 
-/* Edit / Delete تحت على اليمين */
 .meeting-card-actions {
   display: flex;
   justify-content: flex-end;
