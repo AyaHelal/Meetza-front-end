@@ -42,7 +42,7 @@ export function addTracksToAllPeersImpl(opts) {
               .then(() => {
                 const mid = meetingIdRef.current;
                 if (socket && mid) {
-                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => {});
+                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => { });
                   console.log("📤 Renegotiated after adding tracks to", peerSocketId);
                 }
               })

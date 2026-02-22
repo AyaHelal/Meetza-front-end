@@ -660,6 +660,73 @@ const MeetingRoom = () => {
     localStreamRef,
   });
 
+  // Fetch meeting info to check if user is admin
+  const [meetingInfo, setMeetingInfo] = useState(null);
+  const isMeetingAdmin = useMemo(() => {
+    if (!meetingInfo?.administrator_id || !selfMemberId) return false;
+    return String(meetingInfo.administrator_id) === String(selfMemberId);
+  }, [meetingInfo?.administrator_id, selfMemberId]);
+
+  useEffect(() => {
+    const fetchMeetingInfo = async () => {
+      const mid = meetingIdRef.current || meetingId;
+      if (!mid) return;
+      try {
+        const res = await api.get(`/meeting/${mid}`);
+        const root = res?.data;
+        let meeting;
+        if (root?.data) {
+          meeting = Array.isArray(root.data)
+            ? root.data.find((m) => String(m.id) === String(mid))
+            : root.data;
+        } else if (root?.id) {
+          meeting = root;
+        }
+        setMeetingInfo(meeting ? { administrator_id: meeting.administrator_id } : null);
+      } catch (err) {
+        console.warn("Could not fetch meeting info:", err);
+        setMeetingInfo(null);
+      }
+    };
+    fetchMeetingInfo();
+  }, [meetingId]);
+
+  // For admins: separate tiles into members and admin
+  const { memberTiles, adminTile } = useMemo(() => {
+    if (!isMeetingAdmin) {
+      return { memberTiles: unifiedTiles, adminTile: null };
+    }
+    const members = unifiedTiles.filter(tile => !tile.isSelf);
+    const admin = unifiedTiles.find(tile => tile.isSelf);
+    return { memberTiles: members, adminTile: admin };
+  }, [unifiedTiles, isMeetingAdmin]);
+
+  // For members: find the admin's tile to show in slide2
+  const adminTileForMembers = useMemo(() => {
+    if (isMeetingAdmin || !meetingInfo?.administrator_id) return null;
+    // Find the admin participant by matching administrator_id
+    return unifiedTiles.find(tile => {
+      const tileUserId = tile?.member_id || tile?.user_id || tile?.userId || tile?.id;
+      return tileUserId && String(tileUserId) === String(meetingInfo.administrator_id);
+    });
+  }, [unifiedTiles, meetingInfo?.administrator_id, isMeetingAdmin]);
+
+  // Reset activeSlide to 0 if admin and currently on slide 2
+  useEffect(() => {
+    if (isMeetingAdmin && activeSlide > 1) {
+      setActiveSlide(0);
+    }
+  }, [isMeetingAdmin, activeSlide]);
+
+  // For admins, limit activeSlide to 0 or 1 (only 2 screens)
+  const handleSetActiveSlide = useCallback((slide) => {
+    if (isMeetingAdmin && slide > 1) {
+      setActiveSlide(1);
+    } else {
+      setActiveSlide(slide);
+    }
+  }, [isMeetingAdmin]);
+
   const {
     reactionsMap,
     showEmojiPicker,
@@ -759,172 +826,115 @@ const MeetingRoom = () => {
 
   const handleToggleAudio = async () => {
     const nextMuted = !audioMuted;
+
     if (nextMuted) {
+      // --- MUTING: just disable the audio tracks ---
       setAudioMuted(true);
+      setContextAudioMuted(true);
       const stream = localStreamRef.current;
-      if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = false));
+      if (stream) {
+        stream.getAudioTracks().forEach((t) => (t.enabled = false));
+      }
     } else {
+      // --- UNMUTING: ensure we have audio tracks, then enable them ---
       try {
+        // Step 1: Make sure we have a live audio track
         await ensureMediaTracks({ needAudio: true });
+
         const stream = localStreamRef.current;
-        if (stream) {
-          const audioTracks = stream.getAudioTracks();
-          audioTracks.forEach((t) => {
-            t.enabled = true;
-          });
+        if (!stream) {
+          setAudioMuted(true);
+          setContextAudioMuted(true);
+          return;
+        }
 
-          // Ensure audio tracks are added to all peer connections and trigger renegotiation
-          // Filter to only enabled, live audio tracks
-          const enabledAudioTracks = audioTracks.filter(t => t.readyState === 'live');
+        // Step 2: Enable all audio tracks
+        const audioTracks = stream.getAudioTracks().filter((t) => t.readyState === "live");
+        audioTracks.forEach((t) => (t.enabled = true));
 
-          for (const [peerSocketId, pc] of peersRef.current.entries()) {
-            const audioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+        if (audioTracks.length === 0) {
+          console.warn("⚠️ No live audio tracks available after ensureMediaTracks");
+          setAudioMuted(true);
+          setContextAudioMuted(true);
+          return;
+        }
 
-            // Remove any stopped/ended audio senders first
-            audioSenders.forEach(sender => {
-              if (sender.track && sender.track.readyState === 'ended') {
-                try {
-                  pc.removeTrack(sender);
-                  console.log("🗑️ Removed ended audio track from peer", peerSocketId);
-                } catch (err) {
-                  console.error("❌ Error removing ended audio track:", err);
-                }
-              }
-            });
+        // Step 3: Sync tracks with peer connections
+        // For each peer, either:
+        //   a) The track is already there → just enable it (no renegotiation needed)
+        //   b) The track is missing → add it and renegotiate once
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+          if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
 
-            // Get updated senders after cleanup
-            const updatedAudioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+          const existingSenders = pc.getSenders().filter(
+            (s) => s.track && s.track.kind === "audio"
+          );
 
-            // If no audio senders, add all enabled audio tracks
-            if (updatedAudioSenders.length === 0) {
-              enabledAudioTracks.forEach(track => {
-                try {
-                  pc.addTrack(track, stream);
-                  console.log("➕ Added enabled audio track to peer connection", peerSocketId, { trackId: track.id, enabled: track.enabled });
-                } catch (err) {
-                  console.error("❌ Error adding audio track to peer:", err);
-                }
-              });
-            } else {
-              // Replace existing audio tracks with new enabled ones
-              const replacementPromises = [];
-              enabledAudioTracks.forEach((track, index) => {
-                const sender = updatedAudioSenders[index];
-                if (sender) {
-                  // Check if track is different or if current track is disabled/ended
-                  if (sender.track !== track || sender.track.readyState === 'ended' || !sender.track.enabled) {
-                    // Different track or track is bad, replace it
-                    try {
-                      const replacePromise = sender.replaceTrack(track).then(() => {
-                        console.log("🔄 Replaced audio track in peer connection", peerSocketId, {
-                          oldTrackId: sender.track?.id,
-                          newTrackId: track.id,
-                          enabled: track.enabled
-                        });
-                      }).catch(err => {
-                        console.error("❌ Error replacing audio track:", err);
-                        throw err;
-                      });
-                      replacementPromises.push(replacePromise);
-                    } catch (err) {
-                      console.error("❌ Error replacing audio track:", err);
-                    }
-                  } else {
-                    // Same track, just ensure it's enabled
-                    if (!sender.track.enabled) {
-                      sender.track.enabled = true;
-                      console.log("✅ Enabled existing audio track in peer connection", peerSocketId);
-                    }
-                  }
-                } else {
-                  // More tracks than senders, add the new one
-                  try {
-                    pc.addTrack(track, stream);
-                    console.log("➕ Added additional audio track to peer connection", peerSocketId);
-                  } catch (err) {
-                    console.error("❌ Error adding additional audio track:", err);
-                  }
-                }
-              });
-
-              // Wait for all track replacements to complete, then trigger renegotiation
-              Promise.all(replacementPromises).then(() => {
-                // Small delay to ensure everything is settled
-                setTimeout(() => {
-                  try {
-                    pc.createOffer().then(offer => {
-                      pc.setLocalDescription(offer).then(() => {
-                        const mid = meetingIdRef.current;
-                        if (socket && mid) {
-                          socket.emit("webrtcOffer", {
-                            toSocketId: peerSocketId,
-                            meetingId: mid,
-                            sdp: offer
-                          }, () => { });
-                          console.log("📤 Sent renegotiation offer for audio to", peerSocketId);
-                        }
-                      }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
-                    }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
-                  } catch (err) {
-                    console.error("❌ Error in audio toggle renegotiation:", err);
-                  }
-                }, 100);
-              }).catch(() => {
-                // Even if some replacements failed, try renegotiation anyway
-                setTimeout(() => {
-                  try {
-                    pc.createOffer().then(offer => {
-                      pc.setLocalDescription(offer).then(() => {
-                        const mid = meetingIdRef.current;
-                        if (socket && mid) {
-                          socket.emit("webrtcOffer", {
-                            toSocketId: peerSocketId,
-                            meetingId: mid,
-                            sdp: offer
-                          }, () => { });
-                          console.log("📤 Sent renegotiation offer for audio to", peerSocketId, "(after some failures)");
-                        }
-                      }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
-                    }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
-                  } catch (err) {
-                    console.error("❌ Error in audio toggle renegotiation:", err);
-                  }
-                }, 100);
-              });
-            }
-
-            // If no replacements were needed (tracks were just added), trigger renegotiation immediately
-            if (updatedAudioSenders.length === 0) {
-              setTimeout(() => {
-                try {
-                  pc.createOffer().then(offer => {
-                    pc.setLocalDescription(offer).then(() => {
-                      const mid = meetingIdRef.current;
-                      if (socket && mid) {
-                        socket.emit("webrtcOffer", {
-                          toSocketId: peerSocketId,
-                          meetingId: mid,
-                          sdp: offer
-                        }, () => { });
-                        console.log("📤 Sent renegotiation offer for audio to", peerSocketId);
-                      }
-                    }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
-                  }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
-                } catch (err) {
-                  console.error("❌ Error in audio toggle renegotiation:", err);
-                }
-              }, 100);
+          // Remove any ended/stale senders
+          for (const sender of existingSenders) {
+            if (sender.track.readyState === "ended") {
+              try { pc.removeTrack(sender); } catch (e) { /* ignore */ }
             }
           }
+
+          // Get fresh list after cleanup
+          const activeSenders = pc.getSenders().filter(
+            (s) => s.track && s.track.kind === "audio" && s.track.readyState === "live"
+          );
+
+          if (activeSenders.length === 0) {
+            // No audio sender → add track and renegotiate
+            const trackToAdd = audioTracks[0];
+            try {
+              pc.addTrack(trackToAdd, stream);
+              console.log("➕ Added audio track to peer", peerSocketId);
+
+              // Renegotiate
+              if (pc.signalingState === "stable") {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                const mid = meetingIdRef.current;
+                if (socket && mid) {
+                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+                  console.log("📤 Sent renegotiation offer for audio to", peerSocketId);
+                }
+              }
+            } catch (err) {
+              console.error("❌ Error adding audio track to peer", peerSocketId, err);
+            }
+          } else {
+            // Sender exists → replace with fresh track if needed, or just enable
+            const sender = activeSenders[0];
+            const freshTrack = audioTracks[0];
+
+            if (sender.track !== freshTrack) {
+              try {
+                await sender.replaceTrack(freshTrack);
+                console.log("🔄 Replaced audio track for peer", peerSocketId);
+              } catch (err) {
+                console.error("❌ Error replacing audio track for peer", peerSocketId, err);
+              }
+            }
+            // Ensure track is enabled (replaceTrack preserves enabled state)
+            if (sender.track) sender.track.enabled = true;
+          }
         }
+
         setAudioMuted(false);
-      } catch {
+        setContextAudioMuted(false);
+      } catch (err) {
+        console.error("❌ Failed to unmute audio:", err);
         setAudioMuted(true);
+        setContextAudioMuted(true);
         return;
       }
     }
+
+    // Notify other participants of media state change
     const mid = meetingIdRef.current;
-    if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted: nextMuted, videoMuted });
+    if (socket && mid) {
+      socket.emit("updateMediaState", { meetingId: mid, audioMuted: nextMuted, videoMuted });
+    }
   };
 
   const handleToggleVideo = async () => {
@@ -1149,16 +1159,59 @@ const MeetingRoom = () => {
       }
     }
 
+    // Helper: restore camera after screen share ends
+    const restoreCameraAfterScreenShare = async (peers, currentStream) => {
+      const cameraTrack = cameraVideoTrackRef.current;
+      const mid = meetingIdRef.current;
+
+      // FIX: respect videoMuted state when restoring camera
+      if (cameraTrack) {
+        cameraTrack.enabled = !videoMuted;
+        console.log("📹 Restoring camera track, enabled:", !videoMuted, "(videoMuted:", videoMuted, ")");
+      }
+
+      for (const [peerSocketId, pc] of peers.entries()) {
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender) {
+          try {
+            // FIX: pass null if videoMuted so peers see camera as off
+            await sender.replaceTrack(videoMuted ? null : (cameraTrack || null));
+            // Renegotiate
+            if (pc.signalingState === "stable") {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              if (socket && mid) {
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+              }
+            }
+          } catch (err) {
+            console.error("❌ Error restoring camera for peer", peerSocketId, err);
+          }
+        }
+      }
+
+      const restored = cameraTrack && !videoMuted
+        ? new MediaStream([...currentStream.getAudioTracks(), cameraTrack])
+        : new MediaStream(currentStream.getAudioTracks());
+
+      localStreamRef.current = restored;
+      setLocalStream(restored);
+      if (localVideoRef.current) localVideoRef.current.srcObject = restored;
+      if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
+    };
+
     if (!screenSharing) {
+      // --- START SCREEN SHARE ---
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
             displaySurface: "monitor",
             width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            height: { ideal: 1080 },
           },
-          audio: true
+          audio: true,
         });
+
         const screenTrack = displayStream.getVideoTracks()?.[0];
         if (!screenTrack) return;
 
@@ -1169,47 +1222,34 @@ const MeetingRoom = () => {
         const mid = meetingIdRef.current;
 
         console.log("🖥️ Replacing video tracks with screen share for", peersRef.current.size, "peers");
+
         for (const [peerSocketId, pc] of peersRef.current.entries()) {
           const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
           if (sender) {
-            console.log("🔄 Replacing track for peer", peerSocketId);
             try {
               await sender.replaceTrack(screenTrack);
-              // Always trigger renegotiation after replacing track
-              try {
+              if (pc.signalingState === "stable") {
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
-                console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
                 socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                  if (ack && !ack.ok) {
-                    console.error("❌ Screen share renegotiation failed:", ack);
-                  } else {
-                    console.log("✅ Screen share renegotiation sent to", peerSocketId);
-                  }
+                  if (ack && !ack.ok) console.error("❌ Screen share renegotiation failed:", ack);
                 });
-              } catch (renegErr) {
-                console.error("❌ Renegotiation for screen share failed:", renegErr);
               }
-              console.log("✅ Screen share track replaced for", peerSocketId);
             } catch (err) {
               console.error("❌ Failed to replace track for", peerSocketId, ":", err);
             }
           } else {
-            console.log("➕ Adding screen share track to peer", peerSocketId);
-            pc.addTrack(screenTrack, streamForScreen);
             try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
-              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                if (ack && !ack.ok) {
-                  console.error("❌ Screen share renegotiation failed:", ack);
-                } else {
-                  console.log("✅ Screen share renegotiation sent to", peerSocketId);
-                }
-              });
+              pc.addTrack(screenTrack, streamForScreen);
+              if (pc.signalingState === "stable") {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
+                  if (ack && !ack.ok) console.error("❌ Screen share renegotiation failed:", ack);
+                });
+              }
             } catch (err) {
-              console.error("❌ Renegotiation for screen share failed:", err);
+              console.error("❌ Failed to add screen track for", peerSocketId, ":", err);
             }
           }
         }
@@ -1220,33 +1260,11 @@ const MeetingRoom = () => {
         if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
         if (localVideoRef2.current) localVideoRef2.current.srcObject = newStream;
 
+        // When user stops sharing from browser UI
         screenTrack.onended = async () => {
           try {
-            const cameraTrack = cameraVideoTrackRef.current;
-            const mid = meetingIdRef.current;
-            for (const [peerSocketId, pc] of peersRef.current.entries()) {
-              const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-              if (sender) {
-                await sender.replaceTrack(cameraTrack || null);
-                // Trigger renegotiation after replacing back to camera
-                try {
-                  const offer = await pc.createOffer();
-                  await pc.setLocalDescription(offer);
-                  if (socket && mid) {
-                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-                  }
-                } catch (err) {
-                  console.error("❌ Renegotiation after screen share ended failed:", err);
-                }
-              }
-            }
-            const restored = cameraTrack
-              ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
-              : new MediaStream(stream.getAudioTracks());
-            localStreamRef.current = restored;
-            setLocalStream(restored);
-            if (localVideoRef.current) localVideoRef.current.srcObject = restored;
-            if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
+            // FIX: use restoreCameraAfterScreenShare which respects videoMuted
+            await restoreCameraAfterScreenShare(peersRef.current, stream);
           } finally {
             setScreenSharing(false);
             screenTrackRef.current = null;
@@ -1258,37 +1276,18 @@ const MeetingRoom = () => {
         setScreenSharing(false);
       }
     } else {
+      // --- STOP SCREEN SHARE (from our button) ---
       const screenTrack = screenTrackRef.current;
       if (screenTrack) {
+        // Remove onended handler to avoid double-execution
+        screenTrack.onended = null;
         screenTrack.stop();
         screenTrackRef.current = null;
       }
-      const cameraTrack = cameraVideoTrackRef.current;
-      const mid = meetingIdRef.current;
-      for (const [peerSocketId, pc] of peersRef.current.entries()) {
-        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) {
-          sender.replaceTrack(cameraTrack || null).then(async () => {
-            // Trigger renegotiation after replacing back to camera
-            try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            } catch (err) {
-              console.error("❌ Renegotiation after stopping screen share failed:", err);
-            }
-          }).catch(() => { });
-        }
-      }
-      const restored = cameraTrack
-        ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
-        : new MediaStream(stream.getAudioTracks());
-      localStreamRef.current = restored;
-      setLocalStream(restored);
-      if (localVideoRef.current) localVideoRef.current.srcObject = restored;
-      if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
+
+      // FIX: use restoreCameraAfterScreenShare which respects videoMuted
+      await restoreCameraAfterScreenShare(peersRef.current, stream);
+
       setScreenSharing(false);
       smartToast.success("Screen share stopped.");
     }
@@ -1312,6 +1311,7 @@ const MeetingRoom = () => {
       <MeetingRoomSliderViewport
         sliderViewportRef={sliderViewportRef}
         activeSlide={activeSlide}
+        isAdmin={isMeetingAdmin}
         slide0={
           <MeetingRoomGrid
             unifiedTiles={unifiedTiles}
@@ -1335,11 +1335,20 @@ const MeetingRoom = () => {
             handRaised={handRaised}
           />
         }
-        slide2={<MeetingRoomScreenPlaceholder />}
+        slide2={
+          !isMeetingAdmin ? (
+            <MeetingRoomScreenPlaceholder
+              adminTile={adminTileForMembers}
+              remoteVideoRefsMap={remoteVideoRefsMap}
+              localParticipantAudioMuted={localParticipantAudioMuted}
+              localParticipantVolume={localParticipantVolume}
+            />
+          ) : null
+        }
         floatingEmojis={<MeetingRoomFloatingEmojis floatingEmojis={floatingEmojis} />}
       />
 
-      <MeetingRoomSliderDots activeSlide={activeSlide} setActiveSlide={setActiveSlide} />
+      <MeetingRoomSliderDots activeSlide={activeSlide} setActiveSlide={handleSetActiveSlide} isAdmin={isMeetingAdmin} />
 
       <MeetingRoomControlBar
         showCommentInput={showCommentInput}

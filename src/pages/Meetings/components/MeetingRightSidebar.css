@@ -226,27 +226,25 @@
 
 .participant-badge-admin {
     display: inline-block;
-    margin-left: 6px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #1976d2;
-    background: #e3f2fd;
-    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #888888;
+    background: transparent;
+    border-radius: 0;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 
 .participant-mute-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: auto;
+    height: auto;
     padding: 0;
     border: none;
-    border-radius: 50%;
     background: transparent;
-    color: #666;
+    color: #888888;
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -258,8 +256,16 @@
     color: #d32f2f;
 }
 .participant-mute-btn[title="Unmute"]:hover {
-    background: #ffebee;
+    background: transparent;
     color: #b71c1c;
+}
+
+.participant-mute-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #888888;
 }
 
 .participant-avatar {
@@ -282,14 +288,21 @@
     color: #000000;
 }
 
+.participant-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .participant-status {
     font-size: 12px;
     font-weight: 400;
-    color: #666666;
+    color: #888888;
 }
 
 .participant-status.online {
-    color: #4caf50;
+    color: #888888;
 }
 
 .participant-status.offline {
