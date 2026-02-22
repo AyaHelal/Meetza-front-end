@@ -55,6 +55,42 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   font-weight: 500;
 }
 
+/* Recording indicator */
+.meeting-room-recording-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(220, 53, 69, 0.12);
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c92a3a;
+}
+
+.meeting-room-recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc3545;
+  animation: meeting-room-recording-pulse 1.2s ease-in-out infinite;
+}
+
+.meeting-room-recording-text {
+  letter-spacing: 0.02em;
+}
+
+.meeting-room-recording-icon {
+  flex-shrink: 0;
+  color: #dc3545;
+}
+
+@keyframes meeting-room-recording-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
 .meeting-room-expand-btn {
   width: 40px;
   height: 40px;

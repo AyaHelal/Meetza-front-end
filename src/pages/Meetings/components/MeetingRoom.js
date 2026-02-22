@@ -29,6 +29,7 @@ import {
 import { useMeetingRoomReactions } from "./MeetingRoom/useMeetingRoomReactions";
 import { useMeetingRoomUnifiedTiles } from "./MeetingRoom/useMeetingRoomUnifiedTiles";
 import { useMeetingRoomParticipantHelpers } from "./MeetingRoom/useMeetingRoomParticipantHelpers";
+import { useMeetingRecording } from "./MeetingRoom/useMeetingRecording";
 import api from "../../../API/axiosInstance";
 import { smartToast } from "../../../API/toastManager";
 import { useSocket } from "../../../context/SocketContext";
@@ -36,11 +37,11 @@ import { AuthContext } from "../../../context/AuthContext";
 import { useMeetingContext } from "../../../context/MeetingContext";
 import { useMediaContext } from "../../../context/MediaContext";
 
-const MeetingRoom = () => {
+const MeetingRoom = ({ recordRegionRef }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const [, setLocalStream] = useState(null);
+  const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream, isScreenShare? }]
 
   const [handRaisedMap, setHandRaisedMap] = useState(() => {
@@ -100,6 +101,8 @@ const MeetingRoom = () => {
   const localVideoRef = useRef(null);
   const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
   const sliderViewportRef = useRef(null);
+  const recordingStartedRef = useRef(false);
+  const recordingPayloadRef = useRef(null);
   const remoteVideoRefsMap = useRef(new Map()); // socketId -> video element (for local audio control sync)
   // Note: localStreamRef, cameraVideoTrackRef, and screenTrackRef come from MediaContext
   const makingOffer = useRef(false); // Track if we're currently making an offer
@@ -658,6 +661,14 @@ const MeetingRoom = () => {
     screenSharing,
     mediaStateMap,
     localStreamRef,
+    localStream,
+  });
+
+  const { isRecording, startRecording, stopRecording } = useMeetingRecording({
+    localStreamRef,
+    remoteStreams,
+    recordingPayloadRef,
+    recordRegionRef,
   });
 
   // Fetch meeting info to check if user is admin
@@ -682,7 +693,17 @@ const MeetingRoom = () => {
         } else if (root?.id) {
           meeting = root;
         }
-        setMeetingInfo(meeting ? { administrator_id: meeting.administrator_id } : null);
+        setMeetingInfo(
+          meeting
+            ? {
+                administrator_id: meeting.administrator_id,
+                recording: meeting.recording,
+                title: meeting.title,
+                description: meeting.description,
+                group_id: meeting.group_id,
+              }
+            : null
+        );
       } catch (err) {
         console.warn("Could not fetch meeting info:", err);
         setMeetingInfo(null);
@@ -690,6 +711,59 @@ const MeetingRoom = () => {
     };
     fetchMeetingInfo();
   }, [meetingId]);
+
+  useEffect(() => {
+    recordingPayloadRef.current =
+      meetingId && meetingInfo
+        ? {
+            meetingId,
+            title: meetingInfo.title,
+            group_id: meetingInfo.group_id,
+            description: meetingInfo.description,
+          }
+        : null;
+  }, [meetingId, meetingInfo]);
+
+  // Reset recording flag when meeting changes so a new join can start recording again
+  useEffect(() => {
+    recordingStartedRef.current = false;
+  }, [meetingId]);
+
+  // Auto-start recording when: admin + meeting.recording + localStream ready (video element optional — canvas can draw black)
+  const recordingEnabled =
+    meetingInfo &&
+    meetingInfo.recording != null &&
+    meetingInfo.recording !== 0 &&
+    meetingInfo.recording !== "0";
+  useEffect(() => {
+    if (
+      !hasJoined ||
+      !isMeetingAdmin ||
+      !recordingEnabled ||
+      recordingStartedRef.current ||
+      isRecording
+    ) {
+      return;
+    }
+    const id = setInterval(() => {
+      if (recordingStartedRef.current) return;
+      const hasLocalStream = !!localStreamRef.current;
+      if (hasLocalStream) {
+        recordingStartedRef.current = true;
+        clearInterval(id);
+        startRecording();
+      }
+    }, 400);
+    return () => clearInterval(id);
+  }, [hasJoined, isMeetingAdmin, recordingEnabled, isRecording, startRecording]);
+
+  // On unmount (e.g. tab close, navigate away): stop recording and upload if active
+  useEffect(() => {
+    return () => {
+      const payload = recordingPayloadRef.current;
+      if (payload) stopRecording(payload);
+    };
+  }, [stopRecording]);
 
   // For admins: separate tiles into members and admin
   const { memberTiles, adminTile } = useMemo(() => {
@@ -759,6 +833,16 @@ const MeetingRoom = () => {
         return;
       }
 
+      if (isRecording) {
+        await stopRecording({
+          meetingId,
+          title: meetingInfo?.title,
+          group_id: meetingInfo?.group_id,
+          description: meetingInfo?.description,
+        });
+        recordingStartedRef.current = false;
+      }
+
       // Stop WebRTC + leave socket room first (without disconnecting the app socket)
       stopMeetingRtc();
 
@@ -784,6 +868,16 @@ const MeetingRoom = () => {
     try {
       console.log("⏰ Meeting has ended, auto-exiting...");
       if (!meetingId) return;
+
+      if (isRecording) {
+        await stopRecording({
+          meetingId,
+          title: meetingInfo?.title,
+          group_id: meetingInfo?.group_id,
+          description: meetingInfo?.description,
+        });
+        recordingStartedRef.current = false;
+      }
 
       // Stop WebRTC first
       stopMeetingRtc();
@@ -1299,6 +1393,7 @@ const MeetingRoom = () => {
         meetingTitle={meetingTitle}
         onLeaveMeeting={handleLeaveMeeting}
         meetingId={meetingId}
+        isRecording={isRecording}
       />
 
       <MeetingRoomFullscreenVideos

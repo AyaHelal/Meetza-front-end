@@ -12,6 +12,7 @@ export function useMeetingRoomUnifiedTiles({
   screenSharing,
   mediaStateMap,
   localStreamRef,
+  localStream,
 }) {
   return useMemo(() => {
     const list = Array.isArray(participants) ? participants : [];
@@ -21,7 +22,7 @@ export function useMeetingRoomUnifiedTiles({
       let stream = null;
       let isScreenShare = false;
       if (isSelf) {
-        stream = localStreamRef?.current ?? null;
+        stream = localStream ?? localStreamRef?.current ?? null;
         isScreenShare = screenSharing;
       } else {
         const entry = remoteStreams.find((x) => x.socketId === sid);
@@ -36,14 +37,16 @@ export function useMeetingRoomUnifiedTiles({
           ? (!videoMuted || isScreenShare)
           : (!remoteVideoMuted || isScreenShare)
       );
+      // For self: always pass stream when present so recording canvas has at least one video to draw
+      const streamForTile = isSelf ? stream : (showVideo ? stream : null);
       return {
         ...p,
         isSelf,
-        stream: showVideo ? stream : null,
+        stream: streamForTile,
         isScreenShare,
         label: p?.member_name || p?.member_email || "Participant",
         member_photo: p?.member_photo || p?.memberPhoto || p?.user_photo || p?.photo || null,
       };
     });
-  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap, localStreamRef]);
+  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap, localStreamRef, localStream]);
 }
