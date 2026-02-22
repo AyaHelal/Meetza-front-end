@@ -594,6 +594,17 @@
   display: block;
 }
 
+/* Add margin only when not editing (Create Meeting button) */
+/* When cancel button is not present, it means we're creating, so add margin */
+.form-actions-row:not(:has(.cancel-edit-btn)) .create-meeting-btn {
+  margin-bottom: 20px;
+}
+
+/* Alternative: if :has() is not supported, add margin to button when it's the only child */
+.form-actions-row .create-meeting-btn:only-child {
+  margin-bottom: 20px;
+}
+
 .create-meeting-btn:hover {
   background: #005fb8;
 }
@@ -607,13 +618,14 @@
 
 .form-actions-row .create-meeting-btn,
 .form-actions-row .cancel-edit-btn {
-  width: 100%;
-  margin-left: 0;
-  margin-right: 0;
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .cancel-edit-btn {
   background: #f5f5f5;
+  margin-bottom: 20px;
   color: #555;
   border: 1px solid #e0e0e0;
   border-radius: 12px;

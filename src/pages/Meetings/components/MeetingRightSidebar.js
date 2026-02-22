@@ -7,6 +7,7 @@ import { smartToast } from '../../../API/toastManager';
 import { AuthContext } from '../../../context/AuthContext';
 import { useMeetingContext } from '../../../context/MeetingContext';
 import { useSocket } from '../../../context/SocketContext';
+import { useMediaContext } from '../../../context/MediaContext';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -63,6 +64,7 @@ const MeetingRightSidebar = () => {
     }, [authUser]);
     const { socket } = useSocket();
     const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId, localParticipantAudioMuted, setLocalParticipantAudioMuted } = useMeetingContext();
+    const { getPeerConnections } = useMediaContext();
 
     const meetingId = useMemo(() => {
         // Prefer context (set by MeetingRoom, persists across navigation), then location,
@@ -206,6 +208,38 @@ const MeetingRightSidebar = () => {
         });
     }, [participants, meetingInfo?.administrator_id]);
 
+    // Handler to mute/unmute a participant - disables their remote audio track
+    const handleAdminMuteParticipant = useCallback((participantSocketId, shouldMute) => {
+        if (!participantSocketId) return;
+        
+        // Update local state for UI feedback
+        setLocalParticipantAudioMuted((prev) => ({ ...prev, [participantSocketId]: shouldMute }));
+        
+        // Disable remote audio track in peer connection
+        const peerConnections = getPeerConnections();
+        if (peerConnections) {
+            const pc = peerConnections.get(participantSocketId);
+            if (pc) {
+                const receivers = pc.getReceivers();
+                receivers.forEach((receiver) => {
+                    if (receiver.track && receiver.track.kind === 'audio') {
+                        receiver.track.enabled = !shouldMute;
+                        console.log(`${shouldMute ? '🔇' : '🔊'} Admin ${shouldMute ? 'muted' : 'unmuted'} remote audio track for ${participantSocketId}`);
+                    }
+                });
+            }
+        }
+        
+        // Emit socket event to backend to tell participant to mute themselves
+        if (socket && meetingId) {
+            socket.emit("adminMuteParticipant", {
+                meetingId,
+                targetSocketId: participantSocketId,
+                muted: shouldMute
+            });
+        }
+    }, [socket, meetingId, setLocalParticipantAudioMuted, getPeerConnections]);
+
     // Fetch meeting details to get description + group_id for admin add-resource
     useEffect(() => {
         fetchMeetingDetails(meetingId);
@@ -314,45 +348,45 @@ const MeetingRightSidebar = () => {
                             : "No description provided for this meeting."}
                     </p>
                     <div className="video-description-items">
-                    {loadingResources ? (
-                        <div className="description-item">
-                            <span>Loading resources...</span>
-                        </div>
-                    ) : resources.length === 0 ? (
-                        <div className="description-item">
-                            <span>No resources attached to this meeting.</span>
-                        </div>
-                    ) : (
-                        resources.map((resItem) => (
-                            <div
-                                key={resItem.id}
-                                className="description-item description-item--with-actions"
-                                title={resItem.file_name || resItem.name}
-                            >
-                                <Paperclip size={20} weight="regular" className="item-icon" />
-                                <a
-                                    href={resItem.file_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="description-item-link"
-                                >
-                                    {resItem.file_name || 'Resource file'}
-                                </a>
-                                {showAddResourceBtn && groupContentId && (
-                                    <button
-                                        type="button"
-                                        className="resource-delete-btn"
-                                        onClick={() => handleDeleteResource(resItem.id)}
-                                        disabled={deletingResourceId === resItem.id}
-                                        title="Delete resource"
-                                        aria-label="Delete resource"
-                                    >
-                                        <Trash size={14} weight="regular" />
-                                    </button>
-                                )}
+                        {loadingResources ? (
+                            <div className="description-item">
+                                <span>Loading resources...</span>
                             </div>
-                        ))
-                    )}
+                        ) : resources.length === 0 ? (
+                            <div className="description-item">
+                                <span>No resources attached to this meeting.</span>
+                            </div>
+                        ) : (
+                            resources.map((resItem) => (
+                                <div
+                                    key={resItem.id}
+                                    className="description-item description-item--with-actions"
+                                    title={resItem.file_name || resItem.name}
+                                >
+                                    <Paperclip size={20} weight="regular" className="item-icon" />
+                                    <a
+                                        href={resItem.file_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="description-item-link"
+                                    >
+                                        {resItem.file_name || 'Resource file'}
+                                    </a>
+                                    {showAddResourceBtn && groupContentId && (
+                                        <button
+                                            type="button"
+                                            className="resource-delete-btn"
+                                            onClick={() => handleDeleteResource(resItem.id)}
+                                            disabled={deletingResourceId === resItem.id}
+                                            title="Delete resource"
+                                            aria-label="Delete resource"
+                                        >
+                                            <Trash size={14} weight="regular" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
@@ -380,47 +414,57 @@ const MeetingRightSidebar = () => {
                         const isMuted = socketId ? !!localParticipantAudioMuted[socketId] : false;
                         const showMuteBtn = isMeetingAdmin && !isAdmin && socketId;
                         return (
-                        <div
-                            key={participant?.socketId || participant?.member_id || participant?.id || index}
-                            className={`participant-item ${isAdmin ? 'participant-item--admin-pinned' : ''}`}
-                        >
-                            <div className="participant-avatar">
-                                {(participant?.member_photo || participant?.memberPhoto || participant?.user_photo) ? (
-                                    <img
-                                        src={participant.member_photo || participant.memberPhoto || participant.user_photo}
-                                        alt={getParticipantDisplayName(participant, index)}
-                                        style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-                                    />
-                                ) : (
-                                    <UserCircle size={40} weight="fill" />
-                                )}
-                            </div>
-                            <div className="participant-info">
-                                <span className="participant-name fw-semibold">
-                                    {getParticipantDisplayName(participant, index)}
-                                    {isAdmin && <span className="participant-badge-admin">Admin</span>}
-                                </span>
-                                <span className={`participant-status ${getParticipantStatusLabel(participant).toLowerCase()}`}>
-                                    {getParticipantStatusLabel(participant)}
-                                </span>
-                            </div>
-                            {showMuteBtn && (
-                                <button
-                                    type="button"
-                                    className="participant-mute-btn"
-                                    onClick={() => setLocalParticipantAudioMuted((prev) => ({ ...prev, [socketId]: !prev[socketId] }))}
-                                    title={isMuted ? 'Unmute' : 'Mute'}
-                                    aria-label={isMuted ? 'Unmute' : 'Mute'}
-                                >
-                                    {isMuted ? (
-                                        <MicrophoneSlash size={20} weight="regular" />
+                            <div
+                                key={participant?.socketId || participant?.member_id || participant?.id || index}
+                                className={`participant-item ${isAdmin ? 'participant-item--admin-pinned' : ''}`}
+                            >
+                                <div className="participant-avatar">
+                                    {(participant?.member_photo || participant?.memberPhoto || participant?.user_photo) ? (
+                                        <img
+                                            src={participant.member_photo || participant.memberPhoto || participant.user_photo}
+                                            alt={getParticipantDisplayName(participant, index)}
+                                            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+                                        />
                                     ) : (
-                                        <Microphone size={20} weight="regular" />
+                                        <UserCircle size={40} weight="fill" />
                                     )}
-                                </button>
-                            )}
-                        </div>
-                    );})}
+                                </div>
+                                <div className="participant-info">
+                                    <span className="participant-name fw-semibold">
+                                        {getParticipantDisplayName(participant, index)}
+                                    </span>
+                                    <div className="participant-status-row">
+                                        <span className={`participant-status ${getParticipantStatusLabel(participant).toLowerCase()}`}>
+                                            {getParticipantStatusLabel(participant)}
+                                        </span>
+                                        {isAdmin ? (
+                                            <span className="participant-badge-admin">Admin</span>
+                                        ) : (
+                                            showMuteBtn ? (
+                                                <button
+                                                    type="button"
+                                                    className="participant-mute-btn"
+                                                    onClick={() => handleAdminMuteParticipant(socketId, !isMuted)}
+                                                    title={isMuted ? 'Unmute' : 'Mute'}
+                                                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                                                >
+                                                    {isMuted ? (
+                                                        <MicrophoneSlash size={20} weight="regular" />
+                                                    ) : (
+                                                        <Microphone size={20} weight="regular" />
+                                                    )}
+                                                </button>
+                                            ) : (
+                                                <div className="participant-mute-indicator">
+                                                    <Microphone size={20} weight="regular" />
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

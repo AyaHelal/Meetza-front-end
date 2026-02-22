@@ -79,10 +79,10 @@ export const MeetingProvider = ({ children }) => {
         }
         // Same text, same sender, within 2 seconds (for optimistic updates)
         if (msg.text === message.text &&
-            msg.senderName === message.senderName &&
-            msg.senderId && message.senderId &&
-            String(msg.senderId) === String(message.senderId) &&
-            Math.abs((msg.timestamp || 0) - (message.timestamp || 0)) < 2000) {
+          msg.senderName === message.senderName &&
+          msg.senderId && message.senderId &&
+          String(msg.senderId) === String(message.senderId) &&
+          Math.abs((msg.timestamp || 0) - (message.timestamp || 0)) < 2000) {
           console.log("⚠️ Duplicate message detected by content:", {
             text: message.text,
             sender: message.senderName,
