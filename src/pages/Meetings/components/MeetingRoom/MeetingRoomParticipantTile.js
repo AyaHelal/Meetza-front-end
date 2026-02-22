@@ -1,5 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { HandWaving, ArrowsOut } from "@phosphor-icons/react";
+
+function SelfVideo({ localVideoRef, stream }) {
+  useEffect(() => {
+    const el = localVideoRef?.current;
+    if (!el || !stream) return;
+    el.srcObject = stream;
+    el.play().catch(() => {});
+  }, [stream, localVideoRef]);
+
+  return (
+    <video
+      ref={localVideoRef}
+      className="recordable-video"
+      autoPlay
+      playsInline
+      muted
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    />
+  );
+}
 
 const MeetingRoomParticipantTile = ({
   tile,
@@ -42,16 +62,14 @@ const MeetingRoomParticipantTile = ({
 
           if (hasValidStream) {
             return tile.isSelf ? (
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              <SelfVideo
+                localVideoRef={localVideoRef}
+                stream={tile.stream}
               />
             ) : (
               <video
                 key={`video-${tile.socketId}-${tile.stream?.id || "no-stream"}`}
+                className="recordable-video"
                 autoPlay
                 playsInline
                 muted={!!localParticipantAudioMuted[tile.socketId]}
