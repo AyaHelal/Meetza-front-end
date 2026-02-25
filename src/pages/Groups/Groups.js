@@ -4,8 +4,10 @@ import { smartToast } from '../../API/toastManager';
 import './Groups.css';
 import api from '../../API/axiosInstance';
 import Select from 'react-select';
+import { useAuth } from '../../context/AuthContext';
 
 const Groups = () => {
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedYears, setSelectedYears] = useState([]);
     const [selectedSemesters, setSelectedSemesters] = useState([]);
@@ -45,10 +47,7 @@ const Groups = () => {
 
     const handleCreateGroup = async (groupData) => {
     try {
-        const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                            JSON.parse(sessionStorage.getItem("user"));
-
-        if (!storedUser?.id) {
+        if (!user?.id) {
             smartToast.error("You must be logged in to create a group");
             return;
         }
@@ -62,7 +61,7 @@ const Groups = () => {
         if (groupData.content_description) formData.append('group_content_description', groupData.content_description);
         if (groupData.description) formData.append('description', groupData.description);
         if (groupData.photo) formData.append('group_photo', groupData.photo);
-        formData.append('admin_id', storedUser.id);
+        formData.append('admin_id', user.id);
 
         const response = await api.post('/group', formData, {
             headers: {
@@ -110,10 +109,8 @@ const Groups = () => {
             if (error.response?.status !== 403) {
                 console.error('Error fetching positions:', error);
             }
-            // Only show error for administrators, not for members
-            const storedUser = JSON.parse(localStorage.getItem("user")) ||
-                                JSON.parse(sessionStorage.getItem("user"));
-            const rawRole = (storedUser?.role || 'Member')
+            // Only show error for administrators, not for members (role from token via useAuth)
+            const rawRole = (user?.role || 'Member')
                 .toString()
                 .toLowerCase();
             const isAdminRole = rawRole.includes('administrator');
@@ -205,13 +202,9 @@ const Groups = () => {
                     index === self.findIndex(g => (g.group_id || g.id) === (group.group_id || group.id))
             );
 
-            const storedUser =
-                localStorage.getItem("user") ||
-                sessionStorage.getItem("user");
-            const userInfo = storedUser ? JSON.parse(storedUser) : null;
-            const currentUserId = userInfo?.id;
+            const currentUserId = user?.id;
 
-            const rawRole = (userInfo?.role || 'Member')
+            const rawRole = (user?.role || 'Member')
                 .toString()
                 .toLowerCase();
             const isSuperAdminRole = rawRole.includes('super_admin') || rawRole.includes('super-admin');
@@ -263,22 +256,18 @@ const Groups = () => {
     // Fetch groups and membership
     useEffect(() => {
         fetchGroupsAndMembership();
-    }, [selectedYears, selectedSemesters]);
+    }, [selectedYears, selectedSemesters, user?.id]);
 
     const handleJoinGroup = async (groupId) => {
         try {
-            const storedUser =
-                JSON.parse(localStorage.getItem("user")) ||
-                JSON.parse(sessionStorage.getItem("user"));
-
-            if (!storedUser?.id) {
+            if (!user?.id) {
                 smartToast.error("You must be logged in to join a group");
                 return;
             }
 
             await api.post("/group-membership/", {
                 group_id: groupId,
-                member_id: storedUser.id
+                member_id: user.id
             });
 
             setJoinedGroups(prev => [...prev, groupId]);

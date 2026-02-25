@@ -70,32 +70,46 @@ export const MeetingProvider = ({ children }) => {
 
   const addChatMessage = useCallback((message) => {
     setChatMessagesState((prev) => {
-      // Check if message already exists
-      const exists = prev.some(msg => {
-        // Exact ID match
-        if (msg.id === message.id) {
-          console.log("⚠️ Duplicate message detected by ID:", message.id);
-          return true;
+      const msgTs = message.timestamp || 0;
+      const isFromServer = !message.id || !String(message.id).startsWith("opt-");
+
+      // When server echo arrives: replace our optimistic message so the comment appears only once with backend name
+      // Match by text + time only (ignore senderId so it works even if user tampered sessionStorage)
+      if (isFromServer) {
+        const optIndex = prev.findIndex(
+          (m) =>
+            String(m.id || "").startsWith("opt-") &&
+            m.text === message.text &&
+            Math.abs((m.timestamp || 0) - msgTs) < 4000
+        );
+        if (optIndex !== -1) {
+          const newMessages = [...prev];
+          newMessages[optIndex] = message;
+          const currentMeetingId = meetingId;
+          if (currentMeetingId) {
+            try {
+              localStorage.setItem(`meeting_chat_${currentMeetingId}`, JSON.stringify(newMessages));
+            } catch (e) {
+              console.warn("Failed to save chat messages to localStorage:", e);
+            }
+          }
+          return newMessages;
         }
-        // Same text, same sender, within 2 seconds (for optimistic updates)
-        if (msg.text === message.text &&
-          msg.senderName === message.senderName &&
-          msg.senderId && message.senderId &&
-          String(msg.senderId) === String(message.senderId) &&
-          Math.abs((msg.timestamp || 0) - (message.timestamp || 0)) < 2000) {
-          console.log("⚠️ Duplicate message detected by content:", {
-            text: message.text,
-            sender: message.senderName,
-            timeDiff: Math.abs((msg.timestamp || 0) - (message.timestamp || 0))
-          });
-          return true;
-        }
-        return false;
-      });
-      if (exists) {
-        console.log("⚠️ Message already exists, skipping");
-        return prev;
       }
+
+      // Exact ID match
+      if (prev.some((msg) => msg.id === message.id)) return prev;
+      // Same text, same sender, within 2 seconds (dedupe)
+      const duplicate = prev.some(
+        (msg) =>
+          msg.text === message.text &&
+          msg.senderId &&
+          message.senderId &&
+          String(msg.senderId) === String(message.senderId) &&
+          Math.abs((msg.timestamp || 0) - msgTs) < 2000
+      );
+      if (duplicate) return prev;
+
       const newMessages = [...prev, message];
 
       // Persist to localStorage

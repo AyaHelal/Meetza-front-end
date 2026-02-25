@@ -1,4 +1,5 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
+import { extractUserFromToken } from "../utils/token";
 
 export const AuthContext = createContext();
 
@@ -8,44 +9,47 @@ export const AuthProvider = ({ children }) => {
     const [initializing, setInitializing] = useState(true);
     const [isRemembered, setIsRemembered] = useState(false);
 
+    // On app startup: read token from storage and set user from token (reactive source)
     useEffect(() => {
         try {
-            let storedUser = localStorage.getItem("user");
             let storedToken = localStorage.getItem("token");
             const rememberFlag = localStorage.getItem("remember");
             const loginTime = localStorage.getItem("loginTime");
 
-            if (!storedUser || !storedToken) {
-                storedUser = sessionStorage.getItem("user");
-                storedToken = sessionStorage.getItem("token");
-            }
+            if (!storedToken) storedToken = sessionStorage.getItem("token");
 
-            if (storedUser && storedToken) {
-                // Check if token has expired (24 hours for remember me)
+            if (storedToken) {
                 const rememberedInLocal = rememberFlag === "true";
                 if (rememberedInLocal && loginTime) {
                     const currentTime = new Date().getTime();
-                    const storedTime = parseInt(loginTime);
-                    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
+                    const storedTime = parseInt(loginTime, 10);
+                    const twentyFourHours = 24 * 60 * 60 * 1000;
                     if (currentTime - storedTime > twentyFourHours) {
-                        // Token expired, clear stored data
                         localStorage.removeItem("user");
                         localStorage.removeItem("token");
                         localStorage.removeItem("remember");
                         localStorage.removeItem("loginTime");
+                        sessionStorage.removeItem("user");
+                        sessionStorage.removeItem("token");
                         setInitializing(false);
                         return;
                     }
                 }
 
-                const parsedUser = JSON.parse(storedUser);
-                setUser(parsedUser);
-                setToken(storedToken);
+                const userFromToken = extractUserFromToken();
+                if (userFromToken && (userFromToken.id || userFromToken.email)) {
+                    let storedUser = null;
+                    try {
+                        const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
+                        if (raw) storedUser = JSON.parse(raw);
+                    } catch (_) {}
+                    setUser({ ...storedUser, ...userFromToken });
+                    setToken(storedToken);
+                }
                 setIsRemembered(rememberedInLocal);
             }
         } catch (error) {
-            console.error("❌ Error parsing stored user:", error);
+            console.error("❌ Error initializing auth:", error);
             localStorage.removeItem("user");
             localStorage.removeItem("token");
             sessionStorage.removeItem("user");
@@ -56,59 +60,86 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const loginUser = (userData, userToken, rememberMe = false) => {
-        setUser(userData);
-        setToken(userToken);
-
         try {
             if (rememberMe) {
-                // Only store user if it exists
-                if (userData) {
-                    localStorage.setItem("user", JSON.stringify(userData));
-                } else {
-                    localStorage.removeItem("user");
-                }
+                if (userData) localStorage.setItem("user", JSON.stringify(userData));
+                else localStorage.removeItem("user");
                 localStorage.setItem("token", userToken);
                 localStorage.setItem("remember", "true");
-
                 sessionStorage.removeItem("user");
                 sessionStorage.removeItem("token");
                 setIsRemembered(true);
             } else {
-                // Only store user if it exists
-                if (userData) {
-                    sessionStorage.setItem("user", JSON.stringify(userData));
-                } else {
-                    sessionStorage.removeItem("user");
-                }
+                if (userData) sessionStorage.setItem("user", JSON.stringify(userData));
+                else sessionStorage.removeItem("user");
                 sessionStorage.setItem("token", userToken);
-
                 localStorage.removeItem("user");
                 localStorage.removeItem("token");
                 localStorage.setItem("remember", "false");
                 setIsRemembered(false);
             }
-            console.log("✅ loginUser: Token and user data stored successfully");
+            setToken(userToken);
+            // Merge API user (name, user_photo) with token (id, email, role) so UI shows full profile
+            const userFromToken = extractUserFromToken();
+            if (userFromToken && (userFromToken.id || userFromToken.email)) {
+                setUser({ ...userData, ...userFromToken });
+            } else {
+                setUser(userData || null);
+            }
         } catch (error) {
             console.error("❌ Failed to save user/token:", error);
+        }
+    };
+
+    /** Clear all auth + app cache from localStorage & sessionStorage (e.g. old/corrupt data) */
+    const clearAuthStorage = () => {
+        try {
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            localStorage.removeItem("remember");
+            localStorage.removeItem("loginTime");
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            const keysToRemove = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && (key.startsWith("meeting_") || key.startsWith("meetza_"))) keysToRemove.push(key);
+            }
+            keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+        } catch (e) {
+            console.warn("clearAuthStorage:", e);
         }
     };
 
     const logoutUser = () => {
         setUser(null);
         setToken(null);
-
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        localStorage.removeItem("remember");
-        localStorage.removeItem("loginTime");
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("token");
+        clearAuthStorage();
         setIsRemembered(false);
     };
 
+    const value = {
+        user,
+        setUser,
+        token,
+        initializing,
+        isRemembered,
+        loginUser,
+        logoutUser,
+        clearAuthStorage,
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, initializing, isRemembered, loginUser, logoutUser }}>
-        {children}
+        <AuthContext.Provider value={value}>
+            {children}
         </AuthContext.Provider>
     );
 };
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return context;
+}

@@ -1102,28 +1102,24 @@ const MeetingRoom = ({ recordRegionRef }) => {
       return;
     }
 
-    const senderName = user?.name || user?.member_name || user?.email || "You";
-    const senderId = user?.id || user?.member_id || null;
-
+    // Send only comment text; backend gets user identity from JWT and broadcasts with real name
     const payload = {
       meetingId: String(currentMeetingId),
       text: trimmedText,
-      senderName: senderName,
-      senderId: senderId,
     };
 
     console.log("Sending meetingChatMessage:", payload);
     console.log("Socket connected:", socket.connected);
     console.log("Socket id:", socket.id);
 
-    // Add message optimistically (show immediately)
-    const senderPhoto = user?.user_photo || user?.photo || null;
+    const senderId = user?.id || user?.member_id || null;
+    // Optimistic message: show "You" only; server echo will replace with backend userName
     const optimisticMessage = {
       id: `opt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: trimmedText,
-      senderName: senderName,
+      senderName: "You",
       senderId: senderId,
-      senderPhoto: senderPhoto,
+      senderPhoto: null,
       timestamp: Date.now(),
       isOwn: true,
     };
