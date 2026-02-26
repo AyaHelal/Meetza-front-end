@@ -49,6 +49,12 @@ export const isScreenShareStream = (stream) => {
   return stream.getVideoTracks().some((t) => isScreenShareVideoTrack(t));
 };
 
+export const getScreenShareTrack = (stream) => {
+  if (!stream) return null;
+  const t = stream.getVideoTracks().find(isScreenShareVideoTrack);
+  return t && t.readyState === "live" ? t : null;
+};
+
 /** Toggle fullscreen for a DOM element (with vendor prefixes). */
 export const toggleFullscreenForElement = (el) => {
   if (!el) return;

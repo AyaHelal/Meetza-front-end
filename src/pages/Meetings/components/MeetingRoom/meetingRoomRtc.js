@@ -1,4 +1,4 @@
-import { isScreenShareVideoTrack, getCameraTrack } from "./meetingRoomUtils";
+import { isScreenShareVideoTrack, getCameraTrack, isScreenShareStream } from "./meetingRoomUtils";
 
 /** Add local tracks to all existing peer connections and renegotiate if needed. */
 export function addTracksToAllPeersImpl(opts) {
@@ -235,6 +235,7 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
     }
   }
 
+  // اسمح بإضافة كاميرا حتى لو الـ stream فيه شير (مربع الصورة/الكاميرا يفتح الكاميرا أثناء الشير)
   if (needVideo && !hasCamera) {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -343,11 +344,11 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
         audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
       });
 
-      const vt = stream.getVideoTracks()[0];
-      const isScreenShare = vt && isScreenShareVideoTrack(vt);
+      const liveVt = stream.getVideoTracks().find((t) => t.readyState === "live");
+      const isScreenShare = liveVt && isScreenShareVideoTrack(liveVt);
       upsertRemoteStream(peerSocketId, stream, isScreenShare);
 
-      if (vt && !isScreenShare && vt.enabled && vt.readyState === "live") {
+      if (liveVt && !isScreenShare && liveVt.enabled && liveVt.readyState === "live") {
         setMediaStateMap((prev) => ({
           ...prev,
           [peerSocketId]: { ...prev[peerSocketId], videoMuted: false },
@@ -367,6 +368,19 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
           console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
           if (stream.getTracks().every((t) => t.readyState === "ended")) {
             setRemoteStreams((prev) => prev.filter((s) => s.socketId !== peerSocketId));
+          } else if (track.kind === "video") {
+            const liveTracks = stream.getTracks().filter((t) => t.readyState === "live");
+            if (liveTracks.length > 0) {
+              setRemoteStreams((prev) =>
+                prev.map((s) => {
+                  if (s.socketId !== peerSocketId) return s;
+                  const newStream = new MediaStream(liveTracks);
+                  const liveVt = newStream.getVideoTracks().find((t) => t.readyState === "live");
+                  const isScreenShare = liveVt ? isScreenShareVideoTrack(liveVt) : false;
+                  return { socketId: s.socketId, stream: newStream, isScreenShare };
+                })
+              );
+            }
           }
         };
         track.onmute = () => {

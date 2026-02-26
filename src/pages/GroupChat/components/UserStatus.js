@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { VideoCamera, GearSix, Microphone, MicrophoneSlash, VideoCameraSlash } from '@phosphor-icons/react';
+import { VideoCamera, GearSix, Microphone, MicrophoneSlash, VideoCameraSlash, SpeakerHigh, SpeakerSlash } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserPhoto from '../../../components/UserPhoto/UserPhoto';
 import { AuthContext } from '../../../context/AuthContext';
@@ -13,7 +13,7 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
     const userName = user?.name || authUser?.name;
     
     // Get media controls from MediaContext
-    const { audioMuted, videoMuted, toggleAudio, toggleVideo } = useMediaContext();
+    const { audioMuted, videoMuted, meetingSpeakerMuted, setMeetingSpeakerMuted, toggleAudio, toggleVideo } = useMediaContext();
 
     const showReturnToMeeting = activeMeetingId && location.pathname !== '/meetings';
 
@@ -57,6 +57,17 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                         >
                             {videoMuted ? <VideoCameraSlash size={20} /> : <VideoCamera size={20} weight="fill" />}
                         </button>
+                        {showReturnToMeeting && (
+                            <button
+                                type="button"
+                                className={`status-icon status-speaker ${!meetingSpeakerMuted ? 'active' : ''}`}
+                                onClick={() => setMeetingSpeakerMuted((m) => !m)}
+                                title={meetingSpeakerMuted ? "Playing the meeting audio" : "mute the meeting sound"}
+                                aria-label={meetingSpeakerMuted ? "Unmute meeting sound" : "Mute meeting sound"}
+                            >
+                                {meetingSpeakerMuted ? <SpeakerSlash size={20} /> : <SpeakerHigh size={20} weight="fill" />}
+                            </button>
+                        )}
                         {/* Show "Return to meeting" button if in a meeting but not on meeting page */}
                         {showReturnToMeeting && (
                             <button

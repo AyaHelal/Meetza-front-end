@@ -1971,7 +1971,7 @@ body.group-chat-active {
 .status-icon.status-mic:hover svg,
 .status-icon.status-camera:hover svg {
   color: #000000 !important;
-  stroke-width: ;
+  stroke-width: 1.5;
 }
 
 /* When mic/camera is enabled (active), show green color with thicker stroke */
@@ -1986,6 +1986,17 @@ body.group-chat-active {
 .status-icon.status-camera.active:hover svg {
   color: #00dc85 !important;
   stroke-width: 4;
+}
+
+.status-icon.status-speaker {
+  color: #00dc85 !important;
+  cursor: default;
+  flex-shrink: 0;
+}
+.status-icon.status-speaker svg {
+  color: #00dc85 !important;
+  stroke: currentColor;
+  fill: currentColor;
 }
 
 /* Return to Meeting button - keep green background, white text */

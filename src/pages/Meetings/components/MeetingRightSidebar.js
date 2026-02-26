@@ -63,8 +63,8 @@ const MeetingRightSidebar = () => {
         }
     }, [authUser]);
     const { socket } = useSocket();
-    const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId, localParticipantAudioMuted, setLocalParticipantAudioMuted } = useMeetingContext();
-    const { getPeerConnections } = useMediaContext();
+    const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap } = useMeetingContext();
+    const { getPeerConnections, audioMuted: myAudioMuted } = useMediaContext();
 
     const meetingId = useMemo(() => {
         // Prefer context (set by MeetingRoom, persists across navigation), then location,
@@ -411,7 +411,8 @@ const MeetingRightSidebar = () => {
                     ) : sortedParticipants.map((participant, index) => {
                         const isAdmin = isParticipantMeetingAdmin(participant);
                         const socketId = participant?.socketId;
-                        const isMuted = socketId ? !!localParticipantAudioMuted[socketId] : false;
+                        const isSelf = socketId === socket?.id;
+                        const participantMicMuted = isSelf ? myAudioMuted : (socketId ? !!(mediaStateMap[socketId]?.audioMuted) : true);
                         const showMuteBtn = isMeetingAdmin && !isAdmin && socketId;
                         return (
                             <div
@@ -444,19 +445,23 @@ const MeetingRightSidebar = () => {
                                                 <button
                                                     type="button"
                                                     className="participant-mute-btn"
-                                                    onClick={() => handleAdminMuteParticipant(socketId, !isMuted)}
-                                                    title={isMuted ? 'Unmute' : 'Mute'}
-                                                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                                                    onClick={() => handleAdminMuteParticipant(socketId, !participantMicMuted)}
+                                                    title={participantMicMuted ? 'Unmute' : 'Mute'}
+                                                    aria-label={participantMicMuted ? 'Unmute' : 'Mute'}
                                                 >
-                                                    {isMuted ? (
+                                                    {participantMicMuted ? (
                                                         <MicrophoneSlash size={20} weight="regular" />
                                                     ) : (
                                                         <Microphone size={20} weight="regular" />
                                                     )}
                                                 </button>
                                             ) : (
-                                                <div className="participant-mute-indicator">
-                                                    <Microphone size={20} weight="regular" />
+                                                <div className="participant-mute-indicator" aria-hidden="true">
+                                                    {participantMicMuted ? (
+                                                        <MicrophoneSlash size={20} weight="regular" />
+                                                    ) : (
+                                                        <Microphone size={20} weight="regular" />
+                                                    )}
                                                 </div>
                                             )
                                         )}

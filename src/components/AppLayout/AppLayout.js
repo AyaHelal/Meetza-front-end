@@ -290,9 +290,14 @@ const AppLayout = () => {
           </div>
         )}
 
-        {location.pathname === "/meetings" ? (
+        {activeMeetingId ? (
           <MeetingProvider>
-            <div className="app-layout-content">
+            {/* Meeting UI: visible on /meetings, hidden when away so audio keeps playing */}
+            <div
+              className="app-layout-content"
+              style={location.pathname !== "/meetings" ? { display: "none" } : undefined}
+              aria-hidden={location.pathname !== "/meetings"}
+            >
               <div className="meetings-container">
                 <div className="meetings-center">
                   <MeetingRoom />
@@ -301,6 +306,12 @@ const AppLayout = () => {
                 <MeetingRightSidebar />
               </div>
             </div>
+            {/* When away: show current page; meeting keeps running hidden above */}
+            {location.pathname !== "/meetings" && (
+              <div className="app-layout-content">
+                <Outlet />
+              </div>
+            )}
             {!isMobile && (
               <div className="fixed-user-status">
                 <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />

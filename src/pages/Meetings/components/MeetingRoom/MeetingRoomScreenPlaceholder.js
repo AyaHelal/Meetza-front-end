@@ -1,6 +1,6 @@
 import React from "react";
 
-const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localParticipantAudioMuted, localParticipantVolume }) => {
+const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted }) => {
   const hasVideo = adminTile?.stream && typeof adminTile.stream.getVideoTracks === "function" && adminTile.stream.getVideoTracks().length > 0;
 
   return (
@@ -11,7 +11,7 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
             key={`admin-video-${adminTile.socketId}-${adminTile.stream?.id || "no-stream"}`}
             autoPlay
             playsInline
-            muted={!!localParticipantAudioMuted?.[adminTile.socketId]}
+            muted={!!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId]}
             style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "0" }}
             ref={(el) => {
               if (el && adminTile.stream) {
@@ -22,8 +22,8 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
                   el.srcObject = adminTile.stream;
                   console.log("📹 Set admin stream for screen view", adminTile.socketId);
                 }
-                el.muted = !!localParticipantAudioMuted?.[adminTile.socketId];
-                el.volume = localParticipantVolume?.[adminTile.socketId] ?? 1;
+                el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
+                el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);
                 el.play().catch((err) => {
                   console.warn("⚠️ Video play failed for admin screen:", err);
                 });

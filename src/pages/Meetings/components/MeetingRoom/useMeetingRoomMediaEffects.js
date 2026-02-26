@@ -18,6 +18,7 @@ export function useMeetingRoomMediaEffects({
   remoteStreams,
   localParticipantAudioMuted,
   localParticipantVolume,
+  meetingSpeakerMuted,
 }) {
   // Attach stream to both video elements when it changes (incl. when screen share starts)
   useEffect(() => {
@@ -46,7 +47,7 @@ export function useMeetingRoomMediaEffects({
 
     const restoreMediaState = async () => {
       try {
-        if (!videoMuted) {
+        if (!videoMuted && !screenSharing) {
           const cameraTrack = cameraVideoTrackRef.current;
           if (!cameraTrack) {
             await ensureMediaTracks({ needVideo: true });
@@ -76,7 +77,7 @@ export function useMeetingRoomMediaEffects({
         if (!audioMuted) {
           const hasAudio = localStreamRef.current.getAudioTracks().length > 0;
           if (!hasAudio) {
-            await ensureMediaTracks({ needAudio: true });
+            await ensureMediaTracks({ needAudio: true, needVideo: false });
           }
           localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = true));
         }
@@ -86,14 +87,14 @@ export function useMeetingRoomMediaEffects({
     };
 
     restoreMediaState();
-  }, [hasJoined, videoMuted, audioMuted, ensureMediaTracks]);
+  }, [hasJoined, videoMuted, audioMuted, screenSharing, ensureMediaTracks]);
 
-  // Sync local participant audio control (muted/volume) to video elements when state changes
+  // Sync local participant audio/volume + meeting speaker mute to remote video elements
   useEffect(() => {
     remoteVideoRefsMap.current.forEach((el, socketId) => {
       if (el) {
-        el.muted = !!localParticipantAudioMuted[socketId];
-        el.volume = localParticipantVolume[socketId] ?? 1;
+        el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[socketId];
+        el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[socketId] ?? 1);
         if (el.paused && el.srcObject) {
           el.play().catch((err) => {
             console.warn("⚠️ Failed to play video after audio state change:", err);
@@ -101,7 +102,7 @@ export function useMeetingRoomMediaEffects({
         }
       }
     });
-  }, [localParticipantAudioMuted, localParticipantVolume]);
+  }, [localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted]);
 
   // Ensure remote videos play when streams are updated
   useEffect(() => {
