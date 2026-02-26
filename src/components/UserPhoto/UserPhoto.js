@@ -99,12 +99,22 @@ const UserPhoto = ({
     setLocalPhotoUrl(tempPreviewUrl);
 
     try {
-      // Store in sessionStorage for persistence across reloads
+      // Optional: cache small thumbnails in sessionStorage only (avoid QuotaExceededError)
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result;
-        sessionStorage.setItem(`userPhoto_${userId}`, base64String);
-        sessionStorage.setItem(`userPhotoTimestamp_${userId}`, Date.now().toString());
+        const maxStoredSize = 200 * 1024; // 200KB - sessionStorage is limited (~5MB total)
+        if (typeof base64String === 'string' && base64String.length <= maxStoredSize) {
+          try {
+            sessionStorage.setItem(`userPhoto_${userId}`, base64String);
+            sessionStorage.setItem(`userPhotoTimestamp_${userId}`, Date.now().toString());
+          } catch (err) {
+            if (err?.name === 'QuotaExceededError') {
+              sessionStorage.removeItem(`userPhoto_${userId}`);
+              sessionStorage.removeItem(`userPhotoTimestamp_${userId}`);
+            }
+          }
+        }
       };
       reader.readAsDataURL(file);
 

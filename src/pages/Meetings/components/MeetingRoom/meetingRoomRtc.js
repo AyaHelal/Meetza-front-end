@@ -100,6 +100,22 @@ export async function ensureLocalMediaImpl(opts) {
   return stream;
 }
 
+// FIX: Helper to wait until a stream has at least one live track.
+// This solves the race condition where offers are sent before the browser
+// has finished initializing the media tracks from getUserMedia.
+async function waitForLiveTracks(localStreamRef, timeoutMs = 2000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const stream = localStreamRef.current;
+    if (stream && stream.getTracks().some(t => t.readyState === "live")) {
+      return stream;
+    }
+    await new Promise(r => setTimeout(r, 80));
+  }
+  console.warn("⚠️ waitForLiveTracks timed out - proceeding anyway");
+  return localStreamRef.current;
+}
+
 /** Create and send WebRTC offer to target peer. */
 export async function createAndSendOfferImpl(opts, targetSocketId) {
   const { peersRef, localStreamRef, makingOfferRef, meetingIdRef, socket, ensureLocalMedia } = opts;
@@ -111,6 +127,7 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
   try {
     makingOfferRef.current = true;
     console.log("📤 Creating offer for", targetSocketId);
+
     let stream = localStreamRef.current;
     if (!stream || stream.getTracks().length === 0) {
       console.log("🔄 Ensuring local media has tracks before creating offer...");
@@ -121,18 +138,28 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
         console.error("❌ Failed to ensure local media:", e);
       }
     }
+
+    // FIX: Wait for live tracks before adding them to the peer connection.
+    // Previously we'd add tracks immediately, but they could be in "initializing"
+    // state, causing the remote peer to receive them as inactive/black.
+    await waitForLiveTracks(localStreamRef, 2000);
+    stream = localStreamRef.current;
+
     if (stream) {
       stream.getTracks().forEach((t) => {
         const existing = pc.getSenders().find((s) => s.track && s.track.kind === t.kind);
         if (!existing) {
-          console.log("➕ Adding track to peer connection before offer:", { kind: t.kind, enabled: t.enabled });
+          console.log("➕ Adding track to peer connection before offer:", { kind: t.kind, enabled: t.enabled, readyState: t.readyState });
           pc.addTrack(t, stream);
         }
       });
     } else {
       console.warn("⚠️ No local stream available - offer may fail");
     }
+
+    // Small pause to let the browser register the added tracks before creating the offer
     await new Promise((resolve) => setTimeout(resolve, 100));
+
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     const mid = meetingIdRef.current;
@@ -362,13 +389,23 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     }
   };
 
+  // FIX: Only add tracks that are actually live. Tracks that aren't live yet
+  // will be added later via addTracksToAllPeers once they become available.
+  // This prevents the peer receiving an offer with dead/initializing tracks.
   const stream = localStreamRef.current;
   if (stream) {
-    stream.getTracks().forEach((t) => {
+    const liveTracks = stream.getTracks().filter(t => t.readyState === "live");
+    const pendingTracks = stream.getTracks().filter(t => t.readyState !== "live");
+
+    if (pendingTracks.length > 0) {
+      console.warn(`⚠️ ${pendingTracks.length} track(s) not yet live for peer ${peerSocketId} - they will be added once ready`);
+    }
+
+    liveTracks.forEach((t) => {
       if (t.kind === "video" && !t.enabled) {
         console.log("⚠️ Adding disabled video track to peer", peerSocketId, "- will show black until enabled");
       }
-      console.log("➕ Adding local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
+      console.log("➕ Adding live local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled, readyState: t.readyState });
       pc.addTrack(t, stream);
     });
   } else {

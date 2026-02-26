@@ -8,7 +8,7 @@ const MeetingChat = () => {
     const messagesEndRef = useRef(null);
     const { socket, isConnected } = useSocket();
     const { user } = useContext(AuthContext);
-    const { meetingId, chatMessages, addChatMessage, participants } = useMeetingContext();
+    const { meetingId, chatMessages, addChatMessage } = useMeetingContext();
 
     // Scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -50,27 +50,10 @@ const MeetingChat = () => {
             }
             // If no meetingId in data, accept it anyway (backend might not include it in broadcast)
 
-            // Backend sends: userId, userName, userPhoto, text, timestamp, meetingId, socketId
-            const senderId = data.userId || data.senderId || data.member_id || data.sender_id || data.fromId || null;
-            const senderName = data.userName || data.senderName || data.name || data.sender_name || data.fromName || "Unknown";
-            // Extract photo - backend sends as userPhoto
-            let senderPhoto = data.userPhoto || data.senderPhoto || data.user_photo || data.sender_photo || data.photo || data.member_photo || null;
-            
-            // Validate photo URL - must be a non-empty string
-            if (senderPhoto && (typeof senderPhoto !== 'string' || !senderPhoto.trim())) {
-                senderPhoto = null;
-            }
-            
-            // If no photo from backend, try to get it from participants list
-            if (!senderPhoto && senderId) {
-                const participant = participants.find(p => 
-                    String(p.member_id) === String(senderId) || 
-                    String(p.id) === String(senderId)
-                );
-                if (participant?.member_photo && typeof participant.member_photo === 'string' && participant.member_photo.trim()) {
-                    senderPhoto = participant.member_photo.trim();
-                }
-            }
+            // Use only backend-provided identity; never use participants, storage, or state for name
+            const senderId = data.userId ?? data.senderId ?? null;
+            const senderName = (data.userName != null && data.userName !== "") ? String(data.userName).trim() : "Unknown";
+            const senderPhoto = (data.userPhoto != null && typeof data.userPhoto === "string" && data.userPhoto.trim()) ? data.userPhoto.trim() : null;
             const isOwnMessage = senderId && user?.id && (
                 String(senderId) === String(user.id) ||
                 String(senderId) === String(user.member_id)
@@ -112,7 +95,7 @@ const MeetingChat = () => {
             socket.off("message", onMeetingChatMessage);
             socket.off("meetingMessage", onMeetingChatMessage);
         };
-    }, [socket, isConnected, meetingId, user?.id, user?.member_id, addChatMessage, participants]);
+    }, [socket, isConnected, meetingId, user?.id, user?.member_id, addChatMessage]);
 
 
     return (

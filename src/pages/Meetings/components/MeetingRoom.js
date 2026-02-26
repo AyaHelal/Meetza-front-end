@@ -1031,24 +1031,99 @@ const MeetingRoom = ({ recordRegionRef }) => {
     }
   };
 
-  const handleToggleVideo = async () => {
+    const handleToggleVideo = async () => {
     const nextMuted = !videoMuted;
+    const mid = meetingIdRef.current;
+
     if (nextMuted) {
+      // --- TURNING CAMERA OFF ---
       setVideoMuted(true);
+      setContextVideoMuted(true);
       const cameraTrack = cameraVideoTrackRef.current;
       if (cameraTrack) cameraTrack.enabled = false;
+
+      // Tell peers camera is off by replacing with null track
+      for (const [peerSocketId, pc] of peersRef.current.entries()) {
+        if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender) {
+          try {
+            await sender.replaceTrack(null);
+          } catch (err) {
+            console.warn("⚠️ Could not null video track for peer", peerSocketId, err);
+          }
+        }
+      }
     } else {
+      // --- TURNING CAMERA ON ---
       try {
         await ensureMediaTracks({ needVideo: true });
         const cameraTrack = cameraVideoTrackRef.current;
-        if (cameraTrack) cameraTrack.enabled = true;
+        if (!cameraTrack) {
+          console.warn("⚠️ No camera track after ensureMediaTracks");
+          setVideoMuted(true);
+          setContextVideoMuted(true);
+          return;
+        }
+        cameraTrack.enabled = true;
+
+        // FIX: replaceTrack on all peers so they actually receive the camera feed.
+        // Just doing cameraTrack.enabled = true is not enough - if the track was
+        // never sent to peers (e.g. first time turning camera on), they won't see it.
+        const stream = localStreamRef.current;
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+          if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+
+          const existingSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+
+          if (existingSender) {
+            // Sender exists - replace with the live camera track
+            try {
+              await existingSender.replaceTrack(cameraTrack);
+              console.log("🔄 Replaced video track for peer", peerSocketId);
+            } catch (err) {
+              console.warn("⚠️ replaceTrack failed for peer", peerSocketId, err);
+            }
+          } else {
+            // No video sender at all - add the track and renegotiate
+            try {
+              pc.addTrack(cameraTrack, stream);
+              console.log("➕ Added camera track to peer", peerSocketId);
+              if (pc.signalingState === "stable" && !makingOffer.current) {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                if (socket && mid) {
+                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+                  console.log("📤 Renegotiated after adding camera track for", peerSocketId);
+                }
+              }
+            } catch (err) {
+              console.warn("⚠️ addTrack failed for peer", peerSocketId, err);
+            }
+          }
+        }
+
+        // Update local video element directly so camera shows immediately
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(() => {});
+        }
+        if (localVideoRef2.current) {
+          localVideoRef2.current.srcObject = stream;
+          localVideoRef2.current.play().catch(() => {});
+        }
+        setLocalStream(stream);
+
         setVideoMuted(false);
-      } catch {
+        setContextVideoMuted(false);
+      } catch (err) {
+        console.error("❌ Failed to turn on camera:", err);
         setVideoMuted(true);
+        setContextVideoMuted(true);
         return;
       }
     }
-    const mid = meetingIdRef.current;
+
     if (socket && mid) socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: nextMuted });
   };
 
@@ -1102,28 +1177,24 @@ const MeetingRoom = ({ recordRegionRef }) => {
       return;
     }
 
-    const senderName = user?.name || user?.member_name || user?.email || "You";
-    const senderId = user?.id || user?.member_id || null;
-
+    // Send only comment text; backend gets user identity from JWT and broadcasts with real name
     const payload = {
       meetingId: String(currentMeetingId),
       text: trimmedText,
-      senderName: senderName,
-      senderId: senderId,
     };
 
     console.log("Sending meetingChatMessage:", payload);
     console.log("Socket connected:", socket.connected);
     console.log("Socket id:", socket.id);
 
-    // Add message optimistically (show immediately)
-    const senderPhoto = user?.user_photo || user?.photo || null;
+    const senderId = user?.id || user?.member_id || null;
+    // Optimistic message: show "You" only; server echo will replace with backend userName
     const optimisticMessage = {
       id: `opt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: trimmedText,
-      senderName: senderName,
+      senderName: "You",
       senderId: senderId,
-      senderPhoto: senderPhoto,
+      senderPhoto: null,
       timestamp: Date.now(),
       isOwn: true,
     };

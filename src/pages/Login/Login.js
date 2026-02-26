@@ -12,7 +12,6 @@ const Login = () => {
         email: '',
         password: '',
         rememberMe: false,
-        role: '' // must choose via radio
     });
 
     const [errors, setErrors] = useState({});
@@ -182,11 +181,6 @@ const Login = () => {
             newErrors.password = "Password is required";
         }
 
-        // Role validation
-        if (!formData.role) {
-            newErrors.role = "Please select a role";
-        }
-
         // If there are validation errors, set them and prevent submission
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -228,7 +222,6 @@ const Login = () => {
                 email: formData.email,
                 password: formData.password,
                 remember_me: formData.rememberMe,
-                role: formData.role,
                 ...(showCaptcha && captchaToken && { captchaToken })
             };
 
@@ -355,59 +348,7 @@ const Login = () => {
                 onForgotPassword={handleForgotPassword}
                 onSkipCaptcha={handleSkipCaptcha}
                 failedAttempts={failedAttempts}
-                extraFields={(
-                    <div>
-                        <div className="d-flex  ps-2 py-2 role-radio-group">
-                            <div className="form-check">
-                                <input
-                                    className="form-check-input"
-                                    type="radio"
-                                    name="role"
-                                    id="loginMemberRole"
-                                    value="Member"
-                                    checked={formData.role === 'Member'}
-                                    onChange={handleInputChange}
-                                />
-                                <label className="form-check-label mx-2" htmlFor="loginMemberRole">
-                                    Member
-                                </label>
-                            </div>
-                            <div className="form-check">
-                                <input
-                                    className="form-check-input"
-                                    type="radio"
-                                    name="role"
-                                    id="loginAdminRole"
-                                    value="Administrator"
-                                    checked={formData.role === 'Administrator'}
-                                    onChange={handleInputChange}
-                                />
-                                <label className="form-check-label ms-2" htmlFor="loginAdminRole">
-                                    Administrator
-                                </label>
-                            </div>
-                            <div className="form-check ms-2">
-                                <input
-                                    className="form-check-input"
-                                    type="radio"
-                                    name="role"
-                                    id="loginSuperAdminRole"
-                                    value="Super_Admin"
-                                    checked={formData.role === 'Super_Admin'}
-                                    onChange={handleInputChange}
-                                />
-                                <label className="form-check-label ms-2" htmlFor="loginSuperAdminRole">
-                                    Super Admin
-                                </label>
-                            </div>
-                        </div>
-                        {errors.role && (
-                            <div className="text-danger small mt-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
-                                {errors.role}
-                            </div>
-                        )}
-                    </div>
-                )}
+                extraFields={null}
             />
         </LayoutWrapper>
     );
