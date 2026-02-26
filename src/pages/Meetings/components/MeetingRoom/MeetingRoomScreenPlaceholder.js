@@ -1,7 +1,7 @@
 import React from "react";
 
 const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localParticipantAudioMuted, localParticipantVolume }) => {
-  const hasVideo = adminTile?.stream && adminTile.stream.getVideoTracks().length > 0;
+  const hasVideo = adminTile?.stream && typeof adminTile.stream.getVideoTracks === "function" && adminTile.stream.getVideoTracks().length > 0;
 
   return (
     <div className={`meeting-room-screen ${hasVideo ? "has-video" : ""}`}>

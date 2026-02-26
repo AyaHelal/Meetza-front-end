@@ -31,7 +31,7 @@ export function useMeetingRoomUnifiedTiles({
       }
       const remoteMediaState = !isSelf ? mediaStateMap[sid] : null;
       const remoteVideoMuted = remoteMediaState?.videoMuted ?? true;
-      const hasVideoTracks = stream && stream.getVideoTracks().length > 0;
+      const hasVideoTracks = stream && typeof stream.getVideoTracks === "function" && stream.getVideoTracks().length > 0;
       const showVideo = stream && hasVideoTracks && (
         isSelf
           ? (!videoMuted || isScreenShare)

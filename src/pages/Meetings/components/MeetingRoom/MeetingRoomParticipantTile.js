@@ -57,7 +57,7 @@ const MeetingRoomParticipantTile = ({
     >
       <div className="meeting-room-tile-avatar" style={{ overflow: "hidden", position: "relative" }}>
         {(() => {
-          const hasVideoTracks = tile?.stream && tile.stream.getVideoTracks().length > 0;
+          const hasVideoTracks = tile?.stream && typeof tile.stream.getVideoTracks === "function" && tile.stream.getVideoTracks().length > 0;
           const hasValidStream = hasVideoTracks;
 
           if (hasValidStream) {

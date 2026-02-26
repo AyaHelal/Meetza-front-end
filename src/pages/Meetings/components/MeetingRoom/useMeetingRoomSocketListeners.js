@@ -33,6 +33,22 @@ export function useMeetingRoomSocketListeners({
   useEffect(() => {
     if (!socket) return;
 
+    // FIX: Helper to wait until localStreamRef has live tracks before proceeding.
+    // This is the core fix for "first join requires refresh" - we must not create
+    // peer connections or send offers until the browser has fully initialized media.
+    const waitForLocalStream = async (timeoutMs = 3000) => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const stream = localStreamRef.current;
+        if (stream && stream.getTracks().some(t => t.readyState === "live")) {
+          return stream;
+        }
+        await new Promise(r => setTimeout(r, 100));
+      }
+      console.warn("⚠️ waitForLocalStream timed out in socket listener");
+      return localStreamRef.current;
+    };
+
     const onParticipantJoined = async (data) => {
       console.log("🎉 participantJoined event received:", data);
       const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
@@ -74,9 +90,10 @@ export function useMeetingRoomSocketListeners({
       const meta = { member_id: entry.member_id, member_name: entry.member_name, member_photo: entry.member_photo, member_email: entry.member_email };
       peerMetaRef.current.set(peerSocketId, meta);
 
+      // FIX: Ensure local media exists first
       let stream = localStreamRef.current;
       if (!stream || stream.getTracks().length === 0) {
-        console.log("🔄 Ensuring local media has tracks before creating peer connection...");
+        console.log("🔄 Ensuring local media before creating peer connection for new participant...");
         try {
           await ensureLocalMedia();
           stream = localStreamRef.current;
@@ -84,6 +101,12 @@ export function useMeetingRoomSocketListeners({
           console.error("❌ Failed to ensure local media:", e);
         }
       }
+
+      // FIX: Wait for live tracks - this prevents sending offers before media is ready.
+      // Without this wait, createPeerConnection adds tracks that aren't live yet,
+      // and the remote peer receives an offer with no usable tracks.
+      await waitForLocalStream(2000);
+      console.log("✅ Local stream ready for new participant connection:", peerSocketId);
 
       console.log("🔗 Creating peer connection for new participant", peerSocketId);
       const pc = createPeerConnection(peerSocketId);
@@ -146,6 +169,12 @@ export function useMeetingRoomSocketListeners({
       let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
         console.log("🔗 Creating peer connection for incoming offer from", fromSocketId);
+
+        // FIX: Wait for local stream before creating the peer connection when receiving an offer.
+        // If we're the polite peer (waiting for offers), we still need live local tracks
+        // so that when we answer, our tracks are included correctly.
+        await waitForLocalStream(2000);
+
         pc = createPeerConnection(fromSocketId);
         peersRef.current.set(fromSocketId, pc);
         if (socket.id < fromSocketId) {
@@ -344,6 +373,7 @@ export function useMeetingRoomSocketListeners({
     socket.on("webrtcIceCandidate", onIceCandidate);
     socket.on("handRaised", onHandRaised);
     socket.on("mediaStateUpdated", onMediaStateUpdated);
+
     const onReaction = (data) => {
       try {
         const mid = data?.meetingId;
