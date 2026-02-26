@@ -17,6 +17,11 @@ export const MeetingProvider = ({ children }) => {
   const [meetingId, setMeetingIdState] = useState(null);
   const [hasJoined, setHasJoined] = useState(false);
   const [localParticipantAudioMuted, setLocalParticipantAudioMutedState] = useState({});
+  /** مشارك = مقفول/مفتوح مايك من عنده (من updateMediaState أو adminMute) - للعرض في Participants */
+  const [mediaStateMap, setMediaStateMapState] = useState({});
+  const setMediaStateMap = useCallback((updater) => {
+    setMediaStateMapState((prev) => (typeof updater === "function" ? updater(prev) : updater));
+  }, []);
 
   // Load chat messages from localStorage on mount
   const loadChatMessagesFromStorage = useCallback((mid) => {
@@ -138,6 +143,8 @@ export const MeetingProvider = ({ children }) => {
     addChatMessage,
     localParticipantAudioMuted,
     setLocalParticipantAudioMuted,
+    mediaStateMap,
+    setMediaStateMap,
   };
 
   return (

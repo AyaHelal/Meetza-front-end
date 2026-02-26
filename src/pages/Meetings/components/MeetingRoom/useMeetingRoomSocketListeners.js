@@ -27,6 +27,9 @@ export function useMeetingRoomSocketListeners({
   addReactionToMap,
   spawnFloatingEmojis,
   selfMemberId,
+  setAudioMuted,
+  setContextAudioMuted,
+  setLocalParticipantAudioMuted,
 }) {
   const toP = toParticipantFn || toParticipant;
 
@@ -194,6 +197,24 @@ export function useMeetingRoomSocketListeners({
       }
 
       try {
+        // Add our local tracks to the peer connection before answering, so the answer includes our stream (camera/screen/audio).
+        // Without this, when we're the "polite" peer we'd send an answer with no tracks and the other side would never see our video/screen.
+        const stream = localStreamRef.current;
+        if (stream && stream.getTracks().length > 0) {
+          const senders = pc.getSenders();
+          for (const track of stream.getTracks()) {
+            const existing = senders.find((s) => s.track && s.track.kind === track.kind);
+            if (!existing) {
+              try {
+                pc.addTrack(track, stream);
+                console.log("➕ Added local track to peer (before answer):", fromSocketId, { kind: track.kind });
+              } catch (err) {
+                console.warn("⚠️ Failed to add track before answer:", err);
+              }
+            }
+          }
+        }
+
         console.log("📥 Setting remote offer from", fromSocketId, "state:", pc.signalingState);
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
@@ -364,8 +385,23 @@ export function useMeetingRoomSocketListeners({
       console.log("📹 Received mediaStateUpdated for", sid, { audioMuted: !!data.audioMuted, videoMuted: !!data.videoMuted });
       setMediaStateMap((m) => ({
         ...m,
-        [sid]: { audioMuted: !!data.audioMuted, videoMuted: !!data.videoMuted },
+        [sid]: {
+          ...(m[sid] || {}),
+          ...(data.audioMuted !== undefined && { audioMuted: !!data.audioMuted }),
+          ...(data.videoMuted !== undefined && { videoMuted: !!data.videoMuted }),
+        },
       }));
+      // When admin muted us: show mic as muted in control bar + participants list and disable our audio tracks
+      if (sid === socket.id && setAudioMuted && setContextAudioMuted && setLocalParticipantAudioMuted) {
+        if (data.audioMuted !== undefined) {
+          const muted = !!data.audioMuted;
+          setAudioMuted(muted);
+          setContextAudioMuted(muted);
+          setLocalParticipantAudioMuted((prev) => ({ ...prev, [socket.id]: muted }));
+          const stream = localStreamRef.current;
+          if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !muted));
+        }
+      }
     };
 
     socket.on("webrtcOffer", onWebrtcOffer);

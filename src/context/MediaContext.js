@@ -67,6 +67,38 @@ export const MediaProvider = ({ children }) => {
         } catch { return true; }
     });
 
+    // Mute meeting speaker (when outside meeting page) - only affects local playback
+    const [meetingSpeakerMuted, setMeetingSpeakerMutedState] = useState(false);
+    /** Refs from MeetingRoom: { remoteVideoRefsMap, localParticipantAudioMutedRef, localParticipantVolumeRef } - نطبق الميوت مباشرة على عناصر الفيديو */
+    const meetingMediaRefsRef = useRef(null);
+
+    const setMeetingSpeakerMuted = useCallback((valueOrUpdater) => {
+        setMeetingSpeakerMutedState((prev) => {
+            const next = typeof valueOrUpdater === "function" ? valueOrUpdater(prev) : valueOrUpdater;
+            const refs = meetingMediaRefsRef.current;
+            if (refs?.remoteVideoRefsMap?.current) {
+                try {
+                    const map = refs.remoteVideoRefsMap.current;
+                    const lap = refs.localParticipantAudioMutedRef?.current ?? {};
+                    const lpv = refs.localParticipantVolumeRef?.current ?? {};
+                    map.forEach((el, socketId) => {
+                        if (el) {
+                            el.muted = !!next || !!lap[socketId];
+                            el.volume = next ? 0 : (lpv[socketId] ?? 1);
+                        }
+                    });
+                } catch (e) {
+                    console.warn("applyMeetingSpeakerMuted", e);
+                }
+            }
+            return next;
+        });
+    }, []);
+
+    const setMeetingMediaRefs = useCallback((refs) => {
+        meetingMediaRefsRef.current = refs;
+    }, []);
+
     // Persist state to sessionStorage
     const setAudioMuted = useCallback((muted) => {
         setAudioMutedState(muted);
@@ -117,57 +149,36 @@ export const MediaProvider = ({ children }) => {
                 videoMuted
             });
 
-            // If turning mic back on, ensure audio tracks are added to peer connections
+            // If turning mic back on, ensure audio tracks are in peer connections and renegotiate (عشان الباقي يسمعك لو فتحت المايك وانت برة صفحة الميتينج)
             if (!newMuted && hasJoinedRef.current) {
                 const stream = localStreamRef.current;
-                const audioTracks = stream ? stream.getAudioTracks() : [];
+                const audioTracks = stream ? stream.getAudioTracks().filter(t => t.readyState === "live") : [];
 
                 if (stream && audioTracks.length > 0) {
-                    // Ensure tracks are enabled
                     audioTracks.forEach(t => t.enabled = true);
 
-                    // Add or replace audio tracks in all peer connections
-                    for (const [, pc] of peersRef.current.entries()) {
-                        const audioSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
+                    for (const [peerSocketId, pc] of peersRef.current.entries()) {
+                        if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+                        const audioSenders = pc.getSenders().filter(s => s.track && s.track.kind === "audio");
 
-                        // If no audio senders, add all audio tracks
                         if (audioSenders.length === 0) {
-                            audioTracks.forEach(track => {
-                                try {
-                                    pc.addTrack(track, stream);
-                                    console.log("➕ Added audio track to peer connection from MediaContext");
-                                } catch (err) {
-                                    console.error("❌ Error adding audio track to peer:", err);
-                                }
-                            });
+                            try {
+                                pc.addTrack(audioTracks[0], stream);
+                            } catch (err) {
+                                console.error("❌ Error adding audio track to peer:", err);
+                            }
                         } else {
-                            // Replace existing audio tracks or ensure they're enabled
-                            audioTracks.forEach((track, index) => {
-                                const sender = audioSenders[index];
-                                if (sender) {
-                                    if (sender.track !== track) {
-                                        // Different track, replace it
-                                        try {
-                                            sender.replaceTrack(track).then(() => {
-                                                console.log("🔄 Replaced audio track in peer connection from MediaContext");
-                                            }).catch(err => console.error("❌ Error replacing audio track:", err));
-                                        } catch (err) {
-                                            console.error("❌ Error replacing audio track:", err);
-                                        }
-                                    } else {
-                                        // Same track, just ensure it's enabled
-                                        sender.track.enabled = true;
-                                    }
-                                } else {
-                                    // More tracks than senders, add the new one
-                                    try {
-                                        pc.addTrack(track, stream);
-                                        console.log("➕ Added additional audio track to peer connection from MediaContext");
-                                    } catch (err) {
-                                        console.error("❌ Error adding additional audio track to peer:", err);
-                                    }
+                            const sender = audioSenders[0];
+                            const track = audioTracks[0];
+                            if (sender.track !== track) {
+                                try {
+                                    await sender.replaceTrack(track);
+                                } catch (err) {
+                                    console.error("❌ Error replacing audio track:", err);
                                 }
-                            });
+                            } else {
+                                sender.track.enabled = true;
+                            }
                         }
                     }
                 } else if (!stream) {
@@ -389,6 +400,9 @@ export const MediaProvider = ({ children }) => {
         screenTrackRef,
         audioMuted,
         videoMuted,
+        meetingSpeakerMuted,
+        setMeetingSpeakerMuted,
+        setMeetingMediaRefs,
         toggleAudio,
         toggleVideo,
         setAudioMuted,

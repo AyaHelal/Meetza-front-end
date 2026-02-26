@@ -48,7 +48,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
     // Initialize with empty object, will load when meetingId is set
     return {};
   });
-  const [mediaStateMap, setMediaStateMap] = useState({}); // { [socketId]: { audioMuted, videoMuted } }
   const [localParticipantVolume, setLocalParticipantVolume] = useState({}); // { [socketId]: number } - 0-1, default 1
   const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted } = useMeetingContext();
+  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap, setMediaStateMap } = useMeetingContext();
 
   // Get persistent media streams and state from MediaContext
   const {
@@ -67,6 +66,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
     videoMuted: contextVideoMuted,
     setAudioMuted: setContextAudioMuted,
     setVideoMuted: setContextVideoMuted,
+    meetingSpeakerMuted,
+    setMeetingMediaRefs,
     registerPeerConnection,
     unregisterPeerConnection,
     getPeerConnections,
@@ -94,6 +95,15 @@ const MeetingRoom = ({ recordRegionRef }) => {
   });
   const [screenSharing, setScreenSharing] = useState(false);
 
+  // Pre-join modal: mandatory camera/mic before first join
+  const [showPreJoinModal, setShowPreJoinModal] = useState(false);
+  const [preJoinStream, setPreJoinStream] = useState(null);
+  const [preJoinVideoMuted, setPreJoinVideoMuted] = useState(false);
+  const [preJoinAudioMuted, setPreJoinAudioMuted] = useState(false);
+  const [preJoinLoading, setPreJoinLoading] = useState(false);
+  const [preJoinError, setPreJoinError] = useState(null);
+  const preJoinVideoRef = useRef(null);
+
   const peersRef = useRef(new Map()); // socketId -> RTCPeerConnection
   const peerMetaRef = useRef(new Map()); // socketId -> { member_id, member_name, member_photo }
   const meetingIdRef = useRef(null);
@@ -104,6 +114,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const recordingStartedRef = useRef(false);
   const recordingPayloadRef = useRef(null);
   const remoteVideoRefsMap = useRef(new Map()); // socketId -> video element (for local audio control sync)
+  const localParticipantAudioMutedRef = useRef({});
+  const localParticipantVolumeRef = useRef({});
   // Note: localStreamRef, cameraVideoTrackRef, and screenTrackRef come from MediaContext
   const makingOffer = useRef(false); // Track if we're currently making an offer
   const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
@@ -117,6 +129,20 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setMeetingId,
     setMediaContextMeetingId,
   });
+
+  // First-time join (not returning to same meeting)
+  const isFirstJoin = useMemo(() => {
+    const mid = meetingIdRef.current || meetingId;
+    if (!mid) return true;
+    try {
+      const stored = sessionStorage.getItem("activeMeetingId");
+      const isReturning = stored === String(mid);
+      const storedHasJoined = sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true";
+      return !isReturning && !hasJoined && !storedHasJoined;
+    } catch {
+      return true;
+    }
+  }, [meetingId, hasJoined]);
 
   // Persist media state to sessionStorage
   useEffect(() => {
@@ -155,8 +181,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
           videoEl.srcObject = stream;
           console.log("🔄 Updated video srcObject for", socketId);
         }
-        videoEl.muted = !!localParticipantAudioMuted[socketId];
-        videoEl.volume = localParticipantVolume[socketId] ?? 1;
+        videoEl.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[socketId];
+        videoEl.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[socketId] ?? 1);
         if (videoEl.paused) {
           videoEl.play().catch(err => {
             console.warn("⚠️ Failed to play video after stream update:", err);
@@ -164,7 +190,38 @@ const MeetingRoom = ({ recordRegionRef }) => {
         }
       }
     }, 100);
+  }, [localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted]);
+
+  // Keep refs in sync for apply-meeting-speaker callback (لما تدوس ميوت الساوند برة الميتينج يقفل الصوت من عندك)
+  useEffect(() => {
+    localParticipantAudioMutedRef.current = localParticipantAudioMuted;
+    localParticipantVolumeRef.current = localParticipantVolume;
   }, [localParticipantAudioMuted, localParticipantVolume]);
+
+  // تسجيل مراجع الفيديو في الـ context عشان لما تدوس ميوت الساوند برة الميتينج يقفل الصوت فعلياً
+  useEffect(() => {
+    if (!setMeetingMediaRefs) return;
+    setMeetingMediaRefs({
+      remoteVideoRefsMap,
+      localParticipantAudioMutedRef,
+      localParticipantVolumeRef,
+    });
+    return () => setMeetingMediaRefs(null);
+  }, [setMeetingMediaRefs]);
+
+  // تطبيق حالة الساوند على الفيديو عند التحميل وعند تغيير meetingSpeakerMuted
+  useEffect(() => {
+    const refs = { remoteVideoRefsMap, localParticipantAudioMutedRef, localParticipantVolumeRef };
+    const map = refs.remoteVideoRefsMap.current;
+    const lap = refs.localParticipantAudioMutedRef.current;
+    const lpv = refs.localParticipantVolumeRef.current;
+    map.forEach((el, socketId) => {
+      if (el) {
+        el.muted = !!meetingSpeakerMuted || !!lap[socketId];
+        el.volume = meetingSpeakerMuted ? 0 : (lpv[socketId] ?? 1);
+      }
+    });
+  }, [meetingSpeakerMuted, localParticipantAudioMuted, localParticipantVolume]);
 
   const removeRemoteStream = useCallback((socketId) => {
     setRemoteStreams((prev) => prev.filter((x) => x.socketId !== socketId));
@@ -258,14 +315,15 @@ const MeetingRoom = ({ recordRegionRef }) => {
     [audioMuted, videoMuted, ensureLocalMedia, addTracksToAllPeers]
   );
 
-  const startAndJoinMeetingRtc = useCallback(async () => {
+  const startAndJoinMeetingRtc = useCallback(async (options = {}) => {
     if (!socket || !isConnected) return;
     const mid = meetingIdRef.current;
     if (!mid) return;
     if (startedRef.current) return;
 
+    const { preObtainedStream, initialVideoMuted, initialAudioMuted } = options;
+
     // Check if this is the first time joining (not returning to an existing meeting)
-    // If activeMeetingId exists in sessionStorage and matches current meeting, we're returning
     const isReturning = (() => {
       try {
         const stored = sessionStorage.getItem("activeMeetingId");
@@ -275,7 +333,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
       }
     })();
 
-    // Also check if we have hasJoined in sessionStorage for this meeting
     const storedHasJoined = (() => {
       try {
         const stored = sessionStorage.getItem(`meeting_hasJoined_${mid}`);
@@ -295,35 +352,41 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
     startedRef.current = true;
 
-    try {
-      await ensureLocalMedia();
-    } catch (e) {
-      console.error("❌ getUserMedia failed:", e);
-      smartToast.error("Could not access camera/microphone.");
-      startedRef.current = false;
-      return;
-    }
+    if (preObtainedStream) {
+      // Use stream from pre-join modal; skip ensureLocalMedia
+      localStreamRef.current = preObtainedStream;
+      setLocalStream(preObtainedStream);
+      const videoTrack = preObtainedStream.getVideoTracks()[0] || null;
+      cameraVideoTrackRef.current = videoTrack;
+      const wantVideo = !(initialVideoMuted ?? true);
+      const wantAudio = !(initialAudioMuted ?? true);
+      if (videoTrack) videoTrack.enabled = wantVideo;
+      preObtainedStream.getAudioTracks().forEach((t) => { t.enabled = wantAudio; });
+      setVideoMuted(initialVideoMuted ?? true);
+      setContextVideoMuted(initialVideoMuted ?? true);
+      setAudioMuted(initialAudioMuted ?? true);
+      setContextAudioMuted(initialAudioMuted ?? true);
+    } else {
+      try {
+        await ensureLocalMedia();
+      } catch (e) {
+        console.error("❌ getUserMedia failed:", e);
+        smartToast.error("Could not access camera/microphone.");
+        startedRef.current = false;
+        return;
+      }
 
-    // Ensure camera is off by default when first entering a meeting
-    // But preserve state when returning (don't force it off)
-    if (isFirstJoin) {
-      console.log("📹 Ensuring camera is off by default when first entering meeting");
-      setVideoMuted(true);
-      setContextVideoMuted(true);
-      // Disable any existing camera track
+      // Apply saved mic/camera state (context) so they stay as user left them; first unmute click then works
+      const wantVideo = !contextVideoMuted;
+      const wantAudio = !contextAudioMuted;
+      setVideoMuted(contextVideoMuted);
+      setContextVideoMuted(contextVideoMuted);
+      setAudioMuted(contextAudioMuted);
+      setContextAudioMuted(contextAudioMuted);
       const cameraTrack = cameraVideoTrackRef.current;
-      if (cameraTrack) {
-        cameraTrack.enabled = false;
-      }
-    } else if (isReturning) {
-      // When returning, restore camera state from sessionStorage/context
-      // The state should already be loaded, but ensure the track matches
-      console.log("🔄 Returning to meeting - preserving camera state:", { videoMuted, contextVideoMuted });
-      const cameraTrack = cameraVideoTrackRef.current;
-      if (cameraTrack) {
-        cameraTrack.enabled = !videoMuted;
-        console.log("📹 Restored camera track state on return:", { videoMuted, trackEnabled: cameraTrack.enabled });
-      }
+      if (cameraTrack) cameraTrack.enabled = wantVideo;
+      const stream = localStreamRef.current;
+      if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = wantAudio));
     }
 
     console.log("📤 Emitting joinMeetingRoom for meeting:", mid);
@@ -444,9 +507,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
         }
       }
 
-      // Use current state (camera should be off if first join, or preserved if returning)
-      const currentVideoMuted = isFirstJoin ? true : videoMuted;
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: currentVideoMuted });
+      // Use current state (pre-join modal or applied context state so others see correct mute)
+      const currentVideoMuted = preObtainedStream ? (initialVideoMuted ?? true) : videoMuted;
+      const currentAudioMuted = preObtainedStream ? (initialAudioMuted ?? true) : audioMuted;
+      socket.emit("updateMediaState", { meetingId: mid, audioMuted: currentAudioMuted, videoMuted: currentVideoMuted });
 
       // Ensure local stream is ready before creating peer connections
       const stream = localStreamRef.current;
@@ -606,7 +670,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     startedRef.current = false;
   }, [closePeer, socket, setParticipants, setHasJoined]);
 
-  // Auto-start RTC when entering meeting page with meetingId
+  // Auto-start RTC when entering meeting page; first-time join → show pre-join modal
   useEffect(() => {
     if (!meetingId || !socket || !isConnected) {
       console.log("⏸️ Not starting RTC - missing:", { meetingId: !!meetingId, socket: !!socket, isConnected });
@@ -616,13 +680,69 @@ const MeetingRoom = ({ recordRegionRef }) => {
       console.log("⏸️ RTC already started, skipping");
       return;
     }
+    const mid = meetingIdRef.current || meetingId;
+    const isReturning = (() => {
+      try { return sessionStorage.getItem("activeMeetingId") === String(mid); } catch { return false; }
+    })();
+    const storedHasJoined = (() => {
+      try { return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true"; } catch { return false; }
+    })();
+    const firstJoin = !isReturning && !hasJoined && !storedHasJoined;
+    if (firstJoin) {
+      console.log("🆕 First join – showing pre-join modal");
+      setShowPreJoinModal(true);
+      return;
+    }
     console.log("🚀 Starting RTC meeting...");
     startAndJoinMeetingRtc();
 
     // Do NOT cleanup on unmount: meeting persists across navigation.
     // Only disconnect on explicit "Leave Meeting" (handleLeaveMeeting calls stopMeetingRtc).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meetingId, socket, isConnected]);
+  }, [meetingId, socket, isConnected, hasJoined]);
+
+  // Request camera/mic when pre-join modal is open (mandatory before join)
+  useEffect(() => {
+    if (!showPreJoinModal || preJoinStream || preJoinError) return;
+    let cancelled = false;
+    setPreJoinLoading(true);
+    navigator.mediaDevices
+      .getUserMedia({
+        video: true,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      })
+      .then((stream) => {
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const hasVideo = stream.getVideoTracks().length > 0;
+        setPreJoinStream(stream);
+        setPreJoinVideoMuted(!hasVideo);
+        setPreJoinAudioMuted(false);
+        setPreJoinLoading(false);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPreJoinError(err.message || "Could not access camera/microphone.");
+          setPreJoinLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showPreJoinModal, preJoinStream, preJoinError]);
+
+  // Attach pre-join stream to preview video element
+  useEffect(() => {
+    const el = preJoinVideoRef.current;
+    const stream = preJoinStream;
+    if (!el || !stream) return;
+    el.srcObject = stream;
+    return () => {
+      el.srcObject = null;
+    };
+  }, [preJoinStream]);
 
   useMeetingRoomMediaEffects({
     localStreamRef,
@@ -638,6 +758,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     remoteStreams,
     localParticipantAudioMuted,
     localParticipantVolume,
+    meetingSpeakerMuted,
   });
 
   const selfMemberId = useMemo(() => user?.id || user?.member_id || null, [user?.id, user?.member_id]);
@@ -864,6 +985,48 @@ const MeetingRoom = ({ recordRegionRef }) => {
     }
   };
 
+  const handlePreJoinClose = useCallback(() => {
+    if (preJoinStream) {
+      preJoinStream.getTracks().forEach((t) => t.stop());
+      setPreJoinStream(null);
+    }
+    setShowPreJoinModal(false);
+    setPreJoinError(null);
+    setPreJoinLoading(false);
+  }, [preJoinStream]);
+
+  const handlePreJoinToggleVideo = useCallback(() => {
+    setPreJoinVideoMuted((v) => {
+      const next = !v;
+      if (preJoinStream) {
+        const vt = preJoinStream.getVideoTracks()[0];
+        if (vt) vt.enabled = next;
+      }
+      return next;
+    });
+  }, [preJoinStream]);
+
+  const handlePreJoinToggleAudio = useCallback(() => {
+    setPreJoinAudioMuted((v) => {
+      const next = !v;
+      if (preJoinStream) {
+        preJoinStream.getAudioTracks().forEach((t) => { t.enabled = !next; });
+      }
+      return next;
+    });
+  }, [preJoinStream]);
+
+  const handlePreJoinEnter = useCallback(() => {
+    if (!preJoinStream) return;
+    startAndJoinMeetingRtc({
+      preObtainedStream: preJoinStream,
+      initialVideoMuted: preJoinVideoMuted,
+      initialAudioMuted: preJoinAudioMuted,
+    });
+    setShowPreJoinModal(false);
+    setPreJoinStream(null);
+  }, [preJoinStream, preJoinVideoMuted, preJoinAudioMuted, startAndJoinMeetingRtc]);
+
   const handleMeetingEnded = async () => {
     try {
       console.log("⏰ Meeting has ended, auto-exiting...");
@@ -932,8 +1095,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
     } else {
       // --- UNMUTING: ensure we have audio tracks, then enable them ---
       try {
-        // Step 1: Make sure we have a live audio track
-        await ensureMediaTracks({ needAudio: true });
+        // Step 1: أوديو فقط — ما نطلبش فيديو ولا نلمس الشير/الكاميرا
+        await ensureMediaTracks({ needAudio: true, needVideo: false });
 
         const stream = localStreamRef.current;
         if (!stream) {
@@ -1042,15 +1205,24 @@ const MeetingRoom = ({ recordRegionRef }) => {
       const cameraTrack = cameraVideoTrackRef.current;
       if (cameraTrack) cameraTrack.enabled = false;
 
-      // Tell peers camera is off by replacing with null track
+      // إلغاء إرسال الكاميرا للـ peers (لو عندنا شير نلغي بس sender الكاميرا مش الشير)
       for (const [peerSocketId, pc] of peersRef.current.entries()) {
         if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
-        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) {
+        const cameraSender = pc.getSenders().find((s) => s.track === cameraTrack);
+        if (cameraSender) {
           try {
-            await sender.replaceTrack(null);
+            await cameraSender.replaceTrack(null);
           } catch (err) {
-            console.warn("⚠️ Could not null video track for peer", peerSocketId, err);
+            console.warn("⚠️ Could not null camera track for peer", peerSocketId, err);
+          }
+        } else if (!screenSharing) {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) {
+            try {
+              await sender.replaceTrack(null);
+            } catch (err) {
+              console.warn("⚠️ Could not null video track for peer", peerSocketId, err);
+            }
           }
         }
       }
@@ -1067,38 +1239,53 @@ const MeetingRoom = ({ recordRegionRef }) => {
         }
         cameraTrack.enabled = true;
 
-        // FIX: replaceTrack on all peers so they actually receive the camera feed.
-        // Just doing cameraTrack.enabled = true is not enough - if the track was
-        // never sent to peers (e.g. first time turning camera on), they won't see it.
         const stream = localStreamRef.current;
         for (const [peerSocketId, pc] of peersRef.current.entries()) {
           if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
 
-          const existingSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          const videoSenders = pc.getSenders().filter((s) => s.track && s.track.kind === "video");
+          const alreadySendingCamera = videoSenders.some((s) => s.track === cameraTrack);
 
-          if (existingSender) {
-            // Sender exists - replace with the live camera track
-            try {
-              await existingSender.replaceTrack(cameraTrack);
-              console.log("🔄 Replaced video track for peer", peerSocketId);
-            } catch (err) {
-              console.warn("⚠️ replaceTrack failed for peer", peerSocketId, err);
+          if (screenSharing) {
+            // أثناء الشير: الـ sender الحالي شير — نضيف كاميرا كـ sender تاني (ما نستبدلش الشير)
+            if (!alreadySendingCamera) {
+              try {
+                pc.addTrack(cameraTrack, stream);
+                console.log("➕ Added camera track (while sharing) for peer", peerSocketId);
+                if (pc.signalingState === "stable" && !makingOffer.current) {
+                  const offer = await pc.createOffer();
+                  await pc.setLocalDescription(offer);
+                  if (socket && mid) {
+                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+                  }
+                }
+              } catch (err) {
+                console.warn("⚠️ addTrack (camera while sharing) failed for peer", peerSocketId, err);
+              }
             }
           } else {
-            // No video sender at all - add the track and renegotiate
-            try {
-              pc.addTrack(cameraTrack, stream);
-              console.log("➕ Added camera track to peer", peerSocketId);
-              if (pc.signalingState === "stable" && !makingOffer.current) {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                if (socket && mid) {
-                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
-                  console.log("📤 Renegotiated after adding camera track for", peerSocketId);
-                }
+            const existingSender = videoSenders[0];
+            if (existingSender) {
+              try {
+                await existingSender.replaceTrack(cameraTrack);
+                console.log("🔄 Replaced video track for peer", peerSocketId);
+              } catch (err) {
+                console.warn("⚠️ replaceTrack failed for peer", peerSocketId, err);
               }
-            } catch (err) {
-              console.warn("⚠️ addTrack failed for peer", peerSocketId, err);
+            } else {
+              try {
+                pc.addTrack(cameraTrack, stream);
+                console.log("➕ Added camera track to peer", peerSocketId);
+                if (pc.signalingState === "stable" && !makingOffer.current) {
+                  const offer = await pc.createOffer();
+                  await pc.setLocalDescription(offer);
+                  if (socket && mid) {
+                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+                  }
+                }
+              } catch (err) {
+                console.warn("⚠️ addTrack failed for peer", peerSocketId, err);
+              }
             }
           }
         }
@@ -1311,6 +1498,9 @@ const MeetingRoom = ({ recordRegionRef }) => {
     addReactionToMap,
     spawnFloatingEmojis,
     selfMemberId,
+    setAudioMuted,
+    setContextAudioMuted,
+    setLocalParticipantAudioMuted,
   });
 
   const handleToggleScreenShare = async () => {
@@ -1460,6 +1650,72 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   return (
     <div className="meeting-room">
+      {/* Pre-join modal: mandatory camera/mic before first join */}
+      {showPreJoinModal && (
+        <div className="meeting-room-prejoin-overlay" onClick={(e) => e.target === e.currentTarget && handlePreJoinClose()}>
+          <div className="meeting-room-prejoin-modal">
+            <h3 className="meeting-room-prejoin-title">Join meeting</h3>
+            <p className="meeting-room-prejoin-subtitle">Camera and microphone are required. You can turn them off below before entering.</p>
+            {preJoinLoading && (
+              <div className="meeting-room-prejoin-loading">
+                <span>Requesting camera and microphone…</span>
+              </div>
+            )}
+            {preJoinError && (
+              <div className="meeting-room-prejoin-error">
+                <p>{preJoinError}</p>
+                <button type="button" className="meeting-room-prejoin-retry" onClick={() => { setPreJoinError(null); }}>
+                  Try again
+                </button>
+              </div>
+            )}
+            {preJoinStream && !preJoinLoading && (
+              <>
+                <div className="meeting-room-prejoin-preview">
+                  <video
+                    ref={preJoinVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="meeting-room-prejoin-video"
+                    style={{ display: preJoinVideoMuted ? "none" : "block" }}
+                  />
+                  {preJoinVideoMuted && (
+                    <div className="meeting-room-prejoin-video-off">Camera off</div>
+                  )}
+                </div>
+                <div className="meeting-room-prejoin-toggles">
+                  <button
+                    type="button"
+                    className={`meeting-room-prejoin-toggle ${preJoinAudioMuted ? "muted" : ""}`}
+                    onClick={handlePreJoinToggleAudio}
+                    title={preJoinAudioMuted ? "Unmute microphone" : "Mute microphone"}
+                  >
+                    {preJoinAudioMuted ? "🎤 Muted" : "🎤 Microphone on"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`meeting-room-prejoin-toggle ${preJoinVideoMuted ? "muted" : ""}`}
+                    onClick={handlePreJoinToggleVideo}
+                    title={preJoinVideoMuted ? "Turn camera on" : "Turn camera off"}
+                  >
+                    {preJoinVideoMuted ? "📷 Camera off" : "📷 Camera on"}
+                  </button>
+                </div>
+                <div className="meeting-room-prejoin-actions">
+                  <button type="button" className="meeting-room-prejoin-cancel" onClick={handlePreJoinClose}>
+                    Cancel
+                  </button>
+                  <button type="button" className="meeting-room-prejoin-enter" onClick={handlePreJoinEnter}>
+                    Enter meeting
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <MeetingRoomHeader
         meetingTitle={meetingTitle}
         onLeaveMeeting={handleLeaveMeeting}
@@ -1487,6 +1743,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
             remoteVideoRefsMap={remoteVideoRefsMap}
             localParticipantAudioMuted={localParticipantAudioMuted}
             localParticipantVolume={localParticipantVolume}
+            meetingSpeakerMuted={meetingSpeakerMuted}
             toggleFullscreenForScreenShare={toggleFullscreenForScreenShare}
             toggleFullscreenForMember={toggleFullscreenForMember}
           />
@@ -1508,6 +1765,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
               remoteVideoRefsMap={remoteVideoRefsMap}
               localParticipantAudioMuted={localParticipantAudioMuted}
               localParticipantVolume={localParticipantVolume}
+              meetingSpeakerMuted={meetingSpeakerMuted}
             />
           ) : null
         }

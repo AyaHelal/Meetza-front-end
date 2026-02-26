@@ -29,16 +29,19 @@ const MeetingRoomParticipantTile = ({
   remoteVideoRefsMap,
   localParticipantAudioMuted,
   localParticipantVolume,
+  meetingSpeakerMuted,
   onToggleFullscreenScreenShare,
   onToggleFullscreenMember,
 }) => {
-  const key = tile?.socketId || tile?.member_id || tile?.label;
+  const key = tile?.tileId || tile?.socketId || tile?.member_id || tile?.label;
+  const refKey = tile?.tileId || tile?.socketId;
   const isRemoteMember = !tile?.isSelf && !!tile?.stream;
+  const isScreenOnlyTile = tile?.isScreenOnlyTile === true;
 
   return (
     <div
       key={key}
-      className="meeting-room-tile"
+      className={`meeting-room-tile ${isScreenOnlyTile ? "meeting-room-tile-screen-only" : ""}`}
       role={isRemoteScreenShare ? "button" : undefined}
       tabIndex={isRemoteScreenShare ? 0 : undefined}
       onClick={() => {
@@ -57,10 +60,11 @@ const MeetingRoomParticipantTile = ({
     >
       <div className="meeting-room-tile-avatar" style={{ overflow: "hidden", position: "relative" }}>
         {(() => {
-          const hasVideoTracks = tile?.stream && typeof tile.stream.getVideoTracks === "function" && tile.stream.getVideoTracks().length > 0;
-          const hasValidStream = hasVideoTracks;
+          const hasLiveVideo = tile?.stream && typeof tile.stream.getVideoTracks === "function" &&
+            tile.stream.getVideoTracks().some((t) => t.readyState === "live");
+          const shouldShowVideo = hasLiveVideo && (tile?.showVideo !== false);
 
-          if (hasValidStream) {
+          if (shouldShowVideo) {
             return tile.isSelf ? (
               <SelfVideo
                 localVideoRef={localVideoRef}
@@ -68,32 +72,32 @@ const MeetingRoomParticipantTile = ({
               />
             ) : (
               <video
-                key={`video-${tile.socketId}-${tile.stream?.id || "no-stream"}`}
+                key={`video-${refKey}-${tile.stream?.id || "no-stream"}`}
                 className="recordable-video"
                 autoPlay
                 playsInline
-                muted={!!localParticipantAudioMuted[tile.socketId]}
+                muted={!!meetingSpeakerMuted || !!localParticipantAudioMuted[tile.socketId]}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 ref={(el) => {
                   if (el) {
-                    remoteVideoRefsMap.current.set(tile.socketId, el);
+                    remoteVideoRefsMap.current.set(refKey, el);
                     if (tile.stream) {
                       if (el.srcObject !== tile.stream) {
                         el.srcObject = tile.stream;
-                        console.log("📹 Set stream for remote video", tile.socketId);
+                        console.log("📹 Set stream for remote video", refKey);
                       }
-                      el.muted = !!localParticipantAudioMuted[tile.socketId];
-                      el.volume = localParticipantVolume[tile.socketId] ?? 1;
+                      el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[tile.socketId];
+                      el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[tile.socketId] ?? 1);
 
                       const playVideo = async () => {
                         try {
                           await el.play();
-                          console.log("✅ Video playing for", tile.socketId);
+                          console.log("✅ Video playing for", refKey);
                         } catch (err) {
-                          console.warn("⚠️ Video play failed for", tile.socketId, "- retrying...", err);
+                          console.warn("⚠️ Video play failed for", refKey, "- retrying...", err);
                           setTimeout(() => {
                             el.play().catch((e) => {
-                              console.error("❌ Video play retry failed for", tile.socketId, e);
+                              console.error("❌ Video play retry failed for", refKey, e);
                             });
                           }, 500);
                         }
@@ -101,11 +105,11 @@ const MeetingRoomParticipantTile = ({
                       playVideo();
                     }
                   } else {
-                    remoteVideoRefsMap.current.delete(tile.socketId);
+                    remoteVideoRefsMap.current.delete(refKey);
                   }
                 }}
                 onLoadedMetadata={() => {
-                  const el = remoteVideoRefsMap.current.get(tile.socketId);
+                  const el = remoteVideoRefsMap.current.get(refKey);
                   if (el && tile.stream) {
                     el.play().catch((err) => {
                       console.warn("⚠️ Video play on metadata load failed:", err);
@@ -113,7 +117,7 @@ const MeetingRoomParticipantTile = ({
                   }
                 }}
                 onCanPlay={() => {
-                  const el = remoteVideoRefsMap.current.get(tile.socketId);
+                  const el = remoteVideoRefsMap.current.get(refKey);
                   if (el && tile.stream) {
                     el.play().catch((err) => {
                       console.warn("⚠️ Video play on canPlay failed:", err);
@@ -171,7 +175,7 @@ const MeetingRoomParticipantTile = ({
         </button>
       )}
       <span className={`meeting-room-tile-badge ${tile?.isSelf ? "you" : "admin"}`}>
-        {tile?.isSelf ? "You" : tile.label}
+        {tile?.isScreenOnlyTile ? (tile.label || "Screen") : (tile?.isSelf ? "You" : tile.label)}
       </span>
     </div>
   );
