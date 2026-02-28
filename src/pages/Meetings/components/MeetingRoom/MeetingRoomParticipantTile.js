@@ -6,7 +6,7 @@ function SelfVideo({ localVideoRef, stream }) {
     const el = localVideoRef?.current;
     if (!el || !stream) return;
     el.srcObject = stream;
-    el.play().catch(() => {});
+    el.play().catch(() => { });
   }, [stream, localVideoRef]);
 
   return (

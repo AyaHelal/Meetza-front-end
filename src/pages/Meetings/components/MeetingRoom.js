@@ -817,12 +817,12 @@ const MeetingRoom = ({ recordRegionRef }) => {
         setMeetingInfo(
           meeting
             ? {
-                administrator_id: meeting.administrator_id,
-                recording: meeting.recording,
-                title: meeting.title,
-                description: meeting.description,
-                group_id: meeting.group_id,
-              }
+              administrator_id: meeting.administrator_id,
+              recording: meeting.recording,
+              title: meeting.title,
+              description: meeting.description,
+              group_id: meeting.group_id,
+            }
             : null
         );
       } catch (err) {
@@ -837,11 +837,11 @@ const MeetingRoom = ({ recordRegionRef }) => {
     recordingPayloadRef.current =
       meetingId && meetingInfo
         ? {
-            meetingId,
-            title: meetingInfo.title,
-            group_id: meetingInfo.group_id,
-            description: meetingInfo.description,
-          }
+          meetingId,
+          title: meetingInfo.title,
+          group_id: meetingInfo.group_id,
+          description: meetingInfo.description,
+        }
         : null;
   }, [meetingId, meetingInfo]);
 
@@ -1194,7 +1194,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     }
   };
 
-    const handleToggleVideo = async () => {
+  const handleToggleVideo = async () => {
     const nextMuted = !videoMuted;
     const mid = meetingIdRef.current;
 
@@ -1204,28 +1204,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
       setContextVideoMuted(true);
       const cameraTrack = cameraVideoTrackRef.current;
       if (cameraTrack) cameraTrack.enabled = false;
-
-      // إلغاء إرسال الكاميرا للـ peers (لو عندنا شير نلغي بس sender الكاميرا مش الشير)
-      for (const [peerSocketId, pc] of peersRef.current.entries()) {
-        if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
-        const cameraSender = pc.getSenders().find((s) => s.track === cameraTrack);
-        if (cameraSender) {
-          try {
-            await cameraSender.replaceTrack(null);
-          } catch (err) {
-            console.warn("⚠️ Could not null camera track for peer", peerSocketId, err);
-          }
-        } else if (!screenSharing) {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-          if (sender) {
-            try {
-              await sender.replaceTrack(null);
-            } catch (err) {
-              console.warn("⚠️ Could not null video track for peer", peerSocketId, err);
-            }
-          }
-        }
-      }
     } else {
       // --- TURNING CAMERA ON ---
       try {
@@ -1240,13 +1218,17 @@ const MeetingRoom = ({ recordRegionRef }) => {
         cameraTrack.enabled = true;
 
         const stream = localStreamRef.current;
-        for (const [peerSocketId, pc] of peersRef.current.entries()) {
-          if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+        // When not screen sharing, we don't need to touch peer senders:
+        // disabling/enabling the local camera track is enough for remote peers
+        // (track mute/unmute + updateMediaState handle the UI).
+        // Only during screen share do we add an extra camera sender.
+        if (screenSharing) {
+          for (const [peerSocketId, pc] of peersRef.current.entries()) {
+            if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
 
-          const videoSenders = pc.getSenders().filter((s) => s.track && s.track.kind === "video");
-          const alreadySendingCamera = videoSenders.some((s) => s.track === cameraTrack);
+            const allSenders = pc.getSenders();
+            const alreadySendingCamera = allSenders.some((s) => s.track === cameraTrack);
 
-          if (screenSharing) {
             // أثناء الشير: الـ sender الحالي شير — نضيف كاميرا كـ sender تاني (ما نستبدلش الشير)
             if (!alreadySendingCamera) {
               try {
@@ -1256,35 +1238,11 @@ const MeetingRoom = ({ recordRegionRef }) => {
                   const offer = await pc.createOffer();
                   await pc.setLocalDescription(offer);
                   if (socket && mid) {
-                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
+                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
                   }
                 }
               } catch (err) {
                 console.warn("⚠️ addTrack (camera while sharing) failed for peer", peerSocketId, err);
-              }
-            }
-          } else {
-            const existingSender = videoSenders[0];
-            if (existingSender) {
-              try {
-                await existingSender.replaceTrack(cameraTrack);
-                console.log("🔄 Replaced video track for peer", peerSocketId);
-              } catch (err) {
-                console.warn("⚠️ replaceTrack failed for peer", peerSocketId, err);
-              }
-            } else {
-              try {
-                pc.addTrack(cameraTrack, stream);
-                console.log("➕ Added camera track to peer", peerSocketId);
-                if (pc.signalingState === "stable" && !makingOffer.current) {
-                  const offer = await pc.createOffer();
-                  await pc.setLocalDescription(offer);
-                  if (socket && mid) {
-                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => {});
-                  }
-                }
-              } catch (err) {
-                console.warn("⚠️ addTrack failed for peer", peerSocketId, err);
               }
             }
           }
@@ -1293,11 +1251,11 @@ const MeetingRoom = ({ recordRegionRef }) => {
         // Update local video element directly so camera shows immediately
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(() => {});
+          localVideoRef.current.play().catch(() => { });
         }
         if (localVideoRef2.current) {
           localVideoRef2.current.srcObject = stream;
-          localVideoRef2.current.play().catch(() => {});
+          localVideoRef2.current.play().catch(() => { });
         }
         setLocalStream(stream);
 
@@ -1652,7 +1610,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     <div className="meeting-room">
       {/* Pre-join modal: mandatory camera/mic before first join */}
       {showPreJoinModal && (
-        <div className="meeting-room-prejoin-overlay" onClick={(e) => e.target === e.currentTarget && handlePreJoinClose()}>
+        <div className="meeting-room-prejoin-overlay">
           <div className="meeting-room-prejoin-modal">
             <h3 className="meeting-room-prejoin-title">Join meeting</h3>
             <p className="meeting-room-prejoin-subtitle">Camera and microphone are required. You can turn them off below before entering.</p>
