@@ -11,6 +11,7 @@ const FormSection = ({
     formData,
     handleInputChange,
     handleSubmit,
+    handleKeyDown,
     isLoading,
     message,
     errors,
@@ -18,8 +19,9 @@ const FormSection = ({
     onForgotPassword,
     onCaptchaChange,
     onCaptchaExpired,
-    onSkipCaptcha,
-    failedAttempts,
+    remainingAttempts,
+    captchaRequiredByBackend,
+    captchaToken,
     children,
     extraFields
 }) => {
@@ -171,7 +173,15 @@ const FormSection = ({
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} autoComplete="on">
+            {remainingAttempts !== undefined && (
+                <div className="mb-3 text-center" style={{ maxWidth: "450px", margin: "0 auto" }}>
+                    <small className="text-warning">
+                        {remainingAttempts === 0 ? "No attempts remaining" : `${remainingAttempts} attempt(s) remaining`}
+                    </small>
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} onKeyDown={handleKeyDown || undefined} autoComplete="on">
                 {children ? (
                     children
                 ) : (
@@ -269,30 +279,6 @@ const FormSection = ({
                                         data-theme="light"
                                         data-size="normal"
                                     ></div>
-                                </div>
-                            )}
-
-                            {/* Failed Attempts Counter */}
-                            {failedAttempts > 0 && (
-                                <div className="mb-3 text-center">
-                                    <small className="text-warning">
-                                        Failed attempts: {failedAttempts}/3
-                                        {failedAttempts >= 3 && " - reCAPTCHA required"}
-                                    </small>
-                                </div>
-                            )}
-
-                            {/* Skip CAPTCHA Button */}
-                            {showCaptcha && onSkipCaptcha && (
-                                <div className="mb-3 text-center">
-                                    <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={onSkipCaptcha}
-                                        style={{ fontSize: '0.9rem' }}
-                                    >
-                                        Skip for now
-                                    </button>
                                 </div>
                             )}
 
