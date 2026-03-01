@@ -13,7 +13,7 @@ import {
   MeetingRoomControlBar,
   MeetingRoomReactionsContainer,
 } from "./MeetingRoom/index";
-import { toParticipant, getReactionIcon, isScreenShareVideoTrack, isScreenShareStream, toggleFullscreenForElement } from "./MeetingRoom/meetingRoomUtils";
+import { toParticipant, getReactionIcon, getCameraTrack, isScreenShareVideoTrack, toggleFullscreenForElement } from "./MeetingRoom/meetingRoomUtils";
 import { useMeetingRoomSocketListeners } from "./MeetingRoom/useMeetingRoomSocketListeners";
 import { useMeetingRoomFullscreen } from "./MeetingRoom/useMeetingRoomFullscreen";
 import { useMeetingRoomMediaEffects } from "./MeetingRoom/useMeetingRoomMediaEffects";
@@ -43,6 +43,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const [commentText, setCommentText] = useState("");
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream, isScreenShare? }]
+  const remoteStreamsRef = useRef([]);
+  useEffect(() => {
+    remoteStreamsRef.current = remoteStreams;
+  }, [remoteStreams]);
 
   const [handRaisedMap, setHandRaisedMap] = useState(() => {
     // Initialize with empty object, will load when meetingId is set
@@ -154,38 +158,39 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   const upsertRemoteStream = useCallback((socketId, stream, isScreenShare = false) => {
     if (!socketId || !stream) return;
-    console.log("🔄 Upserting remote stream:", socketId, {
-      videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length,
-      videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
-      audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
-      videoTrackReadyState: stream.getVideoTracks()[0]?.readyState,
-      audioTrackReadyState: stream.getAudioTracks()[0]?.readyState,
-    });
-    setRemoteStreams((prev) => {
-      const idx = prev.findIndex((x) => x.socketId === socketId);
-      const entry = { socketId, stream, isScreenShare };
+    const prev = remoteStreamsRef.current;
+    const hasCamera = prev.some((x) => x.socketId === socketId && x.isScreenShare === false);
+    const hasScreen = prev.some((x) => x.socketId === socketId && x.isScreenShare === true);
+    const hasVideo = stream.getVideoTracks().length > 0;
+    // If we already have a camera entry and this stream has video, it's the screen (second tile)
+    const effectiveIsScreen = isScreenShare || (!isScreenShare && hasCamera && hasVideo && !hasScreen);
+
+    setRemoteStreams((prevState) => {
+      console.log("🔄 Upserting remote stream:", socketId, { isScreenShare: effectiveIsScreen, videoTracks: stream.getVideoTracks().length });
+      const idx = prevState.findIndex((x) => x.socketId === socketId && x.isScreenShare === effectiveIsScreen);
+      const entry = { socketId, stream, isScreenShare: effectiveIsScreen };
       if (idx >= 0) {
-        const next = [...prev];
+        const next = [...prevState];
         next[idx] = entry;
         return next;
       }
-      return [...prev, entry];
+      return [...prevState, entry];
     });
 
-    // Ensure video element plays when stream is updated
+    // Ensure video element plays when stream is updated (screen tile uses key `${socketId}-screen`)
+    const videoKey = effectiveIsScreen ? `${socketId}-screen` : socketId;
     setTimeout(() => {
-      const videoEl = remoteVideoRefsMap.current.get(socketId);
+      const videoEl = remoteVideoRefsMap.current.get(videoKey);
       if (videoEl && stream) {
         if (videoEl.srcObject !== stream) {
           videoEl.srcObject = stream;
-          console.log("🔄 Updated video srcObject for", socketId);
+          console.log("🔄 Updated video srcObject for", videoKey);
         }
         videoEl.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[socketId];
         videoEl.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[socketId] ?? 1);
         if (videoEl.paused) {
-          videoEl.play().catch(err => {
-            console.warn("⚠️ Failed to play video after stream update:", err);
+          videoEl.play().catch((err) => {
+            if (err?.name !== "AbortError") console.warn("⚠️ Failed to play video after stream update:", err);
           });
         }
       }
@@ -223,8 +228,12 @@ const MeetingRoom = ({ recordRegionRef }) => {
     });
   }, [meetingSpeakerMuted, localParticipantAudioMuted, localParticipantVolume]);
 
-  const removeRemoteStream = useCallback((socketId) => {
-    setRemoteStreams((prev) => prev.filter((x) => x.socketId !== socketId));
+  const removeRemoteStream = useCallback((socketId, isScreenShareOnly = false) => {
+    setRemoteStreams((prev) =>
+      isScreenShareOnly
+        ? prev.filter((x) => !(x.socketId === socketId && x.isScreenShare))
+        : prev.filter((x) => x.socketId !== socketId)
+    );
   }, []);
 
   const closePeer = useCallback((peerSocketId) => {
@@ -1446,6 +1455,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setHandRaisedMap,
     setReactionsMap,
     setMediaStateMap,
+    setRemoteStreams,
     toParticipantFn: toParticipant,
     localStreamRef,
     ensureLocalMedia,
@@ -1531,43 +1541,34 @@ const MeetingRoom = ({ recordRegionRef }) => {
         screenTrackRef.current = screenTrack;
         setScreenSharing(true);
 
-        const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
         const mid = meetingIdRef.current;
+        if (socket && mid) socket.emit("screenShareStarted", { meetingId: mid, socketId: socket.id });
 
-        console.log("🖥️ Replacing video tracks with screen share for", peersRef.current.size, "peers");
+        const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
+
+        console.log("🖥️ Adding screen track (camera + screen) for", peersRef.current.size, "peers");
 
         for (const [peerSocketId, pc] of peersRef.current.entries()) {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-          if (sender) {
-            try {
-              await sender.replaceTrack(screenTrack);
-              if (pc.signalingState === "stable") {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                  if (ack && !ack.ok) console.error("❌ Screen share renegotiation failed:", ack);
-                });
-              }
-            } catch (err) {
-              console.error("❌ Failed to replace track for", peerSocketId, ":", err);
+          try {
+            pc.addTrack(screenTrack, streamForScreen);
+            if (pc.signalingState === "stable") {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
+                if (ack && !ack.ok) console.error("❌ Screen share add failed:", ack);
+              });
             }
-          } else {
-            try {
-              pc.addTrack(screenTrack, streamForScreen);
-              if (pc.signalingState === "stable") {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                  if (ack && !ack.ok) console.error("❌ Screen share renegotiation failed:", ack);
-                });
-              }
-            } catch (err) {
-              console.error("❌ Failed to add screen track for", peerSocketId, ":", err);
-            }
+          } catch (err) {
+            console.error("❌ Failed to add screen track for", peerSocketId, ":", err);
           }
         }
 
-        const newStream = new MediaStream([...stream.getAudioTracks(), screenTrack]);
+        const cameraTrack = getCameraTrack(stream);
+        const newStream = new MediaStream([
+          ...stream.getAudioTracks(),
+          ...(cameraTrack ? [cameraTrack] : []),
+          screenTrack,
+        ]);
         localStreamRef.current = newStream;
         setLocalStream(newStream);
         if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
@@ -1575,12 +1576,37 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
         // When user stops sharing from browser UI
         screenTrack.onended = async () => {
+          const m = meetingIdRef.current;
           try {
-            // FIX: use restoreCameraAfterScreenShare which respects videoMuted
-            await restoreCameraAfterScreenShare(peersRef.current, stream);
+            for (const [peerSocketId, pc] of peersRef.current.entries()) {
+              const screenSender = pc.getSenders().find((s) => s.track && isScreenShareVideoTrack(s.track));
+              if (screenSender) {
+                try {
+                  pc.removeTrack(screenSender);
+                  if (pc.signalingState === "stable") {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    if (socket && m) {
+                      socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: m, sdp: offer }, () => { });
+                    }
+                  }
+                } catch (err) {
+                  console.error("❌ Failed to remove screen track for", peerSocketId, err);
+                }
+              }
+            }
+            const cameraTrack = cameraVideoTrackRef.current;
+            const restored = cameraTrack && !videoMuted
+              ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
+              : new MediaStream(stream.getAudioTracks());
+            localStreamRef.current = restored;
+            setLocalStream(restored);
+            if (localVideoRef.current) localVideoRef.current.srcObject = restored;
+            if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
           } finally {
             setScreenSharing(false);
             screenTrackRef.current = null;
+            if (socket && m) socket.emit("screenShareStopped", { meetingId: m, socketId: socket.id });
           }
         };
       } catch (e) {
@@ -1591,17 +1617,42 @@ const MeetingRoom = ({ recordRegionRef }) => {
     } else {
       // --- STOP SCREEN SHARE (from our button) ---
       const screenTrack = screenTrackRef.current;
+      const mid = meetingIdRef.current;
+
       if (screenTrack) {
-        // Remove onended handler to avoid double-execution
         screenTrack.onended = null;
+        for (const [peerSocketId, pc] of peersRef.current.entries()) {
+          const screenSender = pc.getSenders().find((s) => s.track && isScreenShareVideoTrack(s.track));
+          if (screenSender) {
+            try {
+              pc.removeTrack(screenSender);
+              if (pc.signalingState === "stable") {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                if (socket && mid) {
+                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
+                }
+              }
+            } catch (err) {
+              console.error("❌ Failed to remove screen track for", peerSocketId, err);
+            }
+          }
+        }
         screenTrack.stop();
         screenTrackRef.current = null;
       }
 
-      // FIX: use restoreCameraAfterScreenShare which respects videoMuted
-      await restoreCameraAfterScreenShare(peersRef.current, stream);
+      const cameraTrack = cameraVideoTrackRef.current;
+      const restored = cameraTrack && !videoMuted
+        ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
+        : new MediaStream(stream.getAudioTracks());
+      localStreamRef.current = restored;
+      setLocalStream(restored);
+      if (localVideoRef.current) localVideoRef.current.srcObject = restored;
+      if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
 
       setScreenSharing(false);
+      if (socket && mid) socket.emit("screenShareStopped", { meetingId: mid, socketId: socket.id });
       smartToast.success("Screen share stopped.");
     }
   };

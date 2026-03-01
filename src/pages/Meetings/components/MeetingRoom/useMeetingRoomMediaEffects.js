@@ -20,8 +20,11 @@ export function useMeetingRoomMediaEffects({
   localParticipantVolume,
   meetingSpeakerMuted,
 }) {
-  // Attach stream to both video elements when it changes (incl. when screen share starts)
+  // Attach stream to both video elements when it changes — but not when screen sharing:
+  // during screen share each self tile (camera vs screen) gets its own stream from the hook;
+  // overwriting with the full stream here would show camera in place of screen.
   useEffect(() => {
+    if (screenSharing) return;
     const stream = localStreamRef.current;
     const videoEl1 = localVideoRef.current;
     const videoEl2 = localVideoRef2.current;
@@ -97,25 +100,26 @@ export function useMeetingRoomMediaEffects({
         el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[socketId] ?? 1);
         if (el.paused && el.srcObject) {
           el.play().catch((err) => {
-            console.warn("⚠️ Failed to play video after audio state change:", err);
+            if (err?.name !== "AbortError") console.warn("⚠️ Failed to play video after audio state change:", err);
           });
         }
       }
     });
   }, [localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted]);
 
-  // Ensure remote videos play when streams are updated
+  // Ensure remote videos play when streams are updated (screen tile ref key is `${socketId}-screen`)
   useEffect(() => {
-    remoteStreams.forEach(({ socketId, stream }) => {
-      const videoEl = remoteVideoRefsMap.current.get(socketId);
+    remoteStreams.forEach(({ socketId, stream, isScreenShare }) => {
+      const videoKey = isScreenShare ? `${socketId}-screen` : socketId;
+      const videoEl = remoteVideoRefsMap.current.get(videoKey);
       if (videoEl && stream) {
         if (videoEl.srcObject !== stream) {
           videoEl.srcObject = stream;
-          console.log("🔄 Updated video srcObject for", socketId);
+          console.log("🔄 Updated video srcObject for", videoKey);
         }
         if (videoEl.paused) {
           videoEl.play().catch((err) => {
-            console.warn("⚠️ Failed to play video for", socketId, ":", err);
+            if (err?.name !== "AbortError") console.warn("⚠️ Failed to play video for", videoKey, ":", err);
           });
         }
       }

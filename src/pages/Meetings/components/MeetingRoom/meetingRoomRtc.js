@@ -12,48 +12,40 @@ export function addTracksToAllPeersImpl(opts) {
       continue;
     }
     const senders = pc.getSenders();
-    const hasVideo = senders.some((s) => s.track && s.track.kind === "video");
-    const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
-    const streamHasVideo = stream.getVideoTracks().length > 0;
-    const streamHasAudio = stream.getAudioTracks().length > 0;
-    const needsVideo = streamHasVideo && !hasVideo;
-    const needsAudio = streamHasAudio && !hasAudio;
-
-    if (needsVideo || needsAudio) {
-      console.log("🔄 Adding missing tracks to peer", peerSocketId, { needsVideo, needsAudio });
-      let addedAny = false;
-      stream.getTracks().forEach((t) => {
-        const existing = senders.find((s) => s.track && s.track.kind === t.kind);
-        if (!existing) {
-          try {
-            pc.addTrack(t, stream);
-            console.log("➕ Added track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
-            addedAny = true;
-          } catch (err) {
-            console.warn("⚠️ Failed to add track to peer", peerSocketId, ":", err);
-          }
+    const audioTracks = stream.getAudioTracks();
+    let addedAny = false;
+    stream.getTracks().forEach((t) => {
+      const existing = senders.find((s) => s.track === t);
+      if (!existing) {
+        try {
+          const trackStream = new MediaStream([t, ...audioTracks]);
+          pc.addTrack(t, trackStream);
+          console.log("➕ Added track to peer", peerSocketId, { kind: t.kind, isScreenShare: t.kind === "video" && isScreenShareVideoTrack(t) });
+          addedAny = true;
+        } catch (err) {
+          console.warn("⚠️ Failed to add track to peer", peerSocketId, ":", err);
         }
-      });
-      if (addedAny && pc.signalingState === "stable" && !makingOfferRef.current) {
-        setTimeout(() => {
-          if (pc.signalingState === "stable" && !makingOfferRef.current) {
-            pc.createOffer()
-              .then((offer) => pc.setLocalDescription(offer))
-              .then(() => {
-                const mid = meetingIdRef.current;
-                if (socket && mid) {
-                  socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => { });
-                  console.log("📤 Renegotiated after adding tracks to", peerSocketId);
-                }
-              })
-              .catch((err) => {
-                if (err.name !== "InvalidStateError") {
-                  console.error("❌ Error renegotiating after adding tracks:", err);
-                }
-              });
-          }
-        }, 100);
       }
+    });
+    if (addedAny && pc.signalingState === "stable" && !makingOfferRef.current) {
+      setTimeout(() => {
+        if (pc.signalingState === "stable" && !makingOfferRef.current) {
+          pc.createOffer()
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              const mid = meetingIdRef.current;
+              if (socket && mid) {
+                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => { });
+                console.log("📤 Renegotiated after adding tracks to", peerSocketId);
+              }
+            })
+            .catch((err) => {
+              if (err.name !== "InvalidStateError") {
+                console.error("❌ Error renegotiating after adding tracks:", err);
+              }
+            });
+        }
+      }, 100);
     }
   }
 }
@@ -201,20 +193,16 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
 
   if (needAudio && (!hasAudio || !hasEnabledAudio)) {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
       if (hasAudio && !hasEnabledAudio) {
+        // Unmuting after mute: replace with a fresh audio track so mic works reliably (re-enabling alone can fail in some browsers).
         for (const [, pc] of peersRef.current.entries()) {
           const audioSenders = pc.getSenders().filter((s) => s.track && s.track.kind === "audio");
           audioSenders.forEach((sender) => {
             try {
-              sender.track.stop();
+              if (sender.track) sender.track.stop();
               pc.removeTrack(sender);
-              console.log("🗑️ Removed old audio track from peer connection");
             } catch (err) {
-              console.error("❌ Error removing old audio track:", err);
+              console.warn("Error removing old audio sender:", err);
             }
           });
         }
@@ -222,13 +210,18 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
           t.stop();
           stream.removeTrack(t);
         });
-        console.log("🗑️ Removed disabled audio tracks before adding new ones");
       }
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
       mediaStream.getAudioTracks().forEach((t) => {
         t.enabled = true;
         stream.addTrack(t);
         console.log("✅ Added enabled audio track to stream");
       });
+      setTimeout(() => addTracksToAllPeers(), 100);
     } catch (e) {
       console.error("getUserMedia failed for audio:", e);
       throw e;
@@ -255,9 +248,6 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
   }
 
   setLocalStream(stream);
-  if (needAudio && (!hasAudio || !hasEnabledAudio)) {
-    setTimeout(() => addTracksToAllPeers(), 100);
-  }
   return stream;
 }
 
@@ -344,9 +334,9 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
         audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
       });
 
-      const liveVt = stream.getVideoTracks().find((t) => t.readyState === "live");
-      const isScreenShare = liveVt && isScreenShareVideoTrack(liveVt);
+      const isScreenShare = isScreenShareStream(stream);
       upsertRemoteStream(peerSocketId, stream, isScreenShare);
+      const liveVt = stream.getVideoTracks().find((t) => t.readyState === "live");
 
       if (liveVt && !isScreenShare && liveVt.enabled && liveVt.readyState === "live") {
         setMediaStateMap((prev) => ({
@@ -368,19 +358,8 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
           console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
           if (stream.getTracks().every((t) => t.readyState === "ended")) {
             setRemoteStreams((prev) => prev.filter((s) => s.socketId !== peerSocketId));
-          } else if (track.kind === "video") {
-            const liveTracks = stream.getTracks().filter((t) => t.readyState === "live");
-            if (liveTracks.length > 0) {
-              setRemoteStreams((prev) =>
-                prev.map((s) => {
-                  if (s.socketId !== peerSocketId) return s;
-                  const newStream = new MediaStream(liveTracks);
-                  const liveVt = newStream.getVideoTracks().find((t) => t.readyState === "live");
-                  const isScreenShare = liveVt ? isScreenShareVideoTrack(liveVt) : false;
-                  return { socketId: s.socketId, stream: newStream, isScreenShare };
-                })
-              );
-            }
+          } else {
+            setRemoteStreams((prev) => prev.filter((s) => !(s.socketId === peerSocketId && s.stream === stream)));
           }
         };
         track.onmute = () => {
@@ -403,11 +382,10 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     }
   };
 
-  // FIX: Only add tracks that are actually live. Tracks that aren't live yet
-  // will be added later via addTracksToAllPeers once they become available.
-  // This prevents the peer receiving an offer with dead/initializing tracks.
+  // Add tracks so receiver gets separate streams for camera vs screen (two tiles per participant).
   const stream = localStreamRef.current;
   if (stream) {
+    const audioTracks = stream.getAudioTracks();
     const liveTracks = stream.getTracks().filter(t => t.readyState === "live");
     const pendingTracks = stream.getTracks().filter(t => t.readyState !== "live");
 
@@ -419,8 +397,9 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
       if (t.kind === "video" && !t.enabled) {
         console.log("⚠️ Adding disabled video track to peer", peerSocketId, "- will show black until enabled");
       }
-      console.log("➕ Adding live local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled, readyState: t.readyState });
-      pc.addTrack(t, stream);
+      const trackStream = new MediaStream([t, ...audioTracks]);
+      console.log("➕ Adding live local track to peer", peerSocketId, { kind: t.kind, isScreenShare: isScreenShareVideoTrack(t) });
+      pc.addTrack(t, trackStream);
     });
   } else {
     console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);

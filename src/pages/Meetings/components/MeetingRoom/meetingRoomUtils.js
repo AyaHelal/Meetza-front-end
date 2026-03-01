@@ -38,7 +38,8 @@ export const isScreenShareVideoTrack = (videoTrack) => {
   try {
     const s = videoTrack.getSettings?.();
     if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") return true;
-    if ((videoTrack.label || "").toLowerCase().includes("screen")) return true;
+    const label = (videoTrack.label || "").toLowerCase();
+    if (label.includes("screen") || label.includes("display")) return true;
   } catch { }
   return false;
 };

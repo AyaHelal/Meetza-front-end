@@ -94,10 +94,11 @@ const MeetingRoomParticipantTile = ({
                           await el.play();
                           console.log("✅ Video playing for", refKey);
                         } catch (err) {
+                          if (err?.name === "AbortError") return;
                           console.warn("⚠️ Video play failed for", refKey, "- retrying...", err);
                           setTimeout(() => {
                             el.play().catch((e) => {
-                              console.error("❌ Video play retry failed for", refKey, e);
+                              if (e?.name !== "AbortError") console.error("❌ Video play retry failed for", refKey, e);
                             });
                           }, 500);
                         }
@@ -112,7 +113,7 @@ const MeetingRoomParticipantTile = ({
                   const el = remoteVideoRefsMap.current.get(refKey);
                   if (el && tile.stream) {
                     el.play().catch((err) => {
-                      console.warn("⚠️ Video play on metadata load failed:", err);
+                      if (err?.name !== "AbortError") console.warn("⚠️ Video play on metadata load failed:", err);
                     });
                   }
                 }}
@@ -120,7 +121,7 @@ const MeetingRoomParticipantTile = ({
                   const el = remoteVideoRefsMap.current.get(refKey);
                   if (el && tile.stream) {
                     el.play().catch((err) => {
-                      console.warn("⚠️ Video play on canPlay failed:", err);
+                      if (err?.name !== "AbortError") console.warn("⚠️ Video play on canPlay failed:", err);
                     });
                   }
                 }}
