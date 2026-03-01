@@ -6,6 +6,47 @@ const CAPTURE_FPS = 30;
 const CROP_OUTPUT_WIDTH = 1280;
 const CROP_OUTPUT_HEIGHT = 720;
 
+/** Gain for admin (recording) mic so it's clear in the mix. */
+const RECORDING_MIC_GAIN = 1.2;
+/** Gain for remote participants so their voices are clearer in the recording. */
+const REMOTE_PARTICIPANTS_GAIN = 1.8;
+/** Gain for tab/window audio if shared. */
+const DISPLAY_AUDIO_GAIN = 1.0;
+
+/**
+ * Mix multiple audio sources into one MediaStream with optional gain per source type.
+ * Uses a dedicated recording mic stream so the admin's voice is always captured (independent of in-call mute).
+ */
+function createMixedAudioStream(recordingMicStream, remoteStreams, displayAudioTracks = [], options = {}) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const destination = audioContext.createMediaStreamDestination();
+  const localGain = options.recordingMicGain ?? RECORDING_MIC_GAIN;
+  const remoteGain = options.remoteGain ?? REMOTE_PARTICIPANTS_GAIN;
+  const displayGain = options.displayGain ?? DISPLAY_AUDIO_GAIN;
+
+  const addSource = (stream, gainValue) => {
+    if (!stream || stream.getAudioTracks().length === 0) return;
+    try {
+      const source = audioContext.createMediaStreamSource(stream);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = gainValue;
+      source.connect(gainNode);
+      gainNode.connect(destination);
+    } catch (e) {
+      console.warn("Could not add audio source to mix:", e);
+    }
+  };
+
+  if (recordingMicStream) addSource(recordingMicStream, localGain);
+  displayAudioTracks.forEach((track) => addSource(new MediaStream([track]), displayGain));
+  remoteStreams.forEach(({ stream }) => {
+    if (stream) addSource(stream, remoteGain);
+  });
+
+  const mixedStream = destination.stream;
+  return { mixedStream, audioContext };
+}
+
 
 function createSelectionOverlay() {
   return new Promise((resolve) => {
@@ -143,16 +184,26 @@ export function useMeetingRecording({
   const stopRecordingRef = useRef(null);
   const animationFrameRef = useRef(null);
   const displayVideoRef = useRef(null);
+  const mixAudioContextRef = useRef(null);
+  const recordingMicStreamRef = useRef(null);
 
   const startRecording = useCallback(async () => {
-    const localStream = localStreamRef?.current;
-
     try {
       smartToast.info('Swipe on the screen to select the recording area, or tap "Cancel".');
       const cropArea = await createSelectionOverlay();
       if (cropArea === null) {
         smartToast.info("The region has been cancelled.");
         return;
+      }
+
+      // Dedicated mic for recording so admin voice is always captured (independent of in-call mute).
+      let recordingMicStream = null;
+      try {
+        recordingMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingMicStreamRef.current = recordingMicStream;
+      } catch (micErr) {
+        console.warn("Recording mic not available, using meeting mic if unmuted:", micErr);
+        recordingMicStream = localStreamRef?.current ?? null;
       }
 
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -215,15 +266,21 @@ export function useMeetingRecording({
 
       const croppedStream = canvas.captureStream(CAPTURE_FPS);
       const finalStream = new MediaStream();
+
       croppedStream.getVideoTracks().forEach((t) => finalStream.addTrack(t));
-      (localStream?.getAudioTracks() || []).forEach((t) => finalStream.addTrack(t));
-      if (displayAudioTracks.length > 0) {
-        displayAudioTracks.forEach((t) => finalStream.addTrack(t));
-      } else {
-        remoteStreams.forEach(({ stream: remoteStream }) => {
-          if (!remoteStream) return;
-          (remoteStream.getAudioTracks() || []).forEach((t) => finalStream.addTrack(t));
-        });
+
+      const { mixedStream, audioContext } = createMixedAudioStream(
+        recordingMicStream,
+        remoteStreams,
+        displayAudioTracks
+      );
+      mixAudioContextRef.current = audioContext;
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+      const mixedTracks = mixedStream.getAudioTracks();
+      if (mixedTracks.length > 0) {
+        finalStream.addTrack(mixedTracks[0]);
       }
 
       videoTracks[0]?.addEventListener("ended", () => {
@@ -254,7 +311,7 @@ export function useMeetingRecording({
       startTimeRef.current = Date.now();
       setIsRecording(true);
 
-      smartToast.info('Recording is in progress. Select "This Tab" and enable "Share Tab Audio" for clearer sound.');
+      smartToast.info('Recording is in progress. Your mic and all participants are mixed into the recording.');
     } catch (err) {
       if (err.name === "NotAllowedError") {
         smartToast.error("Screen sharing was cancelled. Recording did not start.");
@@ -283,6 +340,16 @@ export function useMeetingRecording({
       if (displayStream) {
         displayStream.getTracks().forEach((t) => t.stop());
         displayStreamRef.current = null;
+      }
+      const recordingMic = recordingMicStreamRef.current;
+      if (recordingMic) {
+        recordingMic.getTracks().forEach((t) => t.stop());
+        recordingMicStreamRef.current = null;
+      }
+      const ctx = mixAudioContextRef.current;
+      if (ctx) {
+        try { ctx.close(); } catch (e) { /* ignore */ }
+        mixAudioContextRef.current = null;
       }
 
       const mr = mediaRecorderRef.current;
