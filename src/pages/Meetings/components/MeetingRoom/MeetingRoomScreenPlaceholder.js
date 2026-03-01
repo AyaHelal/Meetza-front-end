@@ -25,7 +25,7 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
                 el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
                 el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);
                 el.play().catch((err) => {
-                  console.warn("⚠️ Video play failed for admin screen:", err);
+                  if (err?.name !== "AbortError") console.warn("⚠️ Video play failed for admin screen:", err);
                 });
               }
             }}
@@ -33,7 +33,7 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
               const el = remoteVideoRefsMap?.current?.get(adminTile.socketId);
               if (el) {
                 el.play().catch((err) => {
-                  console.warn("⚠️ Video play on metadata load failed:", err);
+                  if (err?.name !== "AbortError") console.warn("⚠️ Video play on metadata load failed:", err);
                 });
               }
             }}
@@ -41,7 +41,7 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
               const el = remoteVideoRefsMap?.current?.get(adminTile.socketId);
               if (el) {
                 el.play().catch((err) => {
-                  console.warn("⚠️ Video play on canPlay failed:", err);
+                  if (err?.name !== "AbortError") console.warn("⚠️ Video play on canPlay failed:", err);
                 });
               }
             }}

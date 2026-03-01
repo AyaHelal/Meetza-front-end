@@ -17,6 +17,7 @@ export function useMeetingRoomSocketListeners({
   setHandRaisedMap,
   setReactionsMap,
   setMediaStateMap,
+  setRemoteStreams,
   toParticipant: toParticipantFn,
   localStreamRef,
   ensureLocalMedia,
@@ -259,15 +260,14 @@ export function useMeetingRoomSocketListeners({
       if (!fromSocketId || !mid || !sdp) return;
       if (mid !== meetingIdRef.current) return;
 
-      const pc = peersRef.current.get(fromSocketId);
+      let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
-        console.warn("⚠️ Received answer but no peer connection for", fromSocketId);
+        console.log("ℹ️ Ignoring answer - no PC for", fromSocketId, "(likely stale after leave/rejoin)");
         return;
       }
 
       try {
         const currentState = pc.signalingState;
-        const remoteDesc = pc.remoteDescription;
 
         if (currentState === "have-local-offer") {
           console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
@@ -287,26 +287,8 @@ export function useMeetingRoomSocketListeners({
             }
             iceQueueRef.current.delete(fromSocketId);
           }
-        } else if (currentState === "stable" && !remoteDesc) {
-          console.log("⚠️ Setting remote answer in stable state (no remote desc yet) for", fromSocketId);
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-          const queue = iceQueueRef.current.get(fromSocketId);
-          if (queue && queue.length > 0) {
-            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
-            for (const candidate of queue) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              } catch (err) {
-                if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
-                }
-              }
-            }
-            iceQueueRef.current.delete(fromSocketId);
-          }
-        } else if (currentState === "stable" && remoteDesc) {
-          console.log("ℹ️ Ignoring duplicate answer - already have remote description for", fromSocketId);
+        } else if (currentState === "stable") {
+          console.log("ℹ️ Ignoring answer - already stable (duplicate or late) for", fromSocketId);
         } else {
           console.warn("⚠️ Cannot set remote answer - wrong state:", currentState, "for", fromSocketId);
         }
@@ -326,9 +308,13 @@ export function useMeetingRoomSocketListeners({
       if (!fromSocketId || !mid || !candidate) return;
       if (mid !== meetingIdRef.current) return;
 
-      const pc = peersRef.current.get(fromSocketId);
+      let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
-        console.warn("⚠️ Received ICE candidate but no peer connection for", fromSocketId);
+        if (!iceQueueRef.current.has(fromSocketId)) {
+          iceQueueRef.current.set(fromSocketId, []);
+        }
+        iceQueueRef.current.get(fromSocketId).push(candidate);
+        console.log("📦 Queued ICE candidate (no PC yet, e.g. after rejoin) for", fromSocketId);
         return;
       }
 
@@ -437,6 +423,18 @@ export function useMeetingRoomSocketListeners({
     socket.on("meetingReaction", onReaction);
     socket.on("reactionReceived", onReaction);
 
+    const onScreenShareStarted = () => {
+      // Screen entry is added when we receive the track in ontrack; no need to update state here
+    };
+    const onScreenShareStopped = (data) => {
+      const sid = data?.socketId || data?.id;
+      const mid = data?.meetingId;
+      if (!sid || !mid || mid !== meetingIdRef.current || !setRemoteStreams) return;
+      setRemoteStreams((prev) => prev.filter((s) => !(s.socketId === sid && s.isScreenShare)));
+    };
+    socket.on("screenShareStarted", onScreenShareStarted);
+    socket.on("screenShareStopped", onScreenShareStopped);
+
     return () => {
       socket.off("participantJoined", onParticipantJoined);
       socket.off("participantLeft", onParticipantLeft);
@@ -448,6 +446,8 @@ export function useMeetingRoomSocketListeners({
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);
+      socket.off("screenShareStarted", onScreenShareStarted);
+      socket.off("screenShareStopped", onScreenShareStopped);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closePeer, createPeerConnection, socket, createAndSendOffer, ensureLocalMedia]);
