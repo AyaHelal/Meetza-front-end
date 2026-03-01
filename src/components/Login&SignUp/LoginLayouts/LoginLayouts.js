@@ -9,6 +9,7 @@ const LoginLayout = ({
     formData,
     handleInputChange,
     handleSubmit,
+    handleKeyDown,
     isLoading,
     message,
     errors,
@@ -16,8 +17,9 @@ const LoginLayout = ({
     onCaptchaChange,
     onCaptchaExpired,
     onForgotPassword,
-    onSkipCaptcha,
-    failedAttempts,
+    remainingAttempts,
+    captchaRequiredByBackend,
+    captchaToken,
     children,
     extraFields
 }) => {
@@ -38,6 +40,7 @@ const LoginLayout = ({
                         formData={formData}
                         handleInputChange={handleInputChange}
                         handleSubmit={handleSubmit}
+                        handleKeyDown={handleKeyDown}
                         isLoading={isLoading}
                         message={message}
                         errors={errors}
@@ -45,8 +48,9 @@ const LoginLayout = ({
                         onCaptchaChange={onCaptchaChange}
                         onCaptchaExpired={onCaptchaExpired}
                         onForgotPassword={onForgotPassword}
-                        onSkipCaptcha={onSkipCaptcha}
-                        failedAttempts={failedAttempts}
+                        remainingAttempts={remainingAttempts}
+                        captchaRequiredByBackend={captchaRequiredByBackend}
+                        captchaToken={captchaToken}
                         extraFields={extraFields}
                     >
                         {children}

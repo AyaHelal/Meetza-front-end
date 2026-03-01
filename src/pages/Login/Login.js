@@ -17,132 +17,127 @@ const Login = () => {
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
-    const [failedAttempts, setFailedAttempts] = useState(0);
     const [showCaptcha, setShowCaptcha] = useState(false);
     const [captchaToken, setCaptchaToken] = useState('');
+    const [remainingAttempts, setRemainingAttempts] = useState(undefined);
+    const [captchaRequiredByBackend, setCaptchaRequiredByBackend] = useState(false);
     const { loginUser } = useContext(AuthContext);
 
-    // Session-based CAPTCHA system - resets on every page load
-    useEffect(() => {
-        setFailedAttempts(0);
-        setShowCaptcha(false);
-        console.log('🔄 Session started - CAPTCHA counter reset to 0');
-    }, []);
-
-    // reCAPTCHA callback functions
-    const onCaptchaChange = (token) => {
-        console.log('✅ CAPTCHA completed successfully:', token ? 'Token received' : 'No token');
-        setCaptchaToken(token);
-        if (token) {
-            setMessage({ text: "", type: "" }); // Clear any error messages
-            console.log('🧹 Cleared error messages - CAPTCHA is now valid');
-            // Hide reCAPTCHA after completion and reset counter
-            setShowCaptcha(false);
-            setFailedAttempts(0);
-            console.log('✅ CAPTCHA completed - hiding reCAPTCHA and resetting counter');
-        }
+    const validateForm = () => {
+        const newErrors = {};
+        if (!formData.email.trim()) newErrors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Please enter a valid email address";
+        if (!formData.password.trim()) newErrors.password = "Password is required";
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
-    const onCaptchaExpired = () => {
-        console.log('⏰ CAPTCHA expired - clearing token and resetting');
-        setCaptchaToken('');
-        setMessage({
-            text: "CAPTCHA expired. Please complete it again.",
-            type: "error"
-        });
+    // Submit login. When backend asked for captcha (429), we only send token from callback.
+    const submitLogin = async (recaptchaTokenToSend = null) => {
+        if (!validateForm()) return;
 
-        // Force reset reCAPTCHA widget immediately
-        if (window.grecaptcha) {
-            try {
-                window.grecaptcha.reset();
-                console.log('🔄 reCAPTCHA widget reset immediately');
-            } catch (error) {
-                console.log('Could not reset reCAPTCHA widget');
-            }
+        if (captchaRequiredByBackend && !recaptchaTokenToSend) {
+            setMessage({ text: "Please complete the reCAPTCHA.", type: "error" });
+            return;
         }
-    };
 
-    // Reset CAPTCHA token when CAPTCHA is hidden
-    useEffect(() => {
-        if (!showCaptcha) {
-            setCaptchaToken('');
-        }
-    }, [showCaptcha]);
+        setMessage({ text: "", type: "" });
+        setIsLoading(true);
+        setRemainingAttempts(undefined);
 
-    // Re-show CAPTCHA if token is cleared and we have enough failed attempts
-    useEffect(() => {
-        if (!captchaToken && failedAttempts >= 3 && !showCaptcha) {
-            setShowCaptcha(true);
-            console.log('🔄 Re-showing CAPTCHA after token was cleared');
-        }
-    }, [captchaToken, failedAttempts, showCaptcha]);
+        const credentials = {
+            email: formData.email,
+            password: formData.password,
+            remember_me: formData.rememberMe,
+            ...(recaptchaTokenToSend && { captchaToken: recaptchaTokenToSend })
+        };
 
-    // Auto-refresh CAPTCHA after 5 seconds
-    useEffect(() => {
-        let timeoutId;
+        try {
+            const response = await login(credentials);
 
-        if (showCaptcha && captchaToken) {
-            console.log('⏰ Setting CAPTCHA auto-refresh timer (5 seconds)');
-            timeoutId = setTimeout(() => {
-                console.log('🔄 CAPTCHA expired after 5 seconds - refreshing');
-                console.log('⏰ Clearing token and showing error message');
+            if (response?.success && response?.data) {
+                const { user, token } = response.data;
+                setShowCaptcha(false);
                 setCaptchaToken('');
-                setMessage({
-                    text: "CAPTCHA expired. Please complete it again.",
-                    type: "error"
-                });
+                setCaptchaRequiredByBackend(false);
+                setRemainingAttempts(undefined);
 
-                // Force reset reCAPTCHA widget
-                if (window.grecaptcha) {
-                    try {
-                        window.grecaptcha.reset();
-                        console.log('✅ reCAPTCHA widget reset successfully');
-                    } catch (error) {
-                        console.log('❌ Could not reset reCAPTCHA widget:', error.message);
-                    }
-                } else {
-                    console.log('ℹ️ reCAPTCHA not available for reset');
+                if (window.grecaptcha?.reset) {
+                    try { window.grecaptcha.reset(); } catch (e) { /* ignore */ }
                 }
-            }, 5 * 1000); // 5 seconds
 
-            // Store timeout ID globally for cleanup
-            window.captchaTimeoutId = timeoutId;
-        }
+                loginUser(user, token, formData.rememberMe);
+                setMessage({ text: response.message || "Login successful!", type: "success" });
 
-        return () => {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                console.log('🧹 Cleared CAPTCHA timeout');
+                if (typeof window !== 'undefined' && window.PasswordCredential && navigator.credentials && formData?.email && formData?.password) {
+                    try {
+                        const cred = new window.PasswordCredential({
+                            id: formData.email,
+                            password: formData.password,
+                            name: user?.username || user?.name || formData.email
+                        });
+                        await navigator.credentials.store(cred);
+                    } catch (e) { /* ignore */ }
+                }
+
+                setTimeout(() => navigate("/home"), 500);
+            } else {
+                const msg = response?.message ?? "Login failed.";
+                setMessage({ text: msg, type: "error" });
+                if (response?.remaining !== undefined) setRemainingAttempts(response.remaining);
             }
-            delete window.captchaTimeoutId;
-        };
-    }, [showCaptcha, captchaToken]);
+        } catch (error) {
+            const res = error.response;
+            const data = res?.data || {};
+            const msg = data?.message ?? data?.data?.message ?? error.message ?? "Login failed. Please try again.";
 
-    // Make functions globally available for reCAPTCHA
+            if (res?.status === 429 && data?.requiresCaptcha) {
+                setCaptchaRequiredByBackend(true);
+                setShowCaptcha(true);
+                setMessage({ text: msg, type: "error" });
+            } else {
+                setMessage({ text: msg, type: "error" });
+                const isCaptchaError = res?.status === 400 || res?.status === 500;
+                const msgLower = (msg || "").toLowerCase();
+                if (isCaptchaError && (msgLower.includes("captcha") || msgLower.includes("recaptcha"))) {
+                    setCaptchaToken("");
+                    setShowCaptcha(true);
+                    setCaptchaRequiredByBackend(true);
+                    if (typeof window.grecaptcha?.reset === "function") {
+                        try { window.grecaptcha.reset(); } catch (e) { /* ignore */ }
+                    }
+                }
+            }
+            if (data?.remaining !== undefined) setRemainingAttempts(data.remaining);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const onCaptchaVerified = (token) => {
+        setMessage({ text: "", type: "" });
+        setRemainingAttempts(undefined);
+        setCaptchaToken(token);
+        submitLogin(token);
+    };
+
+    const onCaptchaExpired = () => setCaptchaToken('');
+
+    window.onCaptchaChange = onCaptchaVerified;
+    window.onCaptchaExpired = onCaptchaExpired;
+
     useEffect(() => {
-        window.onCaptchaChange = onCaptchaChange;
-        window.onCaptchaExpired = onCaptchaExpired;
-
-        return () => {
-            delete window.onCaptchaChange;
-            delete window.onCaptchaExpired;
-        };
-    }, []);
+        if (!showCaptcha) setCaptchaToken('');
+    }, [showCaptcha]);
 
     // Auto-scroll to reCAPTCHA when it becomes visible
     useEffect(() => {
         if (showCaptcha) {
             const scrollToCaptcha = () => {
                 const captchaElement = document.querySelector('.g-recaptcha');
-                if (captchaElement) {
-                    captchaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    console.log("✅ Scrolled to reCAPTCHA");
-                } else {
-                    console.log("❌ reCAPTCHA not found yet, retrying...");
-                    setTimeout(scrollToCaptcha, 500); // retry until found
-                }
+                if (captchaElement) captchaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                else setTimeout(scrollToCaptcha, 500);
             };
-
             setTimeout(scrollToCaptcha, 300);
         }
     }, [showCaptcha]);
@@ -153,183 +148,24 @@ const Login = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : (type === 'radio' ? value : value)
         }));
-
-        // Clear error for this field when user starts typing
-        if (errors[name]) {
-            setErrors(prev => ({
-                ...prev,
-                [name]: ''
-            }));
-        }
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
+        submitLogin();
+    };
 
-        // Validation logic
-        const newErrors = {};
-
-        // Email validation
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = "Please enter a valid email address";
-        }
-
-        // Password validation
-        if (!formData.password.trim()) {
-            newErrors.password = "Password is required";
-        }
-
-        // If there are validation errors, set them and prevent submission
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        // Clear errors on successful validation
-        setErrors({});
-
-        // Clear any existing CAPTCHA timeout
-        if (window.captchaTimeoutId) {
-            clearTimeout(window.captchaTimeoutId);
-            delete window.captchaTimeoutId;
-            console.log('🧹 Cleared existing CAPTCHA timeout');
-        }
-
-        // Check if CAPTCHA is required and not completed
-        if (showCaptcha && !captchaToken) {
-            setMessage({
-                text: "Please complete the reCAPTCHA verification",
-                type: "error"
-            });
-            return;
-        }
-
-        // Log CAPTCHA status for debugging
-        if (showCaptcha) {
-            console.log('🔐 Sending request with CAPTCHA token:', captchaToken ? 'Present' : 'Missing');
-        }
-
-        // Log current attempt count
-        console.log(`📊 Login attempt ${failedAttempts + 1} - showCaptcha: ${showCaptcha}`);
-
-        setIsLoading(true);
-        setMessage({ text: "", type: "" });
-
-        try {
-            const credentials = {
-                email: formData.email,
-                password: formData.password,
-                remember_me: formData.rememberMe,
-                ...(showCaptcha && captchaToken && { captchaToken })
-            };
-
-            const response = await login(credentials);
-            console.log("✅ Login successful:", response);
-
-            if (response.success) {
-                const { user, token } = response.data;
-
-                // Reset failed attempts on successful login (CAPTCHA system)
-                setFailedAttempts(0);
-                setShowCaptcha(false);
-                setCaptchaToken('');
-
-                // Force reset reCAPTCHA widget if it exists
-                if (window.grecaptcha) {
-                    try {
-                        window.grecaptcha.reset();
-                        console.log('🔄 reCAPTCHA widget reset');
-                    } catch (error) {
-                        console.log('ℹ️ No reCAPTCHA widget to reset');
-                    }
-                }
-
-                loginUser(user, token, formData.rememberMe);
-                setMessage({ text: response.message || "Login successful!", type: "success" });
-
-
-
-                // Store credentials in the browser's Password Manager (optional enhancement)
-                if (
-                    typeof window !== 'undefined' &&
-                    window.PasswordCredential &&
-                    navigator.credentials &&
-                    formData?.email &&
-                    formData?.password
-                ) {
-                    try {
-                        const cred = new window.PasswordCredential({
-                            id: formData.email,
-                            password: formData.password,
-                            name: user?.username || user?.name || formData.email
-                        });
-                        await navigator.credentials.store(cred);
-                        console.log('🔐 Credentials stored in Password Manager');
-                    } catch (e) {
-                        console.log('ℹ️ Skipped credential store:', e?.message || e);
-                    }
-                }
-
-                setTimeout(() => navigate("/home"), 500);
-            } else {
-                // Increment failed attempts on response error
-                const newAttempts = failedAttempts + 1;
-                setFailedAttempts(newAttempts);
-
-                // Show CAPTCHA after 3 failed attempts (session-based)
-                if (newAttempts >= 3) {
-                    setShowCaptcha(true);
-                    setMessage({
-                        text: "Too many failed attempts. Please complete the CAPTCHA verification.",
-                        type: "error"
-                    });
-                    console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
-                } else {
-                    setMessage({ text: response.message || "Invalid email or password", type: "error" });
-                }
-            }
-        } catch (error) {
-            console.error("❌ Login error:", error);
-
-            // Increment failed attempts on error
-            const newAttempts = failedAttempts + 1;
-            setFailedAttempts(newAttempts);
-
-            // Show CAPTCHA after 3 failed attempts (session-based)
-            if (newAttempts >= 3) {
-                setShowCaptcha(true);
-                setMessage({
-                    text: "Too many failed attempts. Please complete the CAPTCHA verification.",
-                    type: "error"
-                });
-                console.log(`🚨 CAPTCHA triggered after ${newAttempts} failed attempts`);
-            } else {
-                setMessage({
-                    text: error.response?.data?.message || "Error occurred during login",
-                    type: "error"
-                });
-            }
-        } finally {
-            setIsLoading(false);
-            console.log('📊 Login attempt finished - showCaptcha:', showCaptcha, 'captchaToken:', captchaToken ? 'Present' : 'Empty', 'message:', message.text);
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (captchaRequiredByBackend) return;
+            submitLogin();
         }
     };
 
     const handleSignUpClick = () => navigate('/signup', { replace: true });
     const handleForgotPassword = () => navigate('/forgot-password');
-
-    const handleSkipCaptcha = () => {
-        setShowCaptcha(false);
-        setCaptchaToken('');
-        setFailedAttempts(0);
-        setMessage({
-            text: "CAPTCHA skipped. Please try logging in again.",
-            type: "info"
-        });
-        console.log('⏭️ CAPTCHA skipped - resetting all states');
-    };
 
     return (
         <LayoutWrapper activeTab="signin">
@@ -339,15 +175,17 @@ const Login = () => {
                 formData={formData}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
+                handleKeyDown={handleKeyDown}
                 isLoading={isLoading}
                 message={message}
                 errors={errors}
                 showCaptcha={showCaptcha}
-                onCaptchaChange={onCaptchaChange}
+                onCaptchaChange={onCaptchaVerified}
                 onCaptchaExpired={onCaptchaExpired}
                 onForgotPassword={handleForgotPassword}
-                onSkipCaptcha={handleSkipCaptcha}
-                failedAttempts={failedAttempts}
+                remainingAttempts={remainingAttempts}
+                captchaRequiredByBackend={captchaRequiredByBackend}
+                captchaToken={captchaToken}
                 extraFields={null}
             />
         </LayoutWrapper>
