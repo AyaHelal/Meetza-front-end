@@ -91,24 +91,26 @@ function GroupChatLayout({
         loading={chatLoading}
       />
 
-      <RightSidebar
-        groupInfo={groupInfo}
-        calendarEvents={calendarEvents}
-        user={currentUser}
-        isMobile={isMobile}
-        showMainChat={showMainChat}
-        activeSection={activeInfoSection}
-        onSelectSection={onSelectSection}
-        contentSummary={contentResources}
-        mediaSummary={mediaSummary}
-        memberCount={groupMembers?.length ?? 0}
-        showMobile={showRightSidebarMobile}
-        selectedChat={selectedChat}
-        onCloseMobile={onCloseMobile}
-        onOpenSidebar={onOpenSidebar}
-        onOpenNotifications={onOpenNotifications}
-        unreadNotificationCount={unreadNotificationCount}
-      />
+      {selectedChatData && (
+        <RightSidebar
+          groupInfo={groupInfo}
+          calendarEvents={calendarEvents}
+          user={currentUser}
+          isMobile={isMobile}
+          showMainChat={showMainChat}
+          activeSection={activeInfoSection}
+          onSelectSection={onSelectSection}
+          contentSummary={contentResources}
+          mediaSummary={mediaSummary}
+          memberCount={groupMembers?.length ?? 0}
+          showMobile={showRightSidebarMobile}
+          selectedChat={selectedChat}
+          onCloseMobile={onCloseMobile}
+          onOpenSidebar={onOpenSidebar}
+          onOpenNotifications={onOpenNotifications}
+          unreadNotificationCount={unreadNotificationCount}
+        />
+      )}
     </div>
   );
 }

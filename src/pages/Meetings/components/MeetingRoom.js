@@ -895,24 +895,35 @@ const MeetingRoom = ({ recordRegionRef }) => {
     };
   }, [stopRecording]);
 
-  // For admins: separate tiles into members and admin
+  // For admins: separate tiles into members and admin.
+  // If admin is sharing screen, prefer showing the screen-share tile as the admin tile instead of the camera tile.
   const { memberTiles, adminTile } = useMemo(() => {
     if (!isMeetingAdmin) {
       return { memberTiles: unifiedTiles, adminTile: null };
     }
-    const members = unifiedTiles.filter(tile => !tile.isSelf);
-    const admin = unifiedTiles.find(tile => tile.isSelf);
+    const members = unifiedTiles.filter((tile) => !tile.isSelf);
+    const adminScreenTile = unifiedTiles.find(
+      (tile) => tile.isSelf && tile.isScreenShare
+    );
+    const adminCameraTile = unifiedTiles.find(
+      (tile) => tile.isSelf && !tile.isScreenShare
+    );
+    const admin = adminScreenTile || adminCameraTile || null;
     return { memberTiles: members, adminTile: admin };
   }, [unifiedTiles, isMeetingAdmin]);
 
-  // For members: find the admin's tile to show in slide2
+  // For members: find the admin's tile to show in slide2.
+  // Prefer the admin's screen-share tile if available; fallback to their camera tile.
   const adminTileForMembers = useMemo(() => {
     if (isMeetingAdmin || !meetingInfo?.administrator_id) return null;
-    // Find the admin participant by matching administrator_id
-    return unifiedTiles.find(tile => {
+    // Find all tiles that belong to the admin participant
+    const adminTiles = unifiedTiles.filter((tile) => {
       const tileUserId = tile?.member_id || tile?.user_id || tile?.userId || tile?.id;
       return tileUserId && String(tileUserId) === String(meetingInfo.administrator_id);
     });
+    if (!adminTiles.length) return null;
+    const screenTile = adminTiles.find((tile) => tile.isScreenShare);
+    return screenTile || adminTiles[0] || null;
   }, [unifiedTiles, meetingInfo?.administrator_id, isMeetingAdmin]);
 
   // Reset activeSlide to 0 if admin and currently on slide 2
