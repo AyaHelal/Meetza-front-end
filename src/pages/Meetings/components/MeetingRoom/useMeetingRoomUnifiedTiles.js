@@ -87,7 +87,7 @@ export function useMeetingRoomUnifiedTiles({
             isScreenShare: isScreen,
             isScreenOnlyTile: isScreen,
             showVideo: !!showVideo,
-            label: isScreen ? base.label + " (شاشة)" : base.label,
+            label: isScreen ? base.label + " (Screen)" : base.label,
           });
         });
       }
