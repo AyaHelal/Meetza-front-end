@@ -1,12 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { loadHandRaisedMapFromStorage, loadReactionsFromStorage } from "./meetingRoomStorage";
+import { loadHandRaisedMapFromStorage, loadReactionsFromStorage } from "../components/meetingRoomStorage";
+import * as meetingSocketService from "../services/meetingSocketService";
 
 const EMOJI_LIST = ["👍", "❤️", "😂", "👏", "😮", "🎉"];
 
 /**
- * Reactions state, floating emojis, addReactionToMap, spawnFloatingEmojis, and effects for loading from storage + closing picker on outside click.
+ * Reactions state, floating emojis, addReactionToMap, spawnFloatingEmojis, handleSendLike, selectEmoji, and effects for loading from storage + closing picker on outside click.
  */
-export function useMeetingRoomReactions({ meetingId, setHandRaisedMap, meetingIdRef }) {
+export function useMeetingRoomReactions({
+  meetingId,
+  setHandRaisedMap,
+  meetingIdRef,
+  socket,
+  user,
+  selfMemberId,
+  selfEmail,
+}) {
   const [reactionsMap, setReactionsMap] = useState(() => ({}));
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -73,6 +82,61 @@ export function useMeetingRoomReactions({ meetingId, setHandRaisedMap, meetingId
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [showEmojiPicker]);
 
+  const handleSendLike = useCallback(() => {
+    const mid = meetingIdRef?.current;
+    if (!socket || !mid) {
+      console.warn("⚠️ Cannot send reaction - socket or meetingId missing");
+      return;
+    }
+    const payload = {
+      meetingId: mid,
+      type: "like",
+      member_id: selfMemberId,
+      member_name: user?.name || user?.member_name || user?.email || "You",
+      fromSocketId: socket.id,
+    };
+    meetingSocketService.sendReactionPayload(socket, payload, (ack) => {
+      if (ack && !ack.ok) console.error("❌ Reaction emit failed:", ack);
+    });
+    try {
+      const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
+      const name = user?.name || user?.member_name || user?.email || "You";
+      addReactionToMap(key, "like", name);
+    } catch (e) {
+      console.warn("Could not add local reaction:", e);
+    }
+  }, [meetingIdRef, socket, user, selfMemberId, selfEmail, addReactionToMap]);
+
+  const selectEmoji = useCallback(
+    (emoji) => {
+      const mid = meetingIdRef?.current;
+      if (!mid || !socket) {
+        console.warn("⚠️ Cannot send emoji - socket or meetingId missing");
+        return;
+      }
+      const payload = {
+        meetingId: mid,
+        type: emoji,
+        member_id: selfMemberId,
+        member_name: user?.name || user?.member_name || user?.email || "You",
+        fromSocketId: socket.id,
+      };
+      meetingSocketService.sendReactionPayload(socket, payload, (ack) => {
+        if (ack && !ack.ok) console.error("❌ Emoji reaction emit failed:", ack);
+      });
+      try {
+        const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
+        const name = user?.name || user?.member_name || user?.email || "You";
+        addReactionToMap(key, emoji, name);
+      } catch (e) {
+        console.warn("Could not add emoji locally:", e);
+      }
+      spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 1);
+      setShowEmojiPicker(false);
+    },
+    [meetingIdRef, socket, user, selfMemberId, selfEmail, addReactionToMap, spawnFloatingEmojis]
+  );
+
   return {
     reactionsMap,
     setReactionsMap,
@@ -83,5 +147,7 @@ export function useMeetingRoomReactions({ meetingId, setHandRaisedMap, meetingId
     floatingEmojis,
     addReactionToMap,
     spawnFloatingEmojis,
+    handleSendLike,
+    selectEmoji,
   };
 }

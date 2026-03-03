@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import api from "../../../../API/axiosInstance";
+import api from "../../../API/axiosInstance";
 
 /**
  * Runs: fetch meeting title when meetingId changes, periodic meeting status check, meetingEnded socket listener.

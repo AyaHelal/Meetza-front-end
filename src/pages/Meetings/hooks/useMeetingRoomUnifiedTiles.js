@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { getCameraTrack, getScreenShareTrack } from "./meetingRoomUtils";
+import { getCameraTrack, getScreenShareTrack } from "../components/meetingRoomUtils";
 
 /**
+ * Unified tiles for grid/slider. Returns unifiedTiles, memberTiles, adminTile, adminTileForMembers.
  */
 export function useMeetingRoomUnifiedTiles({
   participants,
@@ -13,8 +14,10 @@ export function useMeetingRoomUnifiedTiles({
   mediaStateMap,
   localStreamRef,
   localStream,
+  isMeetingAdmin,
+  meetingInfo,
 }) {
-  return useMemo(() => {
+  const unifiedTiles = useMemo(() => {
     const list = Array.isArray(participants) ? participants : [];
     const tiles = [];
 
@@ -95,4 +98,28 @@ export function useMeetingRoomUnifiedTiles({
 
     return tiles;
   }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap, localStreamRef, localStream]);
+
+  const { memberTiles, adminTile } = useMemo(() => {
+    if (!isMeetingAdmin) {
+      return { memberTiles: unifiedTiles, adminTile: null };
+    }
+    const members = unifiedTiles.filter((tile) => !tile.isSelf);
+    const adminScreenTile = unifiedTiles.find((tile) => tile.isSelf && tile.isScreenShare);
+    const adminCameraTile = unifiedTiles.find((tile) => tile.isSelf && !tile.isScreenShare);
+    const admin = adminScreenTile || adminCameraTile || null;
+    return { memberTiles: members, adminTile: admin };
+  }, [unifiedTiles, isMeetingAdmin]);
+
+  const adminTileForMembers = useMemo(() => {
+    if (isMeetingAdmin || !meetingInfo?.administrator_id) return null;
+    const adminTiles = unifiedTiles.filter((tile) => {
+      const tileUserId = tile?.member_id || tile?.user_id || tile?.userId || tile?.id;
+      return tileUserId && String(tileUserId) === String(meetingInfo.administrator_id);
+    });
+    if (!adminTiles.length) return null;
+    const screenTile = adminTiles.find((tile) => tile.isScreenShare);
+    return screenTile || adminTiles[0] || null;
+  }, [unifiedTiles, meetingInfo?.administrator_id, isMeetingAdmin]);
+
+  return { unifiedTiles, memberTiles, adminTile, adminTileForMembers };
 }

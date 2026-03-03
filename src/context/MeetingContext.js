@@ -17,7 +17,6 @@ export const MeetingProvider = ({ children }) => {
   const [meetingId, setMeetingIdState] = useState(null);
   const [hasJoined, setHasJoined] = useState(false);
   const [localParticipantAudioMuted, setLocalParticipantAudioMutedState] = useState({});
-  /** مشارك = مقفول/مفتوح مايك من عنده (من updateMediaState أو adminMute) - للعرض في Participants */
   const [mediaStateMap, setMediaStateMapState] = useState({});
   const setMediaStateMap = useCallback((updater) => {
     setMediaStateMapState((prev) => (typeof updater === "function" ? updater(prev) : updater));

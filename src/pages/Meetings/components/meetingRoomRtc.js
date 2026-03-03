@@ -1,4 +1,19 @@
+/**
+ * Meeting room WebRTC orchestration – uses webrtcService and meetingSocketService.
+ * Same public API as before; business logic delegated to services.
+ */
 import { isScreenShareVideoTrack, getCameraTrack, isScreenShareStream } from "./meetingRoomUtils";
+import * as webrtcService from "../../../services/webrtcService";
+import * as meetingSocketService from "../../services/meetingSocketService";
+
+const AUDIO_CONSTRAINTS = {
+  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+  video: false,
+};
+const VIDEO_CONSTRAINTS = {
+  video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+  audio: false,
+};
 
 /** Add local tracks to all existing peer connections and renegotiate if needed. */
 export function addTracksToAllPeersImpl(opts) {
@@ -6,20 +21,21 @@ export function addTracksToAllPeersImpl(opts) {
   const stream = localStreamRef.current;
   if (!stream) return;
 
+  const audioTracks = stream.getAudioTracks();
+
   for (const [peerSocketId, pc] of peersRef.current.entries()) {
     if (pc.signalingState !== "stable" && pc.signalingState !== "have-local-offer" && pc.signalingState !== "have-remote-offer") {
       console.log("⏸️ Skipping track addition for", peerSocketId, "- connection is negotiating (state:", pc.signalingState + ")");
       continue;
     }
     const senders = pc.getSenders();
-    const audioTracks = stream.getAudioTracks();
     let addedAny = false;
     stream.getTracks().forEach((t) => {
       const existing = senders.find((s) => s.track === t);
       if (!existing) {
         try {
           const trackStream = new MediaStream([t, ...audioTracks]);
-          pc.addTrack(t, trackStream);
+          webrtcService.addTrack(pc, t, trackStream);
           console.log("➕ Added track to peer", peerSocketId, { kind: t.kind, isScreenShare: t.kind === "video" && isScreenShareVideoTrack(t) });
           addedAny = true;
         } catch (err) {
@@ -30,12 +46,12 @@ export function addTracksToAllPeersImpl(opts) {
     if (addedAny && pc.signalingState === "stable" && !makingOfferRef.current) {
       setTimeout(() => {
         if (pc.signalingState === "stable" && !makingOfferRef.current) {
-          pc.createOffer()
-            .then((offer) => pc.setLocalDescription(offer))
+          webrtcService.createOffer(pc)
+            .then((offer) => webrtcService.setLocalDescription(pc, offer))
             .then(() => {
               const mid = meetingIdRef.current;
               if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: pc.localDescription }, () => { });
+                meetingSocketService.sendWebrtcOffer(socket, mid, peerSocketId, pc.localDescription, () => {});
                 console.log("📤 Renegotiated after adding tracks to", peerSocketId);
               }
             })
@@ -57,10 +73,7 @@ export async function ensureLocalMediaImpl(opts) {
     const stream = localStreamRef.current;
     if (stream.getTracks().length === 0) {
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          video: false,
-        });
+        const mediaStream = await webrtcService.getUserMedia(AUDIO_CONSTRAINTS);
         mediaStream.getAudioTracks().forEach((t) => {
           t.enabled = false;
           stream.addTrack(t);
@@ -72,12 +85,9 @@ export async function ensureLocalMediaImpl(opts) {
     }
     return stream;
   }
-  const stream = new MediaStream();
+  const stream = webrtcService.createEmptyStream();
   try {
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: false,
-    });
+    const mediaStream = await webrtcService.getUserMedia(AUDIO_CONSTRAINTS);
     mediaStream.getAudioTracks().forEach((t) => {
       t.enabled = false;
       stream.addTrack(t);
@@ -90,22 +100,6 @@ export async function ensureLocalMediaImpl(opts) {
   setLocalStream(stream);
   console.log("✅ Created local stream with muted audio for negotiation");
   return stream;
-}
-
-// FIX: Helper to wait until a stream has at least one live track.
-// This solves the race condition where offers are sent before the browser
-// has finished initializing the media tracks from getUserMedia.
-async function waitForLiveTracks(localStreamRef, timeoutMs = 2000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const stream = localStreamRef.current;
-    if (stream && stream.getTracks().some(t => t.readyState === "live")) {
-      return stream;
-    }
-    await new Promise(r => setTimeout(r, 80));
-  }
-  console.warn("⚠️ waitForLiveTracks timed out - proceeding anyway");
-  return localStreamRef.current;
 }
 
 /** Create and send WebRTC offer to target peer. */
@@ -131,10 +125,7 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
       }
     }
 
-    // FIX: Wait for live tracks before adding them to the peer connection.
-    // Previously we'd add tracks immediately, but they could be in "initializing"
-    // state, causing the remote peer to receive them as inactive/black.
-    await waitForLiveTracks(localStreamRef, 2000);
+    await webrtcService.waitForLiveTracks(() => localStreamRef.current, 2000);
     stream = localStreamRef.current;
 
     if (stream) {
@@ -142,20 +133,19 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
         const existing = pc.getSenders().find((s) => s.track && s.track.kind === t.kind);
         if (!existing) {
           console.log("➕ Adding track to peer connection before offer:", { kind: t.kind, enabled: t.enabled, readyState: t.readyState });
-          pc.addTrack(t, stream);
+          webrtcService.addTrack(pc, t, stream);
         }
       });
     } else {
       console.warn("⚠️ No local stream available - offer may fail");
     }
 
-    // Small pause to let the browser register the added tracks before creating the offer
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+    const offer = await webrtcService.createOffer(pc);
+    await webrtcService.setLocalDescription(pc, offer);
     const mid = meetingIdRef.current;
-    socket.emit("webrtcOffer", { toSocketId: targetSocketId, meetingId: mid, sdp: offer }, (ack) => {
+    meetingSocketService.sendWebrtcOffer(socket, mid, targetSocketId, offer, (ack) => {
       if (ack && !ack.ok) {
         console.error("❌ Offer send failed:", ack);
       } else {
@@ -194,16 +184,10 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
   if (needAudio && (!hasAudio || !hasEnabledAudio)) {
     try {
       if (hasAudio && !hasEnabledAudio) {
-        // Unmuting after mute: replace with a fresh audio track so mic works reliably (re-enabling alone can fail in some browsers).
         for (const [, pc] of peersRef.current.entries()) {
           const audioSenders = pc.getSenders().filter((s) => s.track && s.track.kind === "audio");
           audioSenders.forEach((sender) => {
-            try {
-              if (sender.track) sender.track.stop();
-              pc.removeTrack(sender);
-            } catch (err) {
-              console.warn("Error removing old audio sender:", err);
-            }
+            webrtcService.removeTrack(pc, sender, true);
           });
         }
         audioTracks.forEach((t) => {
@@ -212,10 +196,7 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
         });
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
+      const mediaStream = await webrtcService.getUserMedia(AUDIO_CONSTRAINTS);
       mediaStream.getAudioTracks().forEach((t) => {
         t.enabled = true;
         stream.addTrack(t);
@@ -228,13 +209,9 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
     }
   }
 
-  // اسمح بإضافة كاميرا حتى لو الـ stream فيه شير (مربع الصورة/الكاميرا يفتح الكاميرا أثناء الشير)
   if (needVideo && !hasCamera) {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: false,
-      });
+      const mediaStream = await webrtcService.getUserMedia(VIDEO_CONSTRAINTS);
       const vt = mediaStream.getVideoTracks()[0];
       if (vt) {
         vt.enabled = true;
@@ -252,10 +229,7 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
 }
 
 /**
- * Creates an RTCPeerConnection for the given peer, sets up event handlers, adds local tracks, registers with MediaContext.
- * @param {string} peerSocketId
- * @param {object} opts - { socket, meetingIdRef, localStreamRef, politeRef, createAndSendOfferRef, upsertRemoteStream, registerPeerConnection, setMediaStateMap, setRemoteStreams }
- * @returns {RTCPeerConnection}
+ * Creates an RTCPeerConnection for the given peer using webrtcService and meetingSocketService.
  */
 export function createPeerConnectionImpl(peerSocketId, opts) {
   const {
@@ -270,124 +244,107 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     setRemoteStreams,
   } = opts;
 
-  const pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-  });
-
-  pc.onicecandidate = (event) => {
-    if (!event.candidate) return;
-    if (!socket) return;
-    const mid = meetingIdRef.current;
-    if (!mid) return;
-    socket.emit(
-      "webrtcIceCandidate",
-      { toSocketId: peerSocketId, meetingId: mid, candidate: event.candidate },
-      () => { }
-    );
-  };
-
-  pc.onconnectionstatechange = () => {
-    const state = pc.connectionState;
-    console.log(`🔗 Peer connection state changed for ${peerSocketId}:`, state);
-
-    if (state === "failed" || state === "disconnected") {
-      console.warn(`⚠️ Connection ${state} for ${peerSocketId}, attempting to recover...`);
-      const isPolite = politeRef.current.get(peerSocketId);
-      if (!isPolite && state === "failed") {
-        setTimeout(() => {
-          if (createAndSendOfferRef.current) {
-            createAndSendOfferRef.current(peerSocketId).catch((err) => {
-              console.error("❌ Failed to recover connection:", err);
-            });
-          }
-        }, 1000);
+  const pc = webrtcService.createPeerConnection({
+    onIceCandidate: (candidate) => {
+      const mid = meetingIdRef.current;
+      if (socket && mid) {
+        meetingSocketService.sendIceCandidate(socket, mid, peerSocketId, candidate, () => {});
       }
-    } else if (state === "connected") {
-      console.log(`✅ Connection established with ${peerSocketId}`);
-    }
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    const iceState = pc.iceConnectionState;
-    console.log(`🧊 ICE connection state for ${peerSocketId}:`, iceState);
-
-    if (iceState === "failed" || iceState === "disconnected") {
-      console.warn(`⚠️ ICE connection ${iceState} for ${peerSocketId}`);
-      if (iceState === "failed") {
-        try {
-          pc.restartIce();
+    },
+    onConnectionStateChange: () => {
+      const state = pc.connectionState;
+      console.log(`🔗 Peer connection state changed for ${peerSocketId}:`, state);
+      if (state === "failed" || state === "disconnected") {
+        console.warn(`⚠️ Connection ${state} for ${peerSocketId}, attempting to recover...`);
+        const isPolite = politeRef.current.get(peerSocketId);
+        if (!isPolite && state === "failed") {
+          setTimeout(() => {
+            if (createAndSendOfferRef.current) {
+              createAndSendOfferRef.current(peerSocketId).catch((err) => {
+                console.error("❌ Failed to recover connection:", err);
+              });
+            }
+          }, 1000);
+        }
+      } else if (state === "connected") {
+        console.log(`✅ Connection established with ${peerSocketId}`);
+      }
+    },
+    onIceConnectionStateChange: () => {
+      const iceState = pc.iceConnectionState;
+      console.log(`🧊 ICE connection state for ${peerSocketId}:`, iceState);
+      if (iceState === "failed" || iceState === "disconnected") {
+        console.warn(`⚠️ ICE connection ${iceState} for ${peerSocketId}`);
+        if (iceState === "failed") {
+          webrtcService.restartIce(pc);
           console.log("🔄 Restarted ICE for", peerSocketId);
-        } catch (err) {
-          console.error("❌ Failed to restart ICE:", err);
         }
       }
-    }
-  };
+    },
+    onTrack: (event) => {
+      const [stream] = event.streams || [];
+      if (stream) {
+        console.log("📥 Received track from", peerSocketId, {
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length,
+          videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
+          audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
+        });
 
-  pc.ontrack = (event) => {
-    const [stream] = event.streams || [];
-    if (stream) {
-      console.log("📥 Received track from", peerSocketId, {
-        videoTracks: stream.getVideoTracks().length,
-        audioTracks: stream.getAudioTracks().length,
-        videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
-        audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
-      });
+        const isScreenShare = isScreenShareStream(stream);
+        upsertRemoteStream(peerSocketId, stream, isScreenShare);
+        const liveVt = stream.getVideoTracks().find((t) => t.readyState === "live");
 
-      const isScreenShare = isScreenShareStream(stream);
-      upsertRemoteStream(peerSocketId, stream, isScreenShare);
-      const liveVt = stream.getVideoTracks().find((t) => t.readyState === "live");
+        if (liveVt && !isScreenShare && liveVt.enabled && liveVt.readyState === "live") {
+          setMediaStateMap((prev) => ({
+            ...prev,
+            [peerSocketId]: { ...prev[peerSocketId], videoMuted: false },
+          }));
+        }
 
-      if (liveVt && !isScreenShare && liveVt.enabled && liveVt.readyState === "live") {
-        setMediaStateMap((prev) => ({
-          ...prev,
-          [peerSocketId]: { ...prev[peerSocketId], videoMuted: false },
-        }));
+        const at = stream.getAudioTracks()[0];
+        if (at && at.enabled && at.readyState === "live") {
+          setMediaStateMap((prev) => ({
+            ...prev,
+            [peerSocketId]: { ...prev[peerSocketId], audioMuted: false },
+          }));
+        }
+
+        stream.getTracks().forEach((track) => {
+          track.onended = () => {
+            console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
+            if (stream.getTracks().every((t) => t.readyState === "ended")) {
+              setRemoteStreams((prev) => prev.filter((s) => s.socketId !== peerSocketId));
+            } else {
+              setRemoteStreams((prev) => prev.filter((s) => !(s.socketId === peerSocketId && s.stream === stream)));
+            }
+          };
+          track.onmute = () => {
+            console.log(`🔇 Track muted for ${peerSocketId}:`, track.kind);
+            if (track.kind === "video") {
+              setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: true } }));
+            } else if (track.kind === "audio") {
+              setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], audioMuted: true } }));
+            }
+          };
+          track.onunmute = () => {
+            console.log(`🔊 Track unmuted for ${peerSocketId}:`, track.kind);
+            if (track.kind === "video") {
+              setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: false } }));
+            } else if (track.kind === "audio") {
+              setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], audioMuted: false } }));
+            }
+          };
+        });
       }
+    },
+  });
 
-      const at = stream.getAudioTracks()[0];
-      if (at && at.enabled && at.readyState === "live") {
-        setMediaStateMap((prev) => ({
-          ...prev,
-          [peerSocketId]: { ...prev[peerSocketId], audioMuted: false },
-        }));
-      }
-
-      stream.getTracks().forEach((track) => {
-        track.onended = () => {
-          console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
-          if (stream.getTracks().every((t) => t.readyState === "ended")) {
-            setRemoteStreams((prev) => prev.filter((s) => s.socketId !== peerSocketId));
-          } else {
-            setRemoteStreams((prev) => prev.filter((s) => !(s.socketId === peerSocketId && s.stream === stream)));
-          }
-        };
-        track.onmute = () => {
-          console.log(`🔇 Track muted for ${peerSocketId}:`, track.kind);
-          if (track.kind === "video") {
-            setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: true } }));
-          } else if (track.kind === "audio") {
-            setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], audioMuted: true } }));
-          }
-        };
-        track.onunmute = () => {
-          console.log(`🔊 Track unmuted for ${peerSocketId}:`, track.kind);
-          if (track.kind === "video") {
-            setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: false } }));
-          } else if (track.kind === "audio") {
-            setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], audioMuted: false } }));
-          }
-        };
-      });
-    }
-  };
-
-  // Add tracks so receiver gets separate streams for camera vs screen (two tiles per participant).
   const stream = localStreamRef.current;
   if (stream) {
     const audioTracks = stream.getAudioTracks();
-    const liveTracks = stream.getTracks().filter(t => t.readyState === "live");
-    const pendingTracks = stream.getTracks().filter(t => t.readyState !== "live");
+    const liveTracks = stream.getTracks().filter((t) => t.readyState === "live");
+    const pendingTracks = stream.getTracks().filter((t) => t.readyState !== "live");
 
     if (pendingTracks.length > 0) {
       console.warn(`⚠️ ${pendingTracks.length} track(s) not yet live for peer ${peerSocketId} - they will be added once ready`);
@@ -399,7 +356,7 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
       }
       const trackStream = new MediaStream([t, ...audioTracks]);
       console.log("➕ Adding live local track to peer", peerSocketId, { kind: t.kind, isScreenShare: isScreenShareVideoTrack(t) });
-      pc.addTrack(t, trackStream);
+      webrtcService.addTrack(pc, t, trackStream);
     });
   } else {
     console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);

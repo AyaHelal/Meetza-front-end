@@ -1,5 +1,7 @@
 import { useEffect } from "react";
-import { toParticipant } from "./meetingRoomUtils";
+import { toParticipant } from "../components/meetingRoomUtils";
+import * as webrtcService from "../../../services/webrtcService";
+import * as meetingSocketService from "../services/meetingSocketService";
 
 /**
  * Sets up socket listeners for meeting room (participants, WebRTC signaling, hand raised, media state, reactions).
@@ -207,7 +209,7 @@ export function useMeetingRoomSocketListeners({
             const existing = senders.find((s) => s.track && s.track.kind === track.kind);
             if (!existing) {
               try {
-                pc.addTrack(track, stream);
+                webrtcService.addTrack(pc, track, stream);
                 console.log("➕ Added local track to peer (before answer):", fromSocketId, { kind: track.kind });
               } catch (err) {
                 console.warn("⚠️ Failed to add track before answer:", err);
@@ -217,14 +219,14 @@ export function useMeetingRoomSocketListeners({
         }
 
         console.log("📥 Setting remote offer from", fromSocketId, "state:", pc.signalingState);
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        await webrtcService.setRemoteDescription(pc, sdp);
 
         const queue = iceQueueRef.current.get(fromSocketId);
         if (queue && queue.length > 0) {
           console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
           for (const candidate of queue) {
             try {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+              await webrtcService.addIceCandidate(pc, candidate);
             } catch (err) {
               if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
                 console.warn("⚠️ Failed to process queued ICE candidate:", err);
@@ -234,20 +236,16 @@ export function useMeetingRoomSocketListeners({
           iceQueueRef.current.delete(fromSocketId);
         }
 
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        const answer = await webrtcService.createAnswer(pc);
+        await webrtcService.setLocalDescription(pc, answer);
         console.log("📤 Sending answer to", fromSocketId);
-        socket.emit(
-          "webrtcAnswer",
-          { toSocketId: fromSocketId, meetingId: mid, sdp: answer },
-          (ack) => {
-            if (ack && !ack.ok) {
-              console.error("❌ Answer send failed:", ack);
-            } else {
-              console.log("✅ Answer sent successfully to", fromSocketId);
-            }
+        meetingSocketService.sendWebrtcAnswer(socket, mid, fromSocketId, answer, (ack) => {
+          if (ack && !ack.ok) {
+            console.error("❌ Answer send failed:", ack);
+          } else {
+            console.log("✅ Answer sent successfully to", fromSocketId);
           }
-        );
+        });
       } catch (err) {
         console.error("❌ Error handling offer:", err, "for", fromSocketId);
       }
@@ -271,14 +269,14 @@ export function useMeetingRoomSocketListeners({
 
         if (currentState === "have-local-offer") {
           console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+          await webrtcService.setRemoteDescription(pc, sdp);
 
           const queue = iceQueueRef.current.get(fromSocketId);
           if (queue && queue.length > 0) {
             console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
             for (const candidate of queue) {
               try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                await webrtcService.addIceCandidate(pc, candidate);
               } catch (err) {
                 if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
                   console.warn("⚠️ Failed to process queued ICE candidate:", err);
@@ -328,7 +326,7 @@ export function useMeetingRoomSocketListeners({
       }
 
       try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        await webrtcService.addIceCandidate(pc, candidate);
         console.log("✅ Added ICE candidate for", fromSocketId);
       } catch (err) {
         if (err.name === "InvalidStateError" && pc.connectionState !== "new") {

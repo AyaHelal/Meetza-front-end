@@ -1,5 +1,7 @@
 import { createContext, useContext, useRef, useState, useCallback } from "react";
 import { useSocket } from "./SocketContext";
+import * as meetingSocketService from "../pages/Meetings/services/meetingSocketService";
+import * as webrtcService from "../services/webrtcService";
 
 const MediaContext = createContext(null);
 
@@ -121,9 +123,8 @@ export const MediaProvider = ({ children }) => {
 
         // Always manage the stream in MediaContext
         if (!stream) {
-            // Create stream if it doesn't exist
             try {
-                const newStream = await navigator.mediaDevices.getUserMedia({
+                const newStream = await webrtcService.getUserMedia({
                     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
                     video: false,
                 });
@@ -143,11 +144,7 @@ export const MediaProvider = ({ children }) => {
         const activeMeetingId = sessionStorage.getItem("activeMeetingId") || meetingIdRef.current;
         if (activeMeetingId && socket) {
             // Emit socket event to notify other participants (even if MeetingRoom is not mounted)
-            socket.emit("updateMediaState", {
-                meetingId: activeMeetingId,
-                audioMuted: newMuted,
-                videoMuted
-            });
+            meetingSocketService.updateMediaState(socket, activeMeetingId, newMuted, videoMuted);
 
             // If turning mic back on, ensure audio tracks are in peer connections and renegotiate (عشان الباقي يسمعك لو فتحت المايك وانت برة صفحة الميتينج)
             if (!newMuted && hasJoinedRef.current) {
@@ -163,7 +160,7 @@ export const MediaProvider = ({ children }) => {
 
                         if (audioSenders.length === 0) {
                             try {
-                                pc.addTrack(audioTracks[0], stream);
+                                webrtcService.addTrack(pc, audioTracks[0], stream);
                             } catch (err) {
                                 console.error("❌ Error adding audio track to peer:", err);
                             }
@@ -172,7 +169,7 @@ export const MediaProvider = ({ children }) => {
                             const track = audioTracks[0];
                             if (sender.track !== track) {
                                 try {
-                                    await sender.replaceTrack(track);
+                                    await webrtcService.replaceTrack(sender, track);
                                 } catch (err) {
                                     console.error("❌ Error replacing audio track:", err);
                                 }
@@ -182,9 +179,8 @@ export const MediaProvider = ({ children }) => {
                         }
                     }
                 } else if (!stream) {
-                    // No stream exists, need to get it
                     try {
-                        const newStream = await navigator.mediaDevices.getUserMedia({
+                        const newStream = await webrtcService.getUserMedia({
                             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
                             video: false,
                         });
@@ -196,7 +192,7 @@ export const MediaProvider = ({ children }) => {
                         for (const [, pc] of peersRef.current.entries()) {
                             newAudioTracks.forEach(track => {
                                 try {
-                                    pc.addTrack(track, newStream);
+                                    webrtcService.addTrack(pc, track, newStream);
                                 } catch (err) {
                                     console.error("❌ Error adding audio track to peer:", err);
                                 }
@@ -214,13 +210,9 @@ export const MediaProvider = ({ children }) => {
             if (hasJoinedRef.current && peersRef.current.size > 0) {
                 for (const [peerSocketId, pc] of peersRef.current.entries()) {
                     try {
-                        pc.createOffer().then(offer => {
-                            pc.setLocalDescription(offer).then(() => {
-                                socket.emit("webrtcOffer", {
-                                    toSocketId: peerSocketId,
-                                    meetingId: activeMeetingId,
-                                    sdp: offer
-                                }, () => { });
+                        webrtcService.createOffer(pc).then(offer => {
+                            webrtcService.setLocalDescription(pc, offer).then(() => {
+                                meetingSocketService.sendWebrtcOffer(socket, activeMeetingId, peerSocketId, offer, () => {});
                             }).catch(err => console.error("❌ Error renegotiating after audio toggle:", err));
                         }).catch(err => console.error("❌ Error creating offer after audio toggle:", err));
                     } catch (err) {
@@ -243,11 +235,10 @@ export const MediaProvider = ({ children }) => {
 
         // Always manage the stream in MediaContext
         if (!stream) {
-            // Create stream if it doesn't exist
             try {
-                const newStream = new MediaStream();
+                const newStream = webrtcService.createEmptyStream();
                 if (!newMuted) {
-                    const mediaStream = await navigator.mediaDevices.getUserMedia({
+                    const mediaStream = await webrtcService.getUserMedia({
                         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
                         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
                     });
@@ -284,9 +275,8 @@ export const MediaProvider = ({ children }) => {
                 if (cameraTrack) {
                     cameraTrack.enabled = true;
                 } else {
-                    // Need to get camera track
                     try {
-                        const mediaStream = await navigator.mediaDevices.getUserMedia({
+                        const mediaStream = await webrtcService.getUserMedia({
                             video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
                             audio: false,
                         });
@@ -309,11 +299,7 @@ export const MediaProvider = ({ children }) => {
         const activeMeetingId = sessionStorage.getItem("activeMeetingId") || meetingIdRef.current;
         if (activeMeetingId && socket) {
             // Emit socket event to notify other participants (even if MeetingRoom is not mounted)
-            socket.emit("updateMediaState", {
-                meetingId: activeMeetingId,
-                audioMuted,
-                videoMuted: newMuted
-            });
+            meetingSocketService.updateMediaState(socket, activeMeetingId, audioMuted, newMuted);
 
             // If turning camera back on, ensure video track is added to peer connections
             if (!newMuted && hasJoinedRef.current) {
@@ -328,17 +314,15 @@ export const MediaProvider = ({ children }) => {
                     for (const [, pc] of peersRef.current.entries()) {
                         const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
                         if (!videoSender) {
-                            // No video sender, add track
                             try {
-                                pc.addTrack(cameraTrack, stream);
+                                webrtcService.addTrack(pc, cameraTrack, stream);
                                 console.log("➕ Added video track to peer connection from MediaContext");
                             } catch (err) {
                                 console.error("❌ Error adding video track to peer:", err);
                             }
                         } else if (videoSender.track !== cameraTrack) {
-                            // Different track, replace it
                             try {
-                                videoSender.replaceTrack(cameraTrack).then(() => {
+                                webrtcService.replaceTrack(videoSender, cameraTrack).then(() => {
                                     console.log("🔄 Replaced video track in peer connection from MediaContext");
                                 }).catch(err => console.error("❌ Error replacing video track:", err));
                             } catch (err) {
@@ -356,13 +340,9 @@ export const MediaProvider = ({ children }) => {
             if (hasJoinedRef.current && peersRef.current.size > 0) {
                 for (const [peerSocketId, pc] of peersRef.current.entries()) {
                     try {
-                        pc.createOffer().then(offer => {
-                            pc.setLocalDescription(offer).then(() => {
-                                socket.emit("webrtcOffer", {
-                                    toSocketId: peerSocketId,
-                                    meetingId: activeMeetingId,
-                                    sdp: offer
-                                }, () => { });
+                        webrtcService.createOffer(pc).then(offer => {
+                            webrtcService.setLocalDescription(pc, offer).then(() => {
+                                meetingSocketService.sendWebrtcOffer(socket, activeMeetingId, peerSocketId, offer, () => {});
                             }).catch(err => console.error("❌ Error renegotiating after video toggle:", err));
                         }).catch(err => console.error("❌ Error creating offer after video toggle:", err));
                     } catch (err) {
@@ -378,12 +358,8 @@ export const MediaProvider = ({ children }) => {
         }
     }, [videoMuted, audioMuted, socket, setVideoMuted]);
 
-    // Stop all tracks (cleanup)
     const stopAllTracks = useCallback(() => {
-        const stream = localStreamRef.current;
-        if (stream) {
-            stream.getTracks().forEach((t) => t.stop());
-        }
+        webrtcService.stopAllTracks(localStreamRef.current);
         localStreamRef.current = null;
         cameraVideoTrackRef.current = null;
         screenTrackRef.current = null;
