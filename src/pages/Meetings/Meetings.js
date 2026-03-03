@@ -1,9 +1,9 @@
 import React from 'react'
 import MeetingRightSidebar from './components/MeetingRightSidebar'
 import './Meetings.css'
-import MeetingRoom from "./components/MeetingRoom";
+import { MeetingRoom } from "./index";
 import MeetingChat from "./components/MeetingChat";
-import { MeetingProvider } from '../../context/MeetingContext';
+import { MeetingProvider } from './store/meetingStore';
 
 const Meetings = () => {
     return (

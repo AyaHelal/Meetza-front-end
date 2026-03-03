@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
-import api from "../../../../API/axiosInstance";
-import { smartToast } from "../../../../API/toastManager";
+import { useCallback, useEffect, useRef, useState } from "react";
+import api from "../../../API/axiosInstance";
+import { smartToast } from "../../../API/toastManager";
 
 const CAPTURE_FPS = 30;
 const CROP_OUTPUT_WIDTH = 1280;
@@ -174,6 +174,11 @@ export function useMeetingRecording({
   localStreamRef,
   remoteStreams = [],
   recordingPayloadRef,
+  recordingStartedRef,
+  meetingId,
+  meetingInfo,
+  hasJoined,
+  isMeetingAdmin,
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
@@ -422,5 +427,57 @@ export function useMeetingRecording({
   );
 
   stopRecordingRef.current = stopRecording;
+
+  useEffect(() => {
+    recordingPayloadRef.current =
+      meetingId && meetingInfo
+        ? {
+            meetingId,
+            title: meetingInfo.title,
+            group_id: meetingInfo.group_id,
+            description: meetingInfo.description,
+          }
+        : null;
+  }, [meetingId, meetingInfo, recordingPayloadRef]);
+
+  useEffect(() => {
+    if (recordingStartedRef) recordingStartedRef.current = false;
+  }, [meetingId, recordingStartedRef]);
+
+  const recordingEnabled =
+    meetingInfo &&
+    meetingInfo.recording != null &&
+    meetingInfo.recording !== 0 &&
+    meetingInfo.recording !== "0";
+
+  useEffect(() => {
+    if (
+      !hasJoined ||
+      !isMeetingAdmin ||
+      !recordingEnabled ||
+      (recordingStartedRef?.current) ||
+      isRecording
+    ) {
+      return;
+    }
+    const id = setInterval(() => {
+      if (recordingStartedRef?.current) return;
+      const hasLocalStream = !!localStreamRef?.current;
+      if (hasLocalStream) {
+        recordingStartedRef.current = true;
+        clearInterval(id);
+        startRecording();
+      }
+    }, 400);
+    return () => clearInterval(id);
+  }, [hasJoined, isMeetingAdmin, recordingEnabled, isRecording, startRecording]);
+
+  useEffect(() => {
+    return () => {
+      const payload = recordingPayloadRef?.current;
+      if (payload) stopRecording(payload);
+    };
+  }, [stopRecording, recordingPayloadRef]);
+
   return { isRecording, startRecording, stopRecording };
 }
