@@ -119,8 +119,9 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   padding: 0 24px;
 }
 
-.meeting-room-slider-viewport:has(.meeting-room-screen.has-video) {
-  padding: 0; /* Remove padding when admin screen has video */
+.meeting-room-slider-viewport:has(.meeting-room-screen.has-video),
+.meeting-room-slider-viewport:has(.meeting-room-screen.has-placeholder) {
+  padding: 0; /* Remove padding when admin screen has video or photo */
   overflow: visible;
 }
 
@@ -143,7 +144,8 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   overflow: visible; /* Allow admin screen to extend beyond */
 }
 
-.meeting-room-slide:has(.meeting-room-screen.has-video) {
+.meeting-room-slide:has(.meeting-room-screen.has-video),
+.meeting-room-slide:has(.meeting-room-screen.has-placeholder) {
   overflow: visible; /* Allow admin screen to break out */
   width: 100%;
   flex: 0 0 100%;
@@ -406,11 +408,58 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   border-radius: 0;
 }
 
+/* Same size as video area when showing admin photo/initial */
+.meeting-room-screen.has-placeholder {
+  padding: 0;
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+  min-width: 100%;
+  border-radius: 0;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.meeting-room-screen-preview.has-placeholder {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  aspect-ratio: unset;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  flex: 1;
+}
+
 .meeting-room-screen-placeholder {
   width: 100%;
   height: 100%;
   border-radius: 22px;
   background: linear-gradient(145deg, #c5e0f0 0%, #e8f2f8 50%, #d4e8f2 100%);
+}
+
+.meeting-room-screen-placeholder-avatar {
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #c5e0f0 0%, #e8f2f8 50%, #d4e8f2 100%);
+}
+
+.meeting-room-screen-placeholder-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.meeting-room-screen-placeholder-avatar .meeting-room-tile-initial {
+  font-size: min(18vw, 140px);
+  font-weight: 600;
 }
 
 .meeting-room-screen .meeting-room-tile-badge {

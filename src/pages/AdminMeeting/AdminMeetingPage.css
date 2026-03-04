@@ -242,6 +242,19 @@
   background: #005fb8;
 }
 
+.join-meeting-btn--ended,
+.join-meeting-btn:disabled {
+  background: #9ca3af;
+  color: #fff;
+  cursor: not-allowed;
+  animation: none;
+}
+
+.join-meeting-btn--ended:hover,
+.join-meeting-btn:disabled:hover {
+  background: #9ca3af;
+}
+
 .meeting-card-actions {
   display: flex;
   justify-content: flex-end;

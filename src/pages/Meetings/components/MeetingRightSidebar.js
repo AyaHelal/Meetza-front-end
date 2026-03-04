@@ -8,6 +8,7 @@ import { AuthContext } from '../../../context/AuthContext';
 import { useMeetingContext } from '../../../context/MeetingContext';
 import { useSocket } from '../../../context/SocketContext';
 import { useMediaContext } from '../../../context/MediaContext';
+import { ConfirmDeleteModal } from '../../../components/shared/ConfirmDeleteModal';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -86,6 +87,8 @@ const MeetingRightSidebar = () => {
     const [loadingResources, setLoadingResources] = useState(false);
     const [uploadingResource, setUploadingResource] = useState(false);
     const [deletingResourceId, setDeletingResourceId] = useState(null);
+    const [showDeleteResourceModal, setShowDeleteResourceModal] = useState(false);
+    const [resourceToDelete, setResourceToDelete] = useState(null);
     const fileInputRef = useRef(null);
 
     const meetingIdRef = useRef(meetingId);
@@ -127,7 +130,11 @@ const MeetingRightSidebar = () => {
                     ? root.data
                     : [];
             setResources(payload);
-            const contentId = root?.group_content_id ?? payload[0]?.group_content_id ?? null;
+            const contentId =
+                root?.group_content_id ??
+                root?.data?.group_content_id ??
+                payload[0]?.group_content_id ??
+                null;
             setGroupContentId(contentId);
         } catch (err) {
             console.error("❌ Error fetching meeting resources:", err);
@@ -173,25 +180,40 @@ const MeetingRightSidebar = () => {
         [groupContentId, meetingId, fetchResources, socket]
     );
 
-    const handleDeleteResource = useCallback(
-        async (resourceId) => {
-            if (!groupContentId || !meetingId || !resourceId) return;
-            if (!window.confirm('Delete this resource?')) return;
-            setDeletingResourceId(resourceId);
+    const handleDeleteResourceClick = useCallback((resourceId) => {
+        if (!resourceId) return;
+        setResourceToDelete(resourceId);
+        setShowDeleteResourceModal(true);
+    }, []);
+
+    const confirmDeleteResource = useCallback(
+        async () => {
+            if (!groupContentId || !meetingId || !resourceToDelete) return;
+            setDeletingResourceId(resourceToDelete);
             try {
-                await api.delete(`/group-contents/${groupContentId}/files/${resourceId}`);
+                await api.delete(`/group-contents/${groupContentId}/files/${resourceToDelete}`);
                 smartToast.success('Resource removed.');
+                setShowDeleteResourceModal(false);
+                setResourceToDelete(null);
                 await fetchResources(meetingId);
                 if (socket) socket.emit('meetingResourceAdded', { meetingId });
             } catch (err) {
                 const msg = err?.response?.data?.message || err?.message || 'Failed to delete resource';
                 smartToast.error(msg);
+                setShowDeleteResourceModal(false);
+                setResourceToDelete(null);
             } finally {
                 setDeletingResourceId(null);
             }
         },
-        [groupContentId, meetingId, fetchResources, socket]
+        [groupContentId, meetingId, resourceToDelete, fetchResources, socket]
     );
+
+    const closeDeleteResourceModal = useCallback(() => {
+        if (deletingResourceId) return;
+        setShowDeleteResourceModal(false);
+        setResourceToDelete(null);
+    }, [deletingResourceId]);
 
     // Participants are socket-driven from MeetingContext - no REST fetch
     const participants = hasJoined ? socketParticipants : [];
@@ -208,37 +230,18 @@ const MeetingRightSidebar = () => {
         });
     }, [participants, meetingInfo?.administrator_id]);
 
-    // Handler to mute/unmute a participant - disables their remote audio track
+    // Handler to mute/unmute a participant — tells the participant to mute their mic (real mute at their side)
     const handleAdminMuteParticipant = useCallback((participantSocketId, shouldMute) => {
         if (!participantSocketId) return;
-        
-        // Update local state for UI feedback
         setLocalParticipantAudioMuted((prev) => ({ ...prev, [participantSocketId]: shouldMute }));
-        
-        // Disable remote audio track in peer connection
-        const peerConnections = getPeerConnections();
-        if (peerConnections) {
-            const pc = peerConnections.get(participantSocketId);
-            if (pc) {
-                const receivers = pc.getReceivers();
-                receivers.forEach((receiver) => {
-                    if (receiver.track && receiver.track.kind === 'audio') {
-                        receiver.track.enabled = !shouldMute;
-                        console.log(`${shouldMute ? '🔇' : '🔊'} Admin ${shouldMute ? 'muted' : 'unmuted'} remote audio track for ${participantSocketId}`);
-                    }
-                });
-            }
-        }
-        
-        // Emit socket event to backend to tell participant to mute themselves
         if (socket && meetingId) {
             socket.emit("adminMuteParticipant", {
                 meetingId,
                 targetSocketId: participantSocketId,
-                muted: shouldMute
+                muted: shouldMute,
             });
         }
-    }, [socket, meetingId, setLocalParticipantAudioMuted, getPeerConnections]);
+    }, [socket, meetingId, setLocalParticipantAudioMuted]);
 
     // Fetch meeting details to get description + group_id for admin add-resource
     useEffect(() => {
@@ -251,6 +254,22 @@ const MeetingRightSidebar = () => {
     useEffect(() => {
         fetchResources(meetingId);
     }, [fetchResources, meetingId]);
+
+    // Fallback: if group_content_id not from resources API (e.g. zero resources), get it from group info so admin can add resources
+    useEffect(() => {
+        if (!meetingInfo?.group_id || groupContentId != null) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await api.get(`/chat/groups/${meetingInfo.group_id}/info`);
+                const contentId = res?.data?.data?.content?.id ?? res?.data?.content?.id ?? null;
+                if (!cancelled && contentId) setGroupContentId(contentId);
+            } catch (_) {
+                // ignore; group_content_id may still come from fetchResources
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [meetingInfo?.group_id, groupContentId]);
 
     // When admin adds a resource, server broadcasts meetingResourceAdded → members refetch immediately (if socket used)
     useEffect(() => {
@@ -376,7 +395,7 @@ const MeetingRightSidebar = () => {
                                         <button
                                             type="button"
                                             className="resource-delete-btn"
-                                            onClick={() => handleDeleteResource(resItem.id)}
+                                            onClick={() => handleDeleteResourceClick(resItem.id)}
                                             disabled={deletingResourceId === resItem.id}
                                             title="Delete resource"
                                             aria-label="Delete resource"
@@ -420,15 +439,19 @@ const MeetingRightSidebar = () => {
                                 className={`participant-item ${isAdmin ? 'participant-item--admin-pinned' : ''}`}
                             >
                                 <div className="participant-avatar">
-                                    {(participant?.member_photo || participant?.memberPhoto || participant?.user_photo) ? (
-                                        <img
-                                            src={participant.member_photo || participant.memberPhoto || participant.user_photo}
-                                            alt={getParticipantDisplayName(participant, index)}
-                                            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-                                        />
-                                    ) : (
-                                        <UserCircle size={40} weight="fill" />
-                                    )}
+                                    {(() => {
+                                        const photo = participant?.member_photo || participant?.memberPhoto || participant?.user_photo;
+                                        const photoSrc = (typeof photo === "string" && photo.trim()) ? photo.trim() : null;
+                                        return photoSrc ? (
+                                            <img
+                                                src={photoSrc}
+                                                alt={getParticipantDisplayName(participant, index)}
+                                                style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+                                            />
+                                        ) : (
+                                            <UserCircle size={40} weight="fill" />
+                                        );
+                                    })()}
                                 </div>
                                 <div className="participant-info">
                                     <span className="participant-name fw-semibold">
@@ -472,6 +495,15 @@ const MeetingRightSidebar = () => {
                     })}
                 </div>
             </div>
+
+            <ConfirmDeleteModal
+                show={showDeleteResourceModal}
+                onClose={closeDeleteResourceModal}
+                onConfirm={confirmDeleteResource}
+                title="Delete Resource"
+                message="Are you sure you want to delete this resource? This action cannot be undone."
+                confirming={!!deletingResourceId}
+            />
         </div>
     );
 };

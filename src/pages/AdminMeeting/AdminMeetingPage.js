@@ -5,6 +5,7 @@ import api from "../../API/axiosInstance";
 import { smartToast } from "../../API/toastManager";
 import "./AdminMeetingPage.css";
 import { VideoCamera, VideoCameraIcon, VideoCameraSlashIcon, PencilSimple, Trash } from "@phosphor-icons/react";
+import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
 
 const getCurrentDateTimeLocal = () => {
     const d = new Date();
@@ -63,6 +64,9 @@ const AdminMeetingPage = () => {
     const [loading, setLoading] = useState(false);
     const [groupsLoading, setGroupsLoading] = useState(false);
     const [editingMeetingId, setEditingMeetingId] = useState(null);
+    const [showDeleteMeetingModal, setShowDeleteMeetingModal] = useState(false);
+    const [meetingToDelete, setMeetingToDelete] = useState(null);
+    const [deletingMeeting, setDeletingMeeting] = useState(false);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -246,22 +250,43 @@ const AdminMeetingPage = () => {
         });
     };
 
-    const handleDeleteMeeting = async (meetingId) => {
-        if (!window.confirm("Are you sure you want to delete this meeting?")) return;
+    const handleDeleteMeetingClick = (meetingId) => {
+        if (!meetingId) return;
+        setMeetingToDelete(meetingId);
+        setShowDeleteMeetingModal(true);
+    };
+
+    const confirmDeleteMeeting = async () => {
+        if (!meetingToDelete) return;
+        setDeletingMeeting(true);
         try {
-            const res = await api.delete(`/meeting/${meetingId}`);
+            const res = await api.delete(`/meeting/${meetingToDelete}`);
             if (res.data?.success !== false) {
-                setMeetings((prev) => prev.filter((m) => (m.id || m.meeting_id) !== meetingId));
+                setMeetings((prev) => prev.filter((m) => (m.id || m.meeting_id) !== meetingToDelete));
                 smartToast.success("Meeting deleted successfully");
                 const flags = getStoredRecordFlags();
-                delete flags[meetingId];
+                delete flags[meetingToDelete];
                 localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
+                setShowDeleteMeetingModal(false);
+                setMeetingToDelete(null);
             } else {
                 smartToast.error(res.data?.message || "Failed to delete meeting");
+                setShowDeleteMeetingModal(false);
+                setMeetingToDelete(null);
             }
         } catch (err) {
             smartToast.error(err.response?.data?.message || "Error deleting meeting");
+            setShowDeleteMeetingModal(false);
+            setMeetingToDelete(null);
+        } finally {
+            setDeletingMeeting(false);
         }
+    };
+
+    const closeDeleteMeetingModal = () => {
+        if (deletingMeeting) return;
+        setShowDeleteMeetingModal(false);
+        setMeetingToDelete(null);
     };
 
     const handleEditMeeting = (meeting) => {
@@ -366,6 +391,13 @@ const AdminMeetingPage = () => {
         return `${start} to ${end}`;
     };
 
+    /** True if meeting end_time has passed (meeting is over). */
+    const isMeetingEnded = (meeting) => {
+        const endTime = meeting?.end_time;
+        if (!endTime) return false;
+        return new Date() > new Date(endTime);
+    };
+
     return (
         <div className="admin-meeting-page">
             {/* ── LEFT CONTENT ── */}
@@ -387,19 +419,23 @@ const AdminMeetingPage = () => {
                                 {/* Top: thumbnail + info + date */}
                                 <div className="meeting-card-top">
                                     <div className="meeting-thumbnail">
-                                        {(meeting.poster_url || meeting.poster) ? (
+                                        {(() => {
+                                            const poster = meeting.poster_url || meeting.poster;
+                                            const posterSrc = (typeof poster === "string" && poster.trim()) ? poster.trim() : null;
+                                            return posterSrc ? (
                                             <img
-                                                src={meeting.poster_url || meeting.poster}
+                                                src={posterSrc}
                                                 alt="meeting"
                                                 onError={(e) => {
                                                     e.target.style.display = "none";
                                                 }}
                                             />
-                                        ) : (
+                                            ) : (
                                             <div className="default-thumbnail">
                                                 <VideoCamera size={18} weight="fill" />
                                             </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="meeting-card-info">
@@ -452,12 +488,15 @@ const AdminMeetingPage = () => {
                                     </p>
 
                                     <button
-                                        className="join-meeting-btn"
+                                        type="button"
+                                        className={`join-meeting-btn ${isMeetingEnded(meeting) ? "join-meeting-btn--ended" : ""}`}
                                         onClick={() =>
-                                            handleJoinMeeting(meeting.id || meeting.meeting_id)
+                                            !isMeetingEnded(meeting) && handleJoinMeeting(meeting.id || meeting.meeting_id)
                                         }
+                                        disabled={isMeetingEnded(meeting)}
+                                        title={isMeetingEnded(meeting) ? "Meeting has ended" : "Join meeting"}
                                     >
-                                        Join
+                                        {isMeetingEnded(meeting) ? "Ended" : "Join"}
                                     </button>
 
                                     <div className="meeting-card-actions">
@@ -473,7 +512,7 @@ const AdminMeetingPage = () => {
                                         <button
                                             type="button"
                                             className="meeting-card-action-btn delete-btn"
-                                            onClick={() => handleDeleteMeeting(meeting.id || meeting.meeting_id)}
+                                            onClick={() => handleDeleteMeetingClick(meeting.id || meeting.meeting_id)}
                                             title="Delete"
                                             aria-label="Delete meeting"
                                         >
@@ -662,6 +701,15 @@ const AdminMeetingPage = () => {
                 </form>
 
             </div>
+
+            <ConfirmDeleteModal
+                show={showDeleteMeetingModal}
+                onClose={closeDeleteMeetingModal}
+                onConfirm={confirmDeleteMeeting}
+                title="Delete Meeting"
+                message="Are you sure you want to delete this meeting? This action cannot be undone."
+                confirming={deletingMeeting}
+            />
         </div>
     );
 };
