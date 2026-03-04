@@ -22,9 +22,9 @@ const MeetingRoomSingleView = ({
               muted
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
-          ) : selfPhoto ? (
+          ) : (typeof selfPhoto === "string" && selfPhoto.trim()) ? (
             <img
-              src={selfPhoto}
+              src={selfPhoto.trim()}
               alt="Your profile"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => {

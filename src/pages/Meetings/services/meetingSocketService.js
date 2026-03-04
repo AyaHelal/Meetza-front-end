@@ -13,6 +13,9 @@ export const MEETING_EVENTS = {
   WEBRTC_ICE_CANDIDATE: "webrtcIceCandidate",
   UPDATE_MEDIA_STATE: "updateMediaState",
   MEDIA_STATE_UPDATED: "mediaStateUpdated",
+  /** Event name we emit to server (server listens for "raiseHand") */
+  RAISE_HAND_EMIT: "raiseHand",
+  /** Event name we receive from server when someone raises/lowers hand */
   HAND_RAISED: "handRaised",
   REACTION: "reaction",
   MEETING_REACTION: "meetingReaction",
@@ -48,7 +51,7 @@ export function updateMediaState(socket, meetingId, audioMuted, videoMuted) {
 }
 
 export function raiseHand(socket, meetingId, raised = true) {
-  return socketService.emit(socket, MEETING_EVENTS.HAND_RAISED, { meetingId, raised });
+  return socketService.emit(socket, MEETING_EVENTS.RAISE_HAND_EMIT, { meetingId, raised });
 }
 
 export function sendReaction(socket, meetingId, type = "like", callback) {

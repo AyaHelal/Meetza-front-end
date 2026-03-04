@@ -1,11 +1,16 @@
 import React from "react";
 
 const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted }) => {
-  const hasVideo = adminTile?.stream && typeof adminTile.stream.getVideoTracks === "function" && adminTile.stream.getVideoTracks().length > 0;
+  const streamHasLiveVideo =
+    adminTile?.stream &&
+    typeof adminTile.stream.getVideoTracks === "function" &&
+    adminTile.stream.getVideoTracks().some((t) => t.enabled && t.readyState === "live");
+  const hasVideo = !!(adminTile?.showVideo !== false && streamHasLiveVideo);
+  const showAvatar = !hasVideo && adminTile;
 
   return (
-    <div className={`meeting-room-screen ${hasVideo ? "has-video" : ""}`}>
-      <div className={`meeting-room-screen-preview ${hasVideo ? "has-video" : ""}`}>
+    <div className={`meeting-room-screen ${hasVideo ? "has-video" : ""} ${showAvatar ? "has-placeholder" : ""}`}>
+      <div className={`meeting-room-screen-preview ${hasVideo ? "has-video" : ""} ${showAvatar ? "has-placeholder" : ""}`}>
         {hasVideo ? (
           <video
             key={`admin-video-${adminTile.socketId}-${adminTile.stream?.id || "no-stream"}`}
@@ -46,6 +51,28 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
               }
             }}
           />
+        ) : adminTile ? (
+          <div className="meeting-room-screen-placeholder meeting-room-screen-placeholder-avatar">
+            {(() => {
+              const photo =
+                adminTile.member_photo ||
+                adminTile.memberPhoto ||
+                adminTile.user_photo ||
+                adminTile.photo;
+              const photoUrl = typeof photo === "string" && photo.trim() ? photo.trim() : null;
+              return photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={adminTile.label || "Admin"}
+                  className="meeting-room-screen-placeholder-img"
+                />
+              ) : (
+                <span className="meeting-room-tile-initial">
+                  {(adminTile.label || "Admin").toString().trim().charAt(0).toUpperCase()}
+                </span>
+              );
+            })()}
+          </div>
         ) : (
           <div className="meeting-room-screen-placeholder" />
         )}

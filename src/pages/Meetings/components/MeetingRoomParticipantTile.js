@@ -130,11 +130,12 @@ const MeetingRoomParticipantTile = ({
           }
 
           const photoUrl = tile?.member_photo || tile?.memberPhoto || tile?.user_photo || tile?.photo;
-          if (photoUrl) {
+          const photoSrc = (typeof photoUrl === "string" && photoUrl.trim()) ? photoUrl.trim() : null;
+          if (photoSrc) {
             return (
               <>
                 <img
-                  src={photoUrl}
+                  src={photoSrc}
                   alt={tile.label}
                   style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
                   onError={(e) => {

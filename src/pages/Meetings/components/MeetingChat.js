@@ -114,9 +114,11 @@ const MeetingChat = () => {
                             className="meeting-chat-message"
                         >
                             <div className="meeting-chat-message-avatar">
-                                {message.senderPhoto && message.senderPhoto.trim() ? (
+                                {(() => {
+                                    const s = message.senderPhoto && typeof message.senderPhoto === "string" ? message.senderPhoto.trim() : "";
+                                    return s ? (
                                     <img 
-                                        src={message.senderPhoto.trim()} 
+                                        src={s} 
                                         alt={message.senderName}
                                         className="meeting-chat-message-avatar-img"
                                         onError={(e) => {
@@ -125,10 +127,11 @@ const MeetingChat = () => {
                                             if (fallback) fallback.style.display = 'flex';
                                         }}
                                     />
-                                ) : null}
+                                    ) : null;
+                                })()}
                                 <span 
                                     className="meeting-chat-message-avatar-initial"
-                                    style={{ display: (message.senderPhoto && message.senderPhoto.trim()) ? 'none' : 'flex' }}
+                                    style={{ display: (message.senderPhoto && typeof message.senderPhoto === "string" && message.senderPhoto.trim()) ? 'none' : 'flex' }}
                                 >
                                     {message.senderName?.charAt(0)?.toUpperCase() || "?"}
                                 </span>

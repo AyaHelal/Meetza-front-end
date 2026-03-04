@@ -33,6 +33,7 @@ export function useMeetingRoomSocketListeners({
   setAudioMuted,
   setContextAudioMuted,
   setLocalParticipantAudioMuted,
+  getVideoMuted,
 }) {
   const toP = toParticipantFn || toParticipant;
 
@@ -56,7 +57,6 @@ export function useMeetingRoomSocketListeners({
     };
 
     const onParticipantJoined = async (data) => {
-      console.log("🎉 participantJoined event received:", data);
       const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
       const mid = data?.meetingId;
       if (!peerSocketId || !mid) {
@@ -68,11 +68,9 @@ export function useMeetingRoomSocketListeners({
         return;
       }
       if (peerSocketId === socket.id) {
-        console.log("ℹ️ participantJoined - ignoring self");
         return;
       }
       if (peersRef.current.has(peerSocketId)) {
-        console.log("⚠️ participantJoined - peer already exists for", peerSocketId);
         return;
       }
       const entry = toP({
@@ -81,12 +79,6 @@ export function useMeetingRoomSocketListeners({
         member_name: data?.name ?? data?.member_name,
         member_photo: data?.user_photo ?? data?.member_photo,
         member_email: data?.email ?? data?.member_email,
-      });
-      console.log("📸 Participant joined with photo:", {
-        socketId: peerSocketId,
-        name: entry.member_name,
-        photo: entry.member_photo,
-        rawData: { user_photo: data?.user_photo, member_photo: data?.member_photo }
       });
       setParticipants((prev) => {
         if (prev.some((p) => (p?.socketId || p?.id) === peerSocketId)) return prev;
@@ -99,7 +91,6 @@ export function useMeetingRoomSocketListeners({
       // FIX: Ensure local media exists first
       let stream = localStreamRef.current;
       if (!stream || stream.getTracks().length === 0) {
-        console.log("🔄 Ensuring local media before creating peer connection for new participant...");
         try {
           await ensureLocalMedia();
           stream = localStreamRef.current;
@@ -112,19 +103,15 @@ export function useMeetingRoomSocketListeners({
       // Without this wait, createPeerConnection adds tracks that aren't live yet,
       // and the remote peer receives an offer with no usable tracks.
       await waitForLocalStream(2000);
-      console.log("✅ Local stream ready for new participant connection:", peerSocketId);
 
-      console.log("🔗 Creating peer connection for new participant", peerSocketId);
       const pc = createPeerConnection(peerSocketId);
       peersRef.current.set(peerSocketId, pc);
 
       if (socket.id < peerSocketId) {
         politeRef.current.set(peerSocketId, false);
-        console.log("🔵 We are impolite for new participant", peerSocketId, "(our id is smaller)");
         await createAndSendOffer(peerSocketId);
       } else {
         politeRef.current.set(peerSocketId, true);
-        console.log("🟢 We are polite for new participant", peerSocketId, "(their id is smaller)");
       }
     };
 
@@ -174,7 +161,6 @@ export function useMeetingRoomSocketListeners({
 
       let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
-        console.log("🔗 Creating peer connection for incoming offer from", fromSocketId);
 
         // FIX: Wait for local stream before creating the peer connection when receiving an offer.
         // If we're the polite peer (waiting for offers), we still need live local tracks
@@ -195,7 +181,6 @@ export function useMeetingRoomSocketListeners({
       const ignoreOffer = !isPolite && offerCollision;
 
       if (ignoreOffer) {
-        console.log("⚠️ Ignoring offer due to collision (we are impolite and making offer):", fromSocketId);
         return;
       }
 
@@ -210,7 +195,6 @@ export function useMeetingRoomSocketListeners({
             if (!existing) {
               try {
                 webrtcService.addTrack(pc, track, stream);
-                console.log("➕ Added local track to peer (before answer):", fromSocketId, { kind: track.kind });
               } catch (err) {
                 console.warn("⚠️ Failed to add track before answer:", err);
               }
@@ -218,12 +202,10 @@ export function useMeetingRoomSocketListeners({
           }
         }
 
-        console.log("📥 Setting remote offer from", fromSocketId, "state:", pc.signalingState);
         await webrtcService.setRemoteDescription(pc, sdp);
 
         const queue = iceQueueRef.current.get(fromSocketId);
         if (queue && queue.length > 0) {
-          console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
           for (const candidate of queue) {
             try {
               await webrtcService.addIceCandidate(pc, candidate);
@@ -238,12 +220,10 @@ export function useMeetingRoomSocketListeners({
 
         const answer = await webrtcService.createAnswer(pc);
         await webrtcService.setLocalDescription(pc, answer);
-        console.log("📤 Sending answer to", fromSocketId);
         meetingSocketService.sendWebrtcAnswer(socket, mid, fromSocketId, answer, (ack) => {
           if (ack && !ack.ok) {
             console.error("❌ Answer send failed:", ack);
           } else {
-            console.log("✅ Answer sent successfully to", fromSocketId);
           }
         });
       } catch (err) {
@@ -260,7 +240,6 @@ export function useMeetingRoomSocketListeners({
 
       let pc = peersRef.current.get(fromSocketId);
       if (!pc) {
-        console.log("ℹ️ Ignoring answer - no PC for", fromSocketId, "(likely stale after leave/rejoin)");
         return;
       }
 
@@ -268,12 +247,10 @@ export function useMeetingRoomSocketListeners({
         const currentState = pc.signalingState;
 
         if (currentState === "have-local-offer") {
-          console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
           await webrtcService.setRemoteDescription(pc, sdp);
 
           const queue = iceQueueRef.current.get(fromSocketId);
           if (queue && queue.length > 0) {
-            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
             for (const candidate of queue) {
               try {
                 await webrtcService.addIceCandidate(pc, candidate);
@@ -286,13 +263,11 @@ export function useMeetingRoomSocketListeners({
             iceQueueRef.current.delete(fromSocketId);
           }
         } else if (currentState === "stable") {
-          console.log("ℹ️ Ignoring answer - already stable (duplicate or late) for", fromSocketId);
         } else {
           console.warn("⚠️ Cannot set remote answer - wrong state:", currentState, "for", fromSocketId);
         }
       } catch (err) {
         if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
-          console.log("ℹ️ Answer received but connection already established for", fromSocketId);
         } else {
           console.error("❌ Error setting remote answer:", err, "for", fromSocketId);
         }
@@ -312,7 +287,6 @@ export function useMeetingRoomSocketListeners({
           iceQueueRef.current.set(fromSocketId, []);
         }
         iceQueueRef.current.get(fromSocketId).push(candidate);
-        console.log("📦 Queued ICE candidate (no PC yet, e.g. after rejoin) for", fromSocketId);
         return;
       }
 
@@ -321,25 +295,20 @@ export function useMeetingRoomSocketListeners({
           iceQueueRef.current.set(fromSocketId, []);
         }
         iceQueueRef.current.get(fromSocketId).push(candidate);
-        console.log("📦 Queued ICE candidate for", fromSocketId, "queue size:", iceQueueRef.current.get(fromSocketId).length);
         return;
       }
 
       try {
         await webrtcService.addIceCandidate(pc, candidate);
-        console.log("✅ Added ICE candidate for", fromSocketId);
       } catch (err) {
         if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
-          console.log("ℹ️ ICE candidate received but connection already established for", fromSocketId);
         } else if (err.name === "OperationError" && err.message?.includes("already exists")) {
-          console.log("ℹ️ Duplicate ICE candidate ignored for", fromSocketId);
         } else {
           console.error("❌ Error adding ICE candidate:", err, "for", fromSocketId);
         }
       }
     };
 
-    console.log("👂 Setting up socket listeners for meeting room");
 
     socket.on("participantJoined", onParticipantJoined);
     socket.on("participantLeft", onParticipantLeft);
@@ -366,7 +335,6 @@ export function useMeetingRoomSocketListeners({
       const sid = data?.socketId || data?.id;
       const mid = data?.meetingId;
       if (!sid || !mid || mid !== meetingIdRef.current) return;
-      console.log("📹 Received mediaStateUpdated for", sid, { audioMuted: !!data.audioMuted, videoMuted: !!data.videoMuted });
       setMediaStateMap((m) => ({
         ...m,
         [sid]: {
@@ -393,6 +361,20 @@ export function useMeetingRoomSocketListeners({
     socket.on("webrtcIceCandidate", onIceCandidate);
     socket.on("handRaised", onHandRaised);
     socket.on("mediaStateUpdated", onMediaStateUpdated);
+
+    // Admin muted/unmuted this participant — apply real mic mute (track + state + broadcast)
+    const onAdminSetYourAudio = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+      const muted = !!data.audioMuted;
+      if (setAudioMuted) setAudioMuted(muted);
+      if (setContextAudioMuted) setContextAudioMuted(muted);
+      const stream = localStreamRef?.current;
+      if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !muted));
+      const videoMuted = typeof getVideoMuted === "function" ? getVideoMuted() : undefined;
+      meetingSocketService.updateMediaState(socket, mid, muted, videoMuted);
+    };
+    socket.on("adminSetYourAudio", onAdminSetYourAudio);
 
     const onReaction = (data) => {
       try {
@@ -441,6 +423,7 @@ export function useMeetingRoomSocketListeners({
       socket.off("webrtcIceCandidate", onIceCandidate);
       socket.off("handRaised", onHandRaised);
       socket.off("mediaStateUpdated", onMediaStateUpdated);
+      socket.off("adminSetYourAudio", onAdminSetYourAudio);
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);

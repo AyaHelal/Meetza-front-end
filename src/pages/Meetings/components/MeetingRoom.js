@@ -11,7 +11,7 @@ import MeetingRoomFloatingEmojis from "./MeetingRoomFloatingEmojis";
 import MeetingRoomSliderDots from "./MeetingRoomSliderDots";
 import MeetingRoomControlBar from "./MeetingRoomControlBar";
 import MeetingRoomReactionsContainer from "./MeetingRoomReactionsContainer";
-import { toParticipant, getReactionIcon, getCameraTrack, isScreenShareVideoTrack } from "./meetingRoomUtils";
+import { toParticipant, getReactionIcon, getCameraTrack, getScreenShareTrack, isScreenShareVideoTrack } from "./meetingRoomUtils";
 import { useMeetingRoomSocketListeners } from "../hooks/useMeetingRoomSocketListeners";
 import { useMeetingRoomFullscreen } from "../hooks/useMeetingRoomFullscreen";
 import { useMeetingRoomMediaEffects } from "../hooks/useMeetingRoomMediaEffects";
@@ -339,6 +339,30 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setMeetingTitle,
   });
 
+  /** Single view (slide 1): show screen share when sharing, else camera/photo. Sync localVideoRef2 to the right stream. */
+  useEffect(() => {
+    const stream = localStreamRef?.current ?? localStream ?? null;
+    const el = localVideoRef2?.current;
+    if (!el || !stream) return;
+    if (screenSharing) {
+      const screenTrack = getScreenShareTrack(stream);
+      if (screenTrack) {
+        const screenOnly = new MediaStream([screenTrack]);
+        if (el.srcObject !== screenOnly) {
+          el.srcObject = screenOnly;
+        }
+      }
+    } else {
+      const cameraTrack = getCameraTrack(stream);
+      const displayStream = cameraTrack
+        ? new MediaStream([cameraTrack, ...stream.getAudioTracks()])
+        : new MediaStream(stream.getAudioTracks());
+      if (el.srcObject !== displayStream) {
+        el.srcObject = displayStream;
+      }
+    }
+  }, [screenSharing, localStream]);
+
   /** Mute/unmute all participants locally (affects only this user's listening) */
   const handleMuteUnmuteAllParticipants = useCallback(() => {
     const remoteIds = unifiedTiles
@@ -382,6 +406,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setAudioMuted,
     setContextAudioMuted,
     setLocalParticipantAudioMuted,
+    getVideoMuted: () => videoMuted,
   });
 
   const handleToggleScreenShare = async () => {
