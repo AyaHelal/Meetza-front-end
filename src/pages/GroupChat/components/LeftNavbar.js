@@ -30,6 +30,8 @@ const LeftNavbar = ({
   // Check if user is admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
+  // Calendar page: only Member and Super_Admin
+  const canSeeCalendar = userRole === "member" || userRole.includes("super_admin") || userRole.includes("super-admin");
   const {
     socket,
     isConnected,
@@ -196,12 +198,14 @@ const LeftNavbar = ({
             >
               <UsersThree size={32} />
             </div>
-            <div
-              className={`nav-icon ${activeNav === "calendar" ? "active" : ""}`}
-              onClick={() => setActiveNav("calendar")}
-            >
-              <CalendarBlank size={32} />
-            </div>
+            {canSeeCalendar && (
+              <div
+                className={`nav-icon ${activeNav === "calendar" ? "active" : ""}`}
+                onClick={() => setActiveNav("calendar")}
+              >
+                <CalendarBlank size={32} />
+              </div>
+            )}
             {isAdmin && (
               <div
                 className={`nav-icon ${activeNav === "admin-meetings" ? "active" : ""}`}

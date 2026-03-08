@@ -87,6 +87,11 @@ const AppLayout = () => {
     ) {
       setActiveNav("users");
     } else if (
+      location.pathname === "/calendar" ||
+      location.pathname.startsWith("/calendar")
+    ) {
+      setActiveNav("calendar");
+    } else if (
       location.pathname === "/admin-meetings" ||
       location.pathname.startsWith("/admin-meetings")
     ) {
@@ -137,6 +142,9 @@ const AppLayout = () => {
     } else if (nav === "messages" && location.pathname !== "/home") {
       setActiveNav(nav);
       navigate("/home", { replace: false });
+    } else if (nav === "calendar" && location.pathname !== "/calendar") {
+      setActiveNav(nav);
+      navigate("/calendar", { replace: false });
     } else if (nav === "admin-meetings" && location.pathname !== "/admin-meetings") {
       setActiveNav(nav);
       navigate("/admin-meetings", { replace: false });
@@ -185,12 +193,16 @@ const AppLayout = () => {
   };
 
 
+  // Calendar: only Member and Super_Admin
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const canSeeCalendar = userRole === "member" || userRole.includes("super_admin") || userRole.includes("super-admin");
+
   const menuItems = [
     { icon: House, label: "Home", nav: "home" },
     { icon: User, label: "User", nav: "profile" },
     { icon: Envelope, label: "Message", nav: "messages" },
     { icon: UsersThree, label: "Groups", nav: "users" },
-    { icon: CalendarBlank, label: "Calendar", nav: "calendar" },
+    ...(canSeeCalendar ? [{ icon: CalendarBlank, label: "Calendar", nav: "calendar" }] : []),
     { icon: GearSix, label: "Settings", nav: "settings" },
   ];
 

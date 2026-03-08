@@ -8,6 +8,7 @@ import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
 import Groups from './pages/Groups/Groups';
+import Calendar from './pages/Calendar/Calendar';
 import Meetings from './pages/Meetings/Meetings';
 import VerifyEmailCode from './pages/VerifyEmail/VerifyEmailCode';
 import ForgotPasswordForm from './pages/ForgotPassword/ForgotPasswordForm';
@@ -16,6 +17,7 @@ import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
 import AdminRoute from './components/AdminRoute';
+import CalendarRoute from './components/CalendarRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import { useState, useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
@@ -202,6 +204,14 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<GroupChat />} />
         <Route path="groups" element={<Groups />} />
+        <Route
+          path="calendar"
+          element={
+            <CalendarRoute>
+              <Calendar />
+            </CalendarRoute>
+          }
+        />
         <Route path="meetings" element={<Meetings />} />
         <Route
           path="admin-meetings"
