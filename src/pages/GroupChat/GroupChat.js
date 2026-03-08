@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
+import React, { useState, useEffect, useContext, useMemo, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./GroupChat.css";
 import { categorizeResources, categorizeMediaItems } from "./components/utils";
@@ -14,6 +14,9 @@ import {
   useGroupChatSocket,
   useGroupChatSend,
 } from "./hooks";
+import { useMainChatMeeting } from "./hooks/useMainChatMeeting";
+import { getMeetingsByGroupId } from "./services/mainChatService";
+import { meetingToCalendarEvent, getMeetingId } from "./utils/mainChatMeetingUtils";
 import { extractLinksFromMessages } from "./utils/groupChatFormatters";
 
 export default function GroupChat() {
@@ -36,6 +39,7 @@ export default function GroupChat() {
   const [showMainChat, setShowMainChat] = useState(false);
   const [activeInfoSection, setActiveInfoSection] = useState(null);
   const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
+  const [groupMeetings, setGroupMeetings] = useState([]);
 
   const userRef = useRef(user);
   const markAllMessagesReadRef = useRef(markAllMessagesRead);
@@ -90,6 +94,63 @@ export default function GroupChat() {
     currentGroupIdRef,
     joinedGroupsRef
   );
+
+  const mainChatMeeting = useMainChatMeeting(
+    api,
+    currentGroupId,
+    groupInfo,
+    null,
+    socket
+  );
+  const handleJoinMeeting = mainChatMeeting?.handleJoinMeeting ?? (() => {});
+
+  const refetchGroupMeetings = useCallback(() => {
+    if (!currentGroupId) return;
+    getMeetingsByGroupId(api, currentGroupId).then((list) => {
+      setGroupMeetings(Array.isArray(list) ? list : []);
+    });
+  }, [api, currentGroupId]);
+
+  useEffect(() => {
+    if (!currentGroupId) {
+      setGroupMeetings([]);
+      return;
+    }
+    let cancelled = false;
+    getMeetingsByGroupId(api, currentGroupId).then((list) => {
+      if (!cancelled) setGroupMeetings(Array.isArray(list) ? list : []);
+    });
+    return () => { cancelled = true; };
+  }, [api, currentGroupId]);
+
+  useEffect(() => {
+    if (!socket || !currentGroupId) return;
+    const onMeetingListChange = (data) => {
+      const gid = data?.group_id ?? data?.groupId;
+      if (gid == null || String(gid) === String(currentGroupId)) {
+        refetchGroupMeetings();
+      }
+    };
+    socket.on("meetingCreated", onMeetingListChange);
+    socket.on("meetingUpdated", onMeetingListChange);
+    socket.on("meetingEnded", onMeetingListChange);
+    socket.on("meetingDeleted", onMeetingListChange);
+    return () => {
+      socket.off("meetingCreated", onMeetingListChange);
+      socket.off("meetingUpdated", onMeetingListChange);
+      socket.off("meetingEnded", onMeetingListChange);
+      socket.off("meetingDeleted", onMeetingListChange);
+    };
+  }, [socket, currentGroupId, refetchGroupMeetings]);
+
+  useEffect(() => {
+    if (!currentGroupId) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refetchGroupMeetings();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [currentGroupId, refetchGroupMeetings]);
 
   useGroupChatSocket(
     socket,
@@ -336,30 +397,20 @@ export default function GroupChat() {
     return "Member";
   }, [user?.id, user?.role, groupInfo]);
 
-  const calendarEvents = [
-    {
-      month: "Sep",
-      day: "25",
-      online: "Online",
-      type: "Group Meeting",
-      startTime: "8:25",
-      startPeriod: "AM",
-      endTime: "10:20",
-      endPeriod: "AM",
-      avatars: ["M", "A"],
+  const calendarEvents = useMemo(() => {
+    return (groupMeetings || [])
+      .map((m) => meetingToCalendarEvent(m))
+      .filter(Boolean);
+  }, [groupMeetings]);
+
+  const onGoToMeeting = useCallback(
+    (meeting) => {
+      const meetingId = meeting ? getMeetingId(meeting) : null;
+      if (!meetingId) return;
+      handleJoinMeeting({ meetingId });
     },
-    {
-      month: "Sep",
-      day: "26",
-      online: "Online",
-      type: "Group Meeting",
-      startTime: "8:25",
-      startPeriod: "AM",
-      endTime: "10:20",
-      endPeriod: "AM",
-      avatars: ["M", "A"],
-    },
-  ];
+    [handleJoinMeeting]
+  );
 
   const currentUser = {
     name: user?.name || "User",
@@ -413,6 +464,7 @@ export default function GroupChat() {
       }
       unreadNotificationCount={0}
       calendarEvents={calendarEvents}
+      onGoToMeeting={onGoToMeeting}
       currentUser={currentUser}
       hasMoreMessages={hasMoreMessages}
       loadingMoreMessages={loadingMoreMessages}

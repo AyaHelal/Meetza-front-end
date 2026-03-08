@@ -40,6 +40,7 @@ function GroupChatLayout({
   onOpenNotifications,
   unreadNotificationCount,
   calendarEvents,
+  onGoToMeeting,
   currentUser,
   hasMoreMessages = false,
   loadingMoreMessages = false,
@@ -101,6 +102,7 @@ function GroupChatLayout({
         <RightSidebar
           groupInfo={groupInfo}
           calendarEvents={calendarEvents}
+          onGoToMeeting={onGoToMeeting}
           user={currentUser}
           isMobile={isMobile}
           showMainChat={showMainChat}

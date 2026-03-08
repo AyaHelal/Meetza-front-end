@@ -8,6 +8,7 @@ import './RightSidebar.css';
 const RightSidebar = ({
     groupInfo,
     calendarEvents,
+    onGoToMeeting,
     user,
     isMobile,
     showMainChat,
@@ -94,7 +95,7 @@ const RightSidebar = ({
                         <span>Video Sessions</span>
                     </div>
                 </div>
-                <CalendarSection calendarEvents={calendarEvents} />
+                <CalendarSection calendarEvents={calendarEvents} onGoToMeeting={onGoToMeeting} />
                 {selectedChat !== null && (
                     <GroupInfo
                         groupInfo={groupInfo}
