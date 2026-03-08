@@ -122,10 +122,10 @@ const AudioPlayer = ({ mediaUrl, mediaItem, isOwnMessage = false }) => {
                 crossOrigin="anonymous"
                 style={{ display: 'none' }}
             >
-                <source src={mediaUrl} type={mimeType} />
-                <source src={mediaUrl} type="audio/webm" />
-                <source src={mediaUrl} type="audio/mpeg" />
-                <source src={mediaUrl} type="audio/ogg" />
+                <source src={mediaUrl || undefined} type={mimeType} />
+                <source src={mediaUrl || undefined} type="audio/webm" />
+                <source src={mediaUrl || undefined} type="audio/mpeg" />
+                <source src={mediaUrl || undefined} type="audio/ogg" />
             </audio>
 
             {error ? (
@@ -490,7 +490,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                         return (
                             <img
                                 key={key}
-                                src={mediaUrl}
+                                src={mediaUrl || undefined}
                                 alt="chat media"
                                 className="message-media message-media-image"
                                 onClick={(e) => {
@@ -509,7 +509,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
                     if (type === 'video') {
                         return (
                             <video key={key} className="message-media message-media-video" controls preload="metadata">
-                                <source src={mediaUrl} type={mediaItem.file_mime || mediaItem.file_type || 'video/mp4'} />
+                                <source src={mediaUrl || undefined} type={mediaItem.file_mime || mediaItem.file_type || 'video/mp4'} />
                                 Your browser does not support the video tag.
                             </video>
                         );
@@ -672,7 +672,7 @@ const MessageItem = ({ message, groupId, onDeleteMessage, onEditMessage, current
             {!isOwnMessage && (
                 <div className="message-avatar">
                     {message.senderPhoto ? (
-                        <img src={message.senderPhoto} alt={message.sender} className="message-avatar-img" />
+                        <img src={message.senderPhoto || undefined} alt={message.sender} className="message-avatar-img" />
                     ) : (
                         <span>{message.initials}</span>
                     )}

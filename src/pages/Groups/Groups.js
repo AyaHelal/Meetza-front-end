@@ -96,7 +96,12 @@ const Groups = () => {
         );
     };
 
-    useEffect(() => {
+    // Fetch positions only for Administrators and Super Admins (members never call /position)
+    const isAdminForPositions = () => {
+        const rawRole = (user?.role || 'Member').toString().toLowerCase();
+        return rawRole.includes('administrator') || rawRole.includes('super_admin') || rawRole === 'admin';
+    };
+
     const fetchPositions = async () => {
         try {
             const response = await api.get('/position');
@@ -105,23 +110,23 @@ const Groups = () => {
                 : response.data?.data || [];
             setPositions(positionsData);
         } catch (error) {
-            // 403 is expected for non-admin users
             if (error.response?.status !== 403) {
                 console.error('Error fetching positions:', error);
             }
-            // Only show error for administrators, not for members (role from token via useAuth)
-            const rawRole = (user?.role || 'Member')
-                .toString()
-                .toLowerCase();
-            const isAdminRole = rawRole.includes('administrator');
-            if (isAdminRole) {
-                smartToast.error('Failed to load positions');
-            }
+            smartToast.error('Failed to load positions');
         }
     };
 
-    fetchPositions();
-}, []);
+    useEffect(() => {
+        if (!isAdminForPositions()) return;
+        fetchPositions();
+    }, [user?.role]);
+
+    // When Administrator opens Create Group modal, ensure positions are loaded (in case user loaded late)
+    useEffect(() => {
+        if (!showCreateModal || !isAdminForPositions() || positions.length > 0) return;
+        fetchPositions();
+    }, [showCreateModal]);
 
     // Detect mobile screen size
     useEffect(() => {

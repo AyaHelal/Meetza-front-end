@@ -231,7 +231,7 @@ const UserPhoto = ({
           {userPhoto ? (
             <img
               key={`photo-${photoKey}-${photoUpdatedAt || ''}`}
-              src={userPhoto}
+              src={userPhoto || undefined}
               alt={userName}
               className="user-photo-img"
               crossOrigin="anonymous"

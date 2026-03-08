@@ -249,7 +249,7 @@ const NotificationPanel = ({
                       <div className="notification-avatar-container">
                         {notification.administrator_photo ? (
                           <img
-                            src={notification.administrator_photo}
+                            src={notification.administrator_photo || undefined}
                             alt={notification.administrator_name || "Admin"}
                             className="notification-avatar"
                           />

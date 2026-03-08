@@ -1060,7 +1060,7 @@ const MainChat = ({
             <div key={member.id} className="member-item">
               {member.user_photo ? (
                 <img
-                  src={member.user_photo}
+                  src={member.user_photo || undefined}
                   alt={member.name}
                   className="member-avatar"
                 />
@@ -1122,13 +1122,13 @@ const MainChat = ({
           >
             {isImage ? (
               <img
-                src={url}
+                src={url || undefined}
                 className="expanded-photo"
                 alt={item.file_name || "media"}
               />
             ) : isVideo ? (
               <div className="video-thumbnail">
-                <video src={url} className="expanded-video" preload="metadata">
+                <video src={url || undefined} className="expanded-video" preload="metadata">
                   Your browser does not support the video tag.
                 </video>
                 <div className="video-play-overlay">
@@ -1234,7 +1234,7 @@ const MainChat = ({
         {items.map((item, index) =>
           item.media_type === "audio" ? (
             <div key={item.id || index} className="document-item audio-item">
-              <audio controls src={item.media_url || item.file_url} />
+              <audio controls src={item.media_url || item.file_url || undefined} />
               <span>{item.file_name || "Audio"}</span>
             </div>
           ) : (
@@ -1380,7 +1380,7 @@ const MainChat = ({
               <div key={index} className="expanded-item">
                 {expandedSection === "photos" && (
                   <img
-                    src={item.file_url}
+                    src={item.file_url || undefined}
                     alt={item.file_name || "Photo"}
                     className="expanded-photo"
                     onClick={() => handlePhotoClick(item)}
@@ -1628,14 +1628,14 @@ const MainChat = ({
             </button>
             {modalPhoto.media_type?.startsWith("image") ? (
               <img
-                src={modalPhoto.file_url || modalPhoto.media_url}
+                src={modalPhoto.file_url || modalPhoto.media_url || undefined}
                 alt={modalPhoto.file_name || "Photo"}
                 style={{ maxWidth: "100%", maxHeight: "80vh" }}
               />
             ) : modalPhoto.media_type?.startsWith("video") ? (
               <video
                 controls
-                src={modalPhoto.media_url || modalPhoto.file_url}
+                src={modalPhoto.media_url || modalPhoto.file_url || undefined}
                 style={{ maxWidth: "100%", maxHeight: "80vh" }}
               />
             ) : (

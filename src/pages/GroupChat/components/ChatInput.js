@@ -411,12 +411,12 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                                 <span>Recording...</span>
                             </div>
                         ) : previewType === 'image' ? (
-                            <img src={previewUrl} alt="Selected media" />
+                            <img src={previewUrl || undefined} alt="Selected media" />
                         ) : previewType === 'video' ? (
-                            <video src={previewUrl} controls />
+                            <video src={previewUrl || undefined} controls />
                         ) : previewType === 'audio' ? (
                             <div className="audio-preview-wrapper">
-                                <audio src={previewUrl} controls />
+                                <audio src={previewUrl || undefined} controls />
                                 <span className="audio-ready-label">
                                     {mediaCategory === 'voice_note' ? 'Voice note ready to send' : 'Audio file ready to send'}
                                 </span>
