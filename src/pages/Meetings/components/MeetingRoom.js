@@ -88,6 +88,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const remoteVideoRefsMap = useRef(new Map());
   const localParticipantAudioMutedRef = useRef({});
   const localParticipantVolumeRef = useRef({});
+  const userLeftMeetingRef = useRef(false);
+  const lastMeetingIdForPreJoinRef = useRef(null);
 
   const meetingId = useMeetingRoomMeetingId({
     location,
@@ -171,20 +173,28 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   const hand = useMeetingHand({ meetingIdRef, socket });
 
+  const setShowPreJoinModal = preJoin.setShowPreJoinModal;
   useEffect(() => {
     if (!meetingId || !socket || !isConnected) return;
     const mid = meetingIdRef.current || meetingId;
+    if (lastMeetingIdForPreJoinRef.current !== mid) {
+      lastMeetingIdForPreJoinRef.current = mid;
+      userLeftMeetingRef.current = false;
+    }
+    if (userLeftMeetingRef.current) return;
     const isReturning = (() => { try { return sessionStorage.getItem("activeMeetingId") === String(mid); } catch { return false; } })();
     const storedHasJoined = (() => { try { return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true"; } catch { return false; } })();
     const firstJoin = !isReturning && !hasJoined && !storedHasJoined;
     if (firstJoin) {
-      preJoin.setShowPreJoinModal(true);
+      setShowPreJoinModal(true);
       return;
     }
     rtc.startAndJoinMeetingRtc().then((result) => {
       if (result?.error) smartToast.error(result.error);
     });
-  }, [meetingId, socket, isConnected, hasJoined, preJoin]);
+    // Omit rtc from deps: including it would re-run after "Enter meeting" (new ref) and re-open the modal
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId, socket, isConnected, hasJoined, setShowPreJoinModal]);
 
   useEffect(() => {
     if (!setMeetingMediaRefs) return;
@@ -269,7 +279,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     isMeetingAdmin,
   });
 
-  const { handleLeaveMeeting, handleMeetingEnded } = useMeetingLifecycleHandlers({
+  const { handleLeaveMeeting: handleLeaveMeetingBase, handleMeetingEnded } = useMeetingLifecycleHandlers({
     meetingId,
     meetingInfo,
     isRecording,
@@ -279,6 +289,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
     socket,
     recordingStartedRef,
   });
+  const handleLeaveMeeting = useCallback(() => {
+    userLeftMeetingRef.current = true;
+    handleLeaveMeetingBase();
+  }, [handleLeaveMeetingBase]);
 
   // Reset activeSlide to 0 if admin and currently on slide 2
   useEffect(() => {
