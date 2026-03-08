@@ -55,7 +55,6 @@ export function useMeetingToggleVideo(opts) {
                   if (socket && mid) meetingSocketService.sendWebrtcOffer(socket, mid, peerSocketId, offer, () => {});
                 }
               } catch (err) {
-                console.warn("addTrack camera while sharing failed", peerSocketId, err);
               }
             }
           }

@@ -107,7 +107,6 @@ export const AuthProvider = ({ children }) => {
             }
             keysToRemove.forEach((k) => sessionStorage.removeItem(k));
         } catch (e) {
-            console.warn("clearAuthStorage:", e);
         }
     };
 

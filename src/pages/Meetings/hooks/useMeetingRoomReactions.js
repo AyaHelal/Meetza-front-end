@@ -33,7 +33,6 @@ export function useMeetingRoomReactions({
         try {
           localStorage.setItem(`meeting_reactions_${currentMeetingId}`, JSON.stringify(next));
         } catch (error) {
-          console.warn("Failed to save reactions to localStorage:", error);
         }
       }
       return next;
@@ -85,7 +84,6 @@ export function useMeetingRoomReactions({
   const handleSendLike = useCallback(() => {
     const mid = meetingIdRef?.current;
     if (!socket || !mid) {
-      console.warn("⚠️ Cannot send reaction - socket or meetingId missing");
       return;
     }
     const payload = {
@@ -103,7 +101,6 @@ export function useMeetingRoomReactions({
       const name = user?.name || user?.member_name || user?.email || "You";
       addReactionToMap(key, "like", name);
     } catch (e) {
-      console.warn("Could not add local reaction:", e);
     }
   }, [meetingIdRef, socket, user, selfMemberId, selfEmail, addReactionToMap]);
 
@@ -111,7 +108,6 @@ export function useMeetingRoomReactions({
     (emoji) => {
       const mid = meetingIdRef?.current;
       if (!mid || !socket) {
-        console.warn("⚠️ Cannot send emoji - socket or meetingId missing");
         return;
       }
       const payload = {
@@ -129,7 +125,6 @@ export function useMeetingRoomReactions({
         const name = user?.name || user?.member_name || user?.email || "You";
         addReactionToMap(key, emoji, name);
       } catch (e) {
-        console.warn("Could not add emoji locally:", e);
       }
       spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 1);
       setShowEmojiPicker(false);

@@ -148,7 +148,6 @@ const UserPhoto = ({
           } else {
             // Upload was successful but no URL in response - try to fetch updated user data
             try {
-              console.log('Upload successful but no photo URL in response. Fetching updated user data...');
               const userResponse = await axiosInstance.get(`/user/${userId}`);
               const fetchedUser = userResponse.data?.user || userResponse.data?.data || userResponse.data;
               
@@ -158,14 +157,11 @@ const UserPhoto = ({
                         fetchedUser?.avatar;
               
               if (photoUrl) {
-                console.log('Successfully fetched photo URL from updated user data');
               } else {
                 // Still no URL, but upload was successful - keep local preview
-                console.log('Photo uploaded successfully but URL not available yet. Keeping local preview.');
                 // Don't show error - upload was successful, photo will be available on refresh
               }
             } catch (fetchError) {
-              console.log('Could not fetch updated user data, but upload was successful:', fetchError);
               // Don't show error - upload was successful
             }
           }
@@ -235,7 +231,7 @@ const UserPhoto = ({
           {userPhoto ? (
             <img
               key={`photo-${photoKey}-${photoUpdatedAt || ''}`}
-              src={userPhoto}
+              src={userPhoto || undefined}
               alt={userName}
               className="user-photo-img"
               crossOrigin="anonymous"

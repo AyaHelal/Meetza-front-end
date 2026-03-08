@@ -53,7 +53,7 @@ const LoginImage = ({ isSignup = false }) => {
                     }}
                 >
                     <img
-                        src={imageSrc}
+                        src={imageSrc || undefined}
                         alt={isSignup ? "Signup Illustration" : "Login Illustration"}
                         style={{
                             width: '100%',

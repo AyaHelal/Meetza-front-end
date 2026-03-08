@@ -34,7 +34,6 @@ export const MeetingProvider = ({ children }) => {
         return messages.filter(msg => (msg.timestamp || 0) > oneDayAgo);
       }
     } catch (error) {
-      console.warn("Failed to load chat messages from localStorage:", error);
     }
     return [];
   }, []);
@@ -63,7 +62,6 @@ export const MeetingProvider = ({ children }) => {
       const storedMessages = loadChatMessagesFromStorage(meetingId);
       if (storedMessages.length > 0) {
         setChatMessagesState(storedMessages);
-        console.log(`📥 Loaded ${storedMessages.length} messages from localStorage for meeting ${meetingId}`);
       } else {
         setChatMessagesState([]);
       }
@@ -94,7 +92,6 @@ export const MeetingProvider = ({ children }) => {
             try {
               localStorage.setItem(`meeting_chat_${currentMeetingId}`, JSON.stringify(newMessages));
             } catch (e) {
-              console.warn("Failed to save chat messages to localStorage:", e);
             }
           }
           return newMessages;
@@ -122,11 +119,9 @@ export const MeetingProvider = ({ children }) => {
         try {
           localStorage.setItem(`meeting_chat_${currentMeetingId}`, JSON.stringify(newMessages));
         } catch (e) {
-          console.warn("Failed to save chat messages to localStorage:", e);
         }
       }
 
-      console.log("✅ Adding new message to chat, total messages:", newMessages.length);
       return newMessages;
     });
   }, [meetingId]);

@@ -46,7 +46,6 @@ export const SocketProvider = ({ children }) => {
 
     // Only connect if we have a token
     if (!token) {
-      console.log("⚠️ No token found, skipping Socket.IO connection");
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -59,13 +58,11 @@ export const SocketProvider = ({ children }) => {
 
     // If token hasn't changed, don't reconnect
     if (lastTokenRef.current === token && socketRef.current && isConnected) {
-      console.log("✅ Token unchanged, keeping existing socket connection");
       return;
     }
 
     // If token changed but socket exists, disconnect first
     if (socketRef.current && lastTokenRef.current !== token) {
-      console.log("🔌 Token changed, disconnecting existing socket...");
       socketRef.current.disconnect();
       socketRef.current = null;
       setSocket(null);
@@ -79,7 +76,6 @@ export const SocketProvider = ({ children }) => {
     connectionTimeoutRef.current = setTimeout(() => {
       // Double-check token is still valid before connecting
       if (!token || lastTokenRef.current !== token) {
-        console.log("⚠️ Token changed during delay, aborting connection");
         return;
       }
 
@@ -89,7 +85,6 @@ export const SocketProvider = ({ children }) => {
         socketRef.current = null;
       }
 
-      console.log(`🔌 Connecting to Socket.IO at ${SERVER_URL}...`);
 
       // Create socket connection with authentication
       const newSocket = io(SERVER_URL, {
@@ -106,20 +101,17 @@ export const SocketProvider = ({ children }) => {
 
       // Connection successful
       newSocket.on("connect", () => {
-        console.log("✅ Socket connected:", newSocket.id);
         setIsConnected(true);
 
         // Join notification room (backend does this automatically, but we can also explicitly join)
         newSocket.emit("join_notifications", (ack) => {
           if (ack && ack.ok) {
-            console.log("✅ Joined notifications room");
           }
         });
 
         // Get initial unread notification count after socket connects
         // Use REST API directly since socket event doesn't seem to work reliably
         setTimeout(() => {
-          console.log("🔔 Fetching initial unread notification count from API...");
           api.get("/notification")
             .then((response) => {
               let notificationsData = [];
@@ -134,10 +126,8 @@ export const SocketProvider = ({ children }) => {
               }
               const unreadCount = notificationsData.filter(n => !n.is_read && n.is_read !== true).length;
               setUnreadNotificationCount(unreadCount);
-              console.log("🔔 Initial unread notification count from API:", unreadCount, `(${notificationsData.length} total notifications)`);
             })
             .catch((error) => {
-              console.warn("⚠️ Failed to fetch notification count from API:", error);
             });
         }, 500);
 
@@ -149,7 +139,6 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("newNotification", (notification) => {
         setUnreadNotificationCount((prevCount) => {
           const newCount = prevCount + 1;
-          console.log("🔔 Received new notification, updated count:", newCount);
           return newCount;
         });
       });
@@ -158,29 +147,24 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("new_notification", (notification) => {
         setUnreadNotificationCount((prevCount) => {
           const newCount = prevCount + 1;
-          console.log("🔔 Received new notification (new_notification), updated count:", newCount);
           return newCount;
         });
       });
 
       // Listen for notification_count_update event (backend sends the actual count)
       newSocket.on("notification_count_update", (data) => {
-        console.log("🔔 Received notification_count_update event, raw data:", data);
         // data can be an array with count, or an object with count property
         const count = Array.isArray(data) && data[0]?.unreadCount !== undefined
           ? data[0].unreadCount
           : (data?.unreadCount !== undefined ? data.unreadCount : (typeof data === 'number' ? data : null));
 
-        console.log("🔔 Parsed count from notification_count_update:", count);
 
         if (count !== null && count !== undefined) {
           setUnreadNotificationCount(count);
-          console.log("🔔 Updated notification count to:", count);
         } else {
           // If count is not provided, increment (fallback behavior)
           setUnreadNotificationCount((prevCount) => {
             const newCount = prevCount + 1;
-            console.log("🔔 Received notification_count_update without count, incrementing:", newCount);
             return newCount;
           });
         }
@@ -199,9 +183,6 @@ export const SocketProvider = ({ children }) => {
             error.message.includes("websocket") ||
             error.message.includes("WebSocket")
           ) {
-            console.warn(
-              "⚠️ WebSocket connection failed, will fallback to polling transport"
-            );
           }
 
           hasLoggedSocketErrorRef.current = true;
@@ -211,7 +192,6 @@ export const SocketProvider = ({ children }) => {
 
       // Disconnected
       newSocket.on("disconnect", (reason) => {
-        console.log("🔌 Socket disconnected:", reason);
         setIsConnected(false);
         // Remove all notification listeners on disconnect
         newSocket.off("newNotification");
@@ -221,12 +201,10 @@ export const SocketProvider = ({ children }) => {
 
       // Reconnection attempt
       newSocket.on("reconnect_attempt", (attemptNumber) => {
-        console.log("🔄 Reconnection attempt:", attemptNumber);
       });
 
       // Reconnection successful
       newSocket.on("reconnect", (attemptNumber) => {
-        console.log("✅ Reconnected after", attemptNumber, "attempts");
         setIsConnected(true);
         setConnectionError(null);
       });
@@ -243,7 +221,6 @@ export const SocketProvider = ({ children }) => {
         connectionTimeoutRef.current = null;
       }
 
-      console.log("🔌 Cleaning up socket connection...");
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -258,7 +235,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot emit ${event}: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -271,7 +247,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to join a group
   const joinGroup = (groupId, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot join group ${groupId}: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -280,7 +255,6 @@ export const SocketProvider = ({ children }) => {
 
     socket.emit("joinGroup", { groupId: groupId }, (ack) => {
       if (ack && ack.ok) {
-        console.log(`✅ Successfully joined group: ${groupId}`);
       } else {
         console.error(
           `❌ Failed to join group ${groupId}:`,
@@ -294,18 +268,15 @@ export const SocketProvider = ({ children }) => {
   // Helper function to leave a group
   const leaveGroup = (groupId) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot leave group ${groupId}: socket not connected`);
       return;
     }
 
     socket.emit("leaveGroup", { groupId: groupId });
-    console.log(`👋 Left group: ${groupId}`);
   };
 
   // Helper function to send a message
   const sendMessage = (groupId, message, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot send message: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -314,7 +285,6 @@ export const SocketProvider = ({ children }) => {
 
     socket.emit("sendMessage", { groupId, message }, (ack) => {
       if (ack && ack.ok) {
-        console.log("✅ Message sent successfully");
       } else {
         console.error(
           "❌ Failed to send message:",
@@ -328,7 +298,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to mark message as read
   const markMessageRead = (groupId, messageId, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot mark message as read: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -343,7 +312,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to mark all messages as read (memoized to prevent re-renders)
   const markAllMessagesRead = useCallback((groupId, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot mark all messages as read: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -358,7 +326,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to get unread count
   const getUnreadCount = (groupId, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot get unread count: socket not connected`);
       if (callback) {
         callback({
           ok: false,
@@ -377,7 +344,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to get notifications
   const getNotifications = (callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot get notifications: socket not connected`);
       if (callback) {
         callback({
           ok: false,
@@ -396,7 +362,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to mark notification as read
   const markNotificationRead = (notificationId, callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot mark notification as read: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
       }
@@ -411,9 +376,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to mark all notifications as read (memoized to prevent re-renders)
   const markAllNotificationsRead = useCallback(async (callback) => {
     if (!socket || !isConnected) {
-      console.warn(
-        `⚠️ Cannot mark all notifications as read: socket not connected`
-      );
       // Since socket is not connected, we can't mark notifications as read
       // Just reset the local count to 0 as optimistic update
       setUnreadNotificationCount(0);
@@ -433,7 +395,6 @@ export const SocketProvider = ({ children }) => {
   // Helper function to get unread notification count via socket (memoized to prevent re-renders)
   const getUnreadNotificationCount = useCallback((callback) => {
     if (!socket || !isConnected) {
-      console.warn(`⚠️ Cannot get unread notification count: socket not connected`);
       if (callback) {
         callback({ ok: false, message: "Socket not connected", unreadCount: 0 });
       }
@@ -441,12 +402,9 @@ export const SocketProvider = ({ children }) => {
     }
 
     socket.emit("getUnreadNotificationCount", {}, (ack) => {
-      console.log("🔔 getUnreadNotificationCount callback response:", ack);
       if (ack && ack.ok && ack.unreadCount !== undefined) {
-        console.log("🔔 Setting notification count to:", ack.unreadCount);
         setUnreadNotificationCount(ack.unreadCount);
       } else {
-        console.warn("⚠️ getUnreadNotificationCount failed or invalid response:", ack);
       }
       if (callback) callback(ack);
     });

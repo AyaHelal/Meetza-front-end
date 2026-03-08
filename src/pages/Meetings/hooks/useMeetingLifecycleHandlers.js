@@ -88,7 +88,6 @@ export function useMeetingLifecycleHandlers({
           /* ignore */
         }
       } catch (e) {
-        console.warn("⚠️ Could not call leave API:", e);
       }
 
       smartToast.info("Meeting time has ended. Exiting...");

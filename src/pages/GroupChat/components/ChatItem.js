@@ -9,7 +9,7 @@ const ChatItem = ({ chat, isActive, onClick }) => {
         >
             <div className="chat-avatar">
                 {chat.avatarImage ? (
-                    <img src={chat.avatarImage} alt={chat.name} className="chat-avatar-img" />
+                    <img src={chat.avatarImage || undefined} alt={chat.name} className="chat-avatar-img" />
                 ) : (
                     <span>{chat.avatar}</span>
                 )}

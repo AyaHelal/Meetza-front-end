@@ -31,7 +31,6 @@ export async function ensureLocalMedia(opts) {
           stream.addTrack(t);
         });
       } catch (e) {
-        console.warn("Could not get audio track for negotiation:", e);
       }
     }
     return stream;
@@ -44,7 +43,6 @@ export async function ensureLocalMedia(opts) {
       stream.addTrack(t);
     });
   } catch (e) {
-    console.warn("Could not get audio track for negotiation:", e);
   }
   localStreamRef.current = stream;
   setLocalStream(stream);

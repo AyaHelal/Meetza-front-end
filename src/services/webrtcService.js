@@ -145,7 +145,6 @@ export function restartIce(pc) {
   try {
     pc.restartIce();
   } catch (e) {
-    console.warn("restartIce failed:", e);
   }
 }
 

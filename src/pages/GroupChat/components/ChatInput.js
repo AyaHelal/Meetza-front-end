@@ -351,18 +351,11 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                             lastModified: Date.now()
                         });
 
-                        console.log('Audio recording created:', {
-                            size: audioFile.size,
-                            type: audioFile.type,
-                            name: audioFile.name,
-                            chunks: audioChunksRef.current.length
-                        });
 
                         // Verify the file can be read
                         const testUrl = URL.createObjectURL(blob);
                         const testAudio = new Audio(testUrl);
                         testAudio.addEventListener('loadedmetadata', () => {
-                            console.log('Audio metadata loaded, duration:', testAudio.duration);
                             URL.revokeObjectURL(testUrl);
                         });
                         testAudio.addEventListener('error', (e) => {
@@ -377,7 +370,6 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                         setRecordingError('Failed to create audio file: ' + error.message);
                     }
                 } else if (!shouldDiscard) {
-                    console.warn('No audio chunks available after recording');
                     setRecordingError('Recording was too short or empty');
                 }
                 mediaRecorderRef.current = null;
@@ -419,12 +411,12 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                                 <span>Recording...</span>
                             </div>
                         ) : previewType === 'image' ? (
-                            <img src={previewUrl} alt="Selected media" />
+                            <img src={previewUrl || undefined} alt="Selected media" />
                         ) : previewType === 'video' ? (
-                            <video src={previewUrl} controls />
+                            <video src={previewUrl || undefined} controls />
                         ) : previewType === 'audio' ? (
                             <div className="audio-preview-wrapper">
-                                <audio src={previewUrl} controls />
+                                <audio src={previewUrl || undefined} controls />
                                 <span className="audio-ready-label">
                                     {mediaCategory === 'voice_note' ? 'Voice note ready to send' : 'Audio file ready to send'}
                                 </span>

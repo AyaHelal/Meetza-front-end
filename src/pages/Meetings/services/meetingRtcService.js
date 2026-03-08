@@ -23,7 +23,6 @@ export function addTracksToAllPeers(opts) {
           webrtcService.addTrack(pc, t, trackStream);
           addedAny = true;
         } catch (err) {
-          console.warn("Failed to add track to peer", peerSocketId, err);
         }
       }
     });

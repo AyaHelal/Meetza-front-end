@@ -25,7 +25,6 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
                 }
                 if (el.srcObject !== adminTile.stream) {
                   el.srcObject = adminTile.stream;
-                  console.log("📹 Set admin stream for screen view", adminTile.socketId);
                 }
                 el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
                 el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);

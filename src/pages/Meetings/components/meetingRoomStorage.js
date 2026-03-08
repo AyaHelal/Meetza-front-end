@@ -6,7 +6,6 @@ export const loadHandRaisedMapFromStorage = (mid) => {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.warn("Failed to load handRaisedMap from localStorage:", error);
   }
   return {};
 };
@@ -34,7 +33,6 @@ export const loadReactionsFromStorage = (mid) => {
       return filtered;
     }
   } catch (error) {
-    console.warn("Failed to load reactions from localStorage:", error);
   }
   return {};
 };

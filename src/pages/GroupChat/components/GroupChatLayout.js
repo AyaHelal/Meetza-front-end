@@ -41,6 +41,9 @@ function GroupChatLayout({
   unreadNotificationCount,
   calendarEvents,
   currentUser,
+  hasMoreMessages = false,
+  loadingMoreMessages = false,
+  onLoadMoreMessages,
 }) {
   if (loading) {
     return (
@@ -89,6 +92,9 @@ function GroupChatLayout({
         onGroupNameClick={onGroupNameClick}
         userRole={userRole}
         loading={chatLoading}
+        hasMoreMessages={hasMoreMessages}
+        loadingMoreMessages={loadingMoreMessages}
+        onLoadMoreMessages={onLoadMoreMessages}
       />
 
       {selectedChatData && (

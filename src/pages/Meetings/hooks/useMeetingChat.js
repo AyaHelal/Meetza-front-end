@@ -21,12 +21,10 @@ export function useMeetingChat(opts) {
   const handleSendComment = useCallback(() => {
     const currentMeetingId = meetingIdRef?.current || meetingId;
     if (!socket || !isConnected || !currentMeetingId) {
-      console.warn("Cannot send comment - socket, connection, or meetingId missing");
       return;
     }
     const trimmedText = (typeof commentText === "string" ? commentText : "").trim();
     if (!trimmedText) {
-      console.warn("Cannot send empty comment");
       return;
     }
     const payload = {

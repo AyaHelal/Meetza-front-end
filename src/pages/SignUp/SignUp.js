@@ -81,14 +81,6 @@ const SignUp = () => {
             const isLongEnough = password.length >= 8;
 
             // Debug log (remove in production if needed)
-            console.log('Password validation:', {
-                password,
-                hasLowercase,
-                hasUppercase,
-                hasNumber,
-                hasSpecialChar,
-                isLongEnough
-            });
 
             if (!hasLowercase || !hasUppercase || !hasNumber || !hasSpecialChar || !isLongEnough) {
                 newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, number, and special character";
@@ -127,7 +119,6 @@ const SignUp = () => {
             };
 
             const response = await signup(userData);
-            console.log("✅ Signup successful:", response);
 
 
             setMessage({ text: response.message || "Signup successful!", type: "success" });

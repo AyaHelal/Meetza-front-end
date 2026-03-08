@@ -85,7 +85,6 @@ export function useMeetingRoomMediaEffects({
           localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = true));
         }
       } catch (error) {
-        console.warn("⚠️ Failed to restore media state after refresh:", error);
       }
     };
 
@@ -115,7 +114,6 @@ export function useMeetingRoomMediaEffects({
       if (videoEl && stream) {
         if (videoEl.srcObject !== stream) {
           videoEl.srcObject = stream;
-          console.log("🔄 Updated video srcObject for", videoKey);
         }
         if (videoEl.paused) {
           videoEl.play().catch((err) => {
