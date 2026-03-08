@@ -63,7 +63,6 @@ const AppLayout = () => {
       hasFetchedInitialCountRef.current = true;
       getUnreadNotificationCount((ack) => {
         if (ack && ack.ok && ack.unreadCount !== undefined) {
-          console.log("🔔 AppLayout - Fetched initial notification count:", ack.unreadCount);
         }
       });
     }
@@ -174,14 +173,12 @@ const AppLayout = () => {
         try {
           await api.post(`/meeting/${activeMeetingId}/leave`);
         } catch (leaveErr) {
-          console.warn("Logout: failed to call leave meeting API", leaveErr);
         }
         sessionStorage.removeItem("activeMeetingId");
         sessionStorage.removeItem("activeMeetingGroupId");
       }
       logoutUser();
     } catch (err) {
-      console.warn("Logout error", err);
     }
     navigate("/login");
     setIsSidebarOpen(false);

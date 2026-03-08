@@ -169,26 +169,16 @@ export default function GroupChat() {
   }, [getMediaLabel]);
 
   const extractLinksFromMessages = (messages = []) => {
-    console.log("Processing messages for links:", messages);
     const links = [];
     messages?.forEach((msg) => {
       // Skip if message is deleted or has media (we only want plain text messages with links)
       if (msg.is_deleted || (msg.media && msg.media.length > 0)) {
-        console.log("Skipping message (deleted or has media):", msg.id, {
-          is_deleted: msg.is_deleted,
-          has_media: msg.media?.length > 0,
-        });
         return;
       }
 
       if (msg.message) {
-        console.log("Checking message for URLs:", {
-          id: msg.id,
-          message: msg.message,
-        });
         const urlRegex = /https?:\/\/[^\s<>,;]+/g;
         const urls = msg.message.match(urlRegex) || [];
-        console.log("Found URLs:", urls);
 
         urls.forEach((url) => {
           try {
@@ -211,18 +201,14 @@ export default function GroupChat() {
                 isLink: true,
                 is_downloadable: false,
               };
-              console.log("Adding link:", linkData);
               links.push(linkData);
             } else {
-              console.log("Skipping file URL:", cleanUrl);
             }
           } catch (e) {
-            console.warn("Invalid URL:", url, e);
           }
         });
       }
     });
-    console.log("Extracted links:", links);
     return links;
   };
 
@@ -250,7 +236,6 @@ export default function GroupChat() {
 
   const handleGroupEvent = async (payload) => {
     try {
-      console.log("🔔 Group event received:", payload);
 
       let group = null;
       if (payload && typeof payload === "object") {
@@ -294,18 +279,10 @@ export default function GroupChat() {
                     data.description ||
                     "No content";
                   if (!contentName || contentName === "No content") {
-                    console.warn(
-                      `⚠️ No content name found for content id ${g.group_content_id}`,
-                      data
-                    );
                   }
                 }
               }
             } catch (e) {
-              console.warn(
-                "❌ Error fetching content for group during group-event refresh",
-                e
-              );
             }
             return { ...g, contentName };
           })
@@ -361,7 +338,6 @@ export default function GroupChat() {
               "No content";
           }
         } catch (e) {
-          console.warn("❌ Error fetching content for new group", e);
         }
       }
 
@@ -407,15 +383,12 @@ export default function GroupChat() {
     if (!socket || !isConnected) return;
 
     const handleNewMessage = (messageData) => {
-      console.log("📨 New message received via Socket.IO:", messageData);
-      console.log("📨 Current group ID:", currentGroupIdRef.current);
 
       // Handle different possible field names for group ID
       const messageGroupId = String(
         messageData.group_id || messageData.groupId || messageData.group || ""
       );
 
-      console.log("📨 Message group ID (parsed):", messageGroupId);
 
       if (
         !messageData ||
@@ -423,10 +396,6 @@ export default function GroupChat() {
         messageGroupId === "undefined" ||
         messageGroupId === "null"
       ) {
-        console.warn(
-          "⚠️ Invalid message data received - missing group ID:",
-          messageData
-        );
         return;
       }
 
@@ -434,26 +403,15 @@ export default function GroupChat() {
         currentGroupIdRef.current &&
         String(currentGroupIdRef.current) === messageGroupId;
 
-      console.log("📨 Is for current group?", isForCurrentGroup);
 
       // Add message to UI if it's for the currently selected group
       if (isForCurrentGroup) {
-        console.log("✅ Message is for current group, adding to UI");
-        console.log("📨 Message details:", {
-          id: messageData.id,
-          sender: messageData.sender_name,
-          text: messageData.message || messageData.text,
-          group_id: messageGroupId,
-          current_group: currentGroupIdRef.current,
-        });
 
         // Ensure message has required fields
         if (!messageData.message && !messageData.text) {
-          console.warn("⚠️ Message missing text field:", messageData);
         }
 
         const formattedMessage = formatMessage(messageData);
-        console.log("📨 Formatted message:", formattedMessage);
         setMessages((prev) => {
           // Check if message already exists by ID (avoid duplicates)
           const existingIndex = prev.findIndex((msg) => {
@@ -482,14 +440,12 @@ export default function GroupChat() {
 
           if (existingIndex !== -1) {
             // Message already exists, update it instead of adding duplicate
-            console.log("🔄 Updating existing message:", messageData.id);
             const updated = [...prev];
             updated[existingIndex] = formattedMessage;
             return updated;
           }
 
           // New message, add it
-          console.log("➕ Adding new message to UI:", messageData.id);
           return [...prev, formattedMessage];
         });
 
@@ -514,9 +470,6 @@ export default function GroupChat() {
           });
         }
       } else {
-        console.log(
-          "ℹ️ Message is for another group, updating unread count only"
-        );
       }
 
       // Update last_message in groupChats list for all groups
@@ -550,14 +503,8 @@ export default function GroupChat() {
               // But only if message is from another user (not your own message)
               if (!isFromCurrentUser) {
                 newUnread = (group.unread || 0) + 1;
-                console.log(
-                  `📬 Incrementing unread for group ${messageGroupId}: ${newUnread}`
-                );
               } else {
                 // Your own message in another group - don't increment unread
-                console.log(
-                  `ℹ️ Your own message in group ${messageGroupId}, not incrementing unread`
-                );
               }
             }
 
@@ -576,7 +523,6 @@ export default function GroupChat() {
     };
 
     // Set up message listener BEFORE joining groups
-    console.log("🎧 Setting up Socket.IO message listener");
 
     // Also listen for any socket events for debugging
     const handleAnyEvent = (eventName, ...args) => {
@@ -584,7 +530,6 @@ export default function GroupChat() {
         // This will be handled by handleNewMessage
         return;
       }
-      console.log(`🔔 Socket event received: ${eventName}`, args);
     };
 
     socket.on("message", handleNewMessage);
@@ -593,7 +538,6 @@ export default function GroupChat() {
     socket.onAny(handleAnyEvent);
 
     return () => {
-      console.log("🎧 Removing Socket.IO message listener");
       socket.off("message", handleNewMessage);
       socket.offAny(handleAnyEvent);
     };
@@ -627,10 +571,6 @@ export default function GroupChat() {
                     data.description ||
                     "No content";
                   if (!contentName || contentName === "No content") {
-                    console.warn(
-                      `⚠️ No content name found for content id ${group.group_content_id}`,
-                      data
-                    );
                   }
                 }
               }
@@ -680,10 +620,6 @@ export default function GroupChat() {
           }
 
           // Preserve unread counts from previous state, especially for groups that were marked as read
-          console.log(
-            "📖 readGroupsRef contents:",
-            Array.from(readGroupsRef.current)
-          );
           return formattedGroups.map((newGroup) => {
             const groupIdStr = String(newGroup.id);
             const apiUnreadCount = newGroup.unread; // This is from the API response (line 533)
@@ -693,9 +629,6 @@ export default function GroupChat() {
               // If API returns a positive unread count, it means new messages arrived after being read
               // Remove from readGroupsRef to allow the badge to show
               if (apiUnreadCount > 0) {
-                console.log(
-                  `📖 New messages arrived for group ${groupIdStr} (API returned ${apiUnreadCount}), removing from readGroupsRef to show badge`
-                );
                 readGroupsRef.current.delete(groupIdStr);
                 // Use the API value to show the badge
                 return {
@@ -704,9 +637,6 @@ export default function GroupChat() {
                 };
               } else {
                 // No new messages, keep unread at 0
-                console.log(
-                  `📖 Preserving unread=0 for group ${groupIdStr} (API returned ${apiUnreadCount}, was opened, no new messages)`
-                );
                 return {
                   ...newGroup,
                   unread: 0, // Force to 0, ignore API response - user has already seen this chat
@@ -723,18 +653,12 @@ export default function GroupChat() {
                 oldGroup.unread === 0
                   ? 0
                   : newGroup.unread || oldGroup.unread || 0;
-              console.log(
-                `📖 Group ${groupIdStr}: API=${apiUnreadCount}, Old=${oldGroup.unread}, Preserved=${preservedUnread}`
-              );
               return {
                 ...newGroup,
                 unread: preservedUnread,
               };
             }
             // New group, use API value
-            console.log(
-              `📖 New group ${groupIdStr}: using API unread count ${apiUnreadCount}`
-            );
             return newGroup;
           });
         });
@@ -800,7 +724,6 @@ export default function GroupChat() {
   useEffect(() => {
     if (!socket || !isConnected || groupChats.length === 0) return;
 
-    console.log("🔌 Joining all groups via Socket.IO to receive messages...");
 
     // Capture current groups for cleanup
     const currentGroups = [...groupChats];
@@ -821,16 +744,13 @@ export default function GroupChat() {
         if (ack && ack.ok) {
           joinedGroupsRef.current.add(idStr);
           groupsJoinedInThisEffect.add(idStr);
-          console.log(`✅ Joined group ${id} for message receiving`);
         } else {
-          console.warn(`⚠️ Failed to join group ${id}:`, ack?.message);
         }
       });
     });
 
     // Cleanup: Leave all groups that were joined in this effect
     return () => {
-      console.log("👋 Leaving groups on cleanup...");
       groupsToJoin.forEach(({ id, idStr }) => {
         // Only leave if we joined it in this effect
         if (groupsJoinedInThisEffect.has(idStr)) {
@@ -857,7 +777,6 @@ export default function GroupChat() {
 
     const handleGroupEvent = async (payload) => {
       try {
-        console.log("🔔 Group event received:", payload);
         await refreshGroupsList(false);
       } catch (err) {
         console.error("❌ Error handling group event:", err);
@@ -895,27 +814,16 @@ export default function GroupChat() {
         const groupId = currentGroupId;
         const groupIdStr = String(groupId);
 
-        console.log(
-          "📖 Opening chat, marking messages as read for group:",
-          groupIdStr
-        );
 
         // Always mark messages as read when chat is opened
         // Mark this group as read in our tracking FIRST (before any API calls)
         readGroupsRef.current.add(groupIdStr);
-        console.log(
-          "📖 Added to readGroupsRef:",
-          Array.from(readGroupsRef.current)
-        );
 
         // Update local unread count to 0 immediately (optimistic update)
         // This ensures the badge disappears immediately when chat is selected
         setGroupChats((prev) => {
           const updated = prev.map((g) => {
             if (String(g.id) === groupIdStr) {
-              console.log(
-                `📖 Setting unread to 0 for group ${groupIdStr} (was ${g.unread})`
-              );
               return { ...g, unread: 0 };
             }
             return g;
@@ -925,13 +833,9 @@ export default function GroupChat() {
 
         // Mark messages as read via Socket.IO
         if (socket && isConnected) {
-          console.log(
-            `📖 Marking all messages as read via Socket.IO for group ${groupId}...`
-          );
           markAllMessagesRead(groupId, (ack) => {
             if (ack && ack.ok) {
               markedAsReadRef.current.add(groupIdStr);
-              console.log("✅ Marked messages as read for group", groupId);
               // Update unread count from acknowledgment
               const unreadCount = ack.unreadCount || 0;
               setGroupChats((prev) =>
@@ -943,9 +847,6 @@ export default function GroupChat() {
               );
             } else {
               // Fallback to REST API if Socket.IO fails
-              console.warn(
-                "⚠️ Socket.IO mark-as-read failed, trying REST API..."
-              );
               axiosInstance
                 .put(`/chat/groups/${groupId}/messages/read-all`)
                 .then(() => {
@@ -957,7 +858,6 @@ export default function GroupChat() {
                   );
                 })
                 .catch((e) => {
-                  console.warn("⚠️ REST API mark-as-read also failed:", e);
                   markedAsReadRef.current.add(groupIdStr);
                   setGroupChats((prev) =>
                     prev.map((g) =>
@@ -970,9 +870,6 @@ export default function GroupChat() {
         } else {
           // Fallback to REST API if socket not connected
           try {
-            console.log(
-              `📖 Socket not connected, using REST API for mark-as-read...`
-            );
             await axiosInstance.put(
               `/chat/groups/${groupId}/messages/read-all`
             );
@@ -983,7 +880,6 @@ export default function GroupChat() {
               )
             );
           } catch (e) {
-            console.warn("⚠️ Failed to mark messages as read:", e);
             markedAsReadRef.current.add(groupIdStr);
             setGroupChats((prev) =>
               prev.map((g) =>
@@ -1026,18 +922,13 @@ export default function GroupChat() {
     // Note: We already join all groups in a separate useEffect, so we don't need to join here
     if (currentGroupId) {
       currentGroupIdRef.current = currentGroupId;
-      console.log(`📌 Current group ID set to: ${currentGroupId}`);
 
       // Ensure this group is joined (it should already be, but double-check)
       const groupIdStr = String(currentGroupId);
       if (socket && isConnected && !joinedGroupsRef.current.has(groupIdStr)) {
-        console.log(
-          `🔌 Group ${currentGroupId} not yet joined, joining now...`
-        );
         joinGroup(currentGroupId, (ack) => {
           if (ack && ack.ok) {
             joinedGroupsRef.current.add(groupIdStr);
-            console.log(`✅ Joined group ${currentGroupId} via Socket.IO`);
           }
         });
       }
@@ -1110,12 +1001,6 @@ export default function GroupChat() {
   };
 
   const handleBackToChats = () => {
-    console.log("🔵 handleBackToChats called", {
-      isMobile,
-      showMainChat,
-      showRightSidebarMobile,
-      selectedChat,
-    });
     // Clear selected chat to remove highlight
     setSelectedChat(null);
     setShowMainChat(false);
@@ -1363,17 +1248,12 @@ export default function GroupChat() {
           setGroupInfo(infoResponse.data.data);
         }
       } catch (refreshError) {
-        console.warn(
-          "⚠️ Failed to refresh group info after sending message:",
-          refreshError
-        );
       }
     };
 
     // Helper function for REST API fallback
     const sendViaRestAPI = async () => {
       try {
-        console.log("📤 Sending message via REST API...");
         const res = await axiosInstance.post(
           `/chat/groups/${groupId}/messages`,
           formData,
@@ -1423,7 +1303,6 @@ export default function GroupChat() {
 
       // For text-only messages, try Socket.IO first
       if (socket && isConnected) {
-        console.log("📤 Sending text message via Socket.IO...");
         return new Promise((resolve) => {
           socketSendMessage(groupId, trimmedText, async (ack) => {
             if (ack && ack.ok && ack.data) {
@@ -1445,7 +1324,6 @@ export default function GroupChat() {
                   msg.id === tempId ? formattedMessage : msg
                 );
               });
-              console.log("✅ Message sent via Socket.IO");
 
               // Refresh group info if message contains a link (backend saves links to media)
               if (containsLink) {
@@ -1459,10 +1337,6 @@ export default function GroupChat() {
               resolve(true);
             } else {
               // Socket.IO failed, fallback to REST API
-              console.warn(
-                "⚠️ Socket.IO send failed, falling back to REST API:",
-                ack?.message
-              );
               sendViaRestAPI().then(resolve);
             }
           });
@@ -1506,9 +1380,7 @@ export default function GroupChat() {
   }, [groupInfo]);
 
   const groupMediaItems = useMemo(() => {
-    console.log('📦 Raw mediaArray from backend:', mediaArray);
     const categorized = categorizeMediaItems(mediaArray);
-    console.log('📋 Categorized mediaItems:', categorized);
     return categorized;
   }, [mediaArray]);
 
@@ -1579,7 +1451,6 @@ export default function GroupChat() {
       files: groupMediaItems?.files || [],
       links: allLinks,
     };
-    console.log("Media summary:", summary);
     return summary;
   }, [groupMediaItems, allLinks]);
 

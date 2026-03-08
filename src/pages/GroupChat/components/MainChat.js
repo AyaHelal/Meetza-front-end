@@ -98,19 +98,6 @@ const MainChat = ({
   const handleJoinMeeting = async () => {
     try {
       // Debug: Log all possible sources of meeting ID
-      console.log("🔍 Debugging meeting ID sources:", {
-        meetingIdProp: meetingId,
-        paramsMeetingId: params.meetingId,
-        searchParamsMeetingId: searchParams.get('meetingId'),
-        groupInfoMeetingId: groupInfo?.meeting?.id,
-        groupInfoMeeting_id: groupInfo?.meeting_id,
-        groupInfoMeetingId2: groupInfo?.meetingId,
-        groupInfoGroupMeetingId: groupInfo?.group?.meeting?.id,
-        groupInfoGroupMeeting_id: groupInfo?.group?.meeting_id,
-        groupInfoGroupMeetingId2: groupInfo?.group?.meetingId,
-        fullGroupInfo: groupInfo,
-        groupId: groupId
-      });
 
       // Get meeting ID from various sources (prop, URL param, search param, groupInfo)
       let dynamicMeetingId = meetingId ||
@@ -123,15 +110,12 @@ const MainChat = ({
         groupInfo?.group?.meeting_id ||
         groupInfo?.group?.meetingId;
 
-      console.log("📍 Dynamic meeting ID found:", dynamicMeetingId);
 
       // If meeting ID not found, try to fetch from meetings API using groupId (works for members too)
       if (!dynamicMeetingId && groupId) {
-        console.log("🔄 Attempting to fetch meetings from API...");
         try {
           // Backend: GET /meeting?group_id=... (getAllMeetings with group filter)
           const meetingsResponse = await api.get("/meeting", { params: { group_id: groupId } });
-          console.log("✅ Meetings response:", meetingsResponse);
           // Support multiple possible response shapes:
           // - { success, data: [...] } or { success, data: {...} }
           // - { data: { success, data: ... } } (nested)
@@ -157,10 +141,10 @@ const MainChat = ({
               activeMeeting?.meetingId ||
               activeMeeting?.meeting?.id;
 
-            console.log("✅ Found meeting from API:", activeMeeting, {
-              extractedMeetingId: dynamicMeetingId,
-            });
           } else {
+            console.warn("⚠️ Meetings API returned no meetings for this group.");
+            console.warn("⚠️ Meetings API returned no meetings for this group.");
+            console.warn("⚠️ Meetings API returned no meetings for this group.");
             console.warn("⚠️ Meetings API returned no meetings for this group.");
           }
         } catch (fetchError) {
@@ -181,7 +165,6 @@ const MainChat = ({
         return;
       }
 
-      console.log("🚀 Attempting to join meeting:", dynamicMeetingId);
 
       // Check if meeting is still active before joining
       try {
@@ -209,7 +192,6 @@ const MainChat = ({
           return;
         }
 
-        console.log("✅ Meeting is active, proceeding with join...");
       } catch (checkError) {
         console.warn("⚠️ Could not verify meeting status:", checkError);
         smartToast.error("Could not verify meeting status. Please try again.");
@@ -422,7 +404,6 @@ const MainChat = ({
       console.warn("initialMessages is not an array:", initialMessages);
       return [];
     }
-    console.log("Initial messages count:", initialMessages.length);
     return sortMessagesChronologically(formatMessages(initialMessages));
   });
 
@@ -833,7 +814,6 @@ const MainChat = ({
     : { photos: [], links: [], documents: [], audio: [] };
 
   const handlePhotoClick = (item) => {
-    console.log("Clicked item:", item);
 
     if (item.isLink) {
       window.open(item.media_url, "_blank");
@@ -885,7 +865,6 @@ const MainChat = ({
     }
     try {
       const response = await deleteMessage(groupId, messageId);
-      console.log("Delete message response:", response);
 
       // Mark message as deleted locally
       setMessages((prevMessages) =>
@@ -1206,7 +1185,6 @@ const MainChat = ({
   );
 
   const renderLinkList = (items = []) => {
-    console.log("Rendering links:", items);
     return (
       <div className="expanded-items expanded-links">
         {items.length === 0 && <p className="empty-state">No links yet.</p>}
@@ -1219,7 +1197,6 @@ const MainChat = ({
             className="link-item"
             onClick={(e) => {
               e.preventDefault();
-              console.log("Opening link:", item.media_url || item.file_url);
               window.open(
                 item.media_url || item.file_url,
                 "_blank",
@@ -1473,10 +1450,6 @@ const MainChat = ({
             <button
               className="back-to-chats-btn"
               onClick={(e) => {
-                console.log("🔵 Back button clicked (onClick)", {
-                  onBackToChats: !!onBackToChats,
-                  isMobile,
-                });
                 e.preventDefault();
                 e.stopPropagation();
                 if (onBackToChats) {
@@ -1484,10 +1457,6 @@ const MainChat = ({
                 }
               }}
               onTouchEnd={(e) => {
-                console.log("🔵 Back button touched (onTouchEnd)", {
-                  onBackToChats: !!onBackToChats,
-                  isMobile,
-                });
                 e.preventDefault();
                 e.stopPropagation();
                 if (onBackToChats) {

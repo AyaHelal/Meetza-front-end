@@ -21,12 +21,6 @@ export function useMeetingRoomParticipantHelpers({ peerMetaRef, remoteStreams })
         }
       }
       if (memberId || email) {
-        console.warn("⚠️ Could not match participant to stream:", {
-          memberId,
-          email,
-          availableStreams: remoteStreams.length,
-          availableMeta: Array.from(peerMetaRef?.current?.keys() ?? []),
-        });
       }
       return null;
     },

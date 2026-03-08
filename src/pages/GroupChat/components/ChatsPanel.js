@@ -87,23 +87,16 @@ const ChatsPanel = ({
     let token = localStorage.getItem("token");
     if (!token) token = sessionStorage.getItem("token");
     if (!token) {
-      console.warn(
-        "ChatsPanel: no auth token found - skipping unread-count fetch"
-      );
       fetchingRef.current = false;
       return;
     }
     // Only log if there are groups to fetch (reduce console noise)
     if (idsToFetch.length > 0) {
-      console.debug("ChatsPanel: will fetch unread-count for ids", idsToFetch);
     }
     if (fetchingRef.current) return; // avoid parallel fetches
 
     // Skip if endpoint doesn't exist (we got 404s before)
     if (!endpointExistsRef.current) {
-      console.debug(
-        "ChatsPanel: Skipping unread-count fetch - endpoint returns 404"
-      );
       return;
     }
 
@@ -123,11 +116,6 @@ const ChatsPanel = ({
         });
         // If server returns 304 Not Modified, try again with a new cache buster
         if (res && res.status === 304) {
-          console.debug(
-            "ChatsPanel: unread-count 304 for",
-            id,
-            "- retrying with new cacheBuster"
-          );
           try {
             const res2 = await axiosInstance.get(
               `/chat/groups/${id}/unread-count`,
@@ -141,11 +129,6 @@ const ChatsPanel = ({
               }
             );
             if (res2 && res2.status === 200) {
-              console.debug(
-                "ChatsPanel: unread-count cache-bust success for",
-                id,
-                res2.data
-              );
               // Use res2 as the response
               Object.defineProperty(res, "data", {
                 value: res2.data,
@@ -159,11 +142,6 @@ const ChatsPanel = ({
           } catch (e2) {
             // Silently handle cache-bust retry failures
             if (e2?.response?.status !== 404) {
-              console.warn(
-                "ChatsPanel: cache-bust retry failed",
-                id,
-                e2?.response?.status || e2.message || e2
-              );
             }
           }
         }
@@ -189,10 +167,6 @@ const ChatsPanel = ({
         }
         // Only log if count is non-zero (reduce console noise)
         if (c > 0) {
-          console.debug(`ChatsPanel: Unread count for group ${id}:`, {
-            payload,
-            parsedCount: c,
-          });
         }
         return { id, count: c };
       } catch (e) {
@@ -201,10 +175,6 @@ const ChatsPanel = ({
           // Mark endpoint as not existing if we get 404
           endpointExistsRef.current = false;
         } else if (e?.response?.status !== 404) {
-          console.warn(
-            `ChatsPanel: Error fetching unread-count for group ${id}:`,
-            e?.response?.status || e?.message
-          );
         }
         return { id, count: 0 };
       }
@@ -226,10 +196,6 @@ const ChatsPanel = ({
                         count > 0 ||
                         unreadMapRef.current[String(id)] !== count
                       ) {
-                        console.debug(
-                          `ChatsPanel: Socket.IO unread count for group ${id}:`,
-                          count
-                        );
                       }
                       resolve({ id, count });
                     } else {
@@ -243,10 +209,6 @@ const ChatsPanel = ({
                 return fetchUnreadCountViaAPI(id);
               }
             } catch (e) {
-              console.warn(
-                `ChatsPanel: Error fetching unread-count for group ${id}:`,
-                e?.response?.status || e?.message
-              );
               return { id, count: 0 };
             }
           })
@@ -268,14 +230,6 @@ const ChatsPanel = ({
                   newCount > 0 ||
                   Math.abs((prev[groupIdStr] || 0) - newCount) > 0
                 ) {
-                  console.debug(
-                    "ChatsPanel: updating unreadMap",
-                    r.value.id,
-                    "from",
-                    prev[groupIdStr] || 0,
-                    "to",
-                    newCount
-                  );
                 }
                 next[groupIdStr] = newCount;
                 // Update last fetch time
@@ -289,7 +243,6 @@ const ChatsPanel = ({
           return next;
         });
       } catch (e) {
-        console.warn("Error fetching unread-counts in ChatsPanel", e);
       } finally {
         fetchingRef.current = false;
       }
@@ -322,18 +275,12 @@ const ChatsPanel = ({
           setUnreadMap((prev) => {
             const currentCount = prev[groupIdStr] || 0;
             const newCount = currentCount + 1;
-            console.log(
-              `ChatsPanel: Incrementing unread for group ${groupIdStr}: ${currentCount} -> ${newCount}`
-            );
             return { ...prev, [groupIdStr]: newCount };
           });
         } else if (isCurrentlySelected) {
           // If it's the current chat, ensure unread is 0
           setUnreadMap((prev) => {
             if (prev[groupIdStr] !== 0) {
-              console.log(
-                `ChatsPanel: Clearing unread for selected group ${groupIdStr}`
-              );
               return { ...prev, [groupIdStr]: 0 };
             }
             return prev;
@@ -387,9 +334,6 @@ const ChatsPanel = ({
         if (parentUnread > currentUnread) {
           newMap[groupIdStr] = parentUnread;
           updated = true;
-          console.log(
-            `ChatsPanel: Syncing unreadMap for group ${groupIdStr}: ${currentUnread} -> ${parentUnread} (from parent)`
-          );
         }
       });
 
@@ -403,9 +347,6 @@ const ChatsPanel = ({
       const selectedChatId = String(groupChats[selectedChat].id);
       setUnreadMap((prev) => {
         if (prev[selectedChatId] > 0) {
-          console.debug(
-            `ChatsPanel: Clearing unreadMap for selected chat ${selectedChatId}`
-          );
           return { ...prev, [selectedChatId]: 0 };
         }
         return prev;
@@ -441,10 +382,6 @@ const ChatsPanel = ({
     if (groupsToFetch.length === 0) return;
 
     fetchingPreviewsRef.current = true;
-    console.log(
-      "📥 Fetching last messages for groups:",
-      groupsToFetch.map((g) => g.id)
-    );
 
     (async () => {
       try {
@@ -542,10 +479,6 @@ const ChatsPanel = ({
               }
               return { id: chat.id, preview: null };
             } catch (err) {
-              console.warn(
-                `⚠️ Failed to fetch last message for group ${chat.id}:`,
-                err
-              );
               return { id: chat.id, preview: null };
             }
           })
@@ -566,7 +499,6 @@ const ChatsPanel = ({
           setMessagePreviews((prev) => ({ ...prev, ...newPreviews }));
         }
       } catch (e) {
-        console.warn("Error fetching message previews:", e);
       } finally {
         fetchingPreviewsRef.current = false;
       }
@@ -599,13 +531,6 @@ const ChatsPanel = ({
 
     // Debug log for unread count merging (only log when there's a discrepancy or unread > 0)
     if (parentVal !== fetched || unread > 0) {
-      console.log(`ChatsPanel mergedChats for group ${c.id}:`, {
-        parentVal,
-        fetched,
-        isCurrentlySelected,
-        finalUnread: unread,
-        originalChat: c,
-      });
     }
 
     return { ...c, unread };
@@ -622,9 +547,6 @@ const ChatsPanel = ({
         );
         return unreadCount > 0;
       });
-      console.log(
-        `ChatsPanel: Filtered ${unreadOnly.length} unread groups from ${mergedChats.length} total groups`
-      );
       return unreadOnly;
     }
     return mergedChats;
@@ -716,7 +638,6 @@ const ChatsPanel = ({
                     });
                   }
                 } catch (e) {
-                  console.warn("Error formatting date:", e);
                 }
               }
 
@@ -761,7 +682,6 @@ const ChatsPanel = ({
                       }));
                     } else {
                       // If chat not found in groupChats, we might need to refresh the list
-                      console.warn("Chat not found in groupChats, ID:", chatId);
                     }
                   }}
                 />

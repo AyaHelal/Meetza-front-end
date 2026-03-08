@@ -90,7 +90,6 @@ export const MediaProvider = ({ children }) => {
                         }
                     });
                 } catch (e) {
-                    console.warn("applyMeetingSpeakerMuted", e);
                 }
             }
             return next;
@@ -316,14 +315,12 @@ export const MediaProvider = ({ children }) => {
                         if (!videoSender) {
                             try {
                                 webrtcService.addTrack(pc, cameraTrack, stream);
-                                console.log("➕ Added video track to peer connection from MediaContext");
                             } catch (err) {
                                 console.error("❌ Error adding video track to peer:", err);
                             }
                         } else if (videoSender.track !== cameraTrack) {
                             try {
                                 webrtcService.replaceTrack(videoSender, cameraTrack).then(() => {
-                                    console.log("🔄 Replaced video track in peer connection from MediaContext");
                                 }).catch(err => console.error("❌ Error replacing video track:", err));
                             } catch (err) {
                                 console.error("❌ Error replacing video track:", err);

@@ -112,7 +112,6 @@ const MeetingRightSidebar = () => {
             setMeetingDescription(meeting?.description || '');
             setMeetingInfo(meeting ? { group_id: meeting.group_id, administrator_id: meeting.administrator_id } : null);
         } catch (err) {
-            console.warn("Could not fetch meeting details:", err);
             setMeetingDescription('');
             setMeetingInfo(null);
         }

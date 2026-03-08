@@ -121,7 +121,6 @@ export function useMeetingJoin(opts) {
           const groupId = location?.state?.groupId;
           if (groupId) sessionStorage.setItem("activeMeetingGroupId", String(groupId));
         } catch (e) {
-          console.warn("Could not persist activeMeetingId:", e);
         }
 
         const others = Array.isArray(ack?.participants) ? ack.participants : [];
@@ -146,7 +145,6 @@ export function useMeetingJoin(opts) {
         try {
           sessionStorage.setItem(`meeting_hasJoined_${mid}`, "true");
         } catch (e) {
-          console.warn("Could not persist hasJoined:", e);
         }
 
         if (isReturning && getPeerConnections) {
@@ -275,7 +273,6 @@ export function useMeetingJoin(opts) {
       sessionStorage.removeItem("activeMeetingId");
       sessionStorage.removeItem("activeMeetingGroupId");
     } catch (e) {
-      console.warn("Could not clear sessionStorage:", e);
     }
     const stream = localStreamRef.current;
     if (stream) stream.getTracks().forEach((t) => t.stop());

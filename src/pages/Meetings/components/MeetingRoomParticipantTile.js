@@ -84,7 +84,6 @@ const MeetingRoomParticipantTile = ({
                     if (tile.stream) {
                       if (el.srcObject !== tile.stream) {
                         el.srcObject = tile.stream;
-                        console.log("📹 Set stream for remote video", refKey);
                       }
                       el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[tile.socketId];
                       el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[tile.socketId] ?? 1);
@@ -92,10 +91,8 @@ const MeetingRoomParticipantTile = ({
                       const playVideo = async () => {
                         try {
                           await el.play();
-                          console.log("✅ Video playing for", refKey);
                         } catch (err) {
                           if (err?.name === "AbortError") return;
-                          console.warn("⚠️ Video play failed for", refKey, "- retrying...", err);
                           setTimeout(() => {
                             el.play().catch((e) => {
                               if (e?.name !== "AbortError") console.error("❌ Video play retry failed for", refKey, e);

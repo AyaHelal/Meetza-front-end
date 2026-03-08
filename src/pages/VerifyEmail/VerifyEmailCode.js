@@ -13,9 +13,6 @@ export default function VerifyEmailCode() {
     const email = localStorage.getItem("userEmail");
 
     // Debug: Check what's in localStorage
-    console.log("🔍 VerifyEmail component loaded");
-    console.log("📧 Email from localStorage:", email);
-    console.log("🗂️ All localStorage items:", Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)}`));
 
     // === handle inputs ===
     const handleChange = (index, value) => {
@@ -57,10 +54,8 @@ export default function VerifyEmailCode() {
 
         try {
             setLoading(true);
-            console.log("📤 Sending resend request for email:", email);
 
             const res = await resendResetCode(email);
-            console.log("📥 Resend response:", res);
 
             alert("Verification code resent successfully!");
         } catch (err) {
@@ -98,10 +93,8 @@ export default function VerifyEmailCode() {
 
         try {
             setLoading(true);
-            console.log("📤 Sending verification request:", { email, code: otp });
 
             const res = await verifyEmail(email, otp);
-            console.log("📥 Verification response:", res);
 
             if (res.success) {
                 alert(res.message || "Email verified successfully!");

@@ -25,7 +25,6 @@ export function addTracksToAllPeersImpl(opts) {
 
   for (const [peerSocketId, pc] of peersRef.current.entries()) {
     if (pc.signalingState !== "stable" && pc.signalingState !== "have-local-offer" && pc.signalingState !== "have-remote-offer") {
-      console.log("⏸️ Skipping track addition for", peerSocketId, "- connection is negotiating (state:", pc.signalingState + ")");
       continue;
     }
     const senders = pc.getSenders();
@@ -36,10 +35,8 @@ export function addTracksToAllPeersImpl(opts) {
         try {
           const trackStream = new MediaStream([t, ...audioTracks]);
           webrtcService.addTrack(pc, t, trackStream);
-          console.log("➕ Added track to peer", peerSocketId, { kind: t.kind, isScreenShare: t.kind === "video" && isScreenShareVideoTrack(t) });
           addedAny = true;
         } catch (err) {
-          console.warn("⚠️ Failed to add track to peer", peerSocketId, ":", err);
         }
       }
     });
@@ -52,7 +49,6 @@ export function addTracksToAllPeersImpl(opts) {
               const mid = meetingIdRef.current;
               if (socket && mid) {
                 meetingSocketService.sendWebrtcOffer(socket, mid, peerSocketId, pc.localDescription, () => {});
-                console.log("📤 Renegotiated after adding tracks to", peerSocketId);
               }
             })
             .catch((err) => {
@@ -78,9 +74,7 @@ export async function ensureLocalMediaImpl(opts) {
           t.enabled = false;
           stream.addTrack(t);
         });
-        console.log("✅ Added muted audio track for WebRTC negotiation");
       } catch (e) {
-        console.warn("⚠️ Could not get audio track for negotiation:", e);
       }
     }
     return stream;
@@ -92,13 +86,10 @@ export async function ensureLocalMediaImpl(opts) {
       t.enabled = false;
       stream.addTrack(t);
     });
-    console.log("✅ Added muted audio track for WebRTC negotiation");
   } catch (e) {
-    console.warn("⚠️ Could not get audio track for negotiation:", e);
   }
   localStreamRef.current = stream;
   setLocalStream(stream);
-  console.log("✅ Created local stream with muted audio for negotiation");
   return stream;
 }
 
@@ -107,16 +98,13 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
   const { peersRef, localStreamRef, makingOfferRef, meetingIdRef, socket, ensureLocalMedia } = opts;
   const pc = peersRef.current.get(targetSocketId);
   if (!pc) {
-    console.warn("⚠️ Cannot create offer - no peer connection for", targetSocketId);
     return;
   }
   try {
     makingOfferRef.current = true;
-    console.log("📤 Creating offer for", targetSocketId);
 
     let stream = localStreamRef.current;
     if (!stream || stream.getTracks().length === 0) {
-      console.log("🔄 Ensuring local media has tracks before creating offer...");
       try {
         await ensureLocalMedia();
         stream = localStreamRef.current;
@@ -132,12 +120,10 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
       stream.getTracks().forEach((t) => {
         const existing = pc.getSenders().find((s) => s.track && s.track.kind === t.kind);
         if (!existing) {
-          console.log("➕ Adding track to peer connection before offer:", { kind: t.kind, enabled: t.enabled, readyState: t.readyState });
           webrtcService.addTrack(pc, t, stream);
         }
       });
     } else {
-      console.warn("⚠️ No local stream available - offer may fail");
     }
 
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -149,7 +135,6 @@ export async function createAndSendOfferImpl(opts, targetSocketId) {
       if (ack && !ack.ok) {
         console.error("❌ Offer send failed:", ack);
       } else {
-        console.log("✅ Offer sent successfully to", targetSocketId);
       }
     });
   } catch (err) {
@@ -200,7 +185,6 @@ export async function ensureMediaTracksImpl(opts, options = {}) {
       mediaStream.getAudioTracks().forEach((t) => {
         t.enabled = true;
         stream.addTrack(t);
-        console.log("✅ Added enabled audio track to stream");
       });
       setTimeout(() => addTracksToAllPeers(), 100);
     } catch (e) {
@@ -253,9 +237,7 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     },
     onConnectionStateChange: () => {
       const state = pc.connectionState;
-      console.log(`🔗 Peer connection state changed for ${peerSocketId}:`, state);
       if (state === "failed" || state === "disconnected") {
-        console.warn(`⚠️ Connection ${state} for ${peerSocketId}, attempting to recover...`);
         const isPolite = politeRef.current.get(peerSocketId);
         if (!isPolite && state === "failed") {
           setTimeout(() => {
@@ -267,29 +249,19 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
           }, 1000);
         }
       } else if (state === "connected") {
-        console.log(`✅ Connection established with ${peerSocketId}`);
       }
     },
     onIceConnectionStateChange: () => {
       const iceState = pc.iceConnectionState;
-      console.log(`🧊 ICE connection state for ${peerSocketId}:`, iceState);
       if (iceState === "failed" || iceState === "disconnected") {
-        console.warn(`⚠️ ICE connection ${iceState} for ${peerSocketId}`);
         if (iceState === "failed") {
           webrtcService.restartIce(pc);
-          console.log("🔄 Restarted ICE for", peerSocketId);
         }
       }
     },
     onTrack: (event) => {
       const [stream] = event.streams || [];
       if (stream) {
-        console.log("📥 Received track from", peerSocketId, {
-          videoTracks: stream.getVideoTracks().length,
-          audioTracks: stream.getAudioTracks().length,
-          videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
-          audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
-        });
 
         const isScreenShare = isScreenShareStream(stream);
         upsertRemoteStream(peerSocketId, stream, isScreenShare);
@@ -312,7 +284,6 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
 
         stream.getTracks().forEach((track) => {
           track.onended = () => {
-            console.warn(`⚠️ Track ended for ${peerSocketId}:`, track.kind);
             if (stream.getTracks().every((t) => t.readyState === "ended")) {
               setRemoteStreams((prev) => prev.filter((s) => s.socketId !== peerSocketId));
             } else {
@@ -320,7 +291,6 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
             }
           };
           track.onmute = () => {
-            console.log(`🔇 Track muted for ${peerSocketId}:`, track.kind);
             if (track.kind === "video") {
               setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: true } }));
             } else if (track.kind === "audio") {
@@ -328,7 +298,6 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
             }
           };
           track.onunmute = () => {
-            console.log(`🔊 Track unmuted for ${peerSocketId}:`, track.kind);
             if (track.kind === "video") {
               setMediaStateMap((prev) => ({ ...prev, [peerSocketId]: { ...prev[peerSocketId], videoMuted: false } }));
             } else if (track.kind === "audio") {
@@ -347,19 +316,15 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     const pendingTracks = stream.getTracks().filter((t) => t.readyState !== "live");
 
     if (pendingTracks.length > 0) {
-      console.warn(`⚠️ ${pendingTracks.length} track(s) not yet live for peer ${peerSocketId} - they will be added once ready`);
     }
 
     liveTracks.forEach((t) => {
       if (t.kind === "video" && !t.enabled) {
-        console.log("⚠️ Adding disabled video track to peer", peerSocketId, "- will show black until enabled");
       }
       const trackStream = new MediaStream([t, ...audioTracks]);
-      console.log("➕ Adding live local track to peer", peerSocketId, { kind: t.kind, isScreenShare: isScreenShareVideoTrack(t) });
       webrtcService.addTrack(pc, t, trackStream);
     });
   } else {
-    console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);
   }
 
   registerPeerConnection(peerSocketId, pc);

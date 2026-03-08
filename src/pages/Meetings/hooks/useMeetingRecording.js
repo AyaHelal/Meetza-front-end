@@ -33,7 +33,6 @@ function createMixedAudioStream(recordingMicStream, remoteStreams, displayAudioT
       source.connect(gainNode);
       gainNode.connect(destination);
     } catch (e) {
-      console.warn("Could not add audio source to mix:", e);
     }
   };
 
@@ -207,7 +206,6 @@ export function useMeetingRecording({
         recordingMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         recordingMicStreamRef.current = recordingMicStream;
       } catch (micErr) {
-        console.warn("Recording mic not available, using meeting mic if unmuted:", micErr);
         recordingMicStream = localStreamRef?.current ?? null;
       }
 
@@ -378,7 +376,6 @@ export function useMeetingRecording({
             : 0;
 
           if (!chunks.length) {
-            console.warn("No recording chunks");
             resolve();
             return;
           }

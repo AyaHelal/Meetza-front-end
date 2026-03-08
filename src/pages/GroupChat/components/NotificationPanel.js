@@ -44,7 +44,6 @@ const NotificationPanel = ({
       if (socket && isConnected) {
         socket.emit("join_notifications", (ack) => {
           if (ack && ack.ok) {
-            console.log("✅ Joined notifications room");
           }
         });
       }
@@ -74,17 +73,12 @@ const NotificationPanel = ({
     if (!socket || !isConnected) return;
 
     const handleNewNotification = (notification) => {
-      console.log(
-        "🔔 New notification received in NotificationPanel:",
-        notification
-      );
       // Add new notification to the list if panel is open
       setNotifications((prev) => [notification, ...prev]);
       // Count is already updated in SocketContext, but we can update it here too if needed
     };
 
     const handleNotificationRead = (data) => {
-      console.log("🔔 Notification read event received:", data);
       // Update notification status in the list
       if (data.notificationId) {
         setNotifications((prev) =>
@@ -99,7 +93,6 @@ const NotificationPanel = ({
     };
 
     const handleAllNotificationsRead = () => {
-      console.log("🔔 All notifications marked as read");
       // Mark all notifications as read
       setNotifications((prev) =>
         prev.map((notif) => ({ ...notif, is_read: true }))
@@ -124,7 +117,6 @@ const NotificationPanel = ({
     try {
       setLoading(true);
       const response = await axiosInstance.get("/notification");
-      console.log("🔔 Notification API response:", response.data);
 
       // Handle different response formats
       let notificationsData = [];
@@ -145,7 +137,6 @@ const NotificationPanel = ({
         }
       }
 
-      console.log("🔔 Parsed notifications:", notificationsData);
       setNotifications(notificationsData);
       return notificationsData;
     } catch (error) {
@@ -166,7 +157,6 @@ const NotificationPanel = ({
       // Update UI optimistically
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadNotificationCount(0);
-      console.log("✅ All notifications marked as read via API");
 
       if (onNotificationRead) {
         const unreadCount = 0; // All are marked as read

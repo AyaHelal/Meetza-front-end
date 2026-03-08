@@ -52,9 +52,7 @@ const ContactSection = () => {
                 message: formData.description.trim()
             };
 
-            console.log('Sending contact form data:', requestData);
             const response = await axiosInstance.post('/contact', requestData);
-            console.log('Contact form response:', response.data);
 
             if (response.data) {
                 const successMessage = response.data.message || 'Message sent successfully! We will get back to you soon.';

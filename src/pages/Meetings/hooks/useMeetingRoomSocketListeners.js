@@ -52,7 +52,6 @@ export function useMeetingRoomSocketListeners({
         }
         await new Promise(r => setTimeout(r, 100));
       }
-      console.warn("⚠️ waitForLocalStream timed out in socket listener");
       return localStreamRef.current;
     };
 
@@ -60,11 +59,9 @@ export function useMeetingRoomSocketListeners({
       const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
       const mid = data?.meetingId;
       if (!peerSocketId || !mid) {
-        console.warn("⚠️ participantJoined - missing socketId or meetingId", { peerSocketId, mid });
         return;
       }
       if (mid !== meetingIdRef.current) {
-        console.warn("⚠️ participantJoined - wrong meeting", { received: mid, current: meetingIdRef.current });
         return;
       }
       if (peerSocketId === socket.id) {
@@ -131,7 +128,6 @@ export function useMeetingRoomSocketListeners({
           try {
             localStorage.setItem(`meeting_handRaised_${currentMeetingId}`, JSON.stringify(n));
           } catch (error) {
-            console.warn("Failed to save handRaisedMap to localStorage:", error);
           }
         }
         return n;
@@ -151,11 +147,9 @@ export function useMeetingRoomSocketListeners({
       const mid = data?.meetingId;
       const sdp = data?.sdp || data?.offer;
       if (!fromSocketId || !mid || !sdp) {
-        console.warn("⚠️ Received invalid offer:", { fromSocketId, mid, hasSdp: !!sdp });
         return;
       }
       if (mid !== meetingIdRef.current) {
-        console.warn("⚠️ Received offer for wrong meeting:", { received: mid, current: meetingIdRef.current });
         return;
       }
 
@@ -196,7 +190,6 @@ export function useMeetingRoomSocketListeners({
               try {
                 webrtcService.addTrack(pc, track, stream);
               } catch (err) {
-                console.warn("⚠️ Failed to add track before answer:", err);
               }
             }
           }
@@ -211,7 +204,6 @@ export function useMeetingRoomSocketListeners({
               await webrtcService.addIceCandidate(pc, candidate);
             } catch (err) {
               if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                console.warn("⚠️ Failed to process queued ICE candidate:", err);
               }
             }
           }
@@ -256,7 +248,6 @@ export function useMeetingRoomSocketListeners({
                 await webrtcService.addIceCandidate(pc, candidate);
               } catch (err) {
                 if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
                 }
               }
             }
@@ -264,7 +255,6 @@ export function useMeetingRoomSocketListeners({
           }
         } else if (currentState === "stable") {
         } else {
-          console.warn("⚠️ Cannot set remote answer - wrong state:", currentState, "for", fromSocketId);
         }
       } catch (err) {
         if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
@@ -325,7 +315,6 @@ export function useMeetingRoomSocketListeners({
           try {
             localStorage.setItem(`meeting_handRaised_${currentMeetingId}`, JSON.stringify(next));
           } catch (error) {
-            console.warn("Failed to save handRaisedMap to localStorage:", error);
           }
         }
         return next;

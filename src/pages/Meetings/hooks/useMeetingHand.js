@@ -22,7 +22,6 @@ export function useMeetingHand(opts) {
     try {
       sessionStorage.setItem("meetza_handRaised", String(next));
     } catch (error) {
-      console.warn("Failed to save handRaised to sessionStorage:", error);
     }
     const mid = meetingIdRef?.current;
     if (socket && mid) {

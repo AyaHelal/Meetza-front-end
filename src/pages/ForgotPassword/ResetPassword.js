@@ -26,7 +26,6 @@ export default function ResetPassword() {
         }
         // If not verified, still allow access but show a warning
         if (!isVerified) {
-            console.log("⚠️ Password reset without verification - API may not be available");
         }
     }, [navigate]);
 
@@ -91,7 +90,6 @@ export default function ResetPassword() {
             console.error("Reset password error:", error);
             if (error.response?.status === 404) {
                 // If API is not available, still allow password reset
-                console.log("⚠️ Password reset API not available, but allowing password change");
                 setSuccess("Password updated successfully! (Note: Email verification may not be available)");
 
                 // Clear stored data

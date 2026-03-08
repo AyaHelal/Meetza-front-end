@@ -31,7 +31,6 @@ export async function getMeetingInfo(api, meetingId) {
       group_id: meeting.group_id,
     };
   } catch (err) {
-    console.warn("Could not fetch meeting info:", err);
     return null;
   }
 }

@@ -9,7 +9,6 @@ const MobileHeader = ({
 }) => {
   // Debug: Log count changes on mobile
   React.useEffect(() => {
-    console.log('📱 MobileHeader - unreadNotificationCount:', unreadNotificationCount);
   }, [unreadNotificationCount]);
 
   return (
@@ -28,7 +27,6 @@ const MobileHeader = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔔 Bell clicked in right sidebar');
                 if (onOpenNotifications) {
                   onOpenNotifications(e);
                 }
@@ -49,7 +47,6 @@ const MobileHeader = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🍔 Hamburger clicked in right sidebar');
                 if (onOpenSidebar) {
                   onOpenSidebar(e);
                 }

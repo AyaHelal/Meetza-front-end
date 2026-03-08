@@ -48,15 +48,12 @@ const FormSection = ({
     useEffect(() => {
         const loadCaptcha = () => {
             if (window.grecaptcha && document.querySelector('.g-recaptcha')) {
-                console.log('Environment variable REACT_APP_RECAPTCHA_SITE_KEY:', process.env.REACT_APP_RECAPTCHA_SITE_KEY);
                 window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
                     sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key',
                     callback: (token) => {
-                        console.log('Captcha verified:', token);
                         window.onCaptchaChange && window.onCaptchaChange(token);
                     },
                     'expired-callback': () => {
-                        console.log('Captcha expired');
                         window.onCaptchaExpired && window.onCaptchaExpired();
                     }
                 });

@@ -119,15 +119,6 @@ const AppRoutes = () => {
         if (user) {
           try {
             userData = JSON.parse(decodeURIComponent(user));
-            console.log('✅ Parsed user data from URL:', userData);
-            console.log('📸 Photo fields in user data:', {
-              user_photo: userData?.user_photo,
-              photo: userData?.photo,
-              picture: userData?.picture,
-              avatar: userData?.avatar,
-              avatar_url: userData?.avatar_url,
-              google_photo: userData?.google_photo
-            });
 
             // Normalize Google photo field - Google OAuth typically returns 'picture'
             if (userData && !userData.user_photo && !userData.photo) {
@@ -156,17 +147,12 @@ const AppRoutes = () => {
 
         // Verify token was stored
         const storedToken = localStorage.getItem('token');
-        console.log('✅ Social login successful');
-        console.log('✅ Token stored in localStorage:', storedToken ? 'Yes' : 'No');
-        console.log('✅ Token value:', storedToken ? storedToken.substring(0, 20) + '...' : 'None');
-        console.log('✅ User data stored:', userData ? 'Yes' : 'No');
 
         // Wait a bit for state to update, then navigate
         setTimeout(() => {
           // Verify token is still there before navigating
           const verifyToken = localStorage.getItem('token');
           if (verifyToken) {
-            console.log('✅ Token verified before navigation');
             navigate('/home', { replace: true });
           } else {
             console.error('❌ Token not found after storage, retrying...');

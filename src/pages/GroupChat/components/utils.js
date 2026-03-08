@@ -175,15 +175,6 @@ export const categorizeMediaItems = (mediaItems = []) => {
             const extension = extractExtension(item);
 
             // Debug logging for ALL items to see what we're working with
-            console.log(`🔍 Processing item ${index + 1}:`, {
-                media_type: item?.media_type,
-                file_type: item?.file_type,
-                file_mime: item?.file_mime,
-                file_name: item?.file_name,
-                extension,
-                url: item?.media_url || item?.file_url,
-                fullItem: item
-            });
 
             // Determine if it's a regular audio file by checking:
             // 1. media_type is 'audio' or starts with 'audio/'
@@ -205,19 +196,11 @@ export const categorizeMediaItems = (mediaItems = []) => {
             // (which shouldn't happen, but just in case)
             if ((isExplicitVoiceNote || isVoiceNoteFilename) && !isRegularAudio) {
                 // Don't add voice notes to any category - they should only appear in chat
-                console.log('Skipping voice note:', { mediaType, fileName, extension, isRegularAudio });
                 return;
             }
 
             const bucket = resolveMediaCategory(item);
 
-            console.log(`✅ Item ${index + 1} categorized as:`, bucket, {
-                media_type: item?.media_type,
-                file_type: item?.file_type,
-                file_mime: item?.file_mime,
-                extension,
-                url: item?.media_url || item?.file_url
-            });
 
             if (categories[bucket]) {
                 categories[bucket].push(item);
@@ -241,14 +224,6 @@ export const categorizeMediaItems = (mediaItems = []) => {
         });
 
         // Debug logging for summary
-        console.log('📊 Media categorization summary:', {
-            total: mediaItems.length,
-            images: categories.images.length,
-            videos: categories.videos.length,
-            audio: categories.audio.length,
-            files: categories.files.length,
-            links: categories.links.length
-        });
     }
 
     return categories;

@@ -28,7 +28,6 @@ const MeetingRoomSingleView = ({
               alt="Your profile"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => {
-                console.warn("❌ Failed to load profile photo:", selfPhoto);
                 e.target.style.display = "none";
               }}
             />

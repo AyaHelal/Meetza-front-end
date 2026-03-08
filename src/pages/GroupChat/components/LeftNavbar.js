@@ -24,7 +24,6 @@ const LeftNavbar = ({
   onExternalNotificationPanelClose,
   onNotificationRead,
 }) => {
-  console.log("🔔 LeftNavbar component rendering");
   const navigate = useNavigate();
   const { logoutUser, user } = useContext(AuthContext);
   
@@ -50,7 +49,6 @@ const LeftNavbar = ({
       hasFetchedInitialCount.current = true;
       getUnreadNotificationCount((ack) => {
         if (ack && ack.ok && ack.unreadCount !== undefined) {
-          console.log("🔔 Initial unread count from socket:", ack.unreadCount);
         }
       });
     }
@@ -68,10 +66,6 @@ const LeftNavbar = ({
 
     // Listen for both event name variations (backend may use either)
     const handleNewNotification = (notification) => {
-      console.log(
-        "🔔 New notification received via socket in LeftNavbar:",
-        notification
-      );
       // Count is already updated in SocketContext, so this is just for logging
     };
 
@@ -136,12 +130,10 @@ const LeftNavbar = ({
           sessionStorage.removeItem("activeMeetingId");
         }
       } catch (leaveErr) {
-        console.warn("Logout: failed to call leave meeting API", leaveErr);
       }
 
       logoutUser();
     } catch (err) {
-      console.warn("Logout error", err);
     }
     navigate("/login");
   };
@@ -165,7 +157,6 @@ const LeftNavbar = ({
     };
   };
 
-  console.log("🔔 unreadNotificationCount:", unreadNotificationCount);
 
   return (
     <>

@@ -191,7 +191,6 @@ const Groups = () => {
                 allResults = groupsResponse.data.groups;
             } else {
                 // Fallback: ensure allResults is always an array
-                console.warn('Unexpected response structure:', groupsResponse?.data);
                 allResults = [];
             }
 

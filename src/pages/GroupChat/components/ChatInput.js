@@ -351,18 +351,11 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                             lastModified: Date.now()
                         });
 
-                        console.log('Audio recording created:', {
-                            size: audioFile.size,
-                            type: audioFile.type,
-                            name: audioFile.name,
-                            chunks: audioChunksRef.current.length
-                        });
 
                         // Verify the file can be read
                         const testUrl = URL.createObjectURL(blob);
                         const testAudio = new Audio(testUrl);
                         testAudio.addEventListener('loadedmetadata', () => {
-                            console.log('Audio metadata loaded, duration:', testAudio.duration);
                             URL.revokeObjectURL(testUrl);
                         });
                         testAudio.addEventListener('error', (e) => {
@@ -377,7 +370,6 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
                         setRecordingError('Failed to create audio file: ' + error.message);
                     }
                 } else if (!shouldDiscard) {
-                    console.warn('No audio chunks available after recording');
                     setRecordingError('Recording was too short or empty');
                 }
                 mediaRecorderRef.current = null;

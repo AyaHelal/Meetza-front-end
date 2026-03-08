@@ -83,7 +83,6 @@ export function useMeetingRoomMeetingLifecycle({
         if (error.response?.status === 404) {
           onMeetingEnded();
         } else {
-          console.warn("⚠️ Could not check meeting status:", error);
         }
       }
     };
