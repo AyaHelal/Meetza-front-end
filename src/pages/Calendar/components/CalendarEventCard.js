@@ -16,7 +16,14 @@ export default function CalendarEventCard({ event, style = {} }) {
         <span className="calendar-event-card-label">VERY BEAUTIFUL</span>
         <div className="calendar-event-card-on-image">
           <div className="calendar-event-card-group">
-            <span>{event.groupName}</span>
+            <span>
+              {event.groupName ||
+                event._meeting?.group_name ||
+                event._meeting?.groupName ||
+                event._meeting?.course ||
+                event._meeting?.group?.name ||
+                "—"}
+            </span>
           </div>
           <span className="calendar-event-card-lock" style={{ backgroundColor: lockBg }}>
             {isLocked ? <Lock size={16} weight="regular" /> : <LockOpen size={16} weight="regular" />}
@@ -27,7 +34,9 @@ export default function CalendarEventCard({ event, style = {} }) {
         {timeLabel}
       </div>
       <h4 className="calendar-event-card-title">{event.title}</h4>
-      <p className="calendar-event-card-desc">{event.description}</p>
+      {event.description?.trim() ? (
+        <p className="calendar-event-card-desc">{event.description}</p>
+      ) : null}
     </div>
   );
 }
