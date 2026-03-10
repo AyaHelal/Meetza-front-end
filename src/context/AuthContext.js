@@ -43,7 +43,8 @@ export const AuthProvider = ({ children }) => {
                         const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
                         if (raw) storedUser = JSON.parse(raw);
                     } catch (_) {}
-                    setUser({ ...storedUser, ...userFromToken });
+                    // Prefer stored user (session/local) so token data does not override name, photo, etc.
+                    setUser({ ...userFromToken, ...storedUser });
                     setToken(storedToken);
                 }
                 setIsRemembered(rememberedInLocal);
@@ -79,10 +80,10 @@ export const AuthProvider = ({ children }) => {
                 setIsRemembered(false);
             }
             setToken(userToken);
-            // Merge API user (name, user_photo) with token (id, email, role) so UI shows full profile
+            // Prefer API user (name, photo, etc.) so token data does not override what we store
             const userFromToken = extractUserFromToken();
             if (userFromToken && (userFromToken.id || userFromToken.email)) {
-                setUser({ ...userData, ...userFromToken });
+                setUser({ ...userFromToken, ...userData });
             } else {
                 setUser(userData || null);
             }

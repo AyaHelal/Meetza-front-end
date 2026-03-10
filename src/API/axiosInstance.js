@@ -31,22 +31,31 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Suppress 403 errors for /info and /position endpoints (expected for permission-related endpoints)
-    const isInfoEndpoint = error.config?.url?.includes('/info');
-    const isPositionEndpoint = error.config?.url === '/position' || error.config?.url?.endsWith('/position');
-    const is403 = error.response?.status === 403;
+    const status = error.response?.status;
+    const url = error.config?.url ?? "";
 
-    if (!(is403 && (isInfoEndpoint || isPositionEndpoint))) {
-      console.error("❌ API Error:", {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        fullURL: error.config?.baseURL + error.config?.url,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
-      });
+    // Suppress 403 errors for /info and /position endpoints (expected for permission-related endpoints)
+    const isInfoEndpoint = url.includes("/info");
+    const isPositionEndpoint = url === "/position" || url.endsWith("/position");
+    if (status === 403 && (isInfoEndpoint || isPositionEndpoint)) {
+      return Promise.reject(error);
     }
+
+    // Suppress noisy 404 for calendar meetings (app falls back to GET /meeting without params)
+    const isMeetingsList = (url === "/meetings" || url === "/meeting") && error.config?.params && Object.keys(error.config.params).length > 0;
+    if (status === 404 && isMeetingsList) {
+      return Promise.reject(error);
+    }
+
+    console.error("❌ API Error:", {
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      fullURL: error.config?.baseURL + error.config?.url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+    });
     return Promise.reject(error);
   }
 );
