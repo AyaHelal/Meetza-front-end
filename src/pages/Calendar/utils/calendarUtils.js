@@ -71,32 +71,83 @@ export function filterMeetingsByView(meetings, viewMode, currentDate) {
 }
 
 /**
- * Build query params for GET /meetings or GET /meeting based on calendar view.
- * - Day:   { day:   "YYYY-MM-DD" }
- * - Week:  { week:  "YYYY-MM-DD" }  (Monday of that week)
- * - Month: { month: "YYYY-MM" }
+ * Normalize to local date (midnight) to avoid timezone/UTC losing a day.
  */
-export function buildMeetingsParams(viewMode, currentDate) {
+function toLocalDateOnly(d) {
+  const date = d instanceof Date ? d : new Date(d);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * Get an array of Date objects from start to end (inclusive).
+ * Uses calendar-day logic so no days are lost to timezone/UTC.
+ */
+export function getDatesInRange(startDate, endDate) {
+  const start = toLocalDateOnly(startDate);
+  const end = toLocalDateOnly(endDate);
+  if (start.getTime() > end.getTime()) return [];
+  const out = [];
+  const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endTime = end.getTime();
+  while (cur.getTime() <= endTime) {
+    out.push(new Date(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+/**
+ * Filter meetings to those within a date range.
+ */
+export function filterMeetingsByDateRange(meetings, rangeStart, rangeEnd) {
+  if (!Array.isArray(meetings) || !rangeStart || !rangeEnd) return meetings;
+  const getStart = (m) => {
+    const raw = m.start_time ?? m.startTime ?? m.start;
+    return raw ? new Date(raw) : null;
+  };
+  const start = rangeStart instanceof Date ? new Date(rangeStart) : new Date(rangeStart);
+  const end = rangeEnd instanceof Date ? new Date(rangeEnd) : new Date(rangeEnd);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  const t0 = start.getTime();
+  const t1 = end.getTime();
+  return meetings.filter((m) => {
+    const s = getStart(m);
+    if (!s) return false;
+    return s.getTime() >= t0 && s.getTime() <= t1;
+  });
+}
+
+/**
+ * Build query params for GET /meetings or GET /meeting.
+ * - Day:   { day: "YYYY-MM-DD" }
+ * - Week:  { week: "YYYY-MM-DD" }
+ * - Month: { month: "YYYY-MM" }
+ * - Range: { start_date: "YYYY-MM-DD", end_date: "YYYY-MM-DD" }
+ */
+export function buildMeetingsParams(viewMode, currentDate, rangeStart = null, rangeEnd = null) {
   const d = new Date(currentDate);
+  const toYMD = (date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+  if (viewMode === "range" && rangeStart && rangeEnd) {
+    const s = rangeStart instanceof Date ? rangeStart : new Date(rangeStart);
+    const e = rangeEnd instanceof Date ? rangeEnd : new Date(rangeEnd);
+    return { start_date: toYMD(s), end_date: toYMD(e) };
+  }
 
   if (viewMode === "day") {
-    return {
-      day: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    };
+    return { day: toYMD(d) };
   }
 
   if (viewMode === "week") {
     const weekDates = getWeekDates(d);
     const monday = weekDates[0];
-    return {
-      week: `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`,
-    };
+    return { week: toYMD(monday) };
   }
 
   if (viewMode === "month") {
-    return {
-      month: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`,
-    };
+    return { month: `${d.getFullYear()}-${pad(d.getMonth() + 1)}` };
   }
 
   return {};
@@ -195,6 +246,25 @@ export function formatMonthYear(date) {
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+/**
+ * Format month range for nav: "March 2026" (same month) or "February – March 2026" (span).
+ */
+export function formatMonthRange(startDate, endDate) {
+  const start = startDate instanceof Date ? startDate : new Date(startDate);
+  const end = endDate instanceof Date ? endDate : new Date(endDate);
+  const sameMonth =
+    start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth();
+  if (sameMonth) return formatMonthYear(start);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const part = (d, withYear) =>
+    d.toLocaleDateString("en-GB", {
+      month: "long",
+      ...(withYear ? { year: "numeric" } : {}),
+    });
+  if (sameYear) return `${part(start, false)} – ${part(end, false)} ${end.getFullYear()}`;
+  return `${part(start, true)} – ${part(end, true)}`;
+}
+
 export function formatDayShort(date) {
   return date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase().slice(0, 3);
 }
@@ -205,6 +275,26 @@ export function formatDayNum(date) {
 
 export function formatShortDate(date) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/**
+ * Format a date range for display: "21 February - 6 March 2026" (same year)
+ * or "21 December 2025 - 6 January 2026" (different years).
+ */
+export function formatRangeDisplay(startDate, endDate) {
+  const start = startDate instanceof Date ? startDate : new Date(startDate);
+  const end = endDate instanceof Date ? endDate : new Date(endDate);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const part = (d, withYear) =>
+    d.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      ...(withYear ? { year: "numeric" } : {}),
+    });
+  if (sameYear) {
+    return `${part(start, false)} – ${part(end, false)} ${end.getFullYear()}`;
+  }
+  return `${part(start, true)} – ${part(end, true)}`;
 }
 
 export function formatTimeRange(start, end) {

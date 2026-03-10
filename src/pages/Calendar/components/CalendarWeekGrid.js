@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import CalendarEventCard from "./CalendarEventCard";
 import { formatDayShort, formatDayNum } from "../utils/calendarUtils";
@@ -9,6 +9,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const ROW_HEIGHT_PX = 200;
 /** Margin inside the time row (gap above/below the card within the slot) */
 const ROW_INSET_PX = 6;
+const HEADER_DAY_MIN_WIDTH = 120;
 
 function isSameDay(a, b) {
   return (
@@ -20,6 +21,29 @@ function isSameDay(a, b) {
 
 export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext }) {
   const today = new Date();
+  const headerDaysScrollRef = useRef(null);
+  const bodyScrollRef = useRef(null);
+
+  const isWeekOrDayView = weekDates.length <= 7;
+
+  useEffect(() => {
+    if (isWeekOrDayView) return;
+    const headerEl = headerDaysScrollRef.current;
+    const bodyEl = bodyScrollRef.current;
+    if (!headerEl || !bodyEl) return;
+    const syncHeaderToBody = () => {
+      headerEl.scrollLeft = bodyEl.scrollLeft;
+    };
+    const syncBodyToHeader = () => {
+      bodyEl.scrollLeft = headerEl.scrollLeft;
+    };
+    bodyEl.addEventListener("scroll", syncHeaderToBody);
+    headerEl.addEventListener("scroll", syncBodyToHeader);
+    return () => {
+      bodyEl.removeEventListener("scroll", syncHeaderToBody);
+      headerEl.removeEventListener("scroll", syncBodyToHeader);
+    };
+  }, [isWeekOrDayView]);
 
   return (
     <div className="calendar-week-grid">
@@ -32,17 +56,42 @@ export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext }) 
             <CaretRight size={20} weight="bold" />
           </button>
         </div>
-        {weekDates.map((date, colIndex) => (
-          <div
-            key={colIndex}
-            className={`calendar-week-header-day ${isSameDay(date, today) ? "active" : ""}`}
-          >
-            {formatDayShort(date)} {formatDayNum(date)}
+        {isWeekOrDayView ? (
+          <div className="calendar-week-header-days-fixed">
+            {weekDates.map((date, colIndex) => (
+              <div
+                key={colIndex}
+                className={`calendar-week-header-day calendar-week-header-day-equal ${isSameDay(date, today) ? "active" : ""}`}
+              >
+                {formatDayShort(date)} {formatDayNum(date)}
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <div
+            ref={headerDaysScrollRef}
+            className="calendar-week-header-days-scroll"
+            role="region"
+            aria-label="Date headers"
+          >
+            <div
+              className="calendar-week-header-days-inner"
+              style={{ minWidth: weekDates.length * HEADER_DAY_MIN_WIDTH }}
+            >
+              {weekDates.map((date, colIndex) => (
+                <div
+                  key={colIndex}
+                  className={`calendar-week-header-day ${isSameDay(date, today) ? "active" : ""}`}
+                >
+                  {formatDayShort(date)} {formatDayNum(date)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="calendar-week-body">
+      <div ref={bodyScrollRef} className="calendar-week-body">
         <div className="calendar-week-time-col">
           {HOURS.map((h) => (
             <div key={h} className="calendar-week-time-cell" style={{ height: ROW_HEIGHT_PX }}>

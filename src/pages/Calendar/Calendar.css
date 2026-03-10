@@ -313,6 +313,54 @@
   color: black;
 }
 
+.calendar-nav-range-input-wrap {
+  position: relative;
+  min-width: 10rem;
+  max-width: 20rem;
+  flex: 1;
+}
+
+.calendar-nav-range-display {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-nav-range-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 10rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.calendar-nav-range-input.has-range {
+  color: transparent;
+  caret-color: transparent;
+}
+
+.calendar-nav-range-input::placeholder {
+  color: #6b7280;
+}
+
 /* ---------- Month grid (calendar month view) ---------- */
 .calendar-month-grid {
   display: flex;
@@ -449,6 +497,50 @@
   padding-left: 1rem;
 }
 
+/* Week/day view: 7 (or 1) equal columns filling the width */
+.calendar-week-header-days-fixed {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.calendar-week-header-day-equal {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+/* Range view: scrollable header for many days */
+.calendar-week-header-days-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.calendar-week-header-days-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-week-header-days-inner {
+  display: flex;
+  min-height: 100%;
+}
+
+.calendar-week-header-day {
+  flex-shrink: 0;
+  width: 120px;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
 .calendar-week-arrow {
   display: flex;
   align-items: center;
@@ -467,23 +559,12 @@
   background: #e5e7eb;
 }
 
-.calendar-week-header-day {
-  flex: 1;
-  min-width: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #4b5563;
-}
-
 .calendar-week-header-day.active {
   color: #000;
   font-weight: 700;
 }
 
-/* 24 hours × 48px so grid extends to end of day and body can scroll */
+/* 24 hours × 200px (ROW_HEIGHT_PX in CalendarWeekGrid) so grid extends to end of day */
 .calendar-week-body {
   display: flex;
   flex: 1;
@@ -501,7 +582,7 @@
 .calendar-week-time-col {
   flex-shrink: 0;
   width: 60px;
-  min-height: 1152px; /* 24 × 48px so full day is scrollable */
+  min-height: 4800px; /* 24 × 200px so lines extend to bottom */
   background: #fafafa;
   border-right: 2px solid #e5e7eb;
 }
@@ -522,7 +603,7 @@
   display: flex;
   flex: 1;
   min-width: 0;
-  min-height: 1152px; /* 24 × 48px, match time column */
+  min-height: 4800px; /* 24 × 200px, match time column so lines go to bottom */
 }
 
 .calendar-week-day-col {

@@ -6,10 +6,17 @@ import CalendarToolbar from "./components/CalendarToolbar";
 import CalendarNav from "./components/CalendarNav";
 import CalendarWeekGrid from "./components/CalendarWeekGrid";
 import CalendarMonthGrid from "./components/CalendarMonthGrid";
-import { getWeekDates, buildMeetingsParams, buildWeekEvents, filterMeetingsByView } from "./utils/calendarUtils";
+import {
+  getWeekDates,
+  getDatesInRange,
+  buildMeetingsParams,
+  buildWeekEvents,
+  filterMeetingsByView,
+  filterMeetingsByDateRange,
+} from "./utils/calendarUtils";
 import "./Calendar.css";
 
-const VIEW_MODE = { DAY: "day", WEEK: "week", MONTH: "month" };
+const VIEW_MODE = { DAY: "day", WEEK: "week", MONTH: "month", RANGE: "range" };
 
 // Backend may expose GET /meetings (filtered) or only GET /meeting (list). Try both.
 const CALENDAR_MEETINGS_PATH =
@@ -24,6 +31,8 @@ export default function Calendar() {
   const [groupsMap, setGroupsMap] = useState(() => ({}));
   const [groupsList, setGroupsList] = useState(() => []);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [rangeStart, setRangeStart] = useState(null);
+  const [rangeEnd, setRangeEnd] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -81,8 +90,11 @@ export default function Calendar() {
       d.setHours(0, 0, 0, 0);
       return [d];
     }
+    if (viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd) {
+      return getDatesInRange(rangeStart, rangeEnd);
+    }
     return getWeekDates(currentDate);
-  }, [currentDate, viewMode]);
+  }, [currentDate, viewMode, rangeStart, rangeEnd]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +107,16 @@ export default function Calendar() {
       setError(null);
       const hasSearch = !!searchQuery.trim();
       const hasGroupFilter = !!selectedGroupId;
+      const isRange = viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd;
       const jumpToFirst = hasSearch || hasGroupFilter;
+      const viewParams = buildMeetingsParams(viewMode, currentDate, rangeStart, rangeEnd);
       const params = jumpToFirst
-        ? { ...(hasSearch ? { title: searchQuery.trim() } : {}), ...(hasGroupFilter ? { group_id: selectedGroupId } : {}) }
-        : { ...buildMeetingsParams(viewMode, currentDate) };
+        ? {
+            ...(hasSearch ? { title: searchQuery.trim() } : {}),
+            ...(hasGroupFilter ? { group_id: selectedGroupId } : {}),
+            ...(isRange ? { start_date: viewParams.start_date, end_date: viewParams.end_date } : {}),
+          }
+        : { ...viewParams };
       const applyMeetings = (meetings, dateToShow) => {
         if (cancelled) return;
         const list = Array.isArray(meetings) ? meetings : [];
@@ -119,10 +137,15 @@ export default function Calendar() {
                 d.setHours(0, 0, 0, 0);
                 return [d];
               })()
-              : getWeekDates(baseDate);
-          const forView = useFirstDate
-            ? filterMeetingsByView(list, viewMode, firstStart)
-            : list;
+              : viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd
+                ? getDatesInRange(rangeStart, rangeEnd)
+                : getWeekDates(baseDate);
+          const forView =
+            viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd
+              ? filterMeetingsByDateRange(list, rangeStart, rangeEnd)
+              : useFirstDate
+                ? filterMeetingsByView(list, viewMode, firstStart)
+                : list;
           setWeekEvents(buildWeekEvents(forView, wd, groupsMap));
           setMonthMeetings([]);
         }
@@ -155,6 +178,12 @@ export default function Calendar() {
             const fallbackParams = {
               ...(hasSearch ? { title: searchQuery.trim() } : {}),
               ...(selectedGroupId ? { group_id: selectedGroupId } : {}),
+              ...(isRange && rangeStart && rangeEnd
+                ? (() => {
+                    const rp = buildMeetingsParams(viewMode, currentDate, rangeStart, rangeEnd);
+                    return { start_date: rp.start_date, end_date: rp.end_date };
+                  })()
+                : {}),
             };
             const fallback = await api.get(`/meeting`, { params: fallbackParams });
             const root = fallback?.data;
@@ -165,9 +194,16 @@ export default function Calendar() {
               return sa - sb;
             });
             const firstStart = sorted.length > 0 ? getMeetingStartDate(sorted[0]) : null;
-            const forView = jumpToFirst && firstStart
-              ? filterMeetingsByView(sorted, viewMode, firstStart)
-              : hasSearch ? sorted : filterMeetingsByView(all, viewMode, currentDate);
+            let forView;
+            if (isRange && rangeStart && rangeEnd) {
+              forView = filterMeetingsByDateRange(jumpToFirst ? sorted : all, rangeStart, rangeEnd);
+            } else if (jumpToFirst && firstStart) {
+              forView = filterMeetingsByView(sorted, viewMode, firstStart);
+            } else if (hasSearch) {
+              forView = sorted;
+            } else {
+              forView = filterMeetingsByView(all, viewMode, currentDate);
+            }
             applyMeetings(forView, firstStart || undefined);
             setError(null);
           } catch (e) {
@@ -188,9 +224,16 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, [viewMode, currentDate, searchQuery, groupsMap, selectedGroupId]);
+  }, [viewMode, currentDate, searchQuery, groupsMap, selectedGroupId, rangeStart, rangeEnd]);
 
   const goPrev = () => {
+    if (viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd) {
+      const days =
+        Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1;
+      setRangeStart(new Date(rangeStart.getTime() - days * 86400000));
+      setRangeEnd(new Date(rangeEnd.getTime() - days * 86400000));
+      return;
+    }
     const d = new Date(currentDate);
     if (viewMode === VIEW_MODE.WEEK) d.setDate(d.getDate() - 7);
     else if (viewMode === VIEW_MODE.MONTH) d.setMonth(d.getMonth() - 1);
@@ -198,11 +241,32 @@ export default function Calendar() {
     setCurrentDate(d);
   };
   const goNext = () => {
+    if (viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd) {
+      const days =
+        Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1;
+      setRangeStart(new Date(rangeStart.getTime() + days * 86400000));
+      setRangeEnd(new Date(rangeEnd.getTime() + days * 86400000));
+      return;
+    }
     const d = new Date(currentDate);
     if (viewMode === VIEW_MODE.WEEK) d.setDate(d.getDate() + 7);
     else if (viewMode === VIEW_MODE.MONTH) d.setMonth(d.getMonth() + 1);
     else d.setDate(d.getDate() + 1);
     setCurrentDate(d);
+  };
+
+  const handleRangeChange = (start, end) => {
+    setRangeStart(start);
+    setRangeEnd(end);
+    setViewMode(VIEW_MODE.RANGE);
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    if (mode !== VIEW_MODE.RANGE) {
+      setRangeStart(null);
+      setRangeEnd(null);
+    }
   };
 
   const filteredWeekEvents = useMemo(() => {
@@ -228,7 +292,8 @@ export default function Calendar() {
     );
   }, [monthMeetings, searchQuery]);
 
-  const showWeekLikeGrid = viewMode === VIEW_MODE.DAY || viewMode === VIEW_MODE.WEEK;
+  const showWeekLikeGrid =
+    viewMode === VIEW_MODE.DAY || viewMode === VIEW_MODE.WEEK || viewMode === VIEW_MODE.RANGE;
 
   return (
     <div className="calendar-page">
@@ -245,8 +310,11 @@ export default function Calendar() {
           currentDate={currentDate}
           onDateChange={setCurrentDate}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          weekDates={getWeekDates(currentDate)}
+          onViewModeChange={handleViewModeChange}
+          weekDates={weekDates}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          onRangeChange={handleRangeChange}
         />
       </div>
       {error && <div className="calendar-error">{error}</div>}
