@@ -4,8 +4,12 @@ import { formatDateForOverlay } from "../utils/calendarUtils";
 
 export default function CalendarEventCard({ event, style = {} }) {
   const timeLabel = `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
-  const isLocked = event.lockType === "red";
-  const lockBg = isLocked ? "rgba(231, 76, 60, 0.85)" : "rgba(52, 152, 219, 0.85)";
+  const now = new Date();
+  const isFutureMeeting = event.start > now;
+  const isLocked = isFutureMeeting;
+  const lockBg = isFutureMeeting
+    ? "rgba(231, 76, 60, 0.6)"
+    : (event.lockType === "red" ? "rgba(231, 76, 60, 0.85)" : "rgba(52, 152, 219, 0.85)");
 
   return (
     <div className="calendar-event-card" style={style}>
