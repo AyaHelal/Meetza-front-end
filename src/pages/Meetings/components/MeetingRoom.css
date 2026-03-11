@@ -768,6 +768,17 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   color: #fff;
 }
 
+.meeting-room-control-btn.record-end-btn {
+  min-width: 44px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.meeting-room-control-btn.record-end-btn:hover {
+  background: #2c3e50;
+  color: #fff;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .meeting-room-slide .meeting-room-grid {
