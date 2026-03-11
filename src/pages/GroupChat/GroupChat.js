@@ -114,8 +114,8 @@ export default function GroupChat() {
   useEffect(() => {
     if (!currentGroupId) {
       setGroupMeetings([]);
-      return;
-    }
+        return;
+      }
     let cancelled = false;
     getMeetingsByGroupId(api, currentGroupId).then((list) => {
       if (!cancelled) setGroupMeetings(Array.isArray(list) ? list : []);
