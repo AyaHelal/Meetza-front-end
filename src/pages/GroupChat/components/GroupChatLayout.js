@@ -45,6 +45,7 @@ function GroupChatLayout({
   hasMoreMessages = false,
   loadingMoreMessages = false,
   onLoadMoreMessages,
+  onVideoSessionsClick,
 }) {
   if (loading) {
     return (
@@ -117,6 +118,7 @@ function GroupChatLayout({
           onOpenSidebar={onOpenSidebar}
           onOpenNotifications={onOpenNotifications}
           unreadNotificationCount={unreadNotificationCount}
+          onVideoSessionsClick={onVideoSessionsClick}
         />
       )}
     </div>

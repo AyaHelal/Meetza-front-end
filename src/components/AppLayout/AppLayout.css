@@ -22,9 +22,31 @@
   margin-left: 0;
 }
 
+/* When Video Sessions section is in view (hash #video-sessions), hide left navbar so scroll has no navbar on the left */
+.app-layout--video-section .left-navbar {
+  display: none !important;
+}
+
+.app-layout--video-section .app-layout-content {
+  margin-left: 0;
+}
+
+/* Ensure left navbar stays hidden on mobile when in video section (overrides any mobile-specific rules) */
 @media (max-width: 768px) {
+  .app-layout--video-section .left-navbar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop left navbar on mobile; use hamburger + mobile sidebar instead */
+  .left-navbar {
+    display: none !important;
+  }
+
   .app-layout-content {
     margin-top: 80px;
+    margin-left: 0;
     background-color: #f4f4f4;
   }
 

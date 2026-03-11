@@ -18,8 +18,67 @@ body.group-chat-active {
   width: 100%;
 }
 
+.group-chat-page-scroll-wrap {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable; /* reserve scrollbar space so width doesn't change when chat is hidden */
+}
+
+.group-chat-page-scroll-wrap > .home-container {
+  flex-shrink: 0;
+}
+
+/* When viewing video sessions only: hide chat so only video section is visible */
+.group-chat-page-scroll-wrap.video-section-active > .home-container {
+  display: none !important;
+}
+
+/* Keep scrollbar in video-section view so card width doesn't jump (fallback if scrollbar-gutter not supported) */
+.group-chat-page-scroll-wrap.video-section-active {
+  overflow-y: scroll;
+}
+
+.group-chat-video-sessions-view {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: auto;
+  background: #f5f5f5;
+}
+
+.video-sessions-section-wrap {
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f5f5f5;
+}
+
+@media (max-width: 768px) {
+  .group-chat-page-scroll-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+  .video-sessions-section-wrap {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-sessions-section-wrap {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
 .home-container {
   display: flex;
+  flex-shrink: 0;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -1350,6 +1409,17 @@ body.group-chat-active {
   box-sizing: border-box;
 }
 
+.video-banner-btn {
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.video-banner-btn:hover {
+  filter: brightness(1.05);
+}
+
 .play-icon {
   background-color: white;
   color: #000000;
@@ -2128,14 +2198,14 @@ body.group-chat-active {
   .home-container {
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow-y: auto;
     padding-bottom: 100px; /* Space for fixed UserStatus component */
     background-color: #f4f4f4;
-  }
-
-  .left-navbar {
-    display: none;
   }
 
   .nav-logo {
@@ -2673,9 +2743,6 @@ body.group-chat-active {
 }
 
 @media (max-width: 576px) {
-  .left-navbar {
-    display: none;
-  }
   /* Logo Section - Mobile Only */
   .logo-section {
     display: flex;
@@ -3055,10 +3122,6 @@ body.group-chat-active {
 }
 
 @media (max-width: 400px) {
-  .left-navbar {
-    display: none;
-  }
-
   .nav-icon {
     width: 32px;
     height: 32px;
