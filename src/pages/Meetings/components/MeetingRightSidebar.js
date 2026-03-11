@@ -53,16 +53,8 @@ const MeetingRightSidebar = () => {
 
     const location = useLocation();
     const [searchParams] = useSearchParams();
+    // Always rely on auth user coming from token (no user object in storage)
     const authUser = React.useContext(AuthContext)?.user;
-    const user = useMemo(() => {
-        if (authUser) return authUser;
-        try {
-            const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
-            return raw ? JSON.parse(raw) : null;
-        } catch {
-            return null;
-        }
-    }, [authUser]);
     const { socket } = useSocket();
     const { participants: socketParticipants, hasJoined, meetingId: contextMeetingId, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap } = useMeetingContext();
     const { getPeerConnections, audioMuted: myAudioMuted } = useMediaContext();
@@ -143,7 +135,7 @@ const MeetingRightSidebar = () => {
         }
     }, []);
 
-    const currentUserId = user?.id ?? user?.user_id ?? null;
+    const currentUserId = authUser?.id ?? authUser?.user_id ?? null;
     const isMeetingAdmin = Boolean(
         currentUserId && meetingInfo?.administrator_id && String(currentUserId) === String(meetingInfo.administrator_id)
     );
@@ -432,29 +424,35 @@ const MeetingRightSidebar = () => {
                         const isSelf = socketId === socket?.id;
                         const participantMicMuted = isSelf ? myAudioMuted : (socketId ? !!(mediaStateMap[socketId]?.audioMuted) : true);
                         const showMuteBtn = isMeetingAdmin && !isAdmin && socketId;
+
+                        const displayName = isSelf
+                            ? (authUser?.name || getParticipantDisplayName(participant, index))
+                            : getParticipantDisplayName(participant, index);
+
+                        const photo = isSelf
+                            ? (authUser?.user_photo || authUser?.photo)
+                            : (participant?.member_photo || participant?.memberPhoto || participant?.user_photo);
+                        const photoSrc = (typeof photo === "string" && photo.trim()) ? photo.trim() : null;
+
                         return (
                             <div
                                 key={participant?.socketId || participant?.member_id || participant?.id || index}
                                 className={`participant-item ${isAdmin ? 'participant-item--admin-pinned' : ''}`}
                             >
                                 <div className="participant-avatar">
-                                    {(() => {
-                                        const photo = participant?.member_photo || participant?.memberPhoto || participant?.user_photo;
-                                        const photoSrc = (typeof photo === "string" && photo.trim()) ? photo.trim() : null;
-                                        return photoSrc ? (
-                                            <img
-                                                src={photoSrc}
-                                                alt={getParticipantDisplayName(participant, index)}
-                                                style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-                                            />
-                                        ) : (
-                                            <UserCircle size={40} weight="fill" />
-                                        );
-                                    })()}
+                                    {photoSrc ? (
+                                        <img
+                                            src={photoSrc}
+                                            alt={displayName}
+                                            style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+                                        />
+                                    ) : (
+                                        <UserCircle size={40} weight="fill" />
+                                    )}
                                 </div>
                                 <div className="participant-info">
                                     <span className="participant-name fw-semibold">
-                                        {getParticipantDisplayName(participant, index)}
+                                        {displayName}
                                     </span>
                                     <div className="participant-status-row">
                                         <span className={`participant-status ${getParticipantStatusLabel(participant).toLowerCase()}`}>

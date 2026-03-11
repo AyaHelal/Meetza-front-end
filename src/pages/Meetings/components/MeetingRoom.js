@@ -266,6 +266,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     localStream,
     isMeetingAdmin,
     meetingInfo,
+    currentUserFromToken: user,
   });
 
   const { isRecording, startRecording, stopRecording } = useMeetingRecording({

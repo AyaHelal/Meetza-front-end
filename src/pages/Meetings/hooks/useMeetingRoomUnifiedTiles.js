@@ -16,6 +16,7 @@ export function useMeetingRoomUnifiedTiles({
   localStream,
   isMeetingAdmin,
   meetingInfo,
+  currentUserFromToken,
 }) {
   const unifiedTiles = useMemo(() => {
     const list = Array.isArray(participants) ? participants : [];
@@ -24,11 +25,13 @@ export function useMeetingRoomUnifiedTiles({
     list.forEach((p) => {
       const sid = p?.socketId || p?.id;
       const isSelf = sid === socket?.id || (selfMemberId && String(p?.member_id) === String(selfMemberId));
+      const nameFromToken = currentUserFromToken?.name;
+      const photoFromToken = currentUserFromToken?.photo || currentUserFromToken?.user_photo;
       const base = {
         ...p,
         isSelf,
-        label: p?.member_name || p?.member_email || "Participant",
-        member_photo: p?.member_photo || p?.memberPhoto || p?.user_photo || p?.photo || null,
+        label: isSelf && nameFromToken ? nameFromToken : (p?.member_name || p?.member_email || "Participant"),
+        member_photo: isSelf && photoFromToken ? photoFromToken : (p?.member_photo || p?.memberPhoto || p?.user_photo || p?.photo || null),
       };
 
       if (isSelf) {
@@ -97,7 +100,7 @@ export function useMeetingRoomUnifiedTiles({
     });
 
     return tiles;
-  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap, localStreamRef, localStream]);
+  }, [participants, remoteStreams, socket?.id, selfMemberId, videoMuted, screenSharing, mediaStateMap, localStreamRef, localStream, currentUserFromToken]);
 
   const { memberTiles, adminTile } = useMemo(() => {
     if (!isMeetingAdmin) {
