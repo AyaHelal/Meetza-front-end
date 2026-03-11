@@ -529,6 +529,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
         emojiPickerRef={emojiPickerRef}
         emojiList={emojiList}
         selectEmoji={selectEmoji}
+        isMeetingAdmin={isMeetingAdmin}
+        isRecording={isRecording}
+        onStartRecording={startRecording}
+        onStopRecording={() => stopRecording()}
       />
 
       <MeetingRoomReactionsContainer reactionsMap={reactionsMap} getReactionIcon={getReactionIcon} />

@@ -758,6 +758,16 @@ box-shadow: 0 8px 6px -6px rgba(0, 0, 0, 0.4);
   cursor: not-allowed;
 }
 
+.meeting-room-control-btn.record-btn.recording {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.meeting-room-control-btn.record-btn.recording:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .meeting-room-slide .meeting-room-grid {

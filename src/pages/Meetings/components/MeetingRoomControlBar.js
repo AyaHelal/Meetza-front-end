@@ -10,6 +10,7 @@ import {
   SpeakerHigh,
   SpeakerSlash,
   ArrowUp,
+  Record,
 } from "@phosphor-icons/react";
 
 const MeetingRoomControlBar = ({
@@ -37,6 +38,10 @@ const MeetingRoomControlBar = ({
   emojiPickerRef,
   emojiList,
   selectEmoji,
+  isMeetingAdmin,
+  isRecording,
+  onStartRecording,
+  onStopRecording,
 }) => {
   const remoteIds = unifiedTiles.filter((t) => !t?.isSelf && t?.socketId).map((t) => t.socketId);
   const hasRemote = remoteIds.length > 0;
@@ -87,6 +92,18 @@ const MeetingRoomControlBar = ({
         >
           <MonitorArrowUp size={22} weight="regular" />
         </button>
+        {isMeetingAdmin && (
+          <button
+            type="button"
+            className={`meeting-room-control-btn record-btn ${isRecording ? "recording" : ""}`}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+            onClick={isRecording ? onStopRecording : onStartRecording}
+            disabled={!meetingId}
+            title={isRecording ? "Stop recording" : "Start recording (screen + mic + participants)"}
+          >
+            <Record size={22} weight={isRecording ? "fill" : "regular"} />
+          </button>
+        )}
         <button
           type="button"
           className="meeting-room-control-btn"
