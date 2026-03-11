@@ -149,17 +149,17 @@ const MainChat = ({
       const response = await updateMessage(groupId, messageId, trimmedText);
       let updatedMessage = (response?.data != null ? response.data : response) ?? null;
       if (!updatedMessage?.id) throw new Error("Invalid response from update API");
-      const originalMessage = messages.find((msg) => msg.id === messageId);
-      const messageWithNewText = {
-        ...originalMessage,
-        ...updatedMessage,
+        const originalMessage = messages.find((msg) => msg.id === messageId);
+        const messageWithNewText = {
+          ...originalMessage,
+          ...updatedMessage,
         message: updatedMessage.message ?? updatedMessage.text ?? trimmedText,
         text: updatedMessage.text ?? updatedMessage.message ?? trimmedText,
       };
       const formattedUpdated = formatMessages([messageWithNewText])[0];
       setMessages((prev) => prev.map((msg) => (msg.id === messageId ? formattedUpdated : msg)));
-      smartToast.success("Message updated successfully");
-      if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+        smartToast.success("Message updated successfully");
+        if (onMessageEdited) onMessageEdited(messageId, trimmedText);
     } catch (error) {
       smartToast.error("Failed to edit message");
       console.error("Error editing message:", error);
@@ -210,14 +210,14 @@ const MainChat = ({
           loading={loading}
           showExpanded={showExpanded}
           expandedContent={expandedContent}
-          groupId={groupId}
+                          groupId={groupId}
           messages={messages}
           messagesEndRef={messagesEndRef}
-          onDeleteMessage={handleDeleteMessage}
-          onEditMessage={handleEditMessage}
-          currentUserEmail={currentUserEmail}
-          onMediaClick={handlePhotoClick}
-          userRole={userRole}
+                          onDeleteMessage={handleDeleteMessage}
+                          onEditMessage={handleEditMessage}
+                          currentUserEmail={currentUserEmail}
+                          onMediaClick={handlePhotoClick}
+                          userRole={userRole}
         />
       </div>
       {!activeSection && !expandedSection && groupId && !isSuperAdmin && (

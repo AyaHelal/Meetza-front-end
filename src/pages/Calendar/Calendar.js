@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import api from "../../API/axiosInstance";
+import { useSocket } from "../../context/SocketContext";
 import { getGroups, parseGroupsResponse } from "../Groups/services/groupsService";
 import CalendarHeader from "./components/CalendarHeader";
 import CalendarToolbar from "./components/CalendarToolbar";
@@ -35,6 +36,9 @@ export default function Calendar() {
   const [rangeEnd, setRangeEnd] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Trigger refetch when meetings change via sockets (create/update/delete/end) without full page reload
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { socket } = useSocket();
 
   // When user clears search, restore the date they were viewing before they searched.
   const dateBeforeSearchRef = useRef(null);
@@ -95,6 +99,47 @@ export default function Calendar() {
     }
     return getWeekDates(currentDate);
   }, [currentDate, viewMode, rangeStart, rangeEnd]);
+
+  // Also listen to a global browser event dispatched from AdminMeetingPage after create/update/delete
+  useEffect(() => {
+    const handleWindowCalendarUpdate = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+    window.addEventListener("calendarMeetingsUpdated", handleWindowCalendarUpdate);
+    return () => window.removeEventListener("calendarMeetingsUpdated", handleWindowCalendarUpdate);
+  }, []);
+
+  // Cross-tab sync: when Admin page in another tab updates meetings, listen to storage changes
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === "calendarMeetingsUpdatedAt") {
+        setRefreshKey((prev) => prev + 1);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  // When backend broadcasts that meetings changed, softly refetch calendar data
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMeetingsChanged = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    socket.on("meetingCreated", handleMeetingsChanged);
+    socket.on("meetingUpdated", handleMeetingsChanged);
+    socket.on("meetingEnded", handleMeetingsChanged);
+    socket.on("meetingDeleted", handleMeetingsChanged);
+
+    return () => {
+      socket.off("meetingCreated", handleMeetingsChanged);
+      socket.off("meetingUpdated", handleMeetingsChanged);
+      socket.off("meetingEnded", handleMeetingsChanged);
+      socket.off("meetingDeleted", handleMeetingsChanged);
+    };
+  }, [socket]);
 
   useEffect(() => {
     let cancelled = false;
@@ -224,7 +269,7 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, [viewMode, currentDate, searchQuery, groupsMap, selectedGroupId, rangeStart, rangeEnd]);
+  }, [viewMode, currentDate, searchQuery, groupsMap, selectedGroupId, rangeStart, rangeEnd, refreshKey]);
 
   const goPrev = () => {
     if (viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd) {
@@ -299,17 +344,17 @@ export default function Calendar() {
     <div className="calendar-page">
       <div className="calendar-toolbar-card">
         <CalendarHeader />
-        <CalendarToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      <CalendarToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
           groupsList={groupsList}
           selectedGroupId={selectedGroupId}
           onGroupChange={setSelectedGroupId}
-        />
-        <CalendarNav
-          currentDate={currentDate}
-          onDateChange={setCurrentDate}
-          viewMode={viewMode}
+      />
+      <CalendarNav
+        currentDate={currentDate}
+        onDateChange={setCurrentDate}
+        viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
           weekDates={weekDates}
           rangeStart={rangeStart}
@@ -323,7 +368,7 @@ export default function Calendar() {
       ) : showWeekLikeGrid ? (
         <CalendarWeekGrid
           events={filteredWeekEvents}
-          weekDates={weekDates}
+        weekDates={weekDates}
           onPrev={goPrev}
           onNext={goNext}
         />

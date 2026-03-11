@@ -216,7 +216,12 @@ const AdminMeetingPage = () => {
                 poster_file: null,
                 files: [],
             });
-            fetchMeetings(createdMeeting?.id ? { patchRecordMeeting: { id: createdMeeting.id, value: recordValue } } : undefined);
+      fetchMeetings(createdMeeting?.id ? { patchRecordMeeting: { id: createdMeeting.id, value: recordValue } } : undefined);
+      // Notify Calendar page(s) to refetch meetings (update calendar cards)
+      window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+      try {
+        localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+      } catch {}
         } catch (error) {
             console.error("Error creating meeting:", error);
             smartToast.error(
@@ -269,6 +274,10 @@ const AdminMeetingPage = () => {
                 localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
                 setShowDeleteMeetingModal(false);
                 setMeetingToDelete(null);
+                window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+                try {
+                    localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+                } catch {}
             } else {
                 smartToast.error(res.data?.message || "Failed to delete meeting");
                 setShowDeleteMeetingModal(false);
@@ -335,6 +344,10 @@ const AdminMeetingPage = () => {
                     setStoredRecordFlag(editingMeetingId, formData.recordMeeting === "Recording" ? 1 : 0);
                     resetFormForCreate();
                     fetchMeetings();
+                    window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+                    try {
+                        localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+                    } catch {}
                 } else smartToast.error(res.data?.message || "Failed to update meeting");
             } else {
                 const payload = {
@@ -351,6 +364,10 @@ const AdminMeetingPage = () => {
                     setStoredRecordFlag(editingMeetingId, formData.recordMeeting === "Recording" ? 1 : 0);
                     resetFormForCreate();
                     fetchMeetings();
+                    window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+                    try {
+                        localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+                    } catch {}
                 } else smartToast.error(res.data?.message || "Failed to update meeting");
             }
         } catch (err) {

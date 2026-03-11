@@ -199,18 +199,29 @@ export function buildWeekEvents(meetings, weekDates, groupsMap = null) {
       return { m, start, end, dayIndex };
     })
     .filter(({ dayIndex }) => dayIndex >= 0)
-    .map(({ m, start, end, dayIndex }) => ({
-      id: m.id ?? m.meeting_id ?? `m-${start.getTime()}`,
-      dayIndex,
-      start,
-      end,
-      title: m.title ?? "Meeting",
-      description: m.description ?? "",
-      groupName: getMeetingGroupName(m, groupsMap) ?? "—",
-      imageUrl: m.image_url ?? m.imageUrl ?? baseImage,
-      lockType: m.recording ? "red" : "blue",
-      _meeting: m,
-    }));
+    .map(({ m, start, end, dayIndex }) => {
+      const poster =
+        m.poster_url ??
+        m.posterUrl ??
+        m.poster ??
+        m.image_url ??
+        m.imageUrl ??
+        null;
+      const posterUrl = typeof poster === "string" && poster.trim() ? poster.trim() : null;
+
+      return {
+        id: m.id ?? m.meeting_id ?? `m-${start.getTime()}`,
+        dayIndex,
+        start,
+        end,
+        title: m.title ?? "Meeting",
+        description: m.description ?? "",
+        groupName: getMeetingGroupName(m, groupsMap) ?? "—",
+        imageUrl: posterUrl || baseImage,
+        lockType: m.recording ? "red" : "blue",
+        _meeting: m,
+      };
+    });
 }
 
 /**
