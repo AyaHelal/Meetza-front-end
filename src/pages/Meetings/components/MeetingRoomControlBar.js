@@ -11,6 +11,7 @@ import {
   SpeakerSlash,
   ArrowUp,
   Record,
+  Stop,
 } from "@phosphor-icons/react";
 
 const MeetingRoomControlBar = ({
@@ -40,8 +41,10 @@ const MeetingRoomControlBar = ({
   selectEmoji,
   isMeetingAdmin,
   isRecording,
+  isRecordingPaused,
   onStartRecording,
   onStopRecording,
+  onEndRecording,
 }) => {
   const remoteIds = unifiedTiles.filter((t) => !t?.isSelf && t?.socketId).map((t) => t.socketId);
   const hasRemote = remoteIds.length > 0;
@@ -92,17 +95,45 @@ const MeetingRoomControlBar = ({
         >
           <MonitorArrowUp size={22} weight="regular" />
         </button>
-        {isMeetingAdmin && (
+        {isMeetingAdmin && !isRecording && (
           <button
             type="button"
-            className={`meeting-room-control-btn record-btn ${isRecording ? "recording" : ""}`}
-            aria-label={isRecording ? "Stop recording" : "Start recording"}
-            onClick={isRecording ? onStopRecording : onStartRecording}
+            className="meeting-room-control-btn record-btn"
+            aria-label="Start recording"
+            onClick={onStartRecording}
             disabled={!meetingId}
-            title={isRecording ? "Stop recording" : "Start recording (screen + mic + participants)"}
+            title="Start recording (screen + mic + participants)"
           >
-            <Record size={22} weight={isRecording ? "fill" : "regular"} />
+            <Record size={22} weight="regular" />
           </button>
+        )}
+        {isMeetingAdmin && isRecording && (
+          <>
+            <button
+              type="button"
+              className={`meeting-room-control-btn record-btn ${!isRecordingPaused ? "recording" : ""}`}
+              aria-label={isRecordingPaused ? "Resume recording" : "Stop (pause) recording"}
+              onClick={isRecordingPaused ? onStartRecording : onStopRecording}
+              disabled={!meetingId}
+              title={isRecordingPaused ? "Resume recording" : "Stop (pause) recording"}
+            >
+              {isRecordingPaused ? (
+                <Record size={22} weight="regular" />
+              ) : (
+                <Stop size={22} weight="fill" />
+              )}
+            </button>
+            <button
+              type="button"
+              className="meeting-room-control-btn record-btn record-end-btn"
+              aria-label="End recording"
+              onClick={onEndRecording}
+              disabled={!meetingId}
+              title="End recording (save or discard)"
+            >
+              End
+            </button>
+          </>
         )}
         <button
           type="button"

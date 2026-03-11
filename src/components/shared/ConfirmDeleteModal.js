@@ -1,5 +1,26 @@
 import React from "react";
 
+const DEFAULT_CONFIRM_STYLE = {
+    backgroundColor: "#FF0000",
+    color: "#FFFFFF",
+    border: "none",
+    padding: "10px 24px",
+    fontSize: "16px",
+    fontWeight: "600",
+    marginLeft: "12px",
+};
+
+/** Primary style for OK/Save (not delete) */
+const PRIMARY_CONFIRM_STYLE = {
+    backgroundColor: "#0d6efd",
+    color: "#FFFFFF",
+    border: "none",
+    padding: "10px 24px",
+    fontSize: "16px",
+    fontWeight: "600",
+    marginLeft: "12px",
+};
+
 /**
  * Confirmation modal for delete actions (same style as meetza-admin).
  * @param {boolean} show
@@ -7,7 +28,9 @@ import React from "react";
  * @param {function} onConfirm
  * @param {string} title
  * @param {string} message
- * @param {boolean} [confirming] - optional, disables Delete button while request in progress
+ * @param {boolean} [confirming] - optional, disables confirm button while request in progress
+ * @param {string} [confirmLabel] - optional, e.g. "OK" or "Delete"
+ * @param {boolean} [confirmPrimary] - optional, if true use primary (blue) style instead of red
  */
 export const ConfirmDeleteModal = ({
     show,
@@ -16,7 +39,10 @@ export const ConfirmDeleteModal = ({
     title = "Delete",
     message = "Are you sure? This action cannot be undone.",
     confirming = false,
+    confirmLabel = "Delete",
+    confirmPrimary = false,
 }) => {
+    const confirmButtonStyle = confirmPrimary ? PRIMARY_CONFIRM_STYLE : DEFAULT_CONFIRM_STYLE;
     if (!show) return null;
 
     return (
@@ -58,17 +84,9 @@ export const ConfirmDeleteModal = ({
                             className="btn rounded-3"
                             onClick={onConfirm}
                             disabled={confirming}
-                            style={{
-                                backgroundColor: "#FF0000",
-                                color: "#FFFFFF",
-                                border: "none",
-                                padding: "10px 24px",
-                                fontSize: "16px",
-                                fontWeight: "600",
-                                marginLeft: "12px",
-                            }}
+                            style={confirmButtonStyle}
                         >
-                            {confirming ? "..." : "Delete"}
+                            {confirming ? "..." : confirmLabel}
                         </button>
                     </div>
                 </div>

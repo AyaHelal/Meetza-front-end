@@ -28,6 +28,7 @@ import { useMeetingInfo } from "../hooks/useMeetingInfo";
 import { useMeetingPreJoin } from "../hooks/useMeetingPreJoin";
 import { useMeetingLifecycleHandlers } from "../hooks/useMeetingLifecycleHandlers";
 import MeetingRoomPreJoinModal from "./MeetingRoomPreJoinModal";
+import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import { smartToast } from "../../../API/toastManager";
 import { useSocket } from "../../../context/SocketContext";
 import { AuthContext } from "../../../context/AuthContext";
@@ -78,6 +79,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setVideoMuted(contextVideoMuted);
   }, [contextVideoMuted]);
   const [screenSharing, setScreenSharing] = useState(false);
+  const [showSaveRecordingModal, setShowSaveRecordingModal] = useState(false);
 
   const meetingIdRef = useRef(null);
   const localVideoRef = useRef(null);
@@ -269,7 +271,15 @@ const MeetingRoom = ({ recordRegionRef }) => {
     currentUserFromToken: user,
   });
 
-  const { isRecording, startRecording, stopRecording } = useMeetingRecording({
+  const {
+    isRecording,
+    isRecordingPaused,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    cancelRecording,
+  } = useMeetingRecording({
     localStreamRef,
     remoteStreams: rtc.remoteStreams,
     recordingPayloadRef,
@@ -279,6 +289,35 @@ const MeetingRoom = ({ recordRegionRef }) => {
     hasJoined,
     isMeetingAdmin,
   });
+
+  const handleRecordingStartOrResume = useCallback(() => {
+    if (isRecording && isRecordingPaused) {
+      resumeRecording();
+    } else if (!isRecording) {
+      startRecording();
+    }
+  }, [isRecording, isRecordingPaused, resumeRecording, startRecording]);
+
+  const handleRecordingStop = useCallback(() => {
+    if (isRecording && !isRecordingPaused) {
+      pauseRecording();
+    }
+  }, [isRecording, isRecordingPaused, pauseRecording]);
+
+  const handleRecordingEnd = useCallback(() => {
+    if (!isRecording) return;
+    setShowSaveRecordingModal(true);
+  }, [isRecording]);
+
+  const handleConfirmSaveRecording = useCallback(() => {
+    setShowSaveRecordingModal(false);
+    stopRecording(recordingPayloadRef?.current);
+  }, [stopRecording]);
+
+  const handleCancelSaveRecording = useCallback(() => {
+    setShowSaveRecordingModal(false);
+    cancelRecording();
+  }, [cancelRecording]);
 
   const { handleLeaveMeeting: handleLeaveMeetingBase, handleMeetingEnded } = useMeetingLifecycleHandlers({
     meetingId,
@@ -431,6 +470,16 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   return (
     <div className="meeting-room">
+      <ConfirmDeleteModal
+        show={showSaveRecordingModal}
+        onClose={handleCancelSaveRecording}
+        onConfirm={handleConfirmSaveRecording}
+        title="Save recording"
+        message="Do you want to save this recording and upload it to the server? If you cancel, the recording will be discarded."
+        confirmLabel="OK"
+        confirmPrimary
+      />
+
       <MeetingRoomPreJoinModal
         visible={preJoin.showPreJoinModal}
         stream={preJoin.preJoinStream}
@@ -531,8 +580,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
         selectEmoji={selectEmoji}
         isMeetingAdmin={isMeetingAdmin}
         isRecording={isRecording}
-        onStartRecording={startRecording}
-        onStopRecording={() => stopRecording()}
+        isRecordingPaused={isRecordingPaused}
+        onStartRecording={handleRecordingStartOrResume}
+        onStopRecording={handleRecordingStop}
+        onEndRecording={handleRecordingEnd}
       />
 
       <MeetingRoomReactionsContainer reactionsMap={reactionsMap} getReactionIcon={getReactionIcon} />

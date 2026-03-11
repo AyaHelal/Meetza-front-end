@@ -180,6 +180,7 @@ export function useMeetingRecording({
   isMeetingAdmin,
 }) {
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const startTimeRef = useRef(null);
@@ -313,6 +314,7 @@ export function useMeetingRecording({
       mediaRecorderRef.current = mediaRecorder;
       startTimeRef.current = Date.now();
       setIsRecording(true);
+      setIsRecordingPaused(false);
 
       smartToast.info('Recording is in progress. Your mic and all participants are mixed into the recording.');
     } catch (err) {
@@ -327,8 +329,14 @@ export function useMeetingRecording({
 
   const stopRecording = useCallback(
     async (payload) => {
-      recordingPayloadRef.current = payload;
-      const { meetingId, title, group_id, description } = payload || {};
+      if (payload !== undefined) recordingPayloadRef.current = payload;
+      const effectivePayload = payload ?? recordingPayloadRef.current ?? {};
+      const { meetingId, title, group_id, description } = effectivePayload;
+
+      const finalTitle =
+        title || meetingInfo?.title || "Meeting Recording";
+      const finalGroupId =
+        group_id ?? meetingInfo?.group_id ?? null;
 
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -365,6 +373,7 @@ export function useMeetingRecording({
         mr.onstop = async () => {
           mediaRecorderRef.current = null;
           setIsRecording(false);
+          setIsRecordingPaused(false);
           const chunks = recordedChunksRef.current;
           recordedChunksRef.current = [];
           const posterBlob = posterBlobRef.current;
@@ -384,14 +393,25 @@ export function useMeetingRecording({
           const cleanMimeType = "video/mp4";
           const videoBlob = new Blob(chunks, { type: cleanMimeType });
 
+          if (!finalGroupId || !finalTitle) {
+            console.error("Recording payload missing title or group_id for upload", {
+              effectivePayload,
+              meetingId,
+              meetingInfo,
+            });
+            smartToast.error("Cannot upload recording: missing meeting group or title.");
+            resolve();
+            return;
+          }
+
           const formData = new FormData();
           formData.append(
             "video_file",
             videoBlob,
             `meeting-recording.${extension}`
           );
-          formData.append("title", title || "Meeting Recording");
-          formData.append("group_id", String(group_id ?? ""));
+          formData.append("title", finalTitle);
+          formData.append("group_id", String(finalGroupId));
           formData.append("duration", String(durationSeconds));
           formData.append("description", description ?? "");
           if (meetingId) formData.append("meeting_id", meetingId);
@@ -408,7 +428,10 @@ export function useMeetingRecording({
             await api.post("/video/create", formData, { timeout: 300000 });
             smartToast.success("Meeting recording uploaded.");
           } catch (err) {
-            console.error("Upload meeting recording failed:", err);
+            console.error(
+              "Upload meeting recording failed:",
+              err?.response?.data || err
+            );
             smartToast.error(
               err?.response?.data?.message ||
                 err?.message ||
@@ -420,10 +443,84 @@ export function useMeetingRecording({
         mr.stop();
       });
     },
-    []
+    [meetingInfo]
   );
 
   stopRecordingRef.current = stopRecording;
+
+  const pauseRecording = useCallback(() => {
+    const mr = mediaRecorderRef.current;
+    if (!mr || mr.state !== "recording") return;
+    try {
+      if (typeof mr.pause === "function") {
+        mr.pause();
+        setIsRecordingPaused(true);
+        smartToast.info("Recording paused. Tap Resume to continue or End to save/discard.");
+      } else {
+        smartToast.info("Pause not supported in this browser.");
+      }
+    } catch (e) {
+      console.error("MediaRecorder pause failed:", e);
+      smartToast.error("Could not pause recording.");
+    }
+  }, []);
+
+  const resumeRecording = useCallback(() => {
+    const mr = mediaRecorderRef.current;
+    if (!mr || mr.state !== "paused") return;
+    try {
+      if (typeof mr.resume === "function") {
+        mr.resume();
+        setIsRecordingPaused(false);
+        smartToast.info("Recording resumed.");
+      }
+    } catch (e) {
+      console.error("MediaRecorder resume failed:", e);
+    }
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    const video = displayVideoRef.current;
+    if (video) {
+      video.srcObject = null;
+      displayVideoRef.current = null;
+    }
+    const displayStream = displayStreamRef.current;
+    if (displayStream) {
+      displayStream.getTracks().forEach((t) => t.stop());
+      displayStreamRef.current = null;
+    }
+    const recordingMic = recordingMicStreamRef.current;
+    if (recordingMic) {
+      recordingMic.getTracks().forEach((t) => t.stop());
+      recordingMicStreamRef.current = null;
+    }
+    const ctx = mixAudioContextRef.current;
+    if (ctx) {
+      try {
+        ctx.close();
+      } catch (e) { /* ignore */ }
+      mixAudioContextRef.current = null;
+    }
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      mr.onstop = null;
+      try {
+        mr.stop();
+      } catch (e) { /* ignore */ }
+    }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
+    posterBlobRef.current = null;
+    startTimeRef.current = null;
+    setIsRecording(false);
+    setIsRecordingPaused(false);
+    smartToast.info("Recording discarded.");
+  }, []);
 
   useEffect(() => {
     recordingPayloadRef.current =
@@ -476,5 +573,13 @@ export function useMeetingRecording({
     };
   }, [stopRecording, recordingPayloadRef]);
 
-  return { isRecording, startRecording, stopRecording };
+  return {
+    isRecording,
+    isRecordingPaused,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    cancelRecording,
+  };
 }
