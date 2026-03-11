@@ -9,6 +9,8 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const ROW_HEIGHT_PX = 200;
 /** Margin inside the time row (gap above/below the card within the slot) */
 const ROW_INSET_PX = 6;
+/** Card height when there is no description (compact: image + title only) */
+const CARD_HEIGHT_NO_DESC_PX = 118;
 const HEADER_DAY_MIN_WIDTH = 120;
 
 function isSameDay(a, b) {
@@ -114,24 +116,18 @@ export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext }) 
                   .filter((ev) => ev.dayIndex === colIndex)
                   .map((ev) => {
                     const startH = ev.start.getHours();
-                    const endH = ev.end.getHours();
                     const topPx = startH * ROW_HEIGHT_PX;
-                    const heightPx = Math.max(endH - startH, 1) * ROW_HEIGHT_PX;
                     const slotTop = topPx + ROW_INSET_PX;
-                    const slotHeight = heightPx - 2 * ROW_INSET_PX;
+                    const fullSlotHeight = ROW_HEIGHT_PX - 2 * ROW_INSET_PX;
                     const hasDescription = !!ev.description?.trim();
-                    const isDayView = weekDates.length === 1;
-                    const verticalCenterTransform =
-                      hasDescription ? undefined : isDayView ? "translateX(-50%) translateY(-50%)" : "translateY(-50%)";
+                    const cardHeight = hasDescription ? fullSlotHeight : CARD_HEIGHT_NO_DESC_PX;
                     return (
                       <CalendarEventCard
                         key={ev.id}
                         event={ev}
                         style={{
-                          top: hasDescription ? slotTop : topPx + heightPx / 2,
-                          height: hasDescription ? slotHeight : "auto",
-                          maxHeight: slotHeight,
-                          transform: verticalCenterTransform,
+                          top: slotTop,
+                          height: cardHeight,
                         }}
                       />
                     );

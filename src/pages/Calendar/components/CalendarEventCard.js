@@ -10,9 +10,13 @@ export default function CalendarEventCard({ event, style = {} }) {
   const lockBg = isFutureMeeting
     ? "rgba(231, 76, 60, 0.6)"
     : (event.lockType === "red" ? "rgba(231, 76, 60, 0.85)" : "rgba(52, 152, 219, 0.85)");
+  const noDescription = !event.description?.trim();
 
   return (
-    <div className="calendar-event-card" style={style}>
+    <div
+      className={`calendar-event-card${noDescription ? " calendar-event-card--no-desc" : ""}`}
+      style={style}
+    >
       <div
         className="calendar-event-card-bg"
         style={{ backgroundImage: `url(${event.imageUrl})` }}

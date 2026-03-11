@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import api from "../../API/axiosInstance";
 import { useSocket } from "../../context/SocketContext";
-import { getGroups, parseGroupsResponse } from "../Groups/services/groupsService";
 import CalendarHeader from "./components/CalendarHeader";
 import CalendarToolbar from "./components/CalendarToolbar";
 import CalendarNav from "./components/CalendarNav";
@@ -55,16 +54,18 @@ export default function Calendar() {
     prevSearchQueryRef.current = searchQuery;
   }, [searchQuery]);
 
-  // Fetch groups for filter list (same API/parsing as Groups page).
+  // Fetch groups for filter: only groups the current member is in (GET /chat/groups).
   useEffect(() => {
     let cancelled = false;
-    getGroups()
+    api
+      .get("/chat/groups")
       .then((response) => {
         if (cancelled) return;
-        const payload = parseGroupsResponse(response);
+        const raw = response?.data?.data ?? response?.data;
+        const payload = Array.isArray(raw) ? raw : [];
         const map = {};
         const list = [];
-        (Array.isArray(payload) ? payload : []).forEach((g) => {
+        payload.forEach((g) => {
           const id = g.id ?? g.group_id ?? g._id;
           const name = g.name ?? g.group_name ?? g.title ?? g.content_name ?? g.group_content_name ?? "";
           if (id != null && id !== "") {

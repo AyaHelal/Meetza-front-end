@@ -670,6 +670,14 @@
   position: relative;
 }
 
+/* No description: shorter image and minimal white below title */
+.calendar-event-card--no-desc .calendar-event-card-bg {
+  height: 70px;
+}
+.calendar-event-card--no-desc .calendar-event-card-title {
+  padding: 6px 10px 6px;
+}
+
 .calendar-event-card-label {
   position: absolute;
   left: 8px;
