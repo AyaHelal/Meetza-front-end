@@ -1,0 +1,190 @@
+.video-sessions-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #1976d2;
+  border-radius: 24px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.video-sessions-header-back {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: #1976d2;
+  color: #ffff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.video-sessions-header-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.video-sessions-header-back-and-text {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.video-sessions-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.video-sessions-header-title {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 600 !important;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.video-sessions-header-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+}
+
+.video-sessions-header-search-wrap {
+  flex-shrink: 0;
+  position: relative;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.video-sessions-header-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ffffff;
+  pointer-events: none;
+}
+
+.video-sessions-header-search {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.video-sessions-header-search::placeholder {
+  color: #ffffff;
+}
+
+.video-sessions-header-search:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  .video-sessions-header {
+    padding: 1rem 1.25rem;
+    gap: 0.75rem;
+    border-radius: 20px;
+  }
+
+  .video-sessions-header-title {
+    font-size: 1.35rem;
+  }
+
+  .video-sessions-header-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .video-sessions-header-search-wrap {
+    min-width: 180px;
+    max-width: 240px;
+  }
+}
+
+/* Mobile: back + title side by side, then subtitle, then search */
+@media (max-width: 768px) {
+  .video-sessions-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 1rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+  }
+
+  .video-sessions-header-back-and-text {
+    min-width: 0;
+  }
+
+  .video-sessions-header-title {
+    font-size: 1.25rem;
+  }
+
+  .video-sessions-header-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .video-sessions-header-search-wrap {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .video-sessions-header-search {
+    padding: 10px 12px 10px 40px;
+    font-size: 16px; /* avoids zoom on iOS */
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 480px) {
+  .video-sessions-header {
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    border-radius: 14px;
+    margin-bottom: 0.75rem;
+  }
+
+  .video-sessions-header-title {
+    font-size: 1.1rem;
+  }
+
+  .video-sessions-header-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .video-sessions-header-search-icon {
+    left: 10px;
+  }
+
+  .video-sessions-header-search {
+    padding: 8px 10px 8px 36px;
+    font-size: 16px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .video-sessions-header {
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+  }
+
+  .video-sessions-header-title {
+    font-size: 1rem;
+  }
+}

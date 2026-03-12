@@ -1,0 +1,584 @@
+/* ── reset & base ── */
+* {
+  box-sizing: border-box;
+}
+
+.video-session-detail {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  width: 100%;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f0f2f5;
+  padding: 1rem;
+  border-radius: 20px;
+}
+
+/* ── main column ── */
+.video-session-detail-main {
+  flex: 0 0 62%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: transparent;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* ── player (rounded corners) ── */
+.video-session-detail-player-wrap {
+  width: 100%;
+  overflow: hidden;
+  background: #ffffff;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  border-radius: 14px;
+}
+
+.video-session-detail-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 14px;
+}
+
+.video-session-detail-player-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+}
+
+.video-session-detail-player-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 14px;
+}
+
+/* custom controls bar – semi-transparent so video shows through */
+.video-session-detail-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.4));
+  padding: 24px 85px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 0 0 14px 14px;
+}
+
+/* progress bar – green played (#00DC85), light grey remaining */
+.video-session-detail-progress {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(
+    to right,
+    #00dc85 var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.video-session-detail-progress::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #00dc85 var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
+}
+.video-session-detail-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #00dc85;
+  border-radius: 50%;
+  margin-top: -4px;
+  cursor: pointer;
+}
+.video-session-detail-progress::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #00dc85 var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
+}
+.video-session-detail-progress::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #00dc85;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.video-session-detail-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* play button – white circle, blue border, blue icon */
+.video-ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.video-session-detail-controls-row .video-ctrl-btn:first-child {
+  background: #0076ea;
+  border: none;
+  color: #fff !important;
+}
+.video-session-detail-controls-row .video-ctrl-btn:first-child svg {
+  width: 18px;
+  height: 18px;
+  fill: #fff !important;
+  margin-left: 2px;
+}
+/* volume button – dark translucent circle, white outline icon, subtle shadow */
+.video-session-detail-controls-row .video-ctrl-btn:nth-child(2) {
+  background: rgba(0, 0, 0, 0.27);
+  border: none;
+  color: #fff !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.video-session-detail-controls-row .video-ctrl-btn:nth-child(2) svg {
+  width: 18px;
+  height: 18px;
+  fill: #fff !important;
+}
+.video-ctrl-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* timestamp – capsule beside play/volume, dark translucent, white text */
+.video-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.37);
+  padding: 6px 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* ── content wrapper below player ── */
+.video-session-detail-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── title row ── */
+.video-session-detail-title-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem 1rem;
+  background-color: #fff;
+  border-bottom: 1.5px solid #e9ebee;
+  margin-bottom: 0.15rem;
+}
+
+.video-session-detail-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── action buttons ── */
+.video-session-detail-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.video-session-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e5e7eb;
+  background: #f3f4f6;
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.video-session-detail-btn:hover {
+  background: #f3f4f6;
+}
+.video-session-detail-btn.active {
+  background: #00dc85;
+  border-color: #00dc85;
+  color: #fff;
+}
+
+/* ── description ── */
+.video-session-detail-description {
+  padding: 1rem 1rem 1rem;
+  background-color: #fff;
+  border-bottom: 1.5px solid #e9ebee;
+  margin-bottom: 0.15rem;
+}
+.video-session-detail-description h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+.video-session-detail-description p {
+  margin: 0 0 0.25rem;
+  font-size: 0.84rem;
+  color: #4b5563;
+  line-height: 1.55;
+}
+.video-session-detail-instructor {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* ── questions / comments ── */
+.video-session-detail-questions {
+  padding: 1rem 1rem 0.75rem;
+  background-color: #fff;
+}
+.video-session-detail-questions h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.video-session-detail-comment-input {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+.video-session-detail-avatar {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+.video-session-detail-comment-field {
+  flex: 1;
+  padding: 5px 0;
+  border-bottom: 2px solid #000000 !important;
+
+  background: transparent;
+  font-size: 0.875rem;
+  color: #374151;
+  outline: none;
+}
+.video-session-detail-comment-field::placeholder {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+.video-session-detail-comments-list {
+  display: flex;
+  flex-direction: column;
+}
+.video-session-detail-comments-empty {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 0.5rem 0 0;
+}
+
+/* individual comment */
+.vsd-comment {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.vsd-comment:last-child {
+  border-bottom: none;
+}
+.vsd-comment-avatar {
+  flex-shrink: 0;
+  color: #9ca3af;
+  margin-top: 1px;
+}
+.vsd-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+.vsd-comment-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-bottom: 2px;
+}
+.vsd-comment-author {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #111827;
+}
+.vsd-comment-time {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+.vsd-comment-text {
+  font-size: 0.84rem;
+  color: #374151;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  direction: rtl;
+  text-align: right;
+}
+.vsd-comment-text.ltr {
+  direction: ltr;
+  text-align: left;
+}
+.vsd-comment-reply-btn {
+  background: none;
+  border: none;
+  font-size: 0.77rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+}
+.vsd-comment-reply-btn:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.vsd-comment-actions {
+  display: flex;
+  align-items: flex-start;
+}
+.vsd-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: #ef4444;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+}
+.vsd-delete-btn:hover {
+  opacity: 1;
+}
+.vsd-delete-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* nested reply */
+.vsd-reply {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  padding: 0.5rem 0.7rem;
+  background: #eef2ff;
+  border-radius: 10px;
+}
+.vsd-reply-avatar {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+.vsd-reply-body {
+  flex: 1;
+}
+.vsd-reply-author {
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: #111827;
+}
+.vsd-reply-time {
+  font-size: 0.67rem;
+  color: #9ca3af;
+  margin-left: 6px;
+}
+.vsd-reply-text {
+  font-size: 0.81rem;
+  color: #374151;
+  margin: 2px 0 0;
+}
+
+.vsd-nested-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.vsd-nested-field {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background: transparent;
+  font-size: 0.81rem;
+  color: #374151;
+  outline: none;
+}
+.vsd-nested-field::placeholder {
+  color: #9ca3af;
+}
+
+/* ── related sidebar ── */
+.video-session-detail-related {
+  flex: 0 0 36%;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+}
+.video-session-detail-related-title {
+  margin: 0 0 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+.video-session-detail-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.video-session-detail-related-item {
+  display: flex;
+  gap: 0.65rem;
+  padding: 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: #f3f4f6;
+}
+.video-session-detail-related-item:hover {
+  background: #f3f4f6;
+}
+
+.video-session-detail-related-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 130px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+.video-session-detail-related-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.video-session-detail-related-duration {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+.video-session-detail-related-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+.video-session-detail-related-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.video-session-detail-related-instructor,
+.video-session-detail-related-date {
+  font-size: 0.71rem;
+  color: #6b7280;
+}
+.video-session-detail-related-empty {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── responsive ── */
+@media (max-width: 900px) {
+  .video-session-detail-related {
+    flex: 0 0 260px;
+  }
+  .video-session-detail-related-thumb {
+    width: 100px;
+  }
+}
+@media (max-width: 768px) {
+  .video-session-detail {
+    flex-direction: column;
+  }
+  .video-session-detail-main {
+    flex: none;
+    width: 100%;
+  }
+  .video-session-detail-related {
+    flex: none;
+    width: 100%;
+    max-height: none;
+  }
+  .video-session-detail-related-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .video-session-detail-actions {
+    gap: 0.2rem;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .video-session-detail-btn {
+    padding: 5px 10px;
+    font-size: 0.76rem;
+  }
+}

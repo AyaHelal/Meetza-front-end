@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { VideoSessionsProvider } from "../VideoSessions/store/videoSessionsStore";
+import VideoSessionsSection from "../VideoSessions/VideoSessionsSection";
 import "./GroupChat.css";
 import { categorizeResources, categorizeMediaItems } from "./components/utils";
 import GroupChatLayout from "./components/GroupChatLayout";
@@ -102,7 +104,7 @@ export default function GroupChat() {
     null,
     socket
   );
-  const handleJoinMeeting = mainChatMeeting?.handleJoinMeeting ?? (() => {});
+  const handleJoinMeeting = mainChatMeeting?.handleJoinMeeting ?? (() => { });
 
   const refetchGroupMeetings = useCallback(() => {
     if (!currentGroupId) return;
@@ -114,8 +116,8 @@ export default function GroupChat() {
   useEffect(() => {
     if (!currentGroupId) {
       setGroupMeetings([]);
-        return;
-      }
+      return;
+    }
     let cancelled = false;
     getMeetingsByGroupId(api, currentGroupId).then((list) => {
       if (!cancelled) setGroupMeetings(Array.isArray(list) ? list : []);
@@ -252,9 +254,9 @@ export default function GroupChat() {
       const newLast = updated.filter((m) => !m.is_deleted).pop();
       const newSubject = newLast
         ? newLast.text ||
-          (newLast.media?.length > 0
-            ? getMediaLabel(newLast.media[0].media_type, newLast.media[0].file_name)
-            : "Media attachment")
+        (newLast.media?.length > 0
+          ? getMediaLabel(newLast.media[0].media_type, newLast.media[0].file_name)
+          : "Media attachment")
         : "No messages yet";
       setGroupChats((prev) =>
         prev.map((chat, i) =>
@@ -291,9 +293,9 @@ export default function GroupChat() {
       const newLast = updated.filter((m) => !m.is_deleted).pop();
       const newSubject = newLast
         ? newLast.text ||
-          (newLast.media?.length > 0
-            ? getMediaLabel(newLast.media[0].media_type, newLast.media[0].file_name)
-            : "Media attachment")
+        (newLast.media?.length > 0
+          ? getMediaLabel(newLast.media[0].media_type, newLast.media[0].file_name)
+          : "Media attachment")
         : "No messages yet";
       setGroupChats((p) =>
         p.map((chat, i) =>
@@ -418,57 +420,174 @@ export default function GroupChat() {
     status: "Online",
   };
 
+  const scrollWrapRef = useRef(null);
+  const videoSectionRef = useRef(null);
+  const videoLockThresholdRef = useRef(0);
+  const lockTimeoutRef = useRef(null);
+  const scrollingToTopRef = useRef(false);
+  const scrollingToVideoRef = useRef(false);
+  const [videoSectionLocked, setVideoSectionLocked] = useState(false);
+  const videoSectionLockedRef = useRef(false);
+  useEffect(() => {
+    videoSectionLockedRef.current = videoSectionLocked;
+  }, [videoSectionLocked]);
+
+  /* Restore video section view on load when URL has #video-sessions (e.g. after refresh) */
+  useEffect(() => {
+    if ((window.location?.hash || "") === "#video-sessions") {
+      setVideoSectionLocked(true);
+    }
+  }, []);
+
+  // When NOT in video section: prevent scrolling down to video (keep at top unless we're programmatically scrolling to video).
+  useEffect(() => {
+    if (videoSectionLocked) return;
+    const wrap = scrollWrapRef.current;
+    if (!wrap) return;
+    const onScroll = () => {
+      if (scrollingToVideoRef.current || scrollingToTopRef.current) return;
+      if (wrap.scrollTop > 0) {
+        wrap.scrollTop = 0;
+      }
+    };
+    wrap.addEventListener("scroll", onScroll, { passive: false });
+    return () => wrap.removeEventListener("scroll", onScroll);
+  }, [videoSectionLocked]);
+
+  // When IN video section: prevent scrolling up past threshold only if chat is still visible (desktop).
+  // When video-section-active (chat hidden), allow free scroll so user can scroll the video list.
+  useEffect(() => {
+    if (!videoSectionLocked) return;
+    const wrap = scrollWrapRef.current;
+    if (!wrap) return;
+    const onScroll = () => {
+      if (scrollingToTopRef.current) return;
+      if (wrap.classList.contains("video-section-active")) return; /* allow free scroll */
+      const threshold = videoLockThresholdRef.current;
+      if (wrap.scrollTop < threshold) {
+        wrap.scrollTop = threshold;
+      }
+    };
+    wrap.addEventListener("scroll", onScroll, { passive: false });
+    return () => wrap.removeEventListener("scroll", onScroll);
+  }, [videoSectionLocked]);
+
+  const handleVideoSessionsClick = useCallback(() => {
+    const wrap = scrollWrapRef.current;
+    const section = videoSectionRef.current;
+    if (!wrap || !section) return;
+    if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
+    const threshold = section.offsetTop;
+    videoLockThresholdRef.current = threshold;
+    scrollingToVideoRef.current = true;
+    window.location.hash = "video-sessions";
+    wrap.scrollTo({ top: threshold, behavior: "smooth" });
+    lockTimeoutRef.current = setTimeout(() => {
+      setVideoSectionLocked(true);
+      scrollingToVideoRef.current = false;
+      lockTimeoutRef.current = null;
+    }, 800);
+  }, []);
+
+  const goBackFromVideoSection = useCallback((updateHash = true) => {
+    if (lockTimeoutRef.current) {
+      clearTimeout(lockTimeoutRef.current);
+      lockTimeoutRef.current = null;
+    }
+    scrollingToTopRef.current = true;
+    setVideoSectionLocked(false);
+    if (updateHash) window.location.hash = "";
+    scrollWrapRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => {
+      scrollingToTopRef.current = false;
+    }, 600);
+  }, []);
+
+  const handleVideoSessionsBack = useCallback(() => {
+    goBackFromVideoSection(true);
+  }, [goBackFromVideoSection]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (videoSectionLockedRef.current && window.location.hash !== "video-sessions") {
+        goBackFromVideoSection(false);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [goBackFromVideoSection]);
+
+  useEffect(() => {
+    if (!videoSectionLocked) return;
+    const wrap = scrollWrapRef.current;
+    if (wrap) wrap.scrollTo(0, 0);
+  }, [videoSectionLocked]);
+
   return (
-    <GroupChatLayout
-      loading={loading}
-      groupChats={groupChats}
-      selectedChat={selectedChat}
-      onChatSelect={handleChatSelect}
-      isMobile={isMobile}
-      showMainChat={showMainChat}
-      selectedChatData={selectedChatData}
-      messages={messages}
-      chatTitle={
-        selectedChat !== null && groupChats[selectedChat]
-          ? groupChats[selectedChat]?.name
-          : "Select a chat"
-      }
-      onBackToChats={handleBackToChats}
-      onSendMessage={handleSendMessage}
-      activeInfoSection={activeInfoSection}
-      onCloseSection={() => setActiveInfoSection(null)}
-      contentResources={contentResources}
-      groupMediaItems={groupMediaItems}
-      groupMembers={groupMembers}
-      groupInfo={groupInfo}
-      currentUserEmail={user?.email}
-      onMessageEdited={handleMessageEdited}
-      onMessageDeleted={handleMessageDeleted}
-      isSendingMessage={isSendingMessage}
-      onGroupNameClick={handleGroupNameClick}
-      userRole={userRole}
-      chatLoading={chatLoading}
-      onSelectSection={handleToggleInfoSection}
-      mediaSummary={mediaSummary}
-      showRightSidebarMobile={showRightSidebarMobile}
-      onCloseMobile={() => {
-        setShowRightSidebarMobile(false);
-        setActiveInfoSection(null);
-        if (isMobile) setShowMainChat(true);
-      }}
-      onOpenSidebar={() =>
-        window.dispatchEvent(new CustomEvent("openMobileSidebar"))
-      }
-      onOpenNotifications={() =>
-        window.dispatchEvent(new CustomEvent("openNotificationPanel"))
-      }
-      unreadNotificationCount={0}
-      calendarEvents={calendarEvents}
-      onGoToMeeting={onGoToMeeting}
-      currentUser={currentUser}
-      hasMoreMessages={hasMoreMessages}
-      loadingMoreMessages={loadingMoreMessages}
-      onLoadMoreMessages={loadMoreMessages}
-    />
+    <div
+      ref={scrollWrapRef}
+      className={`group-chat-page-scroll-wrap${videoSectionLocked ? " video-section-active" : ""}`}
+    >
+      <GroupChatLayout
+        loading={loading}
+        groupChats={groupChats}
+        selectedChat={selectedChat}
+        onChatSelect={handleChatSelect}
+        isMobile={isMobile}
+        showMainChat={showMainChat}
+        selectedChatData={selectedChatData}
+        messages={messages}
+        chatTitle={
+          selectedChat !== null && groupChats[selectedChat]
+            ? groupChats[selectedChat]?.name
+            : "Select a chat"
+        }
+        onBackToChats={handleBackToChats}
+        onSendMessage={handleSendMessage}
+        activeInfoSection={activeInfoSection}
+        onCloseSection={() => setActiveInfoSection(null)}
+        contentResources={contentResources}
+        groupMediaItems={groupMediaItems}
+        groupMembers={groupMembers}
+        groupInfo={groupInfo}
+        currentUserEmail={user?.email}
+        onMessageEdited={handleMessageEdited}
+        onMessageDeleted={handleMessageDeleted}
+        isSendingMessage={isSendingMessage}
+        onGroupNameClick={handleGroupNameClick}
+        userRole={userRole}
+        chatLoading={chatLoading}
+        onSelectSection={handleToggleInfoSection}
+        mediaSummary={mediaSummary}
+        showRightSidebarMobile={showRightSidebarMobile}
+        onCloseMobile={() => {
+          setShowRightSidebarMobile(false);
+          setActiveInfoSection(null);
+          if (isMobile) setShowMainChat(true);
+        }}
+        onOpenSidebar={() =>
+          window.dispatchEvent(new CustomEvent("openMobileSidebar"))
+        }
+        onOpenNotifications={() =>
+          window.dispatchEvent(new CustomEvent("openNotificationPanel"))
+        }
+        unreadNotificationCount={0}
+        calendarEvents={calendarEvents}
+        onGoToMeeting={onGoToMeeting}
+        currentUser={currentUser}
+        hasMoreMessages={hasMoreMessages}
+        loadingMoreMessages={loadingMoreMessages}
+        onLoadMoreMessages={loadMoreMessages}
+        onVideoSessionsClick={handleVideoSessionsClick}
+      />
+      <div ref={videoSectionRef} id="video-sessions-section" className="video-sessions-section-wrap">
+        <VideoSessionsProvider>
+          <VideoSessionsSection
+            onBack={handleVideoSessionsBack}
+            groupId={currentGroupId}
+          />
+        </VideoSessionsProvider>
+      </div>
+    </div>
   );
 }

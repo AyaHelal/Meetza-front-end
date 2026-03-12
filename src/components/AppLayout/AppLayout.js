@@ -206,9 +206,14 @@ const AppLayout = () => {
     { icon: GearSix, label: "Settings", nav: "settings" },
   ];
 
+  const isVideoSectionActive =
+    location.pathname === "/home" && location.hash === "#video-sessions";
+
   return (
     <MediaProvider>
-      <div className="app-layout">
+      <div
+        className={`app-layout ${isVideoSectionActive ? "app-layout--video-section" : ""}`}
+      >
         <LeftNavbar
           activeNav={activeNav}
           setActiveNav={handleNavClick}

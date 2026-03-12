@@ -1,0 +1,98 @@
+.video-sessions-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  background: #f5f5f5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+  align-content: start;
+  flex: 1;
+}
+
+.video-sessions-loading,
+.video-sessions-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.video-sessions-error {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 992px) {
+  .video-sessions-page {
+    padding: 1.25rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .video-sessions-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-sessions-page {
+    padding: 1rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .video-sessions-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .video-sessions-loading,
+  .video-sessions-empty {
+    padding: 1.5rem 1rem;
+    font-size: 0.95rem;
+  }
+  .video-sessions-error {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-sessions-page {
+    padding: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .video-sessions-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .video-sessions-loading,
+  .video-sessions-empty {
+    padding: 1.25rem 0.75rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .video-sessions-page {
+    padding: 0.5rem;
+  }
+  .video-sessions-grid {
+    gap: 0.5rem;
+  }
+}

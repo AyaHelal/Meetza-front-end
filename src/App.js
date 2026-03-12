@@ -7,6 +7,7 @@ import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
+import VideoSessions from './pages/VideoSessions/VideoSessions';
 import Groups from './pages/Groups/Groups';
 import Calendar from './pages/Calendar/Calendar';
 import Meetings from './pages/Meetings/Meetings';
@@ -203,6 +204,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<GroupChat />} />
+        <Route path="video-sessions" element={<VideoSessions />} />
         <Route path="groups" element={<Groups />} />
         <Route
           path="calendar"
