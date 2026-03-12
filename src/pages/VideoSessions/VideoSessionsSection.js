@@ -2,6 +2,7 @@ import React from "react";
 import { useVideoSessions } from "./hooks/useVideoSessions";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
 import VideoSessionCard from "./components/VideoSessionCard";
+import VideoSessionDetail from "./components/VideoSessionDetail";
 import "./VideoSessions.css";
 
 /**
@@ -15,12 +16,16 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
     error,
     searchQuery,
     setSearchQuery,
+    selectedSession,
+    setSelectedSession,
   } = useVideoSessions(groupId);
+
+  const handleHeaderBack = selectedSession ? () => setSelectedSession(null) : onBack;
 
   return (
     <div className="video-sessions-page video-sessions-section">
       <VideoSessionsHeader
-        onBack={onBack}
+        onBack={handleHeaderBack}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search"
@@ -32,7 +37,14 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
         </div>
       )}
 
-      {loading ? (
+      {selectedSession ? (
+        <VideoSessionDetail
+          session={selectedSession}
+          relatedSessions={sessions}
+          onBack={() => setSelectedSession(null)}
+          onSelectSession={setSelectedSession}
+        />
+      ) : loading ? (
         <div className="video-sessions-loading">Loading video sessions…</div>
       ) : (
         <div className="video-sessions-grid">
@@ -40,7 +52,11 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
             <p className="video-sessions-empty">No video sessions found.</p>
           ) : (
             sessions.map((session) => (
-              <VideoSessionCard key={session.id ?? session.title} session={session} />
+              <VideoSessionCard
+                key={session.id ?? session.title}
+                session={session}
+                onClick={() => setSelectedSession(session)}
+              />
             ))
           )}
         </div>

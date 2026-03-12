@@ -37,6 +37,11 @@ export function useVideoSessions(groupId = null) {
     [dispatch]
   );
 
+  const setSelectedSession = useCallback(
+    (session) => dispatch({ type: "SET_SELECTED_SESSION", payload: session ?? null }),
+    [dispatch]
+  );
+
   const filteredSessions = (state.sessions || []).filter((s) => {
     const q = (state.searchQuery || "").toLowerCase().trim();
     if (!q) return true;
@@ -53,6 +58,8 @@ export function useVideoSessions(groupId = null) {
     error: state.error,
     searchQuery: state.searchQuery,
     setSearchQuery,
+    selectedSession: state.selectedSession,
+    setSelectedSession,
     refetch: fetchSessions,
   };
 }

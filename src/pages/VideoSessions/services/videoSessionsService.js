@@ -22,7 +22,9 @@ export function parseSession(raw) {
     title: raw.title ?? raw.name ?? "Video Title",
     description: raw.description ?? raw.summary ?? "Video Description",
     thumbnailUrl: raw.thumbnail_url ?? raw.thumbnail ?? raw.cover_url ?? null,
+    videoUrl: raw.video_url ?? raw.videoUrl ?? raw.url ?? null,
     duration: raw.duration ?? raw.duration_seconds ?? "24:22",
+    instructor: raw.instructor ?? raw.instructor_name ?? null,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
     ...raw,
   };

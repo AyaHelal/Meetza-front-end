@@ -9,6 +9,15 @@
   height: fit-content;
 }
 
+.video-session-card[role="button"] {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.video-session-card[role="button"]:hover {
+  box-shadow: 6px 10px 14px 0 rgba(0, 0, 0, 0.2);
+}
+
 .video-session-card-thumb-wrap {
   position: relative;
   width: 100%;

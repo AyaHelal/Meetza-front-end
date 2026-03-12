@@ -5,6 +5,7 @@ const initialState = {
   searchQuery: "",
   loading: false,
   error: null,
+  selectedSession: null,
 };
 
 function videoSessionsReducer(state, action) {
@@ -17,6 +18,8 @@ function videoSessionsReducer(state, action) {
       return { ...state, loading: action.payload };
     case "SET_ERROR":
       return { ...state, error: action.payload, loading: false };
+    case "SET_SELECTED_SESSION":
+      return { ...state, selectedSession: action.payload };
     default:
       return state;
   }
