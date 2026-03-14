@@ -8,6 +8,7 @@ import {
   GearSix,
   SignOut,
   VideoCamera,
+  YoutubeLogo as YoutubeLogoIcon,
 } from "@phosphor-icons/react";
 import "./LeftNavbar.css";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +27,7 @@ const LeftNavbar = ({
 }) => {
   const navigate = useNavigate();
   const { logoutUser, user } = useContext(AuthContext);
-  
+
   // Check if user is admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -54,7 +55,7 @@ const LeftNavbar = ({
         }
       });
     }
-    
+
     // Reset flag when socket disconnects
     if (!socket || !isConnected) {
       hasFetchedInitialCount.current = false;
@@ -206,6 +207,16 @@ const LeftNavbar = ({
                 <CalendarBlank size={32} />
               </div>
             )}
+            <div
+              className={`nav-icon ${activeNav === "videos" ? "active" : ""}`}
+              onClick={() => {
+                navigate("/video");
+                setActiveNav("videos");
+              }}
+              title="Videos"
+            >
+              <YoutubeLogoIcon size={32} />
+            </div>
             {isAdmin && (
               <div
                 className={`nav-icon ${activeNav === "admin-meetings" ? "active" : ""}`}

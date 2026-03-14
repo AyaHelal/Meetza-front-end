@@ -17,14 +17,24 @@ export function useVideoSessions(groupId = null) {
   const { state, dispatch } = useVideoSessionsStore();
 
   const fetchSessions = useCallback(async () => {
+    const normalizedGroupId = groupId?.toString?.().trim?.();
+    if (!normalizedGroupId) {
+      dispatch({ type: "SET_SESSIONS", payload: [] });
+      dispatch({ type: "SET_LOADING", payload: false });
+      return;
+    }
+
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      const raw = await getVideoSessions(groupId);
+      const raw = await getVideoSessions(normalizedGroupId);
       const sessions = (raw || []).map(parseSession);
-      dispatch({ type: "SET_SESSIONS", payload: sessions.length ? sessions : getPlaceholderSessions() });
-    } catch (err) {
-      dispatch({ type: "SET_SESSIONS", payload: getPlaceholderSessions() });
+      // If the API returns no sessions, keep it empty and show no-data state.
+      dispatch({ type: "SET_SESSIONS", payload: sessions });
       dispatch({ type: "SET_LOADING", payload: false });
+    } catch (err) {
+      dispatch({ type: "SET_SESSIONS", payload: [] });
+      dispatch({ type: "SET_LOADING", payload: false });
+      dispatch({ type: "SET_ERROR", payload: err?.message || "Failed to load video sessions" });
     }
   }, [groupId, dispatch]);
 
@@ -45,10 +55,7 @@ export function useVideoSessions(groupId = null) {
   const filteredSessions = (state.sessions || []).filter((s) => {
     const q = (state.searchQuery || "").toLowerCase().trim();
     if (!q) return true;
-    return (
-      (s.title || "").toLowerCase().includes(q) ||
-      (s.description || "").toLowerCase().includes(q)
-    );
+    return (s.title || "").toLowerCase().includes(q);
   });
 
   return {

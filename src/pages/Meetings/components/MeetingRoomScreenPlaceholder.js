@@ -8,6 +8,28 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
   const hasVideo = !!(adminTile?.showVideo !== false && streamHasLiveVideo);
   const showAvatar = !hasVideo && adminTile;
 
+  const audioFallback = !hasVideo && adminTile && adminTile.stream ? (
+    <audio
+      key={`admin-audio-${adminTile.socketId}-${adminTile.stream?.id || "no-stream"}`}
+      autoPlay
+      ref={(el) => {
+        if (el) {
+          if (remoteVideoRefsMap) {
+            remoteVideoRefsMap.current?.set(adminTile.socketId, el);
+          }
+          if (el.srcObject !== adminTile.stream) {
+            el.srcObject = adminTile.stream;
+          }
+          el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
+          el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);
+          el.play().catch((err) => {
+            if (err?.name !== "AbortError") console.warn("⚠️ Audio play retry failed for admin screen:", err);
+          });
+        }
+      }}
+    />
+  ) : null;
+
   return (
     <div className={`meeting-room-screen ${hasVideo ? "has-video" : ""} ${showAvatar ? "has-placeholder" : ""}`}>
       <div className={`meeting-room-screen-preview ${hasVideo ? "has-video" : ""} ${showAvatar ? "has-placeholder" : ""}`}>
@@ -59,16 +81,21 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
                 adminTile.user_photo ||
                 adminTile.photo;
               const photoUrl = typeof photo === "string" && photo.trim() ? photo.trim() : null;
-              return photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt={adminTile.label || "Admin"}
-                  className="meeting-room-screen-placeholder-img"
-                />
-              ) : (
-                <span className="meeting-room-tile-initial">
-                  {(adminTile.label || "Admin").toString().trim().charAt(0).toUpperCase()}
-                </span>
+              return (
+                <>
+                  {audioFallback}
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={adminTile.label || "Admin"}
+                      className="meeting-room-screen-placeholder-img"
+                    />
+                  ) : (
+                    <span className="meeting-room-tile-initial">
+                      {(adminTile.label || "Admin").toString().trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </>
               );
             })()}
           </div>

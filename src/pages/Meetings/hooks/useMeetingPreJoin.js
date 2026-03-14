@@ -50,10 +50,28 @@ export function useMeetingPreJoin(onEnterMeeting) {
         setPreJoinLoading(false);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setPreJoinError(err.message || "Could not access camera/microphone.");
-          setPreJoinLoading(false);
-        }
+        // Fallback: Try audio only if video failed (e.g., no camera attached)
+        webrtcService
+          .getUserMedia({
+            video: false,
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          })
+          .then((audioStream) => {
+            if (cancelled) {
+              webrtcService.stopAllTracks(audioStream);
+              return;
+            }
+            setPreJoinStream(audioStream);
+            setPreJoinVideoMuted(true);
+            setPreJoinAudioMuted(false);
+            setPreJoinLoading(false);
+          })
+          .catch((audioErr) => {
+            if (!cancelled) {
+              setPreJoinError(err.message || audioErr.message || "Could not access camera/microphone.");
+              setPreJoinLoading(false);
+            }
+          });
       });
     return () => {
       cancelled = true;

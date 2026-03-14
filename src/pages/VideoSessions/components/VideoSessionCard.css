@@ -6,7 +6,7 @@
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  height: fit-content;
+  height: 100%;
 }
 
 .video-session-card[role="button"] {
@@ -21,7 +21,8 @@
 .video-session-card-thumb-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  flex-grow: 1; /* Makes the image wrapper take up available space */
+  display: flex; /* Helps inner image stretch */
   background: #f3f4f6;
 }
 
@@ -51,6 +52,13 @@
   font-weight: 700;
   color: #111827;
   line-height: 1.3;
+  flex-grow: 0; /* Keep title size tight */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .video-session-card-description {
@@ -59,6 +67,13 @@
   font-size: 0.875rem;
   color: #6b7280;
   line-height: 1.4;
+  flex-grow: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Tablet */

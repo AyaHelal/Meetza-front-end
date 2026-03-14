@@ -128,9 +128,49 @@ const MeetingRoomParticipantTile = ({
 
           const photoUrl = tile?.member_photo || tile?.memberPhoto || tile?.user_photo || tile?.photo;
           const photoSrc = (typeof photoUrl === "string" && photoUrl.trim()) ? photoUrl.trim() : null;
+
+          const audioFallback = !tile.isSelf && tile.stream ? (
+            <audio
+              key={`audio-${refKey}-${tile.stream?.id || "no-stream"}`}
+              autoPlay
+              ref={(el) => {
+                if (el) {
+                  remoteVideoRefsMap.current.set(refKey, el);
+                  if (tile.stream) {
+                    if (el.srcObject !== tile.stream) {
+                      el.srcObject = tile.stream;
+                    }
+                    el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted[tile.socketId];
+                    el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume[tile.socketId] ?? 1);
+
+                    const playAudio = async () => {
+                      try {
+                        await el.play();
+                      } catch (err) {
+                        if (err?.name === "AbortError") return;
+                        setTimeout(() => {
+                          el.play().catch((e) => {
+                            if (e?.name !== "AbortError") console.warn("⚠️ Audio play retry failed for", refKey, e);
+                          });
+                        }, 500);
+                      }
+                    };
+                    playAudio();
+                  }
+                } else {
+                  // Only delete if the map currently holds this element to prevent race conditions during unmounts
+                  if (remoteVideoRefsMap.current.get(refKey) === el) {
+                      remoteVideoRefsMap.current.delete(refKey);
+                  }
+                }
+              }}
+            />
+          ) : null;
+
           if (photoSrc) {
             return (
               <>
+                {audioFallback}
                 <img
                   src={photoSrc}
                   alt={tile.label}
@@ -148,9 +188,12 @@ const MeetingRoomParticipantTile = ({
             );
           }
           return (
-            <span className="meeting-room-tile-initial">
-              {String(tile.label).trim().charAt(0).toUpperCase() || "?"}
-            </span>
+            <>
+              {audioFallback}
+              <span className="meeting-room-tile-initial">
+                {String(tile.label).trim().charAt(0).toUpperCase() || "?"}
+              </span>
+            </>
           );
         })()}
       </div>

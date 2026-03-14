@@ -33,8 +33,7 @@ export function addTracksToAllPeersImpl(opts) {
       const existing = senders.find((s) => s.track === t);
       if (!existing) {
         try {
-          const trackStream = new MediaStream([t, ...audioTracks]);
-          webrtcService.addTrack(pc, t, trackStream);
+          webrtcService.addTrack(pc, t, stream);
           addedAny = true;
         } catch (err) {
         }
@@ -321,8 +320,7 @@ export function createPeerConnectionImpl(peerSocketId, opts) {
     liveTracks.forEach((t) => {
       if (t.kind === "video" && !t.enabled) {
       }
-      const trackStream = new MediaStream([t, ...audioTracks]);
-      webrtcService.addTrack(pc, t, trackStream);
+      webrtcService.addTrack(pc, t, stream);
     });
   } else {
   }

@@ -1,1 +1,12 @@
-export { getVideoSessions, parseSession } from "./videoSessionsService";
+export {
+  getVideoSessions,
+  parseSession,
+  getVideoDetail,
+  createLike,
+  saveVideo,
+  getRelatedVideos,
+  getGlobalRelatedVideos,
+  createComment,
+  getVideoComments,
+  deleteComment,
+} from "./videoSessionsService";

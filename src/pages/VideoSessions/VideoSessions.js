@@ -10,6 +10,20 @@ function VideoSessionsContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get("group_id") || null;
+
+  React.useEffect(() => {
+    const isReload = (() => {
+      if (window.performance?.getEntriesByType) {
+        const [nav] = window.performance.getEntriesByType("navigation");
+        return nav?.type === "reload";
+      }
+      return window.performance?.navigation?.type === 1;
+    })();
+
+    if (isReload) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
   const {
     sessions,
     loading,
@@ -22,6 +36,16 @@ function VideoSessionsContent() {
     navigate("/home", { replace: true });
   };
 
+  if (!groupId?.toString?.().trim?.()) {
+    return (
+      <div className="video-sessions-page">
+        <div className="video-sessions-empty">
+          Please open the group videos from the group page
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="video-sessions-page">
       <VideoSessionsHeader
@@ -29,6 +53,10 @@ function VideoSessionsContent() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search"
+        sessions={sessions}
+        onSubmitSearch={() => {
+          // If a detail view were present, we'd clear it here. For VideoSessions, just letting the search apply is enough.
+        }}
       />
 
       {error && (

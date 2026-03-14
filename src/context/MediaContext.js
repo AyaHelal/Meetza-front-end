@@ -120,7 +120,6 @@ export const MediaProvider = ({ children }) => {
         const newMuted = !audioMuted;
         const stream = localStreamRef.current;
 
-        // Always manage the stream in MediaContext
         if (!stream) {
             try {
                 const newStream = await webrtcService.getUserMedia({
@@ -136,7 +135,26 @@ export const MediaProvider = ({ children }) => {
             }
         } else {
             setAudioMuted(newMuted);
-            stream.getAudioTracks().forEach((t) => (t.enabled = !newMuted));
+            
+            // If stream exists but has NO audio tracks, we must fetch them
+            if (stream.getAudioTracks().length === 0 && !newMuted) {
+                try {
+                    const audioMedia = await webrtcService.getUserMedia({
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                        video: false,
+                    });
+                    audioMedia.getAudioTracks().forEach(t => {
+                        t.enabled = true;
+                        stream.addTrack(t);
+                    });
+                } catch (e) {
+                    console.error("Failed to get audio track to attach:", e);
+                    setAudioMuted(true);
+                    return;
+                }
+            } else {
+                stream.getAudioTracks().forEach((t) => (t.enabled = !newMuted));
+            }
         }
 
         // If in a meeting, emit socket event and trigger WebRTC renegotiation
@@ -177,21 +195,30 @@ export const MediaProvider = ({ children }) => {
                             }
                         }
                     }
-                } else if (!stream) {
+                } else if (!stream || audioTracks.length === 0) {
+                    // This block theoretically shouldn't be hit anymore because the top logic ensures the track is added,
+                    // but we keep/fix it for safety in case stream tracks are dropped externally.
                     try {
-                        const newStream = await webrtcService.getUserMedia({
+                        const audioMedia = await webrtcService.getUserMedia({
                             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
                             video: false,
                         });
-                        localStreamRef.current = newStream;
-                        const newAudioTracks = newStream.getAudioTracks();
+                        const newAudioTracks = audioMedia.getAudioTracks();
                         newAudioTracks.forEach(t => t.enabled = true);
+                        
+                        let currentStream = localStreamRef.current;
+                        if (!currentStream) {
+                            currentStream = webrtcService.createEmptyStream();
+                            localStreamRef.current = currentStream;
+                        }
+                        
+                        newAudioTracks.forEach(t => currentStream.addTrack(t));
 
                         // Add to all peer connections
                         for (const [, pc] of peersRef.current.entries()) {
                             newAudioTracks.forEach(track => {
                                 try {
-                                    webrtcService.addTrack(pc, track, newStream);
+                                    webrtcService.addTrack(pc, track, currentStream);
                                 } catch (err) {
                                     console.error("❌ Error adding audio track to peer:", err);
                                 }
@@ -237,9 +264,10 @@ export const MediaProvider = ({ children }) => {
             try {
                 const newStream = webrtcService.createEmptyStream();
                 if (!newMuted) {
+                    // Only request video here, decouple it from audio
                     const mediaStream = await webrtcService.getUserMedia({
                         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                        audio: false,
                     });
                     const videoTrack = mediaStream.getVideoTracks()[0];
                     if (videoTrack) {
@@ -247,11 +275,6 @@ export const MediaProvider = ({ children }) => {
                         newStream.addTrack(videoTrack);
                         cameraVideoTrackRef.current = videoTrack;
                     }
-                    // Add audio tracks
-                    mediaStream.getAudioTracks().forEach((t) => {
-                        t.enabled = !audioMuted;
-                        newStream.addTrack(t);
-                    });
                 }
                 localStreamRef.current = newStream;
                 setVideoMuted(newMuted);
