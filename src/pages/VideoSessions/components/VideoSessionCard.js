@@ -8,7 +8,8 @@ export default function VideoSessionCard({ session, onClick }) {
   const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
   const duration = session?.duration ?? "24:22";
   const title = session?.title ?? "Video Title";
-  const description = session?.description ?? "Video Description";
+  const description = session?.description;
+  const hasDescription = description && description.trim() !== "" && description.toLowerCase() !== "null";
 
   return (
     <article
@@ -32,7 +33,9 @@ export default function VideoSessionCard({ session, onClick }) {
         <span className="video-session-card-duration">{duration}</span>
       </div>
       <h3 className="video-session-card-title">{title}</h3>
-      <p className="video-session-card-description">{description}</p>
+      {hasDescription && (
+        <p className="video-session-card-description">{description}</p>
+      )}
     </article>
   );
 }
