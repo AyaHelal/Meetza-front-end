@@ -124,11 +124,18 @@ export function useMeetingRoomFullscreen({
     const streamEntry = remoteStreams.find((s) => s.socketId === fullscreenSocketIdRef.current);
 
     if (!streamEntry?.stream) {
-      if (video.srcObject && !fullscreenStreamRef.current) return;
+      if (document.fullscreenElement) document.exitFullscreen?.();
       return;
     }
 
     const currentStream = streamEntry.stream;
+
+    // Check if the stream has natively ended all tracks (another way screen share stoppage is signaled)
+    const allTracksEnded = currentStream.getTracks().length > 0 && currentStream.getTracks().every((t) => t.readyState === "ended");
+    if (allTracksEnded) {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      return;
+    }
 
     if (!video.srcObject) {
       video.srcObject = currentStream;

@@ -400,6 +400,8 @@ export function useMeetingRoomSocketListeners({
       const mid = data?.meetingId;
       if (!sid || !mid || mid !== meetingIdRef.current || !setRemoteStreams) return;
       setRemoteStreams((prev) => prev.filter((s) => !(s.socketId === sid && s.isScreenShare)));
+
+      if (document.fullscreenElement) document.exitFullscreen?.();
     };
     socket.on("screenShareStarted", onScreenShareStarted);
     socket.on("screenShareStopped", onScreenShareStopped);
