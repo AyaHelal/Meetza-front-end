@@ -172,7 +172,6 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
 
   useEffect(() => {
     let cancelled = false;
-    let intervalId = null;
     const load = async () => {
       if (!session?.id) return;
       setLoadingDetail(true);
@@ -193,7 +192,8 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
           dislikesCount: data.dislikes_count ?? 0,
           savedCount: data.saved_count ?? 0,
           commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : 0),
-        };        setSaved(Boolean(data.is_saved ?? data.saved ?? data.saved_count > 0));
+        };
+        setSaved(Boolean(data.is_saved ?? data.saved ?? data.saved_count > 0));
         setDetail(parsedDetail);
 
         const commentsData = await getVideoComments(session.id);
@@ -204,20 +204,7 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
           commentCount: commentsData.commentCount ?? parsedDetail.commentCount,
         }));
 
-        try {
-          if (useGlobalRelated) {
-            const relatedData = await getGlobalRelatedVideos(session.id);
-            if (!cancelled) setRelatedVideos(Array.isArray(relatedData) ? relatedData : []);
-          } else {
-            const groupId = session.group_id ?? session.groupId ?? v.group_id ?? v.groupId;
-            if (groupId) {
-              const relatedData = await getRelatedVideos(session.id, groupId);
-              if (!cancelled) setRelatedVideos(Array.isArray(relatedData) ? relatedData : []);
-            }
-          }
-        } catch (err) {
-          console.warn("Failed to fetch related videos", err);
-        }
+        // Related videos are now fetched separately
       } catch (err) {
         if (!cancelled) {
           setDetailError(err?.message || "Failed to load video details");
@@ -227,12 +214,46 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
       }
     };
     load();
-    intervalId = setInterval(load, 500); // update every 0.5 second
     return () => {
       cancelled = true;
-      if (intervalId) clearInterval(intervalId);
     };
-  }, [session]);
+  }, [session?.id]);
+
+  // Separate useEffect for fetching related videos only once
+  useEffect(() => {
+    let cancelled = false;
+    const fetchRelatedVideos = async () => {
+      if (!session?.id) return;
+      try {
+        if (useGlobalRelated) {
+          const relatedData = await getGlobalRelatedVideos(session.id);
+          if (!cancelled) setRelatedVideos(Array.isArray(relatedData) ? relatedData : []);
+        } else {
+          const groupId = session.group_id ?? session.groupId;
+          if (groupId) {
+            const relatedData = await getRelatedVideos(session.id, groupId);
+            if (!cancelled) setRelatedVideos(Array.isArray(relatedData) ? relatedData : []);
+          } else {
+            // Fallback: fetch video detail to get groupId
+            const data = await getVideoDetail(session.id);
+            if (cancelled) return;
+            const v = data.video ?? {};
+            const fallbackGroupId = v.group_id ?? v.groupId;
+            if (fallbackGroupId) {
+              const relatedData = await getRelatedVideos(session.id, fallbackGroupId);
+              if (!cancelled) setRelatedVideos(Array.isArray(relatedData) ? relatedData : []);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch related videos", err);
+      }
+    };
+    fetchRelatedVideos();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id, useGlobalRelated]);
 
   useEffect(() => {
     if (!socket || !session?.id) return;
