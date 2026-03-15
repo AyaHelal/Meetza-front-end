@@ -1,5 +1,4 @@
-import api from "../../../API/axiosInstance";
-
+import api from "../../../API/axiosInstance";import axios from "axios";
 /**
  * Fetch videos for Video Sessions page.
  * Uses backend GET /video with optional ?group_id=.
@@ -144,6 +143,46 @@ export async function getGlobalRelatedVideos(videoId) {
   const root = res?.data;
   const data = root?.data ?? root;
   return Array.isArray(data?.videos) ? data.videos : [];
+}
+
+/**
+ * Generate AI summary and transcript for a video.
+ * POST /summarize_video/:video_id with video URL in body
+ */
+export async function summarizeVideo(videoId, videoUrl, language = 'en') {
+  if (!videoId) throw new Error("video ID is required");
+  if (!videoUrl) throw new Error("video URL is required");
+
+
+  try {
+    // Fetch the video file from URL
+    const videoResponse = await axios.get(videoUrl, {
+      responseType: 'blob',
+      timeout: 1800000 // Longer timeout for video download
+    });
+
+    const videoBlob = videoResponse.data;
+
+    // Create FormData with video file + URL
+    const formData = new FormData();
+    formData.append('file', videoBlob, 'video.mp4');
+    formData.append('url', videoUrl);
+
+    // Use direct axios call for AI API on port 8000
+    const res = await axios.post(`http://localhost:8000/summarize_video/${encodeURIComponent(videoId)}`, formData, {
+      timeout: 1800000, // Longer timeout for AI processing
+      headers: {
+        'X-Localization': language,
+        'X-API-Key': '#$$0limaaaannnn##sddsdsd23233522dd'
+      }
+    });
+
+    const root = res?.data;
+    return root?.data ?? root;
+  } catch (error) {
+    console.error('Error in summarizeVideo:', error);
+    throw error;
+  }
 }
 
 

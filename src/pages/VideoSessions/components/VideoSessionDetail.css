@@ -5,6 +5,7 @@
 
 .video-session-detail {
   display: flex;
+  flex-direction: column;
   gap: 1.25rem;
   align-items: flex-start;
   width: 100%;
@@ -12,6 +13,14 @@
   background: #f0f2f5;
   padding: 1rem;
   border-radius: 20px;
+}
+
+/* Inner flex container for main content and sidebar */
+.video-session-detail-inner {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  width: 100%;
 }
 
 /* ── main column ── */
@@ -637,5 +646,141 @@
   .video-session-detail-btn {
     padding: 5px 10px;
     font-size: 0.76rem;
+  }
+}
+
+/* ── AI Summary Section ── */
+.video-ai-summary {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 14px;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.video-ai-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.video-ai-summary-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.video-ai-summary-icon svg {
+  color: #3b82f6;
+}
+
+.video-ai-summary-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.video-ai-summary-close:hover {
+  background-color: #f3f4f6;
+}
+
+.video-ai-summary-content {
+  padding: 1rem;
+}
+
+.video-ai-summary-transcript,
+.video-ai-summary-summary {
+  margin-bottom: 1rem;
+}
+
+.video-ai-summary-transcript h4,
+.video-ai-summary-summary h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.video-ai-summary-transcript p,
+.video-ai-summary-summary p {
+  margin: 0;
+  line-height: 1.6;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+/* ── summary dropdown ── */
+.summary-container {
+  position: relative;
+  display: inline-block;
+}
+
+.language-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 120px;
+}
+
+.language-option {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.language-option:hover {
+  background: #f3f4f6;
+}
+
+.language-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

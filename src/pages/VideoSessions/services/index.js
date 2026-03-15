@@ -9,4 +9,5 @@ export {
   createComment,
   getVideoComments,
   deleteComment,
+  summarizeVideo,
 } from "./videoSessionsService";
