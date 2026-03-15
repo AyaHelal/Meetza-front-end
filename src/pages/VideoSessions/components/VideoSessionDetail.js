@@ -10,9 +10,12 @@ import {
   Pause as PauseIcon,
   SpeakerSimpleLow as SpeakerSimpleLowIcon,
   PaperPlaneRight as PaperPlaneRightIcon,
+  Spinner,
 } from "@phosphor-icons/react";
+import Lottie from "lottie-react";
+import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
-import { getVideoDetail, createLike, saveVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI } from "../services";
+import { getVideoDetail, createLike, saveVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI, summarizeVideo } from "../services";
 import { useSocket } from "../../../context/SocketContext";
 import { useAuth } from "../../../context/AuthContext";
 import { smartToast } from "../../../API/toastManager";
@@ -32,6 +35,39 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
   const [comments, setComments] = useState([]);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [relatedVideos, setRelatedVideos] = useState([]);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryLang, setSummaryLang] = useState('en');
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!loadingSummary && showLangDropdown) {
+      // Close dropdown when loading is complete, but with a delay
+      const timer = setTimeout(() => setShowLangDropdown(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingSummary, showLangDropdown]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLangDropdown && !event.target.closest('.summary-container')) {
+        setShowLangDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLangDropdown]);
+
+  // Reset summary when session changes
+  useEffect(() => {
+    setShowSummary(false);
+    setSummaryData(null);
+    setSummaryLang('en');
+    setShowLangDropdown(false);
+    setLoadingSummary(false);
+  }, [session?.id]);
 
   const { socket } = useSocket();
   const { user } = useAuth();
@@ -62,6 +98,53 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
     } catch (err) {
       console.error("Failed to submit like/dislike", err);
       // Here you may set user-facing error state if desired.
+    }
+  };
+
+  const handleSummarize = async (lang = summaryLang) => {
+    const videoUrl = detail?.videoUrl || session.videoUrl || null;
+
+    if (!videoUrl) {
+      setLoadingSummary(false);
+      smartToast.error('Video URL is missing');
+      return;
+    }
+
+    setLoadingSummary(true);
+    try {
+
+      const response = await summarizeVideo(session.id, videoUrl, lang);
+
+      // Handle different response formats
+      const summaryData = response?.summary || response?.data?.summary || response.summary;
+      const transcriptData = response?.transcript || response?.data?.transcript || response.transcript;
+
+      if (summaryData || transcriptData) {
+        // Replace API error message with user-friendly message
+        let finalSummary = summaryData;
+        if (summaryData === "لم يُكتشف كلام في الفيديو.") {
+          finalSummary = "No summary available";
+        }
+
+        // Check if summary and transcript are the same, if so, show only summary
+        let finalTranscript = transcriptData || 'No transcript available';
+        if (finalSummary && transcriptData && finalSummary.trim() === transcriptData.trim()) {
+          finalTranscript = null;
+        }
+
+        setSummaryData({
+          summary: finalSummary || 'No summary available',
+          transcript: finalTranscript
+        });
+        setShowSummary(true);
+        smartToast.success('Summary generated successfully!');
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+    } catch (err) {
+      smartToast.error('Failed to generate summary: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -429,7 +512,8 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
   return (
     <div className="video-session-detail">
       {/* ── MAIN ── */}
-      <div className="video-session-detail-main">
+      <div className="video-session-detail-inner">
+        <div className="video-session-detail-main">
 
         {/* Player */}
         <div className="video-session-detail-player-wrap">
@@ -502,10 +586,45 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
                 <ThumbsDown size={16} weight={disliked ? "fill" : "regular"} />
                 <span>Dislike {dislikesCount ? `(${dislikesCount})` : ""}</span>
               </button>
-              <button type="button" className="video-session-detail-btn">
-                <Sparkle size={16} />
-                <span>Ask</span>
-              </button>
+              <div className="summary-container">
+                <button
+                  type="button"
+                  className={`video-session-detail-btn ${loadingSummary ? "loading" : ""}`}
+                  onClick={() => !loadingSummary && setShowLangDropdown(!showLangDropdown)}
+                  disabled={loadingSummary}
+                >
+                  {loadingSummary ? <Spinner size={16} className="spinning" /> : <Lottie animationData={aiAnimation} style={{ width: 20, height: 20 }} />}
+                  <span>{loadingSummary ? "Summarizing..." : "Summary"}</span>
+                </button>
+                {showLangDropdown && (
+                  <div className="language-options" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="language-option"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSummaryLang('en');
+                        setLoadingSummary(true);
+                        handleSummarize('en');
+                      }}
+                      disabled={loadingSummary}
+                    >
+                      English
+                    </button>
+                    <button
+                      className="language-option"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSummaryLang('ar');
+                        setLoadingSummary(true);
+                        handleSummarize('ar');
+                      }}
+                      disabled={loadingSummary}
+                    >
+                      Arabic
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className={`video-session-detail-btn ${saved ? "active" : ""}`}
@@ -681,5 +800,38 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
         </div>
       </aside>
     </div>
-  );
+
+    {/* AI Summary Section */}
+    {showSummary && summaryData && (
+      <div className="video-ai-summary">
+        <div className="video-ai-summary-header">
+          <div className="video-ai-summary-icon">
+            <Lottie animationData={aiAnimation} style={{ width: 30, height: 30 }} />
+            <span>AI Summary</span>
+          </div>
+          <button
+            type="button"
+            className="video-ai-summary-close"
+            onClick={() => setShowSummary(false)}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="video-ai-summary-content">
+          {summaryData.transcript && (
+            <div className="video-ai-summary-transcript">
+              <h4>Transcript</h4>
+              <p>{summaryData.transcript}</p>
+            </div>
+          )}
+          <div className="video-ai-summary-summary">
+            <h4>Summary</h4>
+            <p>{summaryData.summary}</p>
+          </div>
+        </div>
+      </div>
+    )}
+
+  </div>
+);
 }
