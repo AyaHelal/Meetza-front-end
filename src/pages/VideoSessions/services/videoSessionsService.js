@@ -77,16 +77,18 @@ export async function getVideoDetail(id) {
 }
 
 /**
- * Create a comment for a video.
- * POST /comment { video_id, comment_text }
+ * Create a comment or reply for a video.
+ * POST /comment { video_id, comment_text, parent_id? } — pass parent_id to reply to a comment.
  */
-export async function createComment(videoId, commentText) {
+export async function createComment(videoId, commentText, parentId = null) {
   if (!videoId) throw new Error("video id is required");
   if (!commentText || !commentText.toString().trim()) throw new Error("comment_text is required");
-  const res = await api.post("/comment", {
+  const body = {
     video_id: videoId,
     comment_text: commentText.toString().trim(),
-  });
+  };
+  if (parentId) body.parent_id = parentId;
+  const res = await api.post("/comment", body);
   return res?.data;
 }
 

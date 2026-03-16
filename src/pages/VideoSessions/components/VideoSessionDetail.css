@@ -15,9 +15,10 @@
   border-radius: 20px;
 }
 
-/* Inner flex container for main content and sidebar */
+/* Inner flex container: main content (left) + related sidebar (right) */
 .video-session-detail-inner {
   display: flex;
+  flex-direction: row;
   gap: 1.25rem;
   align-items: flex-start;
   width: 100%;
@@ -484,6 +485,24 @@
   flex-shrink: 0;
   color: #9ca3af;
 }
+.vsd-reply-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.vsd-reply-avatar-initial {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+}
 .vsd-reply-body {
   flex: 1;
 }
@@ -621,6 +640,9 @@
 }
 @media (max-width: 768px) {
   .video-session-detail {
+    flex-direction: column;
+  }
+  .video-session-detail-inner {
     flex-direction: column;
   }
   .video-session-detail-main {
