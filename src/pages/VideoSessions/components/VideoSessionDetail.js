@@ -813,6 +813,7 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
             type="button"
             className="video-ai-summary-close"
             onClick={() => setShowSummary(false)}
+            aria-label="Close AI Summary"
           >
             ✕
           </button>

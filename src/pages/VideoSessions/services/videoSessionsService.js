@@ -1,4 +1,18 @@
-import api from "../../../API/axiosInstance";import axios from "axios";
+import api, { API_BASE_URL } from "../../../API/axiosInstance";
+import axios from "axios";
+
+/**
+ * Build full URL for a file (e.g. video_url). If url is relative, prepends API base.
+ */
+export function buildFileUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  const base = (API_BASE_URL || "").replace(/\/+$/, "");
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return base ? `${base}${path}` : path;
+}
+
 /**
  * Fetch videos for Video Sessions page.
  * Uses backend GET /video with optional ?group_id=.
@@ -18,20 +32,35 @@ export async function getVideoSessions(groupId = null) {
   return [];
 }
 
+/** Format seconds as HH:MM:SS or MM:SS for display */
+function formatDurationForDisplay(value) {
+  if (value == null) return null;
+  if (typeof value === "string" && value.trim() !== "" && !value.match(/^\d+$/)) return value;
+  const sec = typeof value === "number" ? Math.floor(value) : parseInt(String(value).trim(), 10);
+  if (isNaN(sec) || sec < 0) return null;
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
 /**
  * Parse /video API response into a consistent session shape for UI.
  */
 export function parseSession(raw) {
+  const durationRaw = raw.duration ?? raw.duration_seconds ?? null;
+  const duration = formatDurationForDisplay(durationRaw) ?? durationRaw;
   return {
+    ...raw,
     id: raw.id,
     title: raw.title ?? "Video Title",
     description: raw.description ?? "",
     thumbnailUrl: raw.poster_url ?? raw.thumbnail_url ?? raw.thumbnail ?? raw.cover_url ?? null,
     videoUrl: raw.video_url ?? raw.videoUrl ?? raw.url ?? null,
-    duration: raw.duration ?? raw.duration_seconds ?? null,
+    duration,
     instructor: raw.admin?.name ?? raw.instructor ?? raw.instructor_name ?? null,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
-    ...raw,
   };
 }
 
@@ -146,36 +175,75 @@ export async function getGlobalRelatedVideos(videoId) {
 }
 
 /**
+ * Parse "HH:MM:SS" or "MM:SS" to total seconds (for fallback when duration_seconds not provided).
+ */
+function parseDurationToSeconds(str) {
+  if (str == null || typeof str !== "string") return 0;
+  const trimmed = str.trim();
+  if (!trimmed) return 0;
+  const parts = trimmed.split(":").map((p) => parseInt(p, 10)).filter((n) => !isNaN(n));
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 1) return parts[0];
+  return 0;
+}
+
+/**
+ * Create a new video.
+ * POST /video/create with multipart/form-data. Backend expects duration in seconds (same as meeting recording).
+ */
+export async function createVideo(payload) {
+  const { title, poster_file, video_file, duration, duration_seconds, group_id, description } = payload ?? {};
+  if (!title || !title.toString().trim()) throw new Error("title is required");
+  if (!video_file || !(video_file instanceof File)) throw new Error("video_file is required");
+  if (!group_id || !group_id.toString().trim()) throw new Error("group_id is required");
+
+  const seconds = typeof duration_seconds === "number" && !isNaN(duration_seconds) && duration_seconds >= 0
+    ? Math.floor(duration_seconds)
+    : parseDurationToSeconds(duration);
+
+  const formData = new FormData();
+  formData.append("title", title.toString().trim());
+  formData.append("video_file", video_file, video_file.name || "video.mp4");
+  formData.append("group_id", group_id.toString().trim());
+  formData.append("duration", String(seconds));
+  formData.append("description", (description && description.toString().trim()) || "");
+
+  if (poster_file && poster_file instanceof File) {
+    formData.append("poster_file", poster_file, poster_file.name || "poster.png");
+  }
+
+  const res = await api.post("/video/create", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300000,
+  });
+  return res?.data?.data ?? res?.data;
+}
+
+/**
  * Generate AI summary and transcript for a video.
- * POST /summarize_video/:video_id with video URL in body
+ * POST /summarize_video/:video_id with video URL. Backend fetches the video from the URL
+ * (avoids CORS/304 when frontend would fetch from Cloudinary).
  */
 export async function summarizeVideo(videoId, videoUrl, language = 'en') {
   if (!videoId) throw new Error("video ID is required");
   if (!videoUrl) throw new Error("video URL is required");
 
-
   try {
-    // Fetch the video file from URL
-    const videoResponse = await axios.get(videoUrl, {
-      responseType: 'blob',
-      timeout: 1800000 // Longer timeout for video download
-    });
-
-    const videoBlob = videoResponse.data;
-
-    // Create FormData with video file + URL
     const formData = new FormData();
-    formData.append('file', videoBlob, 'video.mp4');
     formData.append('url', videoUrl);
 
-    // Use direct axios call for AI API on port 8000
-    const res = await axios.post(`http://localhost:8000/summarize_video/${encodeURIComponent(videoId)}`, formData, {
-      timeout: 1800000, // Longer timeout for AI processing
-      headers: {
-        'X-Localization': language,
-        'X-API-Key': '#$$0limaaaannnn##sddsdsd23233522dd'
+    const res = await axios.post(
+      `http://localhost:8000/summarize_video/${encodeURIComponent(videoId)}`,
+      formData,
+      {
+        timeout: 1800000,
+        headers: {
+          'X-Localization': language,
+          'X-API-Key': '#$$0limaaaannnn##sddsdsd23233522dd',
+        },
       }
-    });
+    );
 
     const root = res?.data;
     return root?.data ?? root;

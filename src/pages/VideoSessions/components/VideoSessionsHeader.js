@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowLeftIcon, MagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowLeftIcon, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import "./VideoSessionsHeader.css";
 
 const DEFAULT_THUMB = "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
@@ -11,6 +11,8 @@ export default function VideoSessionsHeader({
   searchPlaceholder = "Search",
   sessions = [],
   onSubmitSearch,
+  isAdmin = false,
+  onPostVideoClick,
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const containerRef = useRef(null);
@@ -65,6 +67,17 @@ export default function VideoSessionsHeader({
           </p>
         </div>
       </div>
+      {isAdmin && onPostVideoClick && (
+        <button
+          type="button"
+          className="video-sessions-header-post-video"
+          onClick={onPostVideoClick}
+          aria-label="Post a video"
+        >
+          <Plus size={20} weight="bold" />
+          <span>Post video</span>
+        </button>
+      )}
       <div className="video-sessions-header-search-wrap" ref={containerRef}>
         <MagnifyingGlass size={20} className="video-sessions-header-search-icon" />
         <input

@@ -332,6 +332,10 @@ export function useMeetingRoomSocketListeners({
           ...(data.videoMuted !== undefined && { videoMuted: !!data.videoMuted }),
         },
       }));
+      // Keep localParticipantAudioMuted in sync for other participants (so admin list reflects mute/unmute from target)
+      if (setLocalParticipantAudioMuted && data.audioMuted !== undefined) {
+        setLocalParticipantAudioMuted((prev) => ({ ...prev, [sid]: !!data.audioMuted }));
+      }
       // When admin muted us: show mic as muted in control bar + participants list and disable our audio tracks
       if (sid === socket.id && setAudioMuted && setContextAudioMuted && setLocalParticipantAudioMuted) {
         if (data.audioMuted !== undefined) {

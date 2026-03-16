@@ -422,7 +422,12 @@ const MeetingRightSidebar = () => {
                         const isAdmin = isParticipantMeetingAdmin(participant);
                         const socketId = participant?.socketId;
                         const isSelf = socketId === socket?.id;
-                        const participantMicMuted = isSelf ? myAudioMuted : (socketId ? !!(mediaStateMap[socketId]?.audioMuted) : true);
+                        // For others: prefer admin's local mute state so mute/unmute clicks update UI immediately; fallback to mediaStateMap
+const participantMicMuted = isSelf
+                            ? myAudioMuted
+                            : (socketId
+                                ? (localParticipantAudioMuted[socketId] !== undefined ? !!localParticipantAudioMuted[socketId] : !!(mediaStateMap[socketId]?.audioMuted))
+                                : true);
                         const showMuteBtn = isMeetingAdmin && !isAdmin && socketId;
 
                         const displayName = isSelf

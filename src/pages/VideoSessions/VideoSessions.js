@@ -1,15 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { VideoSessionsProvider } from "./store/videoSessionsStore";
 import { useVideoSessions } from "./hooks/useVideoSessions";
+import { useAuth } from "../../context/AuthContext";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
 import VideoSessionCard from "./components/VideoSessionCard";
+import PostVideoModal from "./components/PostVideoModal";
 import "./VideoSessions.css";
 
 function VideoSessionsContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get("group_id") || null;
+  const { user } = useAuth();
+  const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
 
   React.useEffect(() => {
     const isReload = (() => {
@@ -30,6 +37,7 @@ function VideoSessionsContent() {
     error,
     searchQuery,
     setSearchQuery,
+    refetch,
   } = useVideoSessions(groupId);
 
   const handleBack = () => {
@@ -54,9 +62,15 @@ function VideoSessionsContent() {
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search"
         sessions={sessions}
-        onSubmitSearch={() => {
-          // If a detail view were present, we'd clear it here. For VideoSessions, just letting the search apply is enough.
-        }}
+        onSubmitSearch={() => {}}
+        isAdmin={isAdmin}
+        onPostVideoClick={() => setPostVideoModalOpen(true)}
+      />
+      <PostVideoModal
+        isOpen={postVideoModalOpen}
+        onClose={() => setPostVideoModalOpen(false)}
+        defaultGroupId={groupId}
+        onSuccess={() => refetch?.()}
       />
 
       {error && (

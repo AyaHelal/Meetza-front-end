@@ -1,46 +1,47 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
 import noDataFoundAnimation from "../../lottie/noDataFound.json";
+import { useAuth } from "../../context/AuthContext";
 import { VideoSessionsProvider } from "./store/videoSessionsStore";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
 import VideoSessionCard from "./components/VideoSessionCard";
 import VideoSessionDetail from "./components/VideoSessionDetail";
+import PostVideoModal from "./components/PostVideoModal";
 import { getAllVideos, mapVideoToSession } from "./services/allVideosService";
 import "./VideoSessions.css";
 
 function AllVideosContent() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSession, setSelectedSession] = useState(null);
+  const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const raw = await getAllVideos();
+      const parsed = (raw || []).map(mapVideoToSession);
+      setSessions(parsed);
+    } catch (err) {
+      setError(err?.message || "Failed to load videos");
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const raw = await getAllVideos();
-        if (cancelled) return;
-        const parsed = (raw || []).map(mapVideoToSession);
-        setSessions(parsed);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err?.message || "Failed to load videos");
-          setSessions([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const filteredSessions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -63,6 +64,13 @@ function AllVideosContent() {
         searchPlaceholder="Search videos"
         sessions={sessions}
         onSubmitSearch={() => setSelectedSession(null)}
+        isAdmin={isAdmin}
+        onPostVideoClick={() => setPostVideoModalOpen(true)}
+      />
+      <PostVideoModal
+        isOpen={postVideoModalOpen}
+        onClose={() => setPostVideoModalOpen(false)}
+        onSuccess={() => refetch()}
       />
 
       {error && (

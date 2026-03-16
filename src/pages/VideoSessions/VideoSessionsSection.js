@@ -1,17 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import Lottie from "lottie-react";
 import noDataFoundAnimation from "../../lottie/noDataFound.json";
+import { useAuth } from "../../context/AuthContext";
 import { useVideoSessions } from "./hooks/useVideoSessions";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
 import VideoSessionCard from "./components/VideoSessionCard";
 import VideoSessionDetail from "./components/VideoSessionDetail";
+import PostVideoModal from "./components/PostVideoModal";
 import "./VideoSessions.css";
 
 /**
  * Video Sessions block for in-page section (e.g. on group chat page).
  * Must be rendered inside VideoSessionsProvider. onBack typically scrolls back to top.
  */
-export default function VideoSessionsSection({ onBack, groupId = null }) {
+export default function VideoSessionsSection({ onBack, groupId = null, groupName = null }) {
+  const { user } = useAuth();
+  const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
+
   const {
     sessions,
     loading,
@@ -20,6 +28,7 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
     setSearchQuery,
     selectedSession,
     setSelectedSession,
+    refetch,
   } = useVideoSessions(groupId);
 
   const handleHeaderBack = selectedSession ? () => setSelectedSession(null) : onBack;
@@ -50,6 +59,15 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
           searchPlaceholder="Search"
           sessions={sessions || []}
           onSubmitSearch={() => setSelectedSession?.(null)}
+          isAdmin={isAdmin}
+          onPostVideoClick={() => setPostVideoModalOpen(true)}
+        />
+        <PostVideoModal
+          isOpen={postVideoModalOpen}
+          onClose={() => setPostVideoModalOpen(false)}
+          defaultGroupId={groupId}
+          groupName={groupName}
+          onSuccess={() => refetch?.()}
         />
         <div className="video-sessions-empty">
           Please select a group and then try to view the videos.
@@ -67,6 +85,15 @@ export default function VideoSessionsSection({ onBack, groupId = null }) {
         searchPlaceholder="Search"
         sessions={sessions || []}
         onSubmitSearch={() => setSelectedSession?.(null)}
+        isAdmin={isAdmin}
+        onPostVideoClick={() => setPostVideoModalOpen(true)}
+      />
+      <PostVideoModal
+        isOpen={postVideoModalOpen}
+        onClose={() => setPostVideoModalOpen(false)}
+        defaultGroupId={groupId}
+        groupName={groupName}
+        onSuccess={() => refetch?.()}
       />
 
       {error && (

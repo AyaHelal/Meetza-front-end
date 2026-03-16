@@ -585,6 +585,7 @@ export default function GroupChat() {
           <VideoSessionsSection
             onBack={handleVideoSessionsBack}
             groupId={currentGroupId}
+            groupName={selectedChat !== null ? groupChats[selectedChat]?.name : undefined}
           />
         </VideoSessionsProvider>
       </div>
