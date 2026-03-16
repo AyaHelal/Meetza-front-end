@@ -7,6 +7,7 @@ import {
   Sparkle,
   Trash,
   PencilSimple,
+  DotsThreeVertical,
   Play as PlayIcon,
   Pause as PauseIcon,
   SpeakerSimpleLow as SpeakerSimpleLowIcon,
@@ -16,7 +17,7 @@ import {
 import Lottie from "lottie-react";
 import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
-import { getVideoDetail, createLike, saveVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI, summarizeVideo, updateVideo, deleteVideo } from "../services";
+import { getVideoDetail, createLike, deleteLike, saveVideo, deleteSavedVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI, summarizeVideo, updateVideo, deleteVideo } from "../services";
 import { useSocket } from "../../../context/SocketContext";
 import { useAuth } from "../../../context/AuthContext";
 import { smartToast } from "../../../API/toastManager";
@@ -31,6 +32,7 @@ const DEFAULT_AVATAR =
 export default function VideoSessionDetail({ session, relatedSessions, onBack, onSelectSession, useGlobalRelated = false, isAdmin = false, onVideoDeleted }) {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [likeDislikeRecordId, setLikeDislikeRecordId] = useState(null);
   const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
@@ -45,6 +47,8 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const adminMenuRef = useRef(null);
 
   useEffect(() => {
     if (!loadingSummary && showLangDropdown) {
@@ -59,19 +63,24 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
       if (showLangDropdown && !event.target.closest('.summary-container')) {
         setShowLangDropdown(false);
       }
+      if (showAdminMenu && adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
+        setShowAdminMenu(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showLangDropdown]);
+  }, [showLangDropdown, showAdminMenu]);
 
-  // Reset summary when session changes
+  // Reset summary and like state when session changes
   useEffect(() => {
     setShowSummary(false);
     setSummaryData(null);
     setSummaryLang('en');
     setShowLangDropdown(false);
     setLoadingSummary(false);
+    setShowAdminMenu(false);
+    setLikeDislikeRecordId(null);
   }, [session?.id]);
 
   const { socket } = useSocket();
@@ -79,30 +88,77 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
 
   const handleLikeAction = async (likeType) => {
     if (!session?.id) return;
-    try {
-      const result = await createLike(session.id, likeType);
-      const responseData = result?.data;
+    const isLike = likeType === 1;
+    const alreadyLiked = isLike && liked;
+    const alreadyDisliked = !isLike && disliked;
 
-      if (responseData) {
-        const likesCount = responseData.likes_count ?? detail?.likesCount ?? 0;
-        const dislikesCount = responseData.dislikes_count ?? detail?.dislikesCount ?? 0;
-        setDetail((prev) => ({
-          ...prev,
-          likesCount,
-          dislikesCount,
-        }));
+    try {
+      if (alreadyLiked || alreadyDisliked) {
+        await deleteLike(session.id);
+        setLikeDislikeRecordId(null);
+        if (alreadyLiked) {
+          setLiked(false);
+          setDetail((prev) => ({
+            ...prev,
+            likesCount: Math.max(0, (prev?.likesCount ?? 1) - 1),
+          }));
+        } else {
+          setDisliked(false);
+          setDetail((prev) => ({
+            ...prev,
+            dislikesCount: Math.max(0, (prev?.dislikesCount ?? 1) - 1),
+          }));
+        }
+        return;
       }
 
-      if (likeType === 1) {
-        setLiked((prev) => !prev);
+      const result = await createLike(session.id, likeType);
+      const responseData = result?.data ?? result;
+      const recordId =
+        responseData?.id ??
+        responseData?.like_id ??
+        responseData?.data?.id ??
+        responseData?.like?.id;
+
+      if (recordId) setLikeDislikeRecordId(recordId);
+
+      const serverLikes = responseData?.likes_count;
+      const serverDislikes = responseData?.dislikes_count;
+      const hasCountsFromServer = typeof serverLikes === "number" || typeof serverDislikes === "number";
+
+      setDetail((prev) => {
+        if (hasCountsFromServer) {
+          return {
+            ...prev,
+            likesCount: typeof serverLikes === "number" ? serverLikes : (prev?.likesCount ?? 0),
+            dislikesCount: typeof serverDislikes === "number" ? serverDislikes : (prev?.dislikesCount ?? 0),
+          };
+        }
+        const prevLikes = prev?.likesCount ?? 0;
+        const prevDislikes = prev?.dislikesCount ?? 0;
+        if (isLike) {
+          return {
+            ...prev,
+            likesCount: prevLikes + 1,
+            dislikesCount: disliked ? Math.max(0, prevDislikes - 1) : prevDislikes,
+          };
+        }
+        return {
+          ...prev,
+          likesCount: liked ? Math.max(0, prevLikes - 1) : prevLikes,
+          dislikesCount: prevDislikes + 1,
+        };
+      });
+
+      if (isLike) {
+        setLiked(true);
         setDisliked(false);
       } else {
-        setDisliked((prev) => !prev);
+        setDisliked(true);
         setLiked(false);
       }
     } catch (err) {
       console.error("Failed to submit like/dislike", err);
-      // Here you may set user-facing error state if desired.
     }
   };
 
@@ -205,11 +261,25 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
   const handleSaveVideo = async () => {
     if (!session?.id) return;
     try {
-      await saveVideo(session.id);
-      setSaved(true);
-      smartToast.success("Video saved successfully");
+      if (saved) {
+        await deleteSavedVideo(session.id);
+        setSaved(false);
+        setDetail((prev) => ({
+          ...prev,
+          savedCount: Math.max(0, (prev?.savedCount ?? 1) - 1),
+        }));
+        smartToast.success("Video removed from saved");
+      } else {
+        await saveVideo(session.id);
+        setSaved(true);
+        setDetail((prev) => ({
+          ...prev,
+          savedCount: (prev?.savedCount ?? 0) + 1,
+        }));
+        smartToast.success("Video saved successfully");
+      }
     } catch (err) {
-      console.error("Failed to save video", err);
+      console.error("Failed to save/unsave video", err);
       smartToast.error("Failed to save video. Please try again.");
     }
   };
@@ -329,6 +399,14 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
         setSaved(Boolean(data.is_saved ?? data.saved ?? data.saved_count > 0));
         setDetail(parsedDetail);
 
+        const likeId = data.like_id ?? data.user_like_id ?? data.like?.id ?? v.like_id ?? null;
+        if (likeId) setLikeDislikeRecordId(likeId);
+        else setLikeDislikeRecordId(null);
+        const isLiked = data.user_like ?? data.is_liked ?? data.user_liked ?? data.liked ?? data.has_liked ?? v.user_like ?? v.is_liked ?? false;
+        const isDisliked = data.user_dislike ?? data.is_disliked ?? data.user_disliked ?? data.disliked ?? data.has_disliked ?? v.user_dislike ?? v.is_disliked ?? false;
+        setLiked(Boolean(isLiked));
+        setDisliked(Boolean(isDisliked));
+
         const commentsData = await getVideoComments(session.id);
         if (cancelled) return;
         setComments(Array.isArray(commentsData.comments) ? commentsData.comments : []);
@@ -350,7 +428,7 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
     return () => {
       cancelled = true;
     };
-  }, [session?.id]);
+  }, [session?.id, user?.id]);
 
   // Separate useEffect for fetching related videos only once
   useEffect(() => {
@@ -684,29 +762,53 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
                 <span>Save {savedCount ? `(${savedCount})` : ""}</span>
               </button>
               {isAdmin && (
-                <>
+                <div className="video-session-detail-admin-menu-wrap" ref={adminMenuRef}>
                   <button
                     type="button"
-                    className="video-session-detail-btn video-session-detail-btn-admin"
-                    onClick={handleEditOpen}
-                    title="Edit video"
-                    aria-label="Edit video"
+                    className="video-session-detail-btn video-session-detail-btn-dots"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAdminMenu((prev) => !prev);
+                    }}
+                    title="More options"
+                    aria-label="More options"
+                    aria-expanded={showAdminMenu}
+                    aria-haspopup="true"
                   >
-                    <PencilSimple size={16} />
-                    <span>Edit</span>
+                    <DotsThreeVertical size={20} weight="bold" />
                   </button>
-                  <button
-                    type="button"
-                    className="video-session-detail-btn video-session-detail-btn-danger"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    title="Delete video"
-                    aria-label="Delete video"
-                  >
-                    {deleting ? <Spinner size={16} className="spinning" /> : <Trash size={16} />}
-                    <span>{deleting ? "Deleting…" : "Delete"}</span>
-                  </button>
-                </>
+                  {showAdminMenu && (
+                    <div className="video-session-detail-admin-dropdown" role="menu">
+                      <button
+                        type="button"
+                        className="video-session-detail-admin-dropdown-item"
+                        role="menuitem"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAdminMenu(false);
+                          handleEditOpen();
+                        }}
+                      >
+                        <PencilSimple size={18} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="video-session-detail-admin-dropdown-item video-session-detail-admin-dropdown-item-danger"
+                        role="menuitem"
+                        disabled={deleting}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAdminMenu(false);
+                          handleDelete();
+                        }}
+                      >
+                        {deleting ? <Spinner size={18} className="spinning" /> : <Trash size={18} />}
+                        <span>{deleting ? "Deleting…" : "Delete"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

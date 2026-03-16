@@ -118,7 +118,7 @@ export async function deleteComment(commentId) {
 
 /**
  * Create or update like/dislike for a video.
- * POST /like { video_id, like_type }
+ * Tries POST /likes then POST /like { video_id, like_type } (backend path may be either).
  */
 export async function createLike(videoId, likeType) {
   if (!videoId) throw new Error("video id is required");
@@ -126,11 +126,26 @@ export async function createLike(videoId, likeType) {
     throw new Error("likeType must be 0 (dislike) or 1 (like)");
   }
 
-  const res = await api.post("/like", {
-    video_id: videoId,
-    like_type: likeType,
-  });
+  const payload = { video_id: videoId, like_type: likeType };
+  try {
+    const res = await api.post("/like", payload);
+    return res?.data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      const res = await api.post("/like", payload);
+      return res?.data;
+    }
+    throw err;
+  }
+}
 
+/**
+ * Remove like/dislike. DELETE /like/:video_id (video id in path).
+ */
+export async function deleteLike(videoId) {
+  if (!videoId) throw new Error("video id is required");
+
+  const res = await api.delete(`/like/${encodeURIComponent(videoId)}`);
   return res?.data;
 }
 
@@ -142,6 +157,17 @@ export async function saveVideo(videoId) {
   if (!videoId) throw new Error("video id is required");
 
   const res = await api.post("/saved_video", { video_id: videoId });
+  return res?.data;
+}
+
+/**
+ * Unsave (delete saved) a video for the current user.
+ * DELETE /saved_video/:video_id
+ */
+export async function deleteSavedVideo(videoId) {
+  if (!videoId) throw new Error("video id is required");
+
+  const res = await api.delete(`/saved_video/${encodeURIComponent(videoId)}`);
   return res?.data;
 }
 

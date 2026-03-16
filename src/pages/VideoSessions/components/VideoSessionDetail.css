@@ -881,22 +881,68 @@
   }
 }
 
-/* ── Admin Edit/Delete buttons ── */
-.video-session-detail-btn-admin {
-  color: #2563eb;
+/* ── Admin 3-dots menu (Edit / Delete) ── */
+.video-session-detail-admin-menu-wrap {
+  position: relative;
+  display: inline-block;
 }
-.video-session-detail-btn-admin:hover {
-  background-color: #eff6ff;
+.video-session-detail-btn-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+  color: #374151;
 }
-.video-session-detail-btn-danger {
-  color: #dc2626;
+.video-session-detail-btn-dots:hover {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #111827;
 }
-.video-session-detail-btn-danger:hover:not(:disabled) {
-  background-color: #fef2f2;
+.video-session-detail-admin-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10000;
 }
-.video-session-detail-btn-danger:disabled {
+.video-session-detail-admin-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.video-session-detail-admin-dropdown-item:hover {
+  background: #f3f4f6;
+}
+.video-session-detail-admin-dropdown-item:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+.video-session-detail-admin-dropdown-item-danger {
+  color: #dc2626;
+}
+.video-session-detail-admin-dropdown-item-danger:hover:not(:disabled) {
+  background: #fef2f2;
 }
 
 /* ── Edit Video Modal ── */
