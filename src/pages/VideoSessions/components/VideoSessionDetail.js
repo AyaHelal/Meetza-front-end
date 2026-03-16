@@ -6,6 +6,7 @@ import {
   UserCircle,
   Sparkle,
   Trash,
+  PencilSimple,
   Play as PlayIcon,
   Pause as PauseIcon,
   SpeakerSimpleLow as SpeakerSimpleLowIcon,
@@ -15,7 +16,7 @@ import {
 import Lottie from "lottie-react";
 import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
-import { getVideoDetail, createLike, saveVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI, summarizeVideo } from "../services";
+import { getVideoDetail, createLike, saveVideo, getRelatedVideos, getGlobalRelatedVideos, createComment, getVideoComments, deleteComment as deleteCommentAPI, summarizeVideo, updateVideo, deleteVideo } from "../services";
 import { useSocket } from "../../../context/SocketContext";
 import { useAuth } from "../../../context/AuthContext";
 import { smartToast } from "../../../API/toastManager";
@@ -27,7 +28,7 @@ const DEFAULT_THUMB =
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Ccircle cx='18' cy='18' r='18' fill='%23e5e7eb'/%3E%3C/svg%3E";
 
-export default function VideoSessionDetail({ session, relatedSessions, onBack, onSelectSession, useGlobalRelated = false }) {
+export default function VideoSessionDetail({ session, relatedSessions, onBack, onSelectSession, useGlobalRelated = false, isAdmin = false, onVideoDeleted }) {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -40,6 +41,10 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryLang, setSummaryLang] = useState('en');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", description: "" });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loadingSummary && showLangDropdown) {
@@ -206,6 +211,51 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
     } catch (err) {
       console.error("Failed to save video", err);
       smartToast.error("Failed to save video. Please try again.");
+    }
+  };
+
+  const handleEditOpen = () => {
+    const title = detail?.title ?? session?.title ?? "";
+    const description = detail?.description ?? session?.description ?? "";
+    setEditForm({ title, description });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!session?.id || !editForm.title?.trim()) {
+      smartToast.error("Title is required");
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      await updateVideo(session.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "" });
+      setDetail((prev) => ({ ...prev, title: editForm.title.trim(), description: editForm.description?.trim() ?? "" }));
+      setShowEditModal(false);
+      smartToast.success("Video updated");
+    } catch (err) {
+      console.error("Failed to update video", err);
+      smartToast.error(err?.response?.data?.message || err?.message || "Failed to update video");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!session?.id) return;
+    const confirmed = window.confirm("Are you sure you want to delete this video? This cannot be undone.");
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await deleteVideo(session.id);
+      smartToast.success("Video deleted");
+      onVideoDeleted?.(session.id);
+      onBack?.();
+    } catch (err) {
+      console.error("Failed to delete video", err);
+      smartToast.error(err?.response?.data?.message || err?.message || "Failed to delete video");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -633,6 +683,31 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
                 <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
                 <span>Save {savedCount ? `(${savedCount})` : ""}</span>
               </button>
+              {isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    className="video-session-detail-btn video-session-detail-btn-admin"
+                    onClick={handleEditOpen}
+                    title="Edit video"
+                    aria-label="Edit video"
+                  >
+                    <PencilSimple size={16} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="video-session-detail-btn video-session-detail-btn-danger"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    title="Delete video"
+                    aria-label="Delete video"
+                  >
+                    {deleting ? <Spinner size={16} className="spinning" /> : <Trash size={16} />}
+                    <span>{deleting ? "Deleting…" : "Delete"}</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -829,6 +904,45 @@ export default function VideoSessionDetail({ session, relatedSessions, onBack, o
             <h4>Summary</h4>
             <p>{summaryData.summary}</p>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* Edit Video Modal (admin) */}
+    {showEditModal && (
+      <div className="video-edit-modal-overlay" onClick={() => !editSubmitting && setShowEditModal(false)} role="dialog" aria-modal="true" aria-labelledby="edit-video-title">
+        <div className="video-edit-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="video-edit-modal-header">
+            <h3 id="edit-video-title">Edit video</h3>
+            <button type="button" className="video-edit-modal-close" onClick={() => !editSubmitting && setShowEditModal(false)} aria-label="Close" disabled={editSubmitting}>×</button>
+          </div>
+          <form className="video-edit-modal-form" onSubmit={handleEditSubmit}>
+            <div className="video-edit-form-group">
+              <label htmlFor="edit-video-title-input">Title</label>
+              <input
+                id="edit-video-title-input"
+                type="text"
+                value={editForm.title}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Video title"
+                required
+              />
+            </div>
+            <div className="video-edit-form-group">
+              <label htmlFor="edit-video-description">Description</label>
+              <textarea
+                id="edit-video-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Video description"
+                rows={3}
+              />
+            </div>
+            <div className="video-edit-modal-actions">
+              <button type="button" className="video-edit-btn video-edit-btn-cancel" onClick={() => setShowEditModal(false)} disabled={editSubmitting}>Cancel</button>
+              <button type="submit" className="video-edit-btn video-edit-btn-submit" disabled={editSubmitting}>{editSubmitting ? "Saving…" : "Save"}</button>
+            </div>
+          </form>
         </div>
       </div>
     )}

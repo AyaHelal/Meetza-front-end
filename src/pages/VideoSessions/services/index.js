@@ -3,6 +3,8 @@ export {
   parseSession,
   getVideoDetail,
   createVideo,
+  updateVideo,
+  deleteVideo,
   createLike,
   saveVideo,
   getRelatedVideos,

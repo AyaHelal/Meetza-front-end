@@ -9,6 +9,8 @@ import VideoSessionCard from "./components/VideoSessionCard";
 import VideoSessionDetail from "./components/VideoSessionDetail";
 import PostVideoModal from "./components/PostVideoModal";
 import { getAllVideos, mapVideoToSession } from "./services/allVideosService";
+import { updateVideo, deleteVideo } from "./services";
+import { smartToast } from "../../API/toastManager";
 import "./VideoSessions.css";
 
 function AllVideosContent() {
@@ -20,6 +22,10 @@ function AllVideosContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSession, setSelectedSession] = useState(null);
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [sessionToEdit, setSessionToEdit] = useState(null);
+  const [editForm, setEditForm] = useState({ title: "", description: "" });
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -38,6 +44,51 @@ function AllVideosContent() {
       setLoading(false);
     }
   }, []);
+
+  const handleEditFromCard = useCallback((session) => {
+    setSessionToEdit(session);
+    setEditForm({
+      title: session?.title ?? "",
+      description: session?.description ?? "",
+    });
+    setShowEditModal(true);
+  }, []);
+
+  const handleEditSubmit = useCallback(async (e) => {
+    e?.preventDefault?.();
+    if (!sessionToEdit?.id || !editForm.title?.trim()) {
+      smartToast.error("Title is required");
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      await updateVideo(sessionToEdit.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "" });
+      smartToast.success("Video updated");
+      setShowEditModal(false);
+      setSessionToEdit(null);
+      refetch();
+    } catch (err) {
+      console.error("Failed to update video", err);
+      smartToast.error(err?.response?.data?.message || err?.message || "Failed to update video");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }, [sessionToEdit, editForm, refetch]);
+
+  const handleDeleteFromCard = useCallback(async (session) => {
+    if (!session?.id) return;
+    const confirmed = window.confirm("Are you sure you want to delete this video? This cannot be undone.");
+    if (!confirmed) return;
+    try {
+      await deleteVideo(session.id);
+      smartToast.success("Video deleted");
+      if (selectedSession?.id === session.id) setSelectedSession(null);
+      refetch();
+    } catch (err) {
+      console.error("Failed to delete video", err);
+      smartToast.error(err?.response?.data?.message || err?.message || "Failed to delete video");
+    }
+  }, [selectedSession, refetch]);
 
   useEffect(() => {
     refetch();
@@ -86,6 +137,11 @@ function AllVideosContent() {
           onBack={() => setSelectedSession(null)}
           onSelectSession={setSelectedSession}
           useGlobalRelated
+          isAdmin={isAdmin}
+          onVideoDeleted={() => {
+            setSelectedSession(null);
+            refetch();
+          }}
         />
       ) : loading ? (
         <div className="video-sessions-loading">Loading videos…</div>
@@ -104,9 +160,51 @@ function AllVideosContent() {
                 key={session.id ?? session.title}
                 session={session}
                 onClick={() => setSelectedSession(session)}
+                isAdmin={isAdmin}
+                onEdit={handleEditFromCard}
+                onDelete={handleDeleteFromCard}
               />
             ))
           )}
+        </div>
+      )}
+
+      {/* Edit video modal (from card menu) */}
+      {showEditModal && sessionToEdit && (
+        <div className="video-edit-modal-overlay" onClick={() => !editSubmitting && setShowEditModal(false)} role="dialog" aria-modal="true" aria-labelledby="edit-video-title-all">
+          <div className="video-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="video-edit-modal-header">
+              <h3 id="edit-video-title-all">Edit video</h3>
+              <button type="button" className="video-edit-modal-close" onClick={() => !editSubmitting && setShowEditModal(false)} aria-label="Close" disabled={editSubmitting}>×</button>
+            </div>
+            <form className="video-edit-modal-form" onSubmit={handleEditSubmit}>
+              <div className="video-edit-form-group">
+                <label htmlFor="edit-video-title-input-all">Title</label>
+                <input
+                  id="edit-video-title-input-all"
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Video title"
+                  required
+                />
+              </div>
+              <div className="video-edit-form-group">
+                <label htmlFor="edit-video-description-all">Description</label>
+                <textarea
+                  id="edit-video-description-all"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Video description"
+                  rows={3}
+                />
+              </div>
+              <div className="video-edit-modal-actions">
+                <button type="button" className="video-edit-btn video-edit-btn-cancel" onClick={() => setShowEditModal(false)} disabled={editSubmitting}>Cancel</button>
+                <button type="submit" className="video-edit-btn video-edit-btn-submit" disabled={editSubmitting}>{editSubmitting ? "Saving…" : "Save"}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

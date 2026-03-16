@@ -221,6 +221,31 @@ export async function createVideo(payload) {
 }
 
 /**
+ * Update a video. POST /video/:id with form-data (title, description, etc.).
+ */
+export async function updateVideo(videoId, payload) {
+  if (!videoId) throw new Error("video id is required");
+  const { title, description } = payload ?? {};
+  const formData = new FormData();
+  if (title != null && title.toString().trim() !== "") formData.append("title", title.toString().trim());
+  if (description != null) formData.append("description", (description && description.toString().trim()) || "");
+  const res = await api.post(`/video/${encodeURIComponent(videoId)}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 60000,
+  });
+  return res?.data?.data ?? res?.data;
+}
+
+/**
+ * Delete a video. DELETE /video/:id.
+ */
+export async function deleteVideo(videoId) {
+  if (!videoId) throw new Error("video id is required");
+  const res = await api.delete(`/video/${encodeURIComponent(videoId)}`);
+  return res?.data?.data ?? res?.data;
+}
+
+/**
  * Generate AI summary and transcript for a video.
  * POST /summarize_video/:video_id with video URL. Backend fetches the video from the URL
  * (avoids CORS/304 when frontend would fetch from Cloudinary).
