@@ -93,6 +93,11 @@
     padding-right: max(0.75rem, env(safe-area-inset-right));
   }
 
+  /* When showing video detail, allow full scroll to see all related videos */
+  .video-sessions-page:has(.video-session-detail) {
+    padding-bottom: 4rem;
+  }
+
   .video-sessions-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;

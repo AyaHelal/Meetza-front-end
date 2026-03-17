@@ -18,7 +18,7 @@ import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
 import { useVideoSessionDetail } from "../hooks/useVideoSessionDetail";
 
-const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} {...props} />;
+const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} weight="regular" {...props} />;
 
 const DEFAULT_THUMB =
   "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
@@ -85,6 +85,9 @@ export default function VideoSessionDetail({
     currentTimeSec,
     volume,
     isPlaying,
+    showVolumeSlider,
+    setShowVolumeSlider,
+    volumeControlRef,
     handleLikeAction,
     handleSummarize,
     handlePostComment,
@@ -143,17 +146,28 @@ export default function VideoSessionDetail({
                 <button className="video-ctrl-btn" type="button" onClick={handleTogglePlay}>
                   {isPlaying ? <PauseIcon size={32} /> : <PlayIcon size={32} />}
                 </button>
-                <div className="video-ctrl-volume">
-                  <VolumeIcon />
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    className="video-volume-slider"
-                  />
+                <div className="video-ctrl-volume" ref={volumeControlRef}>
+                  <button
+                    type="button"
+                    className="video-ctrl-btn video-ctrl-volume-btn"
+                    onClick={() => setShowVolumeSlider((prev) => !prev)}
+                    aria-label={showVolumeSlider ? "Hide volume" : "Volume"}
+                    aria-expanded={showVolumeSlider}
+                  >
+                    <VolumeIcon />
+                  </button>
+                  {showVolumeSlider && (
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="video-volume-slider"
+                      aria-label="Volume level"
+                    />
+                  )}
                 </div>
                 <span className="video-time">
                   {formatTime(currentTimeSec)} / {formatTime(videoDuration)}
@@ -170,19 +184,25 @@ export default function VideoSessionDetail({
               <div className="video-session-detail-actions">
                 <button
                   type="button"
-                  className={`video-session-detail-btn ${liked ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${liked ? "active" : ""}`}
                   onClick={() => handleLikeAction(1)}
+                  title={`Like${likesCount ? ` (${likesCount})` : ""}`}
+                  aria-label={`Like${likesCount ? ` (${likesCount})` : ""}`}
                 >
                   <ThumbsUp size={16} weight={liked ? "fill" : "regular"} />
-                  <span>Like {likesCount ? `(${likesCount})` : ""}</span>
+                  <span className="video-session-detail-btn-label">Like {likesCount ? `(${likesCount})` : ""}</span>
+                  <span className="video-session-detail-btn-count" aria-hidden="true">{likesCount ?? 0}</span>
                 </button>
                 <button
                   type="button"
-                  className={`video-session-detail-btn ${disliked ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${disliked ? "active" : ""}`}
                   onClick={() => handleLikeAction(0)}
+                  title={`Dislike${dislikesCount ? ` (${dislikesCount})` : ""}`}
+                  aria-label={`Dislike${dislikesCount ? ` (${dislikesCount})` : ""}`}
                 >
                   <ThumbsDown size={16} weight={disliked ? "fill" : "regular"} />
-                  <span>Dislike {dislikesCount ? `(${dislikesCount})` : ""}</span>
+                  <span className="video-session-detail-btn-label">Dislike {dislikesCount ? `(${dislikesCount})` : ""}</span>
+                  <span className="video-session-detail-btn-count" aria-hidden="true">{dislikesCount ?? 0}</span>
                 </button>
                 <div className="summary-container">
                   <button
@@ -225,11 +245,13 @@ export default function VideoSessionDetail({
                 </div>
                 <button
                   type="button"
-                  className={`video-session-detail-btn ${saved ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${saved ? "active" : ""}`}
                   onClick={handleSaveVideo}
+                  title={`Save${savedCount ? ` (${savedCount})` : ""}`}
+                  aria-label={`Save${savedCount ? ` (${savedCount})` : ""}`}
                 >
                   <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
-                  <span>Save {savedCount ? `(${savedCount})` : ""}</span>
+                  <span className="video-session-detail-btn-label">Save {savedCount ? `(${savedCount})` : ""}</span>
                 </button>
                 {isAdmin && (
                   <div className="video-session-detail-admin-menu-wrap" ref={adminMenuRef}>
@@ -426,10 +448,10 @@ export default function VideoSessionDetail({
                             user?.role === "Super_Admin" ||
                             user?.id === c.member_id ||
                             user?.id === c.memberId) && (
-                            <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
-                              <Trash size={18} />
-                            </button>
-                          )}
+                              <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
+                                <Trash size={18} />
+                              </button>
+                            )}
                         </div>
                       </div>
                     );
@@ -442,7 +464,6 @@ export default function VideoSessionDetail({
 
         {/* ── SIDEBAR (right) ── */}
         <aside className="video-session-detail-related">
-          <h3 className="video-session-detail-related-title">Related videos</h3>
           <div className="video-session-detail-related-list">
             {related.length === 0 ? (
               <p className="video-session-detail-related-empty">No other videos</p>

@@ -62,6 +62,8 @@ export function useVideoSessionDetail(session, options = {}) {
   const [currentTimeSec, setCurrentTimeSec] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeControlRef = useRef(null);
 
   /** Build nested comments: roots have .replies from flat list with parent_id */
   const nestComments = useCallback((flatList) => {
@@ -83,10 +85,11 @@ export function useVideoSessionDetail(session, options = {}) {
     const handleClickOutside = (event) => {
       if (showLangDropdown && !event.target.closest(".summary-container")) setShowLangDropdown(false);
       if (showAdminMenu && adminMenuRef.current && !adminMenuRef.current.contains(event.target)) setShowAdminMenu(false);
+      if (showVolumeSlider && volumeControlRef.current && !volumeControlRef.current.contains(event.target)) setShowVolumeSlider(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showLangDropdown, showAdminMenu]);
+  }, [showLangDropdown, showAdminMenu, showVolumeSlider]);
 
   useEffect(() => {
     setShowSummary(false);
@@ -605,6 +608,9 @@ export function useVideoSessionDetail(session, options = {}) {
     currentTimeSec,
     volume,
     isPlaying,
+    showVolumeSlider,
+    setShowVolumeSlider,
+    volumeControlRef,
     handleLikeAction,
     handleSummarize,
     handlePostComment,
