@@ -508,11 +508,30 @@
   opacity: 1;
   display: flex;
   align-items: center;
+  margin-right: 0.5rem;
 }
 .vsd-delete-btn:hover {
   opacity: 1;
 }
 .vsd-delete-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.vsd-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: #3b82f6;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+}
+.vsd-edit-btn:hover {
+  opacity: 1;
+}
+.vsd-edit-btn svg {
   width: 16px;
   height: 16px;
   fill: currentColor;

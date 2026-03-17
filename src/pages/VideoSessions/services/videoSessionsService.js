@@ -109,6 +109,17 @@ export async function getVideoComments(videoId) {
 }
 
 /**
+ * Edit a comment by id.
+ * PUT /comment/:id
+ */
+export async function editComment(commentId, commentText) {
+  if (!commentId) throw new Error("comment id is required");
+  if (!commentText) throw new Error("comment text is required");
+  const res = await api.patch(`/comment/${commentId}`, { comment_text: commentText });
+  return res?.data;
+}
+
+/**
  * Delete a comment by id.
  * DELETE /comment/:id
  */

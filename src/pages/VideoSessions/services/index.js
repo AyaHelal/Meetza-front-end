@@ -13,6 +13,7 @@ export {
   getGlobalRelatedVideos,
   createComment,
   getVideoComments,
+  editComment,
   deleteComment,
   summarizeVideo,
   buildFileUrl,
