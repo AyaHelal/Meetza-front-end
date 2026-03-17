@@ -9,6 +9,7 @@ import {
   getGlobalRelatedVideos,
   createComment,
   getVideoComments,
+  editComment as editCommentAPI,
   deleteComment as deleteCommentAPI,
   summarizeVideo,
   updateVideo,
@@ -38,6 +39,9 @@ export function useVideoSessionDetail(session, options = {}) {
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [editCommentSubmitting, setEditCommentSubmitting] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState({});
   const [replySubmittingForId, setReplySubmittingForId] = useState(null);
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -230,6 +234,34 @@ export function useVideoSessionDetail(session, options = {}) {
       smartToast.error("Failed to delete comment. Please try again.");
     }
   }, []);
+
+  const handleEditCommentOpen = useCallback((comment) => {
+    setEditingCommentId(comment.id);
+    setEditCommentText(comment.comment_text || comment.text || "");
+  }, []);
+
+  const handleEditCommentClose = useCallback(() => {
+    setEditingCommentId(null);
+    setEditCommentText("");
+  }, []);
+
+  const handleEditCommentSubmit = useCallback(async () => {
+    if (!editingCommentId || !editCommentText.trim()) return;
+    try {
+      setEditCommentSubmitting(true);
+      const updatedComment = await editCommentAPI(editingCommentId, editCommentText.trim());
+      setComments((prev) =>
+        prev.map((c) => (c.id === editingCommentId ? { ...c, comment_text: editCommentText.trim() } : c))
+      );
+      handleEditCommentClose();
+      smartToast.success("Comment updated");
+    } catch (err) {
+      console.error("Failed to edit comment", err);
+      smartToast.error("Failed to edit comment. Please try again.");
+    } finally {
+      setEditCommentSubmitting(false);
+    }
+  }, [editingCommentId, editCommentText]);
 
   const handleSaveVideo = useCallback(async () => {
     if (!session?.id) return;
@@ -611,6 +643,13 @@ export function useVideoSessionDetail(session, options = {}) {
     showVolumeSlider,
     setShowVolumeSlider,
     volumeControlRef,
+    editingCommentId,
+    editCommentText,
+    setEditCommentText,
+    editCommentSubmitting,
+    handleEditCommentOpen,
+    handleEditCommentClose,
+    handleEditCommentSubmit,
     handleLikeAction,
     handleSummarize,
     handlePostComment,

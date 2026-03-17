@@ -88,6 +88,13 @@ export default function VideoSessionDetail({
     showVolumeSlider,
     setShowVolumeSlider,
     volumeControlRef,
+    editingCommentId,
+    editCommentText,
+    setEditCommentText,
+    editCommentSubmitting,
+    handleEditCommentOpen,
+    handleEditCommentClose,
+    handleEditCommentSubmit,
     handleLikeAction,
     handleSummarize,
     handlePostComment,
@@ -448,10 +455,19 @@ export default function VideoSessionDetail({
                             user?.role === "Super_Admin" ||
                             user?.id === c.member_id ||
                             user?.id === c.memberId) && (
+                            <>
+                              <button
+                                className="vsd-edit-btn"
+                                onClick={() => handleEditCommentOpen(c)}
+                                title="Edit"
+                              >
+                                <PencilSimple size={18} />
+                              </button>
                               <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
                                 <Trash size={18} />
                               </button>
-                            )}
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -588,6 +604,68 @@ export default function VideoSessionDetail({
                 </button>
                 <button type="submit" className="video-edit-btn video-edit-btn-submit" disabled={editSubmitting}>
                   {editSubmitting ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Comment Modal */}
+      {editingCommentId && (
+        <div
+          className="video-edit-modal-overlay"
+          onClick={() => !editCommentSubmitting && handleEditCommentClose()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-comment-title"
+        >
+          <div className="video-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="video-edit-modal-header">
+              <h3 id="edit-comment-title">Edit comment</h3>
+              <button
+                type="button"
+                className="video-edit-modal-close"
+                onClick={() => !editCommentSubmitting && handleEditCommentClose()}
+                aria-label="Close"
+                disabled={editCommentSubmitting}
+              >
+                ×
+              </button>
+            </div>
+            <form
+              className="video-edit-modal-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleEditCommentSubmit();
+              }}
+            >
+              <div className="video-edit-form-group">
+                <label htmlFor="edit-comment-text">Comment</label>
+                <textarea
+                  id="edit-comment-text"
+                  value={editCommentText}
+                  onChange={(e) => setEditCommentText(e.target.value)}
+                  placeholder="Edit your comment"
+                  rows={3}
+                  required
+                />
+              </div>
+              <div className="video-edit-modal-actions">
+                <button
+                  type="button"
+                  className="video-edit-btn video-edit-btn-cancel"
+                  onClick={handleEditCommentClose}
+                  disabled={editCommentSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="video-edit-btn video-edit-btn-submit"
+                  disabled={editCommentSubmitting}
+                >
+                  {editCommentSubmitting ? "Saving…" : "Save"}
                 </button>
               </div>
             </form>
