@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../../API/axiosInstance";
 import { smartToast } from "../../../API/toastManager";
-import { summarizeVideo } from "../../VideoSessions/services/videoSessionsService";
+import { summarizeVideo, buildFileUrl } from "../../VideoSessions/services/videoSessionsService";
 
 const CAPTURE_FPS = 30;
 const CROP_OUTPUT_WIDTH = 1280;
@@ -432,9 +432,9 @@ export function useMeetingRecording({
             // Pre-generate summary in background after video is created
             const videoData = response?.data?.data || response?.data;
             if (videoData?.id && videoData?.video_url) {
-              // Call summarize in background for both languages without waiting
-              summarizeVideo(videoData.id, videoData.video_url, 'en').catch(err => console.log('Background summary EN failed:', err));
-              summarizeVideo(videoData.id, videoData.video_url, 'ar').catch(err => console.log('Background summary AR failed:', err));
+              const fullUrl = buildFileUrl(videoData.video_url) || videoData.video_url;
+              summarizeVideo(videoData.id, fullUrl, 'en').catch(err => console.log('Background summary EN failed:', err));
+              summarizeVideo(videoData.id, fullUrl, 'ar').catch(err => console.log('Background summary AR failed:', err));
             }
           } catch (err) {
             console.error(

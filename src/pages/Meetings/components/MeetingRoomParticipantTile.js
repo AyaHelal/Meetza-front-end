@@ -160,7 +160,7 @@ const MeetingRoomParticipantTile = ({
                 } else {
                   // Only delete if the map currently holds this element to prevent race conditions during unmounts
                   if (remoteVideoRefsMap.current.get(refKey) === el) {
-                      remoteVideoRefsMap.current.delete(refKey);
+                    remoteVideoRefsMap.current.delete(refKey);
                   }
                 }
               }}
