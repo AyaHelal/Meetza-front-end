@@ -455,19 +455,19 @@ export default function VideoSessionDetail({
                             user?.role === "Super_Admin" ||
                             user?.id === c.member_id ||
                             user?.id === c.memberId) && (
-                            <>
-                              <button
-                                className="vsd-edit-btn"
-                                onClick={() => handleEditCommentOpen(c)}
-                                title="Edit"
-                              >
-                                <PencilSimple size={18} />
-                              </button>
-                              <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
-                                <Trash size={18} />
-                              </button>
-                            </>
-                          )}
+                              <>
+                                <button
+                                  className="vsd-edit-btn"
+                                  onClick={() => handleEditCommentOpen(c)}
+                                  title="Edit"
+                                >
+                                  <PencilSimple size={18} />
+                                </button>
+                                <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
+                                  <Trash size={18} />
+                                </button>
+                              </>
+                            )}
                         </div>
                       </div>
                     );
@@ -487,7 +487,7 @@ export default function VideoSessionDetail({
               related.slice(0, 8).map((s) => (
                 <div
                   key={s.id ?? s.title}
-                  className="video-session-detail-related-item"
+                  className="video-session-detail-related-item box-shadow-none "
                   onClick={() => onSelectSession?.(s)}
                   onKeyDown={(e) => e.key === "Enter" && onSelectSession?.(s)}
                   role="button"

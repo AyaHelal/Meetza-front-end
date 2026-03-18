@@ -2,7 +2,7 @@
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
-  padding: 1.5rem;
+  padding: 1rem;
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
@@ -27,6 +27,7 @@
   align-content: start;
   flex: 1;
   padding-bottom: 1rem;
+  padding-top: 1rem;
 }
 
 .video-sessions-loading,

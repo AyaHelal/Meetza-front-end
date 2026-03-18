@@ -1,0 +1,196 @@
+.saved-videos-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.saved-videos-layout {
+  align-items: flex-start;
+  --bs-gutter-x: 24px;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 100%;
+}
+
+.saved-videos-left {
+  max-width: 420px;
+  padding-left: 0;
+}
+
+.saved-videos-right {
+  min-width: 0;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+  padding-right: 0;
+}
+
+.saved-videos-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-top: 0.75rem;
+}
+
+.saved-videos-loading {
+  padding: 1rem 0;
+}
+
+/* Empty state wrapper */
+.saved-videos-empty-state {
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
+}
+
+/* Selected state wrapper (keeps card aligned like empty state) */
+.saved-videos-selected-state {
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
+}
+
+/* Card with light blue border */
+.saved-videos-empty-card {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 100%;
+  min-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Selected card matches empty card container */
+.saved-videos-selected-card {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 100%;
+  min-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Card header row */
+.saved-videos-empty-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.15rem 0.6rem;
+}
+
+.saved-videos-empty-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.saved-videos-empty-card-action {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+}
+
+.saved-videos-empty-card-action:hover {
+  color: #ef4444;
+}
+
+/* Action button version (used in selected state) */
+.saved-videos-empty-card-action-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+}
+.saved-videos-empty-card-action-btn:hover {
+  color: #ef4444;
+}
+
+/* Card body: centered illustration + text */
+.saved-videos-empty-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.25rem 2.5rem;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+/* Selected body: holds the detail view */
+.saved-videos-selected-body {
+  flex: 1;
+  padding: 1rem 1.25rem 2.5rem;
+  overflow: visible;
+}
+
+.saved-videos-empty-graphic {
+  width: 170px;
+  height: 170px;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.saved-videos-empty-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.saved-videos-empty-subtext {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Remove VideoSessionDetail default card padding/background inside our wrapper */
+.saved-videos-selected-body .video-session-detail {
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.saved-videos-selected-body .video-session-detail-inner {
+  background: transparent !important;
+}
+
+@media (max-width: 768px) {
+  .saved-videos-page:has(.video-session-detail) {
+    padding-bottom: 4rem;
+  }
+}
+
+/* Hide related sidebar inside VideoSessionDetail so right side matches requirement */
+.saved-videos-page .saved-videos-right .video-session-detail-related {
+  display: none !important;
+}
+
+.saved-videos-page .video-session-detail-inner {
+  flex-direction: row;
+}
+
+.saved-videos-page .video-session-detail-main {
+  flex: 1 1 auto !important;
+  flex-basis: 100% !important;
+}
