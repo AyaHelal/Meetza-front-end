@@ -424,7 +424,38 @@ export default function VideoSessionDetail({
                           })}
                           {c.showReplyInput && (
                             <div className="vsd-nested-input">
-                              <UserCircle size={22} className="vsd-comment-avatar" />
+                              {(() => {
+                                const currentUserName = user?.name || user?.member_name || user?.memberName || user?.email || "You";
+                                const currentUserAvatar =
+                                  user?.photo ||
+                                  user?.user_photo ||
+                                  user?.Member_photo ||
+                                  user?.member_photo ||
+                                  user?.avatar ||
+                                  user?.image ||
+                                  user?.picture ||
+                                  null;
+
+                                if (currentUserAvatar) {
+                                  return (
+                                    <img
+                                      className="vsd-comment-avatar"
+                                      src={currentUserAvatar}
+                                      alt={currentUserName}
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = DEFAULT_AVATAR;
+                                      }}
+                                    />
+                                  );
+                                }
+
+                                return (
+                                  <div className="vsd-comment-avatar vsd-comment-avatar-initial">
+                                    {currentUserName.charAt(0).toUpperCase()}
+                                  </div>
+                                );
+                              })()}
                               <input
                                 className="vsd-nested-field"
                                 placeholder="Write a reply..."

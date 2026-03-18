@@ -50,6 +50,11 @@ export default function SavedVideosPage() {
         title="Saved videos"
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
+        videos={savedVideos}
+        onSuggestionSelect={(video) => {
+          if (!video?.id) return;
+          setSelectedId(video.id);
+        }}
       />
 
       {error && <div className="saved-videos-error">{error}</div>}
