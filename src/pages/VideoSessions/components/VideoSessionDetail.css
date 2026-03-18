@@ -118,6 +118,57 @@
   margin-top: -4px;
   cursor: pointer;
 }
+
+.video-session-detail-share-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.video-session-detail-share-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 260px;
+  max-width: 360px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.video-session-detail-share-link {
+  flex: 1;
+  font-size: 12px;
+  color: #0f172a;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-session-detail-share-link:hover {
+  text-decoration: underline;
+}
+
+.video-session-detail-share-copy {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.video-session-detail-share-copy:hover {
+  background: #eef2f7;
+}
 .video-session-detail-progress::-moz-range-track {
   height: 4px;
   border-radius: 2px;

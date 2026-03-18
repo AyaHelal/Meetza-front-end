@@ -3,6 +3,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   BookmarkSimple,
+  LinkSimple,
   UserCircle,
   Trash,
   PencilSimple,
@@ -34,7 +35,12 @@ export default function VideoSessionDetail({
   isAdmin = false,
   onVideoDeleted,
   onUnsave,
+  autoScrollToComments = false,
 }) {
+  const [shareOpen, setShareOpen] = React.useState(false);
+  const [shareCopied, setShareCopied] = React.useState(false);
+  const commentsSectionRef = React.useRef(null);
+
   const api = useVideoSessionDetail(session, {
     relatedSessions,
     onBack,
@@ -45,7 +51,21 @@ export default function VideoSessionDetail({
     onUnsave,
   });
 
+  React.useEffect(() => {
+    if (!autoScrollToComments) return;
+    if (!session?.id) return;
+    const t = window.setTimeout(() => {
+      commentsSectionRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [autoScrollToComments, session?.id]);
+
   if (!session) return null;
+
+  const rawSlug = (session?.slug ?? session?.title ?? "").toString();
+  const shareSlug = encodeURIComponent(rawSlug.trim());
+  const sharePath = `/video/${shareSlug}`;
+  const shareUrl = `${window.location.origin}${sharePath}`;
 
   const {
     user,
@@ -118,6 +138,30 @@ export default function VideoSessionDetail({
     toggleReplyInput,
     isRTL,
   } = api;
+
+  const handleCopyShare = async (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = shareUrl;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setShareCopied(true);
+      window.clearTimeout(handleCopyShare._t);
+      handleCopyShare._t = window.setTimeout(() => setShareCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
 
   const thumbUrl = thumbnailUrl || DEFAULT_THUMB;
 
@@ -262,6 +306,41 @@ export default function VideoSessionDetail({
                   <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
                   <span className="video-session-detail-btn-label">Save {savedCount ? `(${savedCount})` : ""}</span>
                 </button>
+
+                <div className="video-session-detail-share-wrap">
+                  <button
+                    type="button"
+                    className="video-session-detail-btn video-session-detail-btn-icon-only"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShareOpen((prev) => !prev);
+                    }}
+                    title="Share"
+                    aria-label="Share"
+                    aria-expanded={shareOpen}
+                    aria-haspopup="true"
+                  >
+                    <LinkSimple size={16} weight="regular" />
+                    <span className="video-session-detail-btn-label">Share</span>
+                  </button>
+
+                  {shareOpen && (
+                    <div
+                      className="video-session-detail-share-popover"
+                      onClick={(e) => e.stopPropagation()}
+                      role="dialog"
+                      aria-label="Share link"
+                    >
+                      <a className="video-session-detail-share-link" href={sharePath}>
+                        {shareUrl}
+                      </a>
+                      <button type="button" className="video-session-detail-share-copy" onClick={handleCopyShare}>
+                        {shareCopied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {isAdmin && (
                   <div className="video-session-detail-admin-menu-wrap" ref={adminMenuRef}>
                     <button
@@ -322,7 +401,7 @@ export default function VideoSessionDetail({
             </section>
 
             {/* Comments */}
-            <section className="video-session-detail-questions">
+            <section className="video-session-detail-questions" ref={commentsSectionRef}>
               <h3>Student Questions {commentCount ? `(${commentCount})` : ""}</h3>
               <div className="video-session-detail-comment-input">
                 {(user?.Member_photo || user?.member_photo || user?.photo || user?.avatar) ? (

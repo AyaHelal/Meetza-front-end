@@ -133,6 +133,14 @@ export async function getVideoDetail(id) {
   return root?.data ?? root;
 }
 
+export async function getVideoBySlug(slug) {
+  if (!slug) throw new Error("video slug is required");
+  const safe = String(slug).trim();
+  const res = await api.get(`/video/${encodeURIComponent(safe)}`);
+  const root = res?.data;
+  return root?.data ?? root;
+}
+
 /**
  * Create a comment or reply for a video.
  * POST /comment { video_id, comment_text, parent_id? } — pass parent_id to reply to a comment.

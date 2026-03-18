@@ -2,6 +2,7 @@ export {
   getVideoSessions,
   parseSession,
   getVideoDetail,
+  getVideoBySlug,
   createVideo,
   updateVideo,
   deleteVideo,
