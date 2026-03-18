@@ -167,8 +167,8 @@ export function useVideoSessionDetail(session, options = {}) {
     setLoadingSummary(true);
     try {
       const response = await summarizeVideo(session.id, videoUrl, lang);
-      const summaryDataRes = response?.summary || response?.data?.summary || response.summary;
-      const transcriptData = response?.transcript || response?.data?.transcript || response.transcript;
+      const summaryDataRes = response?.data?.summary || response?.summary || response?.data?.data?.summary;
+      const transcriptData = response?.data?.transcript || response?.transcript || response?.data?.data?.transcript;
       if (summaryDataRes || transcriptData) {
         let finalSummary = summaryDataRes;
         if (summaryDataRes === "لم يُكتشف كلام في الفيديو.") finalSummary = "No summary available";
