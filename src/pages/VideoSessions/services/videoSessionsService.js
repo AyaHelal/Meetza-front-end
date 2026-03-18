@@ -297,20 +297,19 @@ export async function summarizeVideo(videoId, videoUrl, language = 'en') {
     const formData = new FormData();
     formData.append('url', videoUrl);
 
-    const res = await axios.post(
-      `http://localhost:8000/summarize_video/${encodeURIComponent(videoId)}`,
+    const res = await api.post(
+      `/video/summarize_video/${encodeURIComponent(videoId)}`,
       formData,
       {
         timeout: 1800000,
         headers: {
           'X-Localization': language,
-          'X-API-Key': '#$$0limaaaannnn##sddsdsd23233522dd',
         },
       }
     );
 
     const root = res?.data;
-    return root?.data ?? root;
+    return root;
   } catch (error) {
     console.error('Error in summarizeVideo:', error);
     throw error;
