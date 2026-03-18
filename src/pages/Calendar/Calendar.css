@@ -61,6 +61,16 @@
   background: #16a34a;
 }
 
+.calendar-context-menu-join-btn {
+  background: transparent;
+  color: #111827;
+}
+
+.calendar-context-menu-join-btn:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .calendar-btn-new-icon {
   font-size: 1.1rem;
   line-height: 1;

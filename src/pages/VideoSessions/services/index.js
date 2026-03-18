@@ -2,6 +2,7 @@ export {
   getVideoSessions,
   parseSession,
   getVideoDetail,
+  getVideoBySlug,
   createVideo,
   updateVideo,
   deleteVideo,
@@ -16,5 +17,7 @@ export {
   editComment,
   deleteComment,
   summarizeVideo,
+  isVideoSavedByUser,
+  invalidateSavedVideosCache,
   buildFileUrl,
 } from "./videoSessionsService";

@@ -18,6 +18,7 @@ const CalendarRoute = ({ children }) => {
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const canAccessCalendar =
     userRole === "member" ||
+    userRole === "administrator" ||
     userRole.includes("super_admin") ||
     userRole.includes("super-admin");
 

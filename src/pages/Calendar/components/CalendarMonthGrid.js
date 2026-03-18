@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { getMonthMatrix, formatTimeRange } from "../utils/calendarUtils";
 
-export default function CalendarMonthGrid({ currentDate, meetings }) {
+export default function CalendarMonthGrid({ currentDate, meetings, onMeetingRightClick }) {
   const matrix = useMemo(() => getMonthMatrix(currentDate), [currentDate]);
   const month = currentDate.getMonth();
 
@@ -67,6 +67,7 @@ export default function CalendarMonthGrid({ currentDate, meetings }) {
                           className="calendar-month-grid-meeting"
                           style={{ backgroundColor: bg }}
                           title={`${title} — ${formatTimeRange(start, end)}`}
+                          onContextMenu={(e) => onMeetingRightClick?.(e, meeting)}
                         >
                           <span className="calendar-month-grid-meeting-title">{title}</span>
                         </div>

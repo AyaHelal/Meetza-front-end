@@ -5,7 +5,6 @@ import { formatDayShort, formatDayNum } from "../utils/calendarUtils";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-// ✅ كبرنا الـ row عشان الـ card تاخد مساحة كافية
 const ROW_HEIGHT_PX = 200;
 /** Margin inside the time row (gap above/below the card within the slot) */
 const ROW_INSET_PX = 6;
@@ -21,7 +20,7 @@ function isSameDay(a, b) {
   );
 }
 
-export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext }) {
+export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext, onMeetingRightClick }) {
   const today = new Date();
   const headerDaysScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
@@ -125,6 +124,7 @@ export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext }) 
                       <CalendarEventCard
                         key={ev.id}
                         event={ev}
+                        onMeetingRightClick={onMeetingRightClick}
                         style={{
                           top: slotTop,
                           height: cardHeight,

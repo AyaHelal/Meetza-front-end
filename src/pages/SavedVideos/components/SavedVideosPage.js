@@ -50,6 +50,11 @@ export default function SavedVideosPage() {
         title="Saved videos"
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
+        videos={savedVideos}
+        onSuggestionSelect={(video) => {
+          if (!video?.id) return;
+          setSelectedId(video.id);
+        }}
       />
 
       {error && <div className="saved-videos-error">{error}</div>}
@@ -93,6 +98,11 @@ export default function SavedVideosPage() {
                       savedVideos={savedVideos}
                       onBack={handleBack}
                       onSelectSession={(video) => handleSelect(video)}
+                      onUnsave={async (videoId) => {
+                        if (!videoId) return;
+                        if (String(videoId) === String(selectedId)) setSelectedId(null);
+                        await removeFromSaved?.(videoId);
+                      }}
                       onVideoDeleted={() => {
                         setSelectedId(null);
                         refetch?.();

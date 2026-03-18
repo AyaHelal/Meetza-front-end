@@ -33,7 +33,7 @@ const LeftNavbar = ({
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
   // Calendar page: only Member and Super_Admin
-  const canSeeCalendar = userRole === "member" || userRole.includes("super_admin") || userRole.includes("super-admin");
+  const canSeeCalendar = userRole === "member" || userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
   const {
     socket,
     isConnected,

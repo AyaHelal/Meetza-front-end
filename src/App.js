@@ -22,6 +22,7 @@ import AppLayout from './components/AppLayout/AppLayout';
 import AdminRoute from './components/AdminRoute';
 import CalendarRoute from './components/CalendarRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
+import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import { useState, useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -207,6 +208,7 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<GroupChat />} />
         <Route path="video" element={<AllVideosPage />} />
+        <Route path="video/:slug" element={<VideoBySlugPage />} />
         <Route path="video-sessions" element={<VideoSessions />} />
         <Route path="saved-videos" element={<SavedVideos />} />
         <Route path="groups" element={<Groups />} />

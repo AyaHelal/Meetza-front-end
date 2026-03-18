@@ -200,7 +200,7 @@ const AppLayout = () => {
 
   // Calendar: only Member and Super_Admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
-  const canSeeCalendar = userRole === "member" || userRole.includes("super_admin") || userRole.includes("super-admin");
+  const canSeeCalendar = userRole === "member" || userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
 
   const menuItems = [
     { icon: House, label: "Home", nav: "home" },

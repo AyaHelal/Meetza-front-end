@@ -1,6 +1,63 @@
 import api, { API_BASE_URL } from "../../../API/axiosInstance";
 import axios from "axios";
 
+let savedVideosCache = { ts: 0, ids: null };
+
+function pickSavedVideosList(root) {
+  if (Array.isArray(root)) return root;
+  if (Array.isArray(root?.data)) return root.data;
+  if (Array.isArray(root?.data?.data)) return root.data.data;
+  return [];
+}
+
+function extractVideoId(item) {
+  const v = item?.video ?? item?.Video ?? item?.video_data ?? item ?? {};
+  return v?.id ?? item?.video_id ?? item?.videoId ?? item?.id ?? null;
+}
+
+async function fetchSavedVideoIdsForUser() {
+  let res;
+  try {
+    res = await api.get("/saved_video/user");
+  } catch (err) {
+    if (err?.response?.status !== 404) throw err;
+    try {
+      res = await api.get("/saved_video/user/");
+    } catch (err2) {
+      if (err2?.response?.status !== 404) throw err2;
+      try {
+        res = await api.get("/saved_video");
+      } catch (err3) {
+        if (err3?.response?.status !== 404) throw err3;
+        res = await api.get("/saved_video/");
+      }
+    }
+  }
+  const root = res?.data;
+  const list = pickSavedVideosList(root);
+  const ids = new Set();
+  list.forEach((item) => {
+    const id = extractVideoId(item);
+    if (id != null && id !== "") ids.add(String(id));
+  });
+  return ids;
+}
+
+export async function isVideoSavedByUser(videoId, { maxAgeMs = 30000 } = {}) {
+  if (!videoId) return false;
+  const now = Date.now();
+  const hasFreshCache = savedVideosCache.ids instanceof Set && (now - (savedVideosCache.ts || 0)) < maxAgeMs;
+  if (!hasFreshCache) {
+    const ids = await fetchSavedVideoIdsForUser();
+    savedVideosCache = { ts: now, ids };
+  }
+  return savedVideosCache.ids?.has(String(videoId)) === true;
+}
+
+export function invalidateSavedVideosCache() {
+  savedVideosCache = { ts: 0, ids: null };
+}
+
 /**
  * Build full URL for a file (e.g. video_url). If url is relative, prepends API base.
  */
@@ -73,6 +130,14 @@ export async function getVideoDetail(id) {
   const res = await api.get(`/video/${id}`);
   const root = res?.data;
   // Backend shape: { success, data: { video, admin, likes_count, ... } }
+  return root?.data ?? root;
+}
+
+export async function getVideoBySlug(slug) {
+  if (!slug) throw new Error("video slug is required");
+  const safe = String(slug).trim();
+  const res = await api.get(`/video/${encodeURIComponent(safe)}`);
+  const root = res?.data;
   return root?.data ?? root;
 }
 
@@ -180,7 +245,29 @@ export async function saveVideo(videoId) {
 export async function deleteSavedVideo(videoId) {
   if (!videoId) throw new Error("video id is required");
 
-  const res = await api.delete(`/saved_video/${encodeURIComponent(videoId)}`);
+  const id = encodeURIComponent(videoId);
+  try {
+    const res = await api.delete(`/saved_video/${id}`);
+    return res?.data;
+  } catch (err) {
+    if (err?.response?.status !== 404) throw err;
+  }
+
+  try {
+    const res = await api.delete(`/saved_video/${id}/`);
+    return res?.data;
+  } catch (err) {
+    if (err?.response?.status !== 404) throw err;
+  }
+
+  try {
+    const res = await api.delete("/saved_video", { data: { video_id: videoId } });
+    return res?.data;
+  } catch (err) {
+    if (err?.response?.status !== 404) throw err;
+  }
+
+  const res = await api.delete("/saved_video/", { data: { video_id: videoId } });
   return res?.data;
 }
 

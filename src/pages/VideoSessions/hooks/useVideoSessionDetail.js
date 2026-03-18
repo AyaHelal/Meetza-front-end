@@ -5,6 +5,8 @@ import {
   deleteLike,
   saveVideo,
   deleteSavedVideo,
+  isVideoSavedByUser,
+  invalidateSavedVideosCache,
   getRelatedVideos,
   getGlobalRelatedVideos,
   createComment,
@@ -27,6 +29,7 @@ export function useVideoSessionDetail(session, options = {}) {
     useGlobalRelated = false,
     isAdmin = false,
     onVideoDeleted,
+    onUnsave,
   } = options;
 
   const { socket } = useSocket();
@@ -36,6 +39,8 @@ export function useVideoSessionDetail(session, options = {}) {
   const [disliked, setDisliked] = useState(false);
   const [likeDislikeRecordId, setLikeDislikeRecordId] = useState(null);
   const [saved, setSaved] = useState(false);
+  const savedRef = useRef(false);
+  const saveInFlightRef = useRef(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState([]);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -44,6 +49,10 @@ export function useVideoSessionDetail(session, options = {}) {
   const [editCommentSubmitting, setEditCommentSubmitting] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState({});
   const [replySubmittingForId, setReplySubmittingForId] = useState(null);
+
+  useEffect(() => {
+    savedRef.current = Boolean(saved);
+  }, [saved]);
   const [relatedVideos, setRelatedVideos] = useState([]);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
@@ -265,23 +274,48 @@ export function useVideoSessionDetail(session, options = {}) {
 
   const handleSaveVideo = useCallback(async () => {
     if (!session?.id) return;
+    if (saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
+
+    const wasSaved = savedRef.current;
     try {
-      if (saved) {
-        await deleteSavedVideo(session.id);
+      if (wasSaved) {
+        if (typeof onUnsave === "function") {
+          await onUnsave(session.id);
+          return;
+        }
+
+        // Optimistic UI
         setSaved(false);
         setDetail((prev) => ({ ...prev, savedCount: Math.max(0, (prev?.savedCount ?? 1) - 1) }));
+        await deleteSavedVideo(session.id);
+        invalidateSavedVideosCache();
         smartToast.success("Video removed from saved");
       } else {
-        await saveVideo(session.id);
+        // Optimistic UI
         setSaved(true);
         setDetail((prev) => ({ ...prev, savedCount: (prev?.savedCount ?? 0) + 1 }));
+        await saveVideo(session.id);
+        invalidateSavedVideosCache();
         smartToast.success("Video saved successfully");
       }
     } catch (err) {
       console.error("Failed to save/unsave video", err);
+      // Rollback optimistic UI
+      setSaved(wasSaved);
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const cur = prev?.savedCount ?? 0;
+        if (wasSaved) {
+          return { ...prev, savedCount: cur + 1 };
+        }
+        return { ...prev, savedCount: Math.max(0, cur - 1) };
+      });
       smartToast.error("Failed to save video. Please try again.");
+    } finally {
+      saveInFlightRef.current = false;
     }
-  }, [session?.id, saved]);
+  }, [session?.id, onUnsave]);
 
   const handleEditOpen = useCallback(() => {
     setEditForm({
@@ -350,7 +384,28 @@ export function useVideoSessionDetail(session, options = {}) {
           savedCount: data.saved_count ?? 0,
           commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : 0),
         };
-        setSaved(Boolean(data.is_saved ?? data.saved ?? data.saved_count > 0));
+        const rawSaved = data.is_saved ?? data.isSaved ?? data.saved ?? null;
+        const hasUserSavedFlag = rawSaved !== null && rawSaved !== undefined;
+        const normalizedSaved = (() => {
+          if (rawSaved === true || rawSaved === 1) return true;
+          if (rawSaved === false || rawSaved === 0) return false;
+          if (rawSaved == null) return false;
+          const s = String(rawSaved).toLowerCase().trim();
+          if (s === "true" || s === "1" || s === "yes") return true;
+          if (s === "false" || s === "0" || s === "no" || s === "") return false;
+          return false;
+        })();
+
+        let finalSaved = normalizedSaved;
+        if (!hasUserSavedFlag) {
+          try {
+            finalSaved = await isVideoSavedByUser(session.id);
+          } catch {
+            finalSaved = normalizedSaved;
+          }
+        }
+
+        setSaved(finalSaved);
         setDetail(parsedDetail);
         const likeId = data.like_id ?? data.user_like_id ?? data.like?.id ?? v.like_id ?? null;
         setLikeDislikeRecordId(likeId || null);

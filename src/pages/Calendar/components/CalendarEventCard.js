@@ -2,7 +2,7 @@ import React from "react";
 import { Lock, LockOpen } from "@phosphor-icons/react";
 import { formatDateForOverlay } from "../utils/calendarUtils";
 
-export default function CalendarEventCard({ event, style = {} }) {
+export default function CalendarEventCard({ event, style = {}, onMeetingRightClick }) {
   const timeLabel = `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
   const now = new Date();
   const isFutureMeeting = event.start > now;
@@ -16,6 +16,7 @@ export default function CalendarEventCard({ event, style = {} }) {
     <div
       className={`calendar-event-card${noDescription ? " calendar-event-card--no-desc" : ""}`}
       style={style}
+      onContextMenu={(e) => onMeetingRightClick?.(e, event?._meeting)}
     >
       <div
         className="calendar-event-card-bg"
