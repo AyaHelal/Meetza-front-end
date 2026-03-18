@@ -1,6 +1,7 @@
 import React from "react";
 import { Trash } from "@phosphor-icons/react";
 import { DEFAULT_THUMB } from "./constants";
+import { formatSavedVideoCardDate } from "../utils/formatSavedVideoCardDate";
 import "../../VideoSessions/components/VideoSessionDetail.css";
 import "./SavedVideosSidebar.css";
 
@@ -44,7 +45,7 @@ export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRem
                   )}
                   {!!v.createdAt && (
                     <span className="video-session-detail-related-date">
-                      {String(v.createdAt).slice(0, 10)}
+                      {formatSavedVideoCardDate(v.createdAt)}
                     </span>
                   )}
                 </div>
