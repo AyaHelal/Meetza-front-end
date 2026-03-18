@@ -1,53 +1,54 @@
-import { getAllVideos, mapVideoToSession } from "../../VideoSessions/services/allVideosService";
-import { getVideoDetail } from "../../VideoSessions/services";
+import api from "../../../API/axiosInstance";
 
-function coerceBoolean(v) {
-  if (v === true) return true;
-  if (v === false) return false;
-  if (v == null) return null;
-  if (typeof v === "number") return v === 1;
-  const s = String(v).toLowerCase().trim();
-  if (s === "true" || s === "1" || s === "yes") return true;
-  if (s === "false" || s === "0" || s === "no") return false;
-  return null;
+function pickSavedVideosList(root) {
+  if (Array.isArray(root)) return root;
+  if (Array.isArray(root?.data)) return root.data;
+  if (Array.isArray(root?.data?.data)) return root.data.data;
+  return [];
 }
 
-async function mapSavedByDetails(videos) {
-  // Fallback when /video list doesn't include user saved flags.
-  // Uses getVideoDetail for each video id and keeps only saved ones.
-  const results = await Promise.all(
-    videos.map(async (v) => {
-      const detail = await getVideoDetail(v.id);
-      const isSaved = coerceBoolean(detail?.is_saved ?? detail?.saved ?? detail?.saved_count ?? null);
-      return { video: v, isSaved: isSaved === true };
-    })
-  );
-  return results.filter((r) => r.isSaved).map((r) => r.video);
+function mapSavedVideoItem(item) {
+  const v = item?.video ?? item?.Video ?? item?.video_data ?? item ?? {};
+  const id = v?.id ?? item?.video_id ?? item?.videoId ?? item?.id ?? null;
+  const title = v?.title ?? item?.title ?? "Video";
+  const instructor = item?.admin_name ?? item?.adminName ?? v?.admin_name ?? v?.adminName ?? v?.admin?.name ?? null;
+  const savedAt = item?.saved_at ?? item?.savedAt ?? item?.created_at ?? item?.createdAt ?? null;
+
+  return {
+    ...v,
+    id,
+    title,
+    instructor,
+    thumbnailUrl: v?.poster_url ?? v?.thumbnail_url ?? v?.thumbnail ?? v?.cover_url ?? null,
+    videoUrl: v?.video_url ?? v?.videoUrl ?? v?.url ?? null,
+    duration: v?.duration ?? v?.duration_seconds ?? null,
+    savedAt,
+    createdAt: savedAt,
+  };
 }
 
 export async function getSavedVideos() {
-  const raw = await getAllVideos();
-  const sessions = (raw || []).map(mapVideoToSession);
+  let res;
+  try {
+    res = await api.get("/saved_video/user");
+  } catch (err) {
+    if (err?.response?.status !== 404) throw err;
 
-  // Try to use any saved flag present in list response (best case).
-  const hasSavedField = raw?.some(
-    (r) => r && (r.is_saved !== undefined || r.isSaved !== undefined || r.saved !== undefined)
-  );
+    try {
+      res = await api.get("/saved_video/user/");
+    } catch (err2) {
+      if (err2?.response?.status !== 404) throw err2;
 
-  if (hasSavedField) {
-    const byId = new Map(
-      (raw || []).map((r) => [String(r?.id ?? r?.video_id ?? ""), r])
-    );
-    const saved = sessions.filter((s) => {
-      const r = byId.get(String(s?.id ?? ""));
-      const isSaved =
-        coerceBoolean(r?.is_saved ?? r?.isSaved ?? r?.saved) ?? false;
-      return isSaved === true;
-    });
-    return saved;
+      try {
+        res = await api.get("/saved_video");
+      } catch (err3) {
+        if (err3?.response?.status !== 404) throw err3;
+        res = await api.get("/saved_video/");
+      }
+    }
   }
-
-  // Fallback: fetch per-video details.
-  return mapSavedByDetails(sessions);
+  const root = res?.data;
+  const list = pickSavedVideosList(root);
+  return list.map(mapSavedVideoItem).filter((v) => v?.id != null);
 }
 

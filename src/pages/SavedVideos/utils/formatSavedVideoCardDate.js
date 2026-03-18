@@ -32,10 +32,11 @@ function ordinalDay(day) {
  */
 export function formatSavedVideoCardDate(value) {
   if (value == null || value === "") return "";
+
   if (typeof value === "number" && !Number.isNaN(value)) {
     const date = new Date(value < 1e12 ? value * 1000 : value);
     if (!Number.isNaN(date.getTime())) {
-      return `${ordinalDay(date.getDate())} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+      return `${ordinalDay(date.getDate())} of ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
     }
   }
   const str = String(value).trim();
@@ -43,5 +44,5 @@ export function formatSavedVideoCardDate(value) {
   const normalized = str.replace(" ", "T");
   const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return str.slice(0, 10);
-  return `${ordinalDay(date.getDate())} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  return `${ordinalDay(date.getDate())} of ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }

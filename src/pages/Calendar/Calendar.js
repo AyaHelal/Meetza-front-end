@@ -1,6 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useContext, useCallback } from "react";
 import api from "../../API/axiosInstance";
+import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../context/SocketContext";
+import { AuthContext } from "../../context/AuthContext";
+import { smartToast } from "../../API/toastManager";
 import CalendarHeader from "./components/CalendarHeader";
 import CalendarToolbar from "./components/CalendarToolbar";
 import CalendarNav from "./components/CalendarNav";
@@ -23,6 +26,8 @@ const CALENDAR_MEETINGS_PATH =
   (process.env.REACT_APP_CALENDAR_MEETINGS_ENDPOINT || "meeting").replace(/^\//, "");
 
 export default function Calendar() {
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [viewMode, setViewMode] = useState(VIEW_MODE.WEEK);
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,6 +44,8 @@ export default function Calendar() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { socket } = useSocket();
 
+  const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, meeting: null });
+
   // When user clears search, restore the date they were viewing before they searched.
   const dateBeforeSearchRef = useRef(null);
   const prevSearchQueryRef = useRef("");
@@ -54,11 +61,16 @@ export default function Calendar() {
     prevSearchQueryRef.current = searchQuery;
   }, [searchQuery]);
 
-  // Fetch groups for filter: only groups the current member is in (GET /chat/groups).
+  // Fetch groups for filter
   useEffect(() => {
     let cancelled = false;
+
+    const userRole = (user?.role || "").toString().trim().toLowerCase();
+    const isAdminRole = userRole === "administrator" || userRole.includes("super_admin") || userRole.includes("super-admin");
+    const endpoint = isAdminRole ? "/group" : "/chat/groups";
+
     api
-      .get("/chat/groups")
+      .get(endpoint)
       .then((response) => {
         if (cancelled) return;
         const raw = response?.data?.data ?? response?.data;
@@ -87,7 +99,60 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
+  }, [user?.role]);
+
+  useEffect(() => {
+    const handleClose = () => setContextMenu((prev) => (prev.open ? { open: false, x: 0, y: 0, meeting: null } : prev));
+    const handleEsc = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("mousedown", handleClose);
+    window.addEventListener("scroll", handleClose, true);
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("mousedown", handleClose);
+      window.removeEventListener("scroll", handleClose, true);
+      window.removeEventListener("keydown", handleEsc);
+    };
   }, []);
+
+  const getMeetingId = useCallback((m) => {
+    if (!m) return null;
+    return m.id ?? m.meeting_id ?? m.meetingId ?? null;
+  }, []);
+
+  const isMeetingLive = useCallback((m) => {
+    if (!m) return false;
+    const status = (m.status || "").toString().trim().toLowerCase();
+    if (["completed", "cancelled"].includes(status)) return false;
+    const startRaw = m.start_time ?? m.startTime ?? m.start;
+    const endRaw = m.end_time ?? m.endTime ?? m.end;
+    if (!startRaw || !endRaw) return false;
+    const start = new Date(startRaw);
+    const end = new Date(endRaw);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+    const now = new Date();
+    return now >= start && now < end;
+  }, []);
+
+  const handleJoinMeeting = useCallback(async (meeting) => {
+    const id = getMeetingId(meeting);
+    if (!id) return;
+    try {
+      await api.post(`/meeting/${id}/join`);
+      navigate("/meetings", { state: { meetingId: id } });
+    } catch (err) {
+      smartToast.error(err?.response?.data?.message || "Failed to join meeting");
+    }
+  }, [getMeetingId, navigate]);
+
+  const handleMeetingRightClick = useCallback((e, meeting) => {
+    if (!meeting) return;
+    if (!isMeetingLive(meeting)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ open: true, x: e.clientX, y: e.clientY, meeting });
+  }, [isMeetingLive]);
 
   const weekDates = useMemo(() => {
     if (viewMode === VIEW_MODE.DAY) {
@@ -343,6 +408,45 @@ export default function Calendar() {
 
   return (
     <div className="calendar-page">
+      {contextMenu.open ? (
+        <div
+          style={{
+            position: "fixed",
+            top: contextMenu.y,
+            left: contextMenu.x,
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 10,
+            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+            padding: 6,
+            zIndex: 9999,
+            minWidth: 140,
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <button
+            type="button"
+            className="calendar-context-menu-join-btn"
+            style={{
+              width: "100%",
+              border: 0,
+              padding: "10px 12px",
+              textAlign: "left",
+              cursor: "pointer",
+              borderRadius: 8,
+            }}
+            onClick={() => {
+              const meeting = contextMenu.meeting;
+              setContextMenu({ open: false, x: 0, y: 0, meeting: null });
+              handleJoinMeeting(meeting);
+            }}
+          >
+            Join
+          </button>
+        </div>
+      ) : null}
       <div className="calendar-toolbar-card">
         <CalendarHeader />
       <CalendarToolbar
@@ -372,12 +476,14 @@ export default function Calendar() {
         weekDates={weekDates}
           onPrev={goPrev}
           onNext={goNext}
+          onMeetingRightClick={handleMeetingRightClick}
         />
       ) : (
         <CalendarMonthGrid
           currentDate={currentDate}
           meetings={filteredMonthMeetings}
           groupsMap={groupsMap}
+          onMeetingRightClick={handleMeetingRightClick}
         />
       )}
     </div>

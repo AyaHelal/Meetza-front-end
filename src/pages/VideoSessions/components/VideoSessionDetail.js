@@ -33,6 +33,7 @@ export default function VideoSessionDetail({
   useGlobalRelated = false,
   isAdmin = false,
   onVideoDeleted,
+  onUnsave,
 }) {
   const api = useVideoSessionDetail(session, {
     relatedSessions,
@@ -41,6 +42,7 @@ export default function VideoSessionDetail({
     useGlobalRelated,
     isAdmin,
     onVideoDeleted,
+    onUnsave,
   });
 
   if (!session) return null;

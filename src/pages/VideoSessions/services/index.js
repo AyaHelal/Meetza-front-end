@@ -16,5 +16,7 @@ export {
   editComment,
   deleteComment,
   summarizeVideo,
+  isVideoSavedByUser,
+  invalidateSavedVideosCache,
   buildFileUrl,
 } from "./videoSessionsService";

@@ -7,6 +7,7 @@ export default function SavedVideosDetail({
   onVideoDeleted,
   onBack,
   onSelectSession,
+  onUnsave,
 }) {
   const otherSavedVideos = useMemo(() => {
     return (savedVideos || []).filter((v) => String(v.id) !== String(session?.id));
@@ -24,6 +25,7 @@ export default function SavedVideosDetail({
         useGlobalRelated={false}
         isAdmin={false}
         onVideoDeleted={onVideoDeleted}
+        onUnsave={onUnsave}
       />
     </div>
   );

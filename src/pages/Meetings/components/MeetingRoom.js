@@ -92,6 +92,9 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const localParticipantVolumeRef = useRef({});
   const userLeftMeetingRef = useRef(false);
   const lastMeetingIdForPreJoinRef = useRef(null);
+  const preJoinPromptedRef = useRef({});
+  const preJoinCompletedRef = useRef({});
+  const preJoinOpenedThisLoadRef = useRef(false);
 
   const meetingId = useMeetingRoomMeetingId({
     location,
@@ -161,6 +164,23 @@ const MeetingRoom = ({ recordRegionRef }) => {
   });
 
   const preJoin = useMeetingPreJoin((stream, videoMuted, audioMuted) => {
+    const mid = meetingIdRef.current || meetingId;
+    const keysToMark = [];
+    if (mid != null) keysToMark.push(String(mid));
+
+    try {
+      const active = sessionStorage.getItem("activeMeetingId");
+      if (active) keysToMark.push(String(active));
+    } catch { /* ignore */ }
+
+    keysToMark.forEach((key) => {
+      preJoinCompletedRef.current[key] = true;
+      preJoinPromptedRef.current[key] = true;
+      try {
+        sessionStorage.setItem(`meeting_preJoinCompleted_${key}`, "true");
+      } catch { /* ignore */ }
+    });
+    preJoinOpenedThisLoadRef.current = true;
     rtc.startJoinRef.current?.({ preObtainedStream: stream, initialVideoMuted: videoMuted, initialAudioMuted: audioMuted });
   });
 
@@ -184,18 +204,42 @@ const MeetingRoom = ({ recordRegionRef }) => {
       userLeftMeetingRef.current = false;
     }
     if (userLeftMeetingRef.current) return;
-    const isReturning = (() => { try { return sessionStorage.getItem("activeMeetingId") === String(mid); } catch { return false; } })();
+    const isPageReload = (() => {
+      try {
+        const navEntries = performance?.getEntriesByType?.("navigation");
+        const navType = navEntries && navEntries[0] ? navEntries[0].type : null;
+        if (navType) return navType === "reload";
+        return performance.navigation?.type === 1;
+      } catch {
+        return false;
+      }
+    })();
+    const activeMeetingId = (() => { try { return sessionStorage.getItem("activeMeetingId"); } catch { return null; } })();
+    const stableKey = activeMeetingId ? String(activeMeetingId) : String(mid);
+    const isReturning = !!activeMeetingId && String(activeMeetingId) === String(mid);
     const storedHasJoined = (() => { try { return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true"; } catch { return false; } })();
     const firstJoin = !isReturning && !hasJoined && !storedHasJoined;
-    if (firstJoin) {
-      setShowPreJoinModal(true);
+    const completedFromStorage = (() => {
+      try {
+        return sessionStorage.getItem(`meeting_preJoinCompleted_${stableKey}`) === "true";
+      } catch {
+        return false;
+      }
+    })();
+    const alreadyEnteredThisLoad = !!preJoinCompletedRef.current[stableKey] || completedFromStorage;
+    const shouldShowPreJoin = (!preJoinOpenedThisLoadRef.current && !alreadyEnteredThisLoad && firstJoin) || (isPageReload && isReturning);
+    if (shouldShowPreJoin) {
+      // Guard: don't reopen the modal repeatedly due to reconnects/rerenders.
+      if (!preJoinPromptedRef.current[stableKey]) {
+        preJoinPromptedRef.current[stableKey] = true;
+        preJoinOpenedThisLoadRef.current = true;
+        setShowPreJoinModal(true);
+      }
       return;
     }
     rtc.startAndJoinMeetingRtc().then((result) => {
       if (result?.error) smartToast.error(result.error);
     });
-    // Omit rtc from deps: including it would re-run after "Enter meeting" (new ref) and re-open the modal
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, socket, isConnected, hasJoined, setShowPreJoinModal]);
 
   useEffect(() => {
