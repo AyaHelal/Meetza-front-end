@@ -96,6 +96,11 @@ const AppLayout = () => {
       location.pathname.startsWith("/admin-meetings")
     ) {
       setActiveNav("admin-meetings");
+    } else if (
+      location.pathname === "/saved-videos" ||
+      location.pathname.startsWith("/saved-videos")
+    ) {
+      setActiveNav("saved-videos");
     }
   }, [location]);
 

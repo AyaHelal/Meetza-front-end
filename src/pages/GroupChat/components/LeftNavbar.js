@@ -9,6 +9,7 @@ import {
   SignOut,
   VideoCamera,
   YoutubeLogo as YoutubeLogoIcon,
+  BookmarkSimple,
 } from "@phosphor-icons/react";
 import "./LeftNavbar.css";
 import { useNavigate } from "react-router-dom";
@@ -216,6 +217,16 @@ const LeftNavbar = ({
               title="Videos"
             >
               <YoutubeLogoIcon size={32} />
+            </div>
+            <div
+              className={`nav-icon ${activeNav === "saved-videos" ? "active" : ""}`}
+              onClick={() => {
+                navigate("/saved-videos");
+                setActiveNav("saved-videos");
+              }}
+              title="Saved videos"
+            >
+              <BookmarkSimple size={32} weight="regular" />
             </div>
             {isAdmin && (
               <div

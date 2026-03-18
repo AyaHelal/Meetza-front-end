@@ -9,6 +9,7 @@ import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
 import VideoSessions from './pages/VideoSessions/VideoSessions';
 import AllVideosPage from './pages/VideoSessions/AllVideosPage';
+import SavedVideos from './pages/SavedVideos/SavedVideos';
 import Groups from './pages/Groups/Groups';
 import Calendar from './pages/Calendar/Calendar';
 import Meetings from './pages/Meetings/Meetings';
@@ -207,6 +208,7 @@ const AppRoutes = () => {
         <Route path="home" element={<GroupChat />} />
         <Route path="video" element={<AllVideosPage />} />
         <Route path="video-sessions" element={<VideoSessions />} />
+        <Route path="saved-videos" element={<SavedVideos />} />
         <Route path="groups" element={<Groups />} />
         <Route
           path="calendar"
