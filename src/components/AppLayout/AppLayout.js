@@ -10,6 +10,8 @@ import {
   SignOut,
   UsersThree,
   VideoCamera,
+  YoutubeLogo,
+  BookmarkSimple,
 } from "@phosphor-icons/react";
 import api from "../../API/axiosInstance";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
@@ -97,6 +99,11 @@ const AppLayout = () => {
     ) {
       setActiveNav("admin-meetings");
     } else if (
+      location.pathname === "/video" ||
+      location.pathname.startsWith("/video")
+    ) {
+      setActiveNav("videos");
+    } else if (
       location.pathname === "/saved-videos" ||
       location.pathname.startsWith("/saved-videos")
     ) {
@@ -153,6 +160,12 @@ const AppLayout = () => {
     } else if (nav === "admin-meetings" && location.pathname !== "/admin-meetings") {
       setActiveNav(nav);
       navigate("/admin-meetings", { replace: false });
+    } else if (nav === "videos" && location.pathname !== "/video") {
+      setActiveNav(nav);
+      navigate("/video", { replace: false });
+    } else if (nav === "saved-videos" && location.pathname !== "/saved-videos") {
+      setActiveNav(nav);
+      navigate("/saved-videos", { replace: false });
     } else {
       // Just update active state if already on the route
       setActiveNav(nav);
@@ -200,14 +213,18 @@ const AppLayout = () => {
 
   // Calendar: only Member and Super_Admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
   const canSeeCalendar = userRole === "member" || userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
 
   const menuItems = [
     { icon: House, label: "Home", nav: "home" },
-    { icon: User, label: "User", nav: "profile" },
+    { icon: User, label: "Profile", nav: "profile" },
     { icon: Envelope, label: "Message", nav: "messages" },
     { icon: UsersThree, label: "Groups", nav: "users" },
     ...(canSeeCalendar ? [{ icon: CalendarBlank, label: "Calendar", nav: "calendar" }] : []),
+    { icon: YoutubeLogo, label: "Videos", nav: "videos" },
+    { icon: BookmarkSimple, label: "Saved Videos", nav: "saved-videos" },
+    ...(isAdmin ? [{ icon: VideoCamera, label: "Admin Meetings", nav: "admin-meetings" }] : []),
     { icon: GearSix, label: "Settings", nav: "settings" },
   ];
 
