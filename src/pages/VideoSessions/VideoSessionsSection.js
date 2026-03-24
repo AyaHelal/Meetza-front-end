@@ -112,6 +112,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
           onSubmitSearch={() => setSelectedSession?.(null)}
           isAdmin={isAdmin}
           onPostVideoClick={() => setPostVideoModalOpen(true)}
+          groupId={groupId}
         />
         <PostVideoModal
           isOpen={postVideoModalOpen}

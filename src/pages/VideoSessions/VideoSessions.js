@@ -65,6 +65,7 @@ function VideoSessionsContent() {
         onSubmitSearch={() => {}}
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
+        groupId={groupId}
       />
       <PostVideoModal
         isOpen={postVideoModalOpen}

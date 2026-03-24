@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ArrowLeftIcon, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { getVideoSessions, parseSession } from "../services/videoSessionsService";
+import { useNavigate } from "react-router-dom";
 import "./VideoSessionsHeader.css";
 
 const DEFAULT_THUMB = "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
@@ -9,20 +11,60 @@ export default function VideoSessionsHeader({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Search",
-  sessions = [],
+  sessions = [], // local sessions for current group (fallback)
   onSubmitSearch,
   isAdmin = false,
   onPostVideoClick,
+  groupId = null,
 }) {
+  const navigate = useNavigate();
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [apiSuggestions, setApiSuggestions] = useState([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const containerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
-  // Filter sessions based on search value for suggestions
-  const suggestions = useMemo(() => {
-    if (!searchValue || !searchValue.trim()) return [];
-    const q = searchValue.toLowerCase().trim();
-    return sessions.filter((s) => (s.title || "").toLowerCase().includes(q)).slice(0, 5); // limit to top 5
-  }, [sessions, searchValue]);
+  // API-based suggestions logic (requires 3+ chars)
+  useEffect(() => {
+    const q = (searchValue || "").trim();
+    
+    // Clear suggestions if < 3 chars
+    if (q.length < 3) {
+      setApiSuggestions([]);
+      setIsLoadingSuggestions(false);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      return;
+    }
+
+    // Debounce API calls
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    
+    setIsLoadingSuggestions(true);
+    debounceTimerRef.current = setTimeout(async () => {
+      // Re-verify length inside timeout just in case
+      const currentQ = (searchValue || "").trim();
+      if (currentQ.length < 3) {
+        setApiSuggestions([]);
+        setIsLoadingSuggestions(false);
+        return;
+      }
+
+      try {
+        const raw = await getVideoSessions(groupId, currentQ);
+        const parsed = (raw || []).map(parseSession);
+        setApiSuggestions(parsed.slice(0, 10)); // Limit to top 10 results
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+        setApiSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 400);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [searchValue, groupId]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -43,10 +85,16 @@ export default function VideoSessionsHeader({
   };
 
   const handleSuggestionClick = (session) => {
-    const title = session.title || "";
-    if (onSearchChange) onSearchChange(title);
     setShowSuggestions(false);
-    if (onSubmitSearch) onSubmitSearch(title);
+    
+    // Navigate to video details page
+    if (session.slug) {
+      navigate(`/video/${session.slug}`);
+    } else if (session.id) {
+      navigate(`/video/${session.id}`);
+    }
+    
+    if (onSearchChange) onSearchChange(""); // Clear search after selection if desired
   };
 
   return (
@@ -95,10 +143,12 @@ export default function VideoSessionsHeader({
           onKeyDown={handleKeyDown}
           aria-label="Search video sessions"
         />
-        {showSuggestions && searchValue?.trim() && (
+        {showSuggestions && (searchValue || "").trim().length >= 3 && (
           <div className="video-sessions-header-suggestions">
-            {suggestions.length > 0 ? (
-              suggestions.map((s) => (
+            {isLoadingSuggestions ? (
+              <p className="video-sessions-header-suggestion-empty">Searching...</p>
+            ) : apiSuggestions.length > 0 ? (
+              apiSuggestions.map((s) => (
                 <button
                   key={s.id ?? s.title}
                   className="video-sessions-header-suggestion-item"

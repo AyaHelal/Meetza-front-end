@@ -438,33 +438,28 @@ export default function VideoSessionDetail({
             {(() => {
               if (!topics) return null;
 
-              const getValidTopics = (val) => {
-                if (Array.isArray(val)) return val.length > 0 ? val : null;
-                if (typeof val === "string") {
-                  const split = val
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean);
-                  return split.length > 0 ? split : null;
+              const getValidTopicsList = (val) => {
+                if (Array.isArray(val)) return val.length > 0 ? val : [];
+                if (typeof val === "string" && val.trim() !== "" && val.toLowerCase() !== "null") {
+                  return val.split(",").map((t) => t.trim()).filter(Boolean);
                 }
-                return null;
+                return [];
               };
 
-              // Try specific languages from topics object, or topics itself if it's an array/string
-              const finalTopics =
-                getValidTopics(topics[summaryLang]) ||
-                getValidTopics(topics["en"]) ||
-                getValidTopics(topics["ar"]) ||
-                getValidTopics(topics) ||
-                [];
+              // Merge all available topics (English, Arabic, and any generic topics)
+              const arTopics = getValidTopicsList(topics.ar);
+              const enTopics = getValidTopicsList(topics.en);
+              const rawTopics = getValidTopicsList(topics);
+              
+              const allTopics = [...new Set([...enTopics, ...arTopics, ...rawTopics])];
 
-              if (finalTopics.length === 0) return null;
+              if (allTopics.length === 0) return null;
 
               return (
                 <section className="vsd-topics-section">
                   <h3>Topics</h3>
                   <div className="vsd-topics-container">
-                    {finalTopics.map((topic, index) => (
+                    {allTopics.map((topic, index) => (
                       <span key={index} className="vsd-topic-badge">
                         {topic}
                       </span>

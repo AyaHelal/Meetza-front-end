@@ -27,9 +27,15 @@ function mapSavedVideoItem(item) {
   };
 }
 
-export async function getSavedVideos(groupId = null) {
+export async function getSavedVideos(groupId = null, q = "") {
   let res;
-  const params = groupId ? { group_id: groupId } : {};
+  const params = {};
+  if (groupId) params.group_id = groupId;
+
+  const searchTerm = q?.toString?.().trim?.();
+  if (searchTerm && searchTerm.length >= 3) {
+    params.q = searchTerm;
+  }
 
   try {
     res = await api.get("/saved_video/user", { params });

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlass, Funnel, Check } from "@phosphor-icons/react";
+import { getSavedVideos } from "../services/savedVideosService";
 import "./SavedVideosHeader.css";
 import { DEFAULT_THUMB } from "./constants";
 
@@ -14,15 +15,53 @@ export default function SavedVideosHeader({
   onGroupChange,
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [apiSuggestions, setApiSuggestions] = useState([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const containerRef = useRef(null);
   const filterRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
-  const suggestions = useMemo(() => {
-    if (!searchValue || !searchValue.trim()) return [];
-    const q = searchValue.toLowerCase().trim();
-    return (videos || []).filter((v) => (v.title || "").toLowerCase().includes(q)).slice(0, 5);
-  }, [videos, searchValue]);
+  // API-based suggestions logic (requires 3+ chars)
+  useEffect(() => {
+    const q = (searchValue || "").trim();
+
+    // Clear suggestions if < 3 chars
+    if (q.length < 3) {
+      setApiSuggestions([]);
+      setIsLoadingSuggestions(false);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      return;
+    }
+
+    // Debounce API calls
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    setIsLoadingSuggestions(true);
+    debounceTimerRef.current = setTimeout(async () => {
+      // Re-verify length inside timeout
+      const currentQ = (searchValue || "").trim();
+      if (currentQ.length < 3) {
+        setApiSuggestions([]);
+        setIsLoadingSuggestions(false);
+        return;
+      }
+
+      try {
+        const results = await getSavedVideos(selectedGroupId, currentQ);
+        setApiSuggestions(results.slice(0, 10));
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+        setApiSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 400);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [searchValue, selectedGroupId]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -45,8 +84,6 @@ export default function SavedVideosHeader({
   };
 
   const handleSuggestionClick = (video) => {
-    const titleValue = video?.title || "";
-    if (onSearchChange) onSearchChange(titleValue);
     setShowSuggestions(false);
     if (onSuggestionSelect) onSuggestionSelect(video);
   };
@@ -130,10 +167,12 @@ export default function SavedVideosHeader({
             aria-label="Search saved videos"
           />
 
-          {showSuggestions && searchValue?.trim() && (
+          {showSuggestions && (searchValue || "").trim().length >= 3 && (
             <div className="saved-videos-header-suggestions">
-              {suggestions.length > 0 ? (
-                suggestions.map((v) => (
+              {isLoadingSuggestions ? (
+                <p className="saved-videos-header-suggestion-empty">Searching...</p>
+              ) : apiSuggestions.length > 0 ? (
+                apiSuggestions.map((v) => (
                   <button
                     key={v.id ?? v.title}
                     className="saved-videos-header-suggestion-item"
@@ -141,7 +180,7 @@ export default function SavedVideosHeader({
                     type="button"
                   >
                     <img
-                      src={v.thumbnailUrl || v.poster_url || v.thumbnailUrl || DEFAULT_THUMB}
+                      src={v.thumbnailUrl || v.poster_url || DEFAULT_THUMB}
                       alt={v.title}
                       className="saved-videos-header-suggestion-thumb"
                     />

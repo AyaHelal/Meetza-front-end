@@ -97,6 +97,30 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
       <div className="video-session-card-content">
         <div className="video-session-card-text">
           <h3 className="video-session-card-title">{title}</h3>
+          
+          {/* Topics Tags */}
+          {(() => {
+            const raw = session?.topics;
+            if (!raw) return null;
+            const getT = (v) => {
+              if (Array.isArray(v)) return v;
+              if (typeof v === 'string' && v.trim() !== '' && v.toLowerCase() !== 'null') {
+                return v.split(',').map(t => t.trim()).filter(Boolean);
+              }
+              return [];
+            };
+            const allT = [...new Set([...getT(raw.en), ...getT(raw.ar), ...getT(raw)])];
+            if (allT.length === 0) return null;
+            return (
+              <div className="video-session-card-topics">
+                {allT.slice(0, 3).map((topic, idx) => (
+                  <span key={idx} className="video-session-card-topic-tag">{topic}</span>
+                ))}
+                {allT.length > 3 && <span className="video-session-card-topic-tag">+{allT.length - 3}</span>}
+              </div>
+            );
+          })()}
+
           {hasDescription && (
             <p className="video-session-card-description">{description}</p>
           )}

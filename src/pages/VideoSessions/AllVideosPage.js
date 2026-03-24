@@ -96,7 +96,7 @@ function AllVideosContent() {
 
   const filteredSessions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return sessions;
+    if (q.length < 3) return sessions;
     return sessions.filter((s) => (s.title || "").toLowerCase().includes(q));
   }, [sessions, searchQuery]);
 
@@ -117,6 +117,7 @@ function AllVideosContent() {
         onSubmitSearch={() => setSelectedSession(null)}
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
+        groupId={null}
       />
       <PostVideoModal
         isOpen={postVideoModalOpen}

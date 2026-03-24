@@ -54,7 +54,7 @@ export default function SavedVideosPage() {
 
   const filtered = useMemo(() => {
     const q = (searchQuery || "").toLowerCase().trim();
-    if (!q) return savedVideos;
+    if (q.length < 3) return savedVideos;
     return savedVideos.filter((v) => (v.title || "").toLowerCase().includes(q));
   }, [savedVideos, searchQuery]);
 
