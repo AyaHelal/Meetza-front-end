@@ -27,26 +27,29 @@ function mapSavedVideoItem(item) {
   };
 }
 
-export async function getSavedVideos() {
+export async function getSavedVideos(groupId = null) {
   let res;
+  const params = groupId ? { group_id: groupId } : {};
+
   try {
-    res = await api.get("/saved_video/user");
+    res = await api.get("/saved_video/user", { params });
   } catch (err) {
     if (err?.response?.status !== 404) throw err;
 
     try {
-      res = await api.get("/saved_video/user/");
+      res = await api.get("/saved_video/user/", { params });
     } catch (err2) {
       if (err2?.response?.status !== 404) throw err2;
 
       try {
-        res = await api.get("/saved_video");
+        res = await api.get("/saved_video", { params });
       } catch (err3) {
         if (err3?.response?.status !== 404) throw err3;
-        res = await api.get("/saved_video/");
+        res = await api.get("/saved_video/", { params });
       }
     }
   }
+
   const root = res?.data;
   const list = pickSavedVideosList(root);
   return list.map(mapSavedVideoItem).filter((v) => v?.id != null);
