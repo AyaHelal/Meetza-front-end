@@ -74,14 +74,19 @@ export function buildFileUrl(url) {
  * Fetch videos for Video Sessions page.
  * Uses backend GET /video with optional ?group_id=.
  */
-export async function getVideoSessions(groupId = null) {
+export async function getVideoSessions(groupId = null, q = "") {
   const normalizedGroupId = groupId?.toString?.().trim?.();
-  if (!normalizedGroupId) {
-    // Must query by group_id only; do not fetch all videos.
+  const searchTerm = q?.toString?.().trim?.();
+
+  // STRICT RULE: If a search is intended (not empty) but too short, do NOT call API.
+  if (searchTerm && searchTerm.length > 0 && searchTerm.length < 3) {
     return [];
   }
 
-  const params = { group_id: normalizedGroupId };
+  const params = {};
+  if (normalizedGroupId) params.group_id = normalizedGroupId;
+  if (searchTerm && searchTerm.length >= 3) params.q = searchTerm;
+
   const res = await api.get("/video", { params });
   const root = res?.data;
   if (Array.isArray(root)) return root;

@@ -1,29 +1,60 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./SavedVideosPage.css";
 import SavedVideosHeader from "./SavedVideosHeader";
 import SavedVideosSidebar from "./SavedVideosSidebar";
 import SavedVideosDetail from "./SavedVideosDetail";
 import useSavedVideos from "../hooks/useSavedVideos";
+import { useAuth } from "../../../context/AuthContext";
+import api from "../../../API/axiosInstance";
 
 export default function SavedVideosPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [selectedId, setSelectedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [groupsList, setGroupsList] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
-  const {
-    savedVideos,
-    loading,
-    error,
-    refetch,
-    removeFromSaved,
-    removingId,
-  } = useSavedVideos();
+  useEffect(() => {
+    let cancelled = false;
+    const userRole = (user?.role || "").toString().trim().toLowerCase();
+    const isAdminRole =
+      userRole === "administrator" ||
+      userRole.includes("super_admin") ||
+      userRole.includes("super-admin");
+    const endpoint = isAdminRole ? "/group" : "/chat/groups";
+
+    api
+      .get(endpoint)
+      .then((res) => {
+        if (cancelled) return;
+        const raw = res?.data?.data ?? res?.data;
+        const payload = Array.isArray(raw) ? raw : [];
+        const list = payload
+          .map((g) => {
+            const id = g.id ?? g.group_id ?? g._id;
+            const name = g.name ?? g.group_name ?? g.title ?? g.content_name ?? g.group_content_name ?? "—";
+            return { id: String(id), name: String(name).trim() };
+          })
+          .filter((g) => g.id !== "undefined" && g.id !== "null");
+        setGroupsList(list);
+      })
+      .catch(() => {
+        if (!cancelled) setGroupsList([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role]);
+
+  const { savedVideos, loading, error, refetch, removeFromSaved, removingId } =
+    useSavedVideos(selectedGroupId);
 
   const filtered = useMemo(() => {
     const q = (searchQuery || "").toLowerCase().trim();
-    if (!q) return savedVideos;
+    if (q.length < 3) return savedVideos;
     return savedVideos.filter((v) => (v.title || "").toLowerCase().includes(q));
   }, [savedVideos, searchQuery]);
 
@@ -55,6 +86,9 @@ export default function SavedVideosPage() {
           if (!video?.id) return;
           setSelectedId(video.id);
         }}
+        groupsList={groupsList}
+        selectedGroupId={selectedGroupId}
+        onGroupChange={setSelectedGroupId}
       />
 
       {error && <div className="saved-videos-error">{error}</div>}

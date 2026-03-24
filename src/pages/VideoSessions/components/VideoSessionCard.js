@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { DotsThreeVertical, PencilSimple, Trash } from "@phosphor-icons/react";
+import { DotsThreeVertical, PencilSimple, Trash, Download, Spinner } from "@phosphor-icons/react";
+import { downloadVideo } from "../../../utils/videoUtils";
 import "./VideoSessionCard.css";
 
 const DEFAULT_THUMB =
@@ -7,6 +8,7 @@ const DEFAULT_THUMB =
 
 export default function VideoSessionCard({ session, onClick, isAdmin = false, onEdit, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const menuRef = useRef(null);
 
   const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
@@ -49,6 +51,20 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
     onDelete?.(session);
   };
 
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (downloading) return;
+
+    downloadVideo(
+      session?.videoUrl || session?.video_url,
+      session?.title,
+      () => setDownloading(true),
+      () => setDownloading(false),
+      () => setDownloading(false)
+    );
+  };
+
   return (
     <article
       className="video-session-card"
@@ -69,10 +85,42 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
           className="video-session-card-thumb"
         />
         <span className="video-session-card-duration">{duration}</span>
+        <button
+          className={`video-session-card-download-overlay ${downloading ? "downloading" : ""}`}
+          onClick={handleDownload}
+          disabled={downloading}
+          title="Download video"
+        >
+          {downloading ? <Spinner size={20} className="spinning" /> : <Download size={20} />}
+        </button>
       </div>
       <div className="video-session-card-content">
         <div className="video-session-card-text">
           <h3 className="video-session-card-title">{title}</h3>
+          
+          {/* Topics Tags */}
+          {(() => {
+            const raw = session?.topics;
+            if (!raw) return null;
+            const getT = (v) => {
+              if (Array.isArray(v)) return v;
+              if (typeof v === 'string' && v.trim() !== '' && v.toLowerCase() !== 'null') {
+                return v.split(',').map(t => t.trim()).filter(Boolean);
+              }
+              return [];
+            };
+            const allT = [...new Set([...getT(raw.en), ...getT(raw.ar), ...getT(raw)])];
+            if (allT.length === 0) return null;
+            return (
+              <div className="video-session-card-topics">
+                {allT.slice(0, 3).map((topic, idx) => (
+                  <span key={idx} className="video-session-card-topic-tag">{topic}</span>
+                ))}
+                {allT.length > 3 && <span className="video-session-card-topic-tag">+{allT.length - 3}</span>}
+              </div>
+            );
+          })()}
+
           {hasDescription && (
             <p className="video-session-card-description">{description}</p>
           )}

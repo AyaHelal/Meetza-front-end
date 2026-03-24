@@ -54,7 +54,7 @@ export function useVideoSessions(groupId = null) {
 
   const filteredSessions = (state.sessions || []).filter((s) => {
     const q = (state.searchQuery || "").toLowerCase().trim();
-    if (!q) return true;
+    if (q.length < 3) return true; // Don't filter unless 3+ chars
     return (s.title || "").toLowerCase().includes(q);
   });
 

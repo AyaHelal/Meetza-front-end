@@ -387,7 +387,6 @@
 .hero-nav-container .nav-link:hover,
 .hero-nav-container .nav-link:active,
 .hero-nav-container .nav-link:focus {
-  background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
   outline: none;
 }

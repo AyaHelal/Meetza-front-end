@@ -25,15 +25,9 @@ const ContactSection = () => {
         e.preventDefault();
 
         // Validate form
-        if (!formData.fullName.trim()) {
-            smartToast.error('Please enter your full name');
-            return;
-        }
-        if (!formData.email.trim()) {
-            smartToast.error('Please enter your email');
-            return;
-        }
-        if (!formData.email.includes('@')) {
+        const isEmailProvided = !!formData.email.trim();
+        
+        if (isEmailProvided && !formData.email.includes('@')) {
             smartToast.error('Please enter a valid email address');
             return;
         }
@@ -137,7 +131,6 @@ const ContactSection = () => {
                             value={formData.fullName}
                             onChange={handleChange}
                             placeholder=""
-                            required
                         />
                     </div>
 
@@ -150,7 +143,6 @@ const ContactSection = () => {
                             value={formData.email}
                             onChange={handleChange}
                             placeholder=""
-                            required
                         />
                     </div>
 

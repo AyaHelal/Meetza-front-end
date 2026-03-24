@@ -4,7 +4,7 @@ import { getSavedVideos } from "../services/savedVideosService";
 import { deleteSavedVideo } from "../../VideoSessions/services";
 import { smartToast } from "../../../API/toastManager";
 
-export default function useSavedVideos() {
+export default function useSavedVideos(groupId = null) {
   const { socket } = useSocket();
   const [savedVideos, setSavedVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,7 @@ export default function useSavedVideos() {
     setLoading(true);
     setError(null);
     try {
-      const list = await getSavedVideos();
+      const list = await getSavedVideos(groupId);
       setSavedVideos(Array.isArray(list) ? list : []);
     } catch (err) {
       setError(err?.message || "Failed to load saved videos");
@@ -23,7 +23,7 @@ export default function useSavedVideos() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [groupId]);
 
   useEffect(() => {
     refetch();
