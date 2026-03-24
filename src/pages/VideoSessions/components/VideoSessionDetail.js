@@ -13,11 +13,13 @@ import {
   SpeakerSimpleLow as SpeakerSimpleLowIcon,
   PaperPlaneRight as PaperPlaneRightIcon,
   Spinner,
+  Download,
 } from "@phosphor-icons/react";
 import Lottie from "lottie-react";
 import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
 import { useVideoSessionDetail } from "../hooks/useVideoSessionDetail";
+import { downloadVideo } from "../../../utils/videoUtils";
 
 const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} weight="regular" {...props} />;
 
@@ -40,6 +42,7 @@ export default function VideoSessionDetail({
   const [shareOpen, setShareOpen] = React.useState(false);
   const [shareCopied, setShareCopied] = React.useState(false);
   const commentsSectionRef = React.useRef(null);
+  const [downloading, setDownloading] = React.useState(false);
 
   const api = useVideoSessionDetail(session, {
     relatedSessions,
@@ -91,6 +94,7 @@ export default function VideoSessionDetail({
     setShowSummary,
     summaryData,
     loadingSummary,
+    summaryLang,
     showLangDropdown,
     setShowLangDropdown,
     editForm,
@@ -103,6 +107,7 @@ export default function VideoSessionDetail({
     adminMenuRef,
     deleting,
     related,
+    topics,
     videoDuration,
     currentTimeSec,
     volume,
@@ -138,6 +143,21 @@ export default function VideoSessionDetail({
     toggleReplyInput,
     isRTL,
   } = api;
+
+
+
+  const handleDownloadClick = () => {
+    downloadVideo(
+      session?.video_url || session?.videoUrl,
+      title,
+      () => setDownloading(true),
+      () => setDownloading(false),
+      () => {
+        setDownloading(false);
+        alert("Failed to download video. Please try again.");
+      }
+    );
+  };
 
   const handleCopyShare = async (e) => {
     e?.stopPropagation?.();
@@ -341,6 +361,20 @@ export default function VideoSessionDetail({
                   )}
                 </div>
 
+                <button
+                  className={`video-session-detail-btn vsd-download-btn ${downloading ? "loading" : ""}`}
+                  onClick={handleDownloadClick}
+                  disabled={downloading}
+                  title="Download Video"
+                >
+                  {downloading ? (
+                    <Spinner size={16} className="spinning" />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  <span>{downloading ? "Downloading..." : "Download"}</span>
+                </button>
+
                 {isAdmin && (
                   <div className="video-session-detail-admin-menu-wrap" ref={adminMenuRef}>
                     <button
@@ -399,6 +433,46 @@ export default function VideoSessionDetail({
               <p>{description ? description : "No description available."}</p>
               {instructor && <p className="video-session-detail-instructor">Instructor: {instructor}</p>}
             </section>
+
+            {/* Topics */}
+            {(() => {
+              if (!topics) return null;
+
+              const getValidTopics = (val) => {
+                if (Array.isArray(val)) return val.length > 0 ? val : null;
+                if (typeof val === "string") {
+                  const split = val
+                    .split(",")
+                    .map((t) => t.trim())
+                    .filter(Boolean);
+                  return split.length > 0 ? split : null;
+                }
+                return null;
+              };
+
+              // Try specific languages from topics object, or topics itself if it's an array/string
+              const finalTopics =
+                getValidTopics(topics[summaryLang]) ||
+                getValidTopics(topics["en"]) ||
+                getValidTopics(topics["ar"]) ||
+                getValidTopics(topics) ||
+                [];
+
+              if (finalTopics.length === 0) return null;
+
+              return (
+                <section className="vsd-topics-section">
+                  <h3>Topics</h3>
+                  <div className="vsd-topics-container">
+                    {finalTopics.map((topic, index) => (
+                      <span key={index} className="vsd-topic-badge">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* Comments */}
             <section className="video-session-detail-questions" ref={commentsSectionRef}>

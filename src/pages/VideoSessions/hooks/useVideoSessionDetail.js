@@ -183,6 +183,16 @@ export function useVideoSessionDetail(session, options = {}) {
         if (summaryDataRes === "لم يُكتشف كلام في الفيديو.") finalSummary = "No summary available";
         let finalTranscript = transcriptData || "No transcript available";
         if (finalSummary && transcriptData && finalSummary.trim() === transcriptData.trim()) finalTranscript = null;
+        const newTopics = response?.data?.topics || response?.topics || null;
+        if (newTopics) {
+          setDetail((prev) => ({
+            ...prev,
+            topics: {
+              ...prev?.topics,
+              [lang]: newTopics,
+            },
+          }));
+        }
         setSummaryData({ summary: finalSummary || "No summary available", transcript: finalTranscript });
         setShowSummary(true);
         smartToast.success("Summary generated successfully!");
@@ -383,6 +393,7 @@ export function useVideoSessionDetail(session, options = {}) {
           dislikesCount: data.dislikes_count ?? 0,
           savedCount: data.saved_count ?? 0,
           commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : 0),
+          topics: data.topics ?? session.topics ?? { ar: [], en: [] },
         };
         const rawSaved = data.is_saved ?? data.isSaved ?? data.saved ?? null;
         const hasUserSavedFlag = rawSaved !== null && rawSaved !== undefined;
@@ -476,6 +487,7 @@ export function useVideoSessionDetail(session, options = {}) {
           dislikesCount: data.dislikes_count ?? detail?.dislikesCount ?? 0,
           savedCount: data.saved_count ?? detail?.savedCount ?? 0,
           commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : detail?.commentCount ?? 0),
+          topics: data.topics ?? detail?.topics ?? session?.topics ?? { ar: [], en: [] },
         };
         const commentsData = await getVideoComments(session.id);
         setDetail((prev) => ({ ...prev, ...parsed, commentCount: commentsData.commentCount ?? parsed.commentCount }));
@@ -637,6 +649,7 @@ export function useVideoSessionDetail(session, options = {}) {
   const thumbnailUrl = detail?.thumbnailUrl || session?.thumbnailUrl || null;
   const title = detail?.title ?? session?.title ?? "Data Structure Lecture 1";
   const description = detail?.description ?? session?.description ?? "";
+  const topics = detail?.topics ?? session?.topics ?? { ar: [], en: [] };
   const instructor = detail?.instructor ?? session?.instructor ?? "Instructor";
   const likesCount = detail?.likesCount ?? 0;
   const dislikesCount = detail?.dislikesCount ?? 0;
@@ -653,6 +666,7 @@ export function useVideoSessionDetail(session, options = {}) {
     thumbnailUrl,
     title,
     description,
+    topics,
     instructor,
     liked,
     disliked,
