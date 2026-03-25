@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../API/axiosInstance";
@@ -55,6 +55,219 @@ const setStoredRecordFlag = (meetingId, value) => {
     localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
 };
 
+function useMediaQuery(query) {
+    const [matches, setMatches] = useState(() =>
+        typeof window !== "undefined" ? window.matchMedia(query).matches : false
+    );
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mql = window.matchMedia(query);
+        const onChange = () => setMatches(mql.matches);
+        mql.addEventListener("change", onChange);
+        setMatches(mql.matches);
+        return () => mql.removeEventListener("change", onChange);
+    }, [query]);
+    return matches;
+}
+
+const emptyFormState = () => ({
+    title: "",
+    startTime: getCurrentDateTimeLocal(),
+    endTime: getCurrentEndDateTimeLocal(),
+    status: "Scheduled",
+    group_id: "",
+    description: "",
+    recordMeeting: "Recording",
+    poster_file: null,
+    files: [],
+});
+
+function AdminCreateMeetingForm({
+    posterInputId,
+    editingMeetingId,
+    formData,
+    handleInputChange,
+    handleFormSubmit,
+    groupsLoading,
+    groups,
+    resetFormForCreate,
+}) {
+    return (
+        <form className="create-meeting-form" onSubmit={handleFormSubmit}>
+            <div className="form-group">
+                <label>
+                    Title <span className="required">*</span>
+                </label>
+                <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Meeting title"
+                />
+            </div>
+
+            <div className="form-group">
+                <label>
+                    Start - End time <span className="required">*</span>
+                </label>
+                <div className="time-inputs">
+                    <input
+                        type="datetime-local"
+                        name="startTime"
+                        className="time-start"
+                        value={formData.startTime}
+                        onChange={handleInputChange}
+                    />
+                    <input
+                        type="datetime-local"
+                        name="endTime"
+                        className="time-end"
+                        value={formData.endTime}
+                        onChange={handleInputChange}
+                    />
+                </div>
+            </div>
+
+            <div className="form-group">
+                <label>
+                    Group <span className="required">*</span>
+                </label>
+                <select
+                    name="group_id"
+                    value={formData.group_id}
+                    onChange={handleInputChange}
+                    disabled={groupsLoading}
+                >
+                    <option value="">Select group...</option>
+                    {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                            {g.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label>
+                    Status <span className="required">*</span>
+                </label>
+                <select name="status" value={formData.status} onChange={handleInputChange}>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label className="mb-2">Record Meeting</label>
+                <div className="radio-group">
+                    <label className="radio-label">
+                        <input
+                            type="radio"
+                            name="recordMeeting"
+                            value="Recording"
+                            checked={formData.recordMeeting === "Recording"}
+                            onChange={handleInputChange}
+                        />
+                        Recording
+                    </label>
+                    <label className="radio-label">
+                        <input
+                            type="radio"
+                            name="recordMeeting"
+                            value="Not Recording"
+                            checked={formData.recordMeeting === "Not Recording"}
+                            onChange={handleInputChange}
+                        />
+                        Not Recording
+                    </label>
+                </div>
+            </div>
+
+            <div className="form-group">
+                <label>Description (optional)</label>
+                <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={3}
+                    placeholder="Short description"
+                />
+            </div>
+
+            <div className="form-group">
+                <label>
+                    Poster {!editingMeetingId && <span className="required">*</span>}
+                </label>
+                <div className="file-upload">
+                    <input
+                        type="file"
+                        id={posterInputId}
+                        name="poster_file"
+                        accept="image/*"
+                        onChange={handleInputChange}
+                    />
+                    <label htmlFor={posterInputId} className="file-upload-label">
+                        <div className="upload-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <polyline points="16 16 12 12 8 16" />
+                                <line x1="12" y1="12" x2="12" y2="21" />
+                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                            </svg>
+                        </div>
+                    </label>
+                </div>
+                {formData.poster_file && (
+                    <span className="file-selected-name">{formData.poster_file.name}</span>
+                )}
+            </div>
+
+            {!editingMeetingId && (
+                <div className="form-group">
+                    <label>Resources files (optional)</label>
+                    <input
+                        type="file"
+                        name="files"
+                        multiple
+                        accept="*"
+                        onChange={handleInputChange}
+                        className="create-meeting-file-input"
+                    />
+                    {Array.isArray(formData.files) && formData.files.length > 0 && (
+                        <div className="selected-files-list">
+                            <strong>Selected resources:</strong>
+                            <ul>
+                                {formData.files.map((f, i) => (
+                                    <li key={i}>{f.name}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="form-actions-row">
+                <button type="submit" className="create-meeting-btn">
+                    {editingMeetingId ? "Edit Meeting" : "Create Meeting"}
+                </button>
+                {editingMeetingId && (
+                    <button type="button" className="cancel-edit-btn" onClick={resetFormForCreate}>
+                        Cancel
+                    </button>
+                )}
+            </div>
+        </form>
+    );
+}
+
 const AdminMeetingPage = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -67,18 +280,20 @@ const AdminMeetingPage = () => {
     const [showDeleteMeetingModal, setShowDeleteMeetingModal] = useState(false);
     const [meetingToDelete, setMeetingToDelete] = useState(null);
     const [deletingMeeting, setDeletingMeeting] = useState(false);
+    const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
 
-    const [formData, setFormData] = useState({
-        title: "",
-        startTime: getCurrentDateTimeLocal(),
-        endTime: getCurrentEndDateTimeLocal(),
-        status: "Scheduled",
-        group_id: "",
-        description: "",
-        recordMeeting: "Recording",
-        poster_file: null,
-        files: [],
-    });
+    const isMobileTablet = useMediaQuery("(max-width: 1024px)");
+
+    const [formData, setFormData] = useState(() => emptyFormState());
+
+    useEffect(() => {
+        if (!isMobileTablet || !showCreateMeetingModal) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = prev;
+        };
+    }, [isMobileTablet, showCreateMeetingModal]);
 
     // Fetch groups for create-meeting dropdown (same API as meetza-admin)
     const fetchGroups = async () => {
@@ -170,6 +385,22 @@ const AdminMeetingPage = () => {
         }
     };
 
+    const resetFormForCreate = useCallback(() => {
+        setEditingMeetingId(null);
+        setFormData(emptyFormState());
+        setShowCreateMeetingModal(false);
+    }, []);
+
+    const openCreateMeetingModal = useCallback(() => {
+        setEditingMeetingId(null);
+        setFormData(emptyFormState());
+        setShowCreateMeetingModal(true);
+    }, []);
+
+    const closeCreateMeetingModal = useCallback(() => {
+        setShowCreateMeetingModal(false);
+    }, []);
+
     // Create meeting – same API as meetza-admin (POST /meeting with FormData)
     const handleCreateMeeting = async (e) => {
         e.preventDefault();
@@ -205,18 +436,8 @@ const AdminMeetingPage = () => {
             if (createdMeeting?.id) setStoredRecordFlag(createdMeeting.id, recordValue);
 
             smartToast.success("Meeting created successfully!");
-            setFormData({
-                title: "",
-                startTime: getCurrentDateTimeLocal(),
-                endTime: getCurrentEndDateTimeLocal(),
-                status: "Scheduled",
-                group_id: "",
-                description: "",
-                recordMeeting: "Recording",
-                poster_file: null,
-                files: [],
-            });
-      fetchMeetings(createdMeeting?.id ? { patchRecordMeeting: { id: createdMeeting.id, value: recordValue } } : undefined);
+            resetFormForCreate();
+            fetchMeetings(createdMeeting?.id ? { patchRecordMeeting: { id: createdMeeting.id, value: recordValue } } : undefined);
       // Notify Calendar page(s) to refetch meetings (update calendar cards)
       window.dispatchEvent(new Event("calendarMeetingsUpdated"));
       try {
@@ -238,21 +459,6 @@ const AdminMeetingPage = () => {
         } catch (err) {
             smartToast.error(err.response?.data?.message || "Failed to join meeting");
         }
-    };
-
-    const resetFormForCreate = () => {
-        setEditingMeetingId(null);
-        setFormData({
-            title: "",
-            startTime: getCurrentDateTimeLocal(),
-            endTime: getCurrentEndDateTimeLocal(),
-            status: "Scheduled",
-            group_id: "",
-            description: "",
-            recordMeeting: "Recording",
-            poster_file: null,
-            files: [],
-        });
     };
 
     const handleDeleteMeetingClick = (meetingId) => {
@@ -312,6 +518,9 @@ const AdminMeetingPage = () => {
             poster_file: null,
             files: [],
         });
+        if (typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches) {
+            setShowCreateMeetingModal(true);
+        }
     };
 
     const handleUpdateMeeting = async (e) => {
@@ -421,7 +630,16 @@ const AdminMeetingPage = () => {
             <div className="admin-meeting-content">
                 {/* Header */}
                 <div className="admin-meeting-header">
-                    <h1>Admin Meeting page</h1>
+                    <div className="admin-meeting-header-row">
+                        <h1>Admin Meeting page</h1>
+                        <button
+                            type="button"
+                            className="admin-meeting-header-create-btn"
+                            onClick={openCreateMeetingModal}
+                        >
+                            Create meeting
+                        </button>
+                    </div>
                 </div>
 
                 {/* Meetings Grid */}
@@ -543,181 +761,64 @@ const AdminMeetingPage = () => {
                 </div>
             </div>
 
-            {/* ── RIGHT SIDEBAR ── */}
-            <div className="create-meeting-sidebar">
-                <h2>{editingMeetingId ? "Edit Meeting" : "Create Meeting"}</h2>
+            {/* ── RIGHT SIDEBAR (desktop only; mobile/tablet uses modal) ── */}
+            {!isMobileTablet && (
+                <div className="create-meeting-sidebar">
+                    <h2>{editingMeetingId ? "Edit Meeting" : "Create Meeting"}</h2>
+                    <AdminCreateMeetingForm
+                        posterInputId="poster-upload"
+                        editingMeetingId={editingMeetingId}
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                        handleFormSubmit={handleFormSubmit}
+                        groupsLoading={groupsLoading}
+                        groups={groups}
+                        resetFormForCreate={resetFormForCreate}
+                    />
+                </div>
+            )}
 
-                <form className="create-meeting-form" onSubmit={handleFormSubmit}>
-                    {/* Title */}
-                    <div className="form-group">
-                        <label>Title <span className="required">*</span></label>
-                        <input
-                            type="text"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleInputChange}
-                            placeholder="Meeting title"
-                        />
-                    </div>
-
-                    {/* Start – End time */}
-                    <div className="form-group">
-                        <label>Start - End time <span className="required">*</span></label>
-                        <div className="time-inputs">
-                            <input
-                                type="datetime-local"
-                                name="startTime"
-                                className="time-start"
-                                value={formData.startTime}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                type="datetime-local"
-                                name="endTime"
-                                className="time-end"
-                                value={formData.endTime}
-                                onChange={handleInputChange}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Group – same as meetza-admin */}
-                    <div className="form-group">
-                        <label>Group <span className="required">*</span></label>
-                        <select
-                            name="group_id"
-                            value={formData.group_id}
-                            onChange={handleInputChange}
-                            disabled={groupsLoading}
-                        >
-                            <option value="">Select group...</option>
-                            {groups.map((g) => (
-                                <option key={g.id} value={g.id}>
-                                    {g.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Status */}
-                    <div className="form-group">
-                        <label>Status <span className="required">*</span></label>
-                        <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleInputChange}
-                        >
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
-
-                    <div className="form-group">
-                        <label className="mb-2">Record Meeting</label>
-                        <div className="radio-group">
-                            <label className="radio-label">
-                                <input
-                                    type="radio"
-                                    name="recordMeeting"
-                                    value="Recording"
-                                    checked={formData.recordMeeting === "Recording"}
-                                    onChange={handleInputChange}
-                                />
-                                Recording
-                            </label>
-                            <label className="radio-label">
-                                <input
-                                    type="radio"
-                                    name="recordMeeting"
-                                    value="Not Recording"
-                                    checked={formData.recordMeeting === "Not Recording"}
-                                    onChange={handleInputChange}
-                                />
-                                Not Recording
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    <div className="form-group">
-                        <label>Description (optional)</label>
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            rows={3}
-                            placeholder="Short description"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>Poster {!editingMeetingId && <span className="required">*</span>}</label>
-                        <div className="file-upload">
-                            <input
-                                type="file"
-                                id="poster-upload"
-                                name="poster_file"
-                                accept="image/*"
-                                onChange={handleInputChange}
-                            />
-                            <label htmlFor="poster-upload" className="file-upload-label">
-                                <div className="upload-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="16 16 12 12 8 16" />
-                                        <line x1="12" y1="12" x2="12" y2="21" />
-                                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-                                    </svg>
-                                </div>
-                            </label>
-                        </div>
-                        {formData.poster_file && (
-                            <span className="file-selected-name">{formData.poster_file.name}</span>
-                        )}
-                    </div>
-
-                    {!editingMeetingId && (
-                        <div className="form-group">
-                            <label>Resources files (optional)</label>
-                            <input
-                                type="file"
-                                name="files"
-                                multiple
-                                accept="*"
-                                onChange={handleInputChange}
-                                className="create-meeting-file-input"
-                            />
-                            {Array.isArray(formData.files) && formData.files.length > 0 && (
-                                <div className="selected-files-list">
-                                    <strong>Selected resources:</strong>
-                                    <ul>
-                                        {formData.files.map((f, i) => (
-                                            <li key={i}>{f.name}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Submit / Cancel */}
-                    <div className="form-actions-row">
-                        <button type="submit" className="create-meeting-btn">
-                            {editingMeetingId ? "Edit Meeting" : "Create Meeting"}
-                        </button>
-                        {editingMeetingId && (
+            {isMobileTablet && showCreateMeetingModal && (
+                <div
+                    className="admin-meeting-modal-overlay"
+                    role="presentation"
+                    onClick={closeCreateMeetingModal}
+                >
+                    <div
+                        className="admin-meeting-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="admin-meeting-modal-title"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="admin-meeting-modal-toolbar">
+                            <h2 id="admin-meeting-modal-title">
+                                {editingMeetingId ? "Edit Meeting" : "Create Meeting"}
+                            </h2>
                             <button
                                 type="button"
-                                className="cancel-edit-btn"
-                                onClick={resetFormForCreate}
+                                className="admin-meeting-modal-close"
+                                onClick={closeCreateMeetingModal}
+                                aria-label="Close dialog"
                             >
-                                Cancel
+                                ×
                             </button>
-                        )}
+                        </div>
+                        <div className="admin-meeting-modal-body">
+                            <AdminCreateMeetingForm
+                                posterInputId="poster-upload-modal"
+                                editingMeetingId={editingMeetingId}
+                                formData={formData}
+                                handleInputChange={handleInputChange}
+                                handleFormSubmit={handleFormSubmit}
+                                groupsLoading={groupsLoading}
+                                groups={groups}
+                                resetFormForCreate={resetFormForCreate}
+                            />
+                        </div>
                     </div>
-                </form>
-
-            </div>
+                </div>
+            )}
 
             <ConfirmDeleteModal
                 show={showDeleteMeetingModal}
