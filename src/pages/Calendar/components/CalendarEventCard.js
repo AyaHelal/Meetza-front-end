@@ -1,9 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Lock, LockOpen } from "@phosphor-icons/react";
-import { formatDateForOverlay } from "../utils/calendarUtils";
+import { formatDateForOverlay, formatCompactTimeRange } from "../utils/calendarUtils";
+
+const MOBILE_COMPACT_CARD_QUERY = "(max-width: 768px)";
 
 export default function CalendarEventCard({ event, style = {}, onMeetingRightClick }) {
-  const timeLabel = `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
+  const [compactCard, setCompactCard] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(MOBILE_COMPACT_CARD_QUERY);
+    const sync = () => setCompactCard(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const timeLabel = compactCard
+    ? formatCompactTimeRange(event.start, event.end)
+    : `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
   const now = new Date();
   const isFutureMeeting = event.start > now;
   const isLocked = isFutureMeeting;
@@ -14,7 +29,7 @@ export default function CalendarEventCard({ event, style = {}, onMeetingRightCli
 
   return (
     <div
-      className={`calendar-event-card${noDescription ? " calendar-event-card--no-desc" : ""}`}
+      className={`calendar-event-card${noDescription ? " calendar-event-card--no-desc" : ""}${compactCard ? " calendar-event-card--compact" : ""}`}
       style={style}
       onContextMenu={(e) => onMeetingRightClick?.(e, event?._meeting)}
     >
@@ -39,13 +54,15 @@ export default function CalendarEventCard({ event, style = {}, onMeetingRightCli
           </span>
         </div>
       </div>
-      <div className="calendar-event-card-time" style={{ backgroundColor: "hsla(204, 82.30%, 46.50%, 0.70)"}}>
+      <div className="calendar-event-card-time" style={{ backgroundColor: "hsla(204, 82.30%, 46.50%, 0.70)" }}>
         {timeLabel}
       </div>
-      <h4 className="calendar-event-card-title">{event.title}</h4>
-      {event.description?.trim() ? (
-        <p className="calendar-event-card-desc">{event.description}</p>
-      ) : null}
+      <div className="calendar-event-card-body">
+        <h4 className="calendar-event-card-title">{event.title}</h4>
+        {event.description?.trim() ? (
+          <p className="calendar-event-card-desc">{event.description}</p>
+        ) : null}
+      </div>
     </div>
   );
 }

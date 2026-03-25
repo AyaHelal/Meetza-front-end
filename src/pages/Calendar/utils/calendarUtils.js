@@ -323,3 +323,10 @@ export function formatDateForOverlay(date) {
     hour12: true,
   });
 }
+
+/** Short time span for narrow calendar cards (mobile week columns). */
+export function formatCompactTimeRange(start, end) {
+  const fmt = (d) =>
+    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
