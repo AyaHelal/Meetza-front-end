@@ -11,6 +11,27 @@
   margin-right: 1rem;
 }
 
+/* ---------- Responsive: tablet & mobile ---------- */
+@media (max-width: 1024px) {
+  .calendar-page {
+    margin-top: 0;
+    margin-right: 0;
+    border-radius: 0;
+    overflow: visible;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    box-sizing: border-box;
+  }
+
+  .calendar-header {
+    border-radius: 16px;
+  }
+
+  .calendar-toolbar-card {
+    border-radius: 12px;
+  }
+}
+
 /* ---------- Header (inside card, top section) ---------- */
 .calendar-header {
   display: flex;
@@ -101,22 +122,56 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .calendar-toolbar-cal-icon {
   color: black;
+  flex-shrink: 0;
 }
 
 .calendar-toolbar-all-scheduled {
   font-size: 0.9rem;
   font-weight: 500;
   color: #374151;
+  white-space: nowrap;
 }
 
 .calendar-toolbar-right {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .calendar-toolbar {
+    gap: 10px;
+  }
+
+  .calendar-toolbar-right {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .calendar-toolbar-search {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .calendar-toolbar-search-input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Let search shrink so “All Scheduled” stays on one line */
+  .calendar-toolbar-search {
+    min-width: 0;
+    flex: 1;
+  }
 }
 
 .calendar-toolbar-filter-dropdown {
@@ -308,6 +363,65 @@
   align-items: center;
   gap: 1rem;
   margin-left: auto;
+}
+
+@media (max-width: 1024px) {
+  .calendar-nav {
+    gap: 10px;
+  }
+
+  .calendar-nav-right {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .calendar-nav-range {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .calendar-nav-range-input-wrap {
+    min-width: 0;
+    max-width: none;
+    flex: 1;
+  }
+
+  .calendar-nav-range-display {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .calendar-title {
+    font-size: 1.3rem;
+  }
+
+  .calendar-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .calendar-toolbar {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .calendar-nav {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .calendar-nav-views {
+    width: 100%;
+  }
+
+  .calendar-nav-view-btn {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+  }
 }
 
 .calendar-nav-range {
@@ -623,6 +737,31 @@
   border-right: 3px solid white;
 }
 
+/* Range / long weeks (scroll mode): header + body share equal columns that fill the row on desktop */
+.calendar-week-header-days-inner--fill {
+  box-sizing: border-box;
+}
+
+.calendar-week-header-days-inner--fill .calendar-week-header-day {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.calendar-week-days--grid {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  min-height: 4800px;
+}
+
+.calendar-week-days--grid .calendar-week-day-col {
+  flex: none;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+}
+
 .calendar-week-day-col:last-child {
   border-right: none;
 }
@@ -662,6 +801,8 @@
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 /* Day view: single column – card is smaller and centered */
@@ -674,15 +815,20 @@
 }
 
 .calendar-event-card-bg {
-  height: 100px;
+  height: 130px;
   background-size: cover;
   background-position: center;
   position: relative;
 }
 
-/* No description: shorter image and minimal white below title */
+/* No description: photo fills the card except the title row (no short 70px strip + empty white gap) */
 .calendar-event-card--no-desc .calendar-event-card-bg {
-  height: 70px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+.calendar-event-card--no-desc .calendar-event-card-body {
+  flex: 0 0 auto;
 }
 .calendar-event-card--no-desc .calendar-event-card-title {
   padding: 6px 10px 6px;
@@ -759,9 +905,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
 }
 
@@ -786,13 +933,15 @@
 }
 
 @media (max-width: 768px) {
+  /* Horizontal inset comes from .calendar-page (≤1024px); keep inner padding symmetric */
   .calendar-header {
     padding-left: 1rem;
-    padding-right: 0;
+    padding-right: 1rem;
   }
 
   .calendar-toolbar-card {
-    margin-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .calendar-toolbar,
@@ -802,11 +951,100 @@
   }
 
   .calendar-week-grid {
-    margin-left: 1rem;
+    margin-left: 0;
     margin-right: 0;
   }
 
-  .calendar-week-day-col {
-    min-width: 90px;
+  /*
+   * Week / range: fixed column width + horizontal scroll (wider than 90px so event cards read well).
+   */
+  .calendar-week-body {
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-week-header-days-scroll .calendar-week-header-day {
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
+    box-sizing: border-box;
+  }
+
+  /* Legacy flex fallback only if grid class is not used */
+  .calendar-week-days:not(.calendar-week-days--grid):has(
+      .calendar-week-day-col:nth-child(2)
+    ) {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .calendar-week-days:not(.calendar-week-days--grid):has(
+      .calendar-week-day-col:nth-child(2)
+    )
+    .calendar-week-day-col {
+    flex: 0 0 118px;
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
+    box-sizing: border-box;
+  }
+
+  /* Event cards: use column width, shorter time line, less inset */
+  .calendar-week-events {
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+  }
+
+  .calendar-event-card {
+    left: 0;
+    right: 0;
+  }
+
+  .calendar-event-card--compact .calendar-event-card-label {
+    display: none;
+  }
+
+  /* Time strip along the top of the card (full width on small screens) */
+  .calendar-event-card--compact .calendar-event-card-time {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    margin: 0;
+    font-size: 0.68rem;
+    line-height: 1.25;
+    border-radius: 0;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .calendar-event-card--compact .calendar-event-card-title {
+    font-size: 0.82rem;
+    padding: 6px 6px 2px;
+    word-break: break-word;
+  }
+
+  .calendar-event-card--compact .calendar-event-card-desc {
+    flex: 0 0 auto;
+    flex-grow: 0;
+    min-height: 0;
+    font-size: 0.72rem;
+    padding: 0 6px 4px;
+    margin: 0;
+    line-clamp: 3;
+    -webkit-line-clamp: 3;
+  }
+
+  .calendar-event-card--compact .calendar-event-card-group {
+    font-size: 0.62rem;
+    padding: 4px 6px;
+    max-width: calc(100% - 30px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
