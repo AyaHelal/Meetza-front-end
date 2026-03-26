@@ -179,24 +179,28 @@ const LeftNavbar = ({
             <div
               className={`nav-icon ${activeNav === "home" ? "active" : ""}`}
               onClick={() => setActiveNav("home")}
+              title="Home"
             >
               <House size={32} />
             </div>
             <div
               className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
               onClick={() => setActiveNav("profile")}
+              title="Profile"
             >
               <User size={32} />
             </div>
             <div
               className={`nav-icon ${activeNav === "messages" ? "active" : ""}`}
               onClick={() => setActiveNav("messages")}
+              title="Messages"
             >
               <Envelope size={32} />
             </div>
             <div
               className={`nav-icon ${activeNav === "users" ? "active" : ""}`}
               onClick={() => setActiveNav("users")}
+              title="Groups"
             >
               <UsersThree size={32} />
             </div>
@@ -204,6 +208,7 @@ const LeftNavbar = ({
               <div
                 className={`nav-icon ${activeNav === "calendar" ? "active" : ""}`}
                 onClick={() => setActiveNav("calendar")}
+                title="Calendar"
               >
                 <CalendarBlank size={32} />
               </div>

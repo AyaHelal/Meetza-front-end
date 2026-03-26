@@ -260,6 +260,118 @@
   background-color: transparent;
 }
 
+.weekly-meeting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #333;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.weekly-meeting.weekly-active {
+  color: #10b981;
+}
+
+.weekly-meeting.weekly-inactive {
+  color: #ef4444;
+}
+
+.weekly-meeting svg {
+  flex-shrink: 0;
+}
+
+.weekly-meeting.weekly-active svg {
+  color: #10b981;
+}
+
+.weekly-meeting.weekly-inactive svg {
+  color: #ef4444;
+}
+
+/* Weekly Delete Modal Buttons */
+.btn.rounded-3:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Weekly Dropdown Styles */
+.weekly-meeting-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.weekly-meeting-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.weekly-meeting-trigger.weekly-active {
+  background: transparent;
+  color: #10b981;
+}
+
+.weekly-meeting-trigger.weekly-inactive {
+  border-color: transparent;
+  background: transparent;
+  color: #ef4444;
+}
+
+.weekly-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.weekly-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.weekly-dropdown-item:hover {
+  background: #f8f9fa;
+  color: #212529;
+}
+
+.weekly-dropdown-item:first-child:hover {
+  background: transparent;
+  color: #10b981;
+}
+
+.weekly-dropdown-item:last-child:hover {
+  background: transparent;
+  color: #ef4444;
+}
+
 .meeting-time {
   font-size: 13px;
   color: #888888;

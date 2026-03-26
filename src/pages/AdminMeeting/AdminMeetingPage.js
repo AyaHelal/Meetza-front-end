@@ -4,7 +4,16 @@ import { AuthContext } from "../../context/AuthContext";
 import api from "../../API/axiosInstance";
 import { smartToast } from "../../API/toastManager";
 import "./AdminMeetingPage.css";
-import { VideoCamera, VideoCameraIcon, VideoCameraSlashIcon, PencilSimple, Trash } from "@phosphor-icons/react";
+import {
+  VideoCamera,
+  VideoCameraIcon,
+  VideoCameraSlashIcon,
+  PencilSimple,
+  Trash,
+  CalendarPlusIcon,
+  CalendarXIcon,
+  CaretDown
+} from "@phosphor-icons/react";
 import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
 
 const getCurrentDateTimeLocal = () => {
@@ -78,6 +87,7 @@ const emptyFormState = () => ({
     group_id: "",
     description: "",
     recordMeeting: "Recording",
+    weeklyOption: "Active Weekly",
     poster_file: null,
     files: [],
 });
@@ -184,6 +194,31 @@ function AdminCreateMeetingForm({
                     </label>
                 </div>
             </div>
+            <div className="form-group">
+                <label className="mb-2">Weekly</label>
+                <div className="form-group">
+                    <label className="radio-label">
+                        <input
+                            type="radio"
+                            name="weeklyOption"
+                            value="Active Weekly"
+                            checked={formData.weeklyOption === "Active Weekly"}
+                            onChange={handleInputChange}
+                        />
+                        Active
+                    </label>
+                    <label className="radio-label">
+                        <input
+                            type="radio"
+                            name="weeklyOption"
+                            value="Deactive Weekly"
+                            checked={formData.weeklyOption === "Deactive Weekly"}
+                            onChange={handleInputChange}
+                        />
+                        Deactive
+                    </label>
+                </div>
+            </div>
 
             <div className="form-group">
                 <label>Description (optional)</label>
@@ -268,6 +303,88 @@ function AdminCreateMeetingForm({
     );
 }
 
+const WeeklyDeleteModal = ({ show, onClose, onConfirmThisWeek, onConfirmAllWeeks, confirming }) => {
+    if (!show) return null;
+
+    return (
+        <div
+            className="modal show d-block"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            onClick={onClose}
+        >
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-content rounded-4 border-0" style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+                    <div className="modal-header border-0 pb-0">
+                        <h5 className="modal-title fw-bold" style={{ fontSize: "24px", color: "#010101" }}>
+                            Delete Weekly Meeting
+                        </h5>
+                        <button type="button" className="btn-close" onClick={onClose} aria-label="Close" style={{ fontSize: "14px" }} disabled={confirming} />
+                    </div>
+                    <div className="modal-body pt-3">
+                        <p style={{ fontSize: "16px", color: "#010101", marginBottom: "20px" }}>
+                            This is a weekly meeting. What would you like to delete?
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                            <button
+                                type="button"
+                                className="btn rounded-3"
+                                onClick={onConfirmThisWeek}
+                                disabled={confirming}
+                                style={{
+                                    backgroundColor: "transparent",
+                                    color: "#010101",
+                                    border: "1px solid transparent",
+                                    padding: "12px 20px",
+                                    fontSize: "16px",
+                                    fontWeight: "600",
+                                    textAlign: "left",
+                                }}
+                            >
+                                📅 Delete for this week only
+                            </button>
+                            <button
+                                type="button"
+                                className="btn rounded-3"
+                                onClick={onConfirmAllWeeks}
+                                disabled={confirming}
+                                style={{
+                                    backgroundColor: "transparent",
+                                    color: "#dc2626",
+                                    border: "1px solid transparent",
+                                    padding: "12px 20px",
+                                    fontSize: "16px",
+                                    fontWeight: "600",
+                                    textAlign: "left",
+                                }}
+                            >
+                                🗑️ Delete all weekly meetings
+                            </button>
+                        </div>
+                    </div>
+                    <div className="modal-footer border-0 pt-0">
+                        <button
+                            type="button"
+                            className="btn rounded-3"
+                            onClick={onClose}
+                            disabled={confirming}
+                            style={{
+                                backgroundColor: "#F4F6F8",
+                                color: "#010101",
+                                border: "none",
+                                padding: "10px 24px",
+                                fontSize: "16px",
+                                fontWeight: "600",
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const AdminMeetingPage = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -278,9 +395,11 @@ const AdminMeetingPage = () => {
     const [groupsLoading, setGroupsLoading] = useState(false);
     const [editingMeetingId, setEditingMeetingId] = useState(null);
     const [showDeleteMeetingModal, setShowDeleteMeetingModal] = useState(false);
+    const [showWeeklyDeleteModal, setShowWeeklyDeleteModal] = useState(false);
     const [meetingToDelete, setMeetingToDelete] = useState(null);
     const [deletingMeeting, setDeletingMeeting] = useState(false);
     const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
+    const [weeklyDropdownOpen, setWeeklyDropdownOpen] = useState(null);
 
     const isMobileTablet = useMediaQuery("(max-width: 1024px)");
 
@@ -420,6 +539,8 @@ const AdminMeetingPage = () => {
             form.append("group_id", formData.group_id);
             form.append("status", formData.status);
             form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
+            form.append("weekly", formData.weeklyOption === "Active Weekly" ? "1" : formData.weeklyOption === "Deactive Weekly" ? "0" : "");
+
             if (formData.description) form.append("description", formData.description);
             form.append("poster_file", formData.poster_file);
             if (Array.isArray(formData.files)) {
@@ -461,24 +582,70 @@ const AdminMeetingPage = () => {
         }
     };
 
-    const handleDeleteMeetingClick = (meetingId) => {
+    const handleWeeklyStatusChange = async (meetingId, newStatus) => {
         if (!meetingId) return;
-        setMeetingToDelete(meetingId);
-        setShowDeleteMeetingModal(true);
+        try {
+            if (newStatus === 'active') {
+                // Use POST for activate recurrence
+                await api.post(`/meeting/${meetingId}/activate-recurrence`);
+                smartToast.success("Weekly recurrence activated successfully");
+            } else {
+                // Use PATCH for deactivate recurrence
+                await api.patch(`/meeting/${meetingId}/deactivate-recurrence`);
+                smartToast.success("Weekly recurrence deactivated successfully");
+            }
+
+            // Refresh meetings to show updated status
+            fetchMeetings();
+            window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+            try {
+                localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+            } catch {}
+        } catch (err) {
+            smartToast.error(err.response?.data?.message || `Failed to ${newStatus} weekly recurrence`);
+        }
+        setWeeklyDropdownOpen(null);
     };
 
-    const confirmDeleteMeeting = async () => {
+    const handleDeleteMeetingClick = (meeting) => {
+        if (!meeting) return;
+        const meetingId = meeting.id || meeting.meeting_id;
+        setMeetingToDelete({ ...meeting, meetingId });
+
+        // Show weekly delete modal if meeting is weekly active, otherwise show regular delete modal
+        if (meeting.is_weekly === 1) {
+            setShowWeeklyDeleteModal(true);
+        } else {
+            setShowDeleteMeetingModal(true);
+        }
+    };
+
+    const confirmDeleteMeeting = async (deleteAllWeeks = false) => {
         if (!meetingToDelete) return;
         setDeletingMeeting(true);
         try {
-            const res = await api.delete(`/meeting/${meetingToDelete}`);
+            const meetingId = meetingToDelete.meetingId || meetingToDelete.id || meetingToDelete.meeting_id;
+            const isWeeklyActive = meetingToDelete.is_weekly === 1;
+
+            let res;
+            if (isWeeklyActive && deleteAllWeeks) {
+                // First deactivate recurrence for all future weeks
+                await api.patch(`/meeting/${meetingId}/deactivate-recurrence`);
+                // Then delete the current meeting
+                res = await api.delete(`/meeting/${meetingId}`);
+            } else {
+                // Regular delete for this week only
+                res = await api.delete(`/meeting/${meetingId}`);
+            }
+
             if (res.data?.success !== false) {
-                setMeetings((prev) => prev.filter((m) => (m.id || m.meeting_id) !== meetingToDelete));
-                smartToast.success("Meeting deleted successfully");
+                setMeetings((prev) => prev.filter((m) => (m.id || m.meeting_id) !== meetingId));
+                smartToast.success(deleteAllWeeks ? "All weekly meetings deleted successfully" : "Meeting deleted successfully");
                 const flags = getStoredRecordFlags();
-                delete flags[meetingToDelete];
+                delete flags[meetingId];
                 localStorage.setItem(STORAGE_KEY_RECORD_FLAGS, JSON.stringify(flags));
                 setShowDeleteMeetingModal(false);
+                setShowWeeklyDeleteModal(false);
                 setMeetingToDelete(null);
                 window.dispatchEvent(new Event("calendarMeetingsUpdated"));
                 try {
@@ -487,11 +654,13 @@ const AdminMeetingPage = () => {
             } else {
                 smartToast.error(res.data?.message || "Failed to delete meeting");
                 setShowDeleteMeetingModal(false);
+                setShowWeeklyDeleteModal(false);
                 setMeetingToDelete(null);
             }
         } catch (err) {
             smartToast.error(err.response?.data?.message || "Error deleting meeting");
             setShowDeleteMeetingModal(false);
+            setShowWeeklyDeleteModal(false);
             setMeetingToDelete(null);
         } finally {
             setDeletingMeeting(false);
@@ -501,6 +670,12 @@ const AdminMeetingPage = () => {
     const closeDeleteMeetingModal = () => {
         if (deletingMeeting) return;
         setShowDeleteMeetingModal(false);
+        setMeetingToDelete(null);
+    };
+
+    const closeWeeklyDeleteModal = () => {
+        if (deletingMeeting) return;
+        setShowWeeklyDeleteModal(false);
         setMeetingToDelete(null);
     };
 
@@ -515,6 +690,7 @@ const AdminMeetingPage = () => {
             group_id: meeting.group_id || "",
             description: meeting.description || "",
             recordMeeting: isRecording(meeting.record_meeting) ? "Recording" : "Not Recording",
+            weeklyOption: "Active Weekly",
             poster_file: null,
             files: [],
         });
@@ -717,6 +893,45 @@ const AdminMeetingPage = () => {
                                         Recorded Meeting
                                     </div>
 
+                                    <div className="weekly-meeting-dropdown">
+                                        <button
+                                            type="button"
+                                            className={`weekly-meeting-trigger ${meeting.is_weekly === 1 ? "weekly-active" : meeting.is_weekly === 0 ? "weekly-inactive" : ""}`}
+                                            onClick={() => setWeeklyDropdownOpen(weeklyDropdownOpen === meeting.id ? null : meeting.id)}
+                                        >
+                                            {meeting.is_weekly === 1 ? (
+                                                <CalendarPlusIcon size={20} weight="fill" />
+                                            ) : meeting.is_weekly === 0 ? (
+                                                <CalendarXIcon size={20} weight="fill" />
+                                            ) : (
+                                                <CalendarPlusIcon size={20} weight="fill" />
+                                            )}
+                                            {meeting.is_weekly === 1 ? "Active Weekly" : meeting.is_weekly === 0 ? "Deactive Weekly" : "Set Weekly"}
+                                            <CaretDown size={12} weight="bold" />
+                                        </button>
+
+                                        {weeklyDropdownOpen === meeting.id && (
+                                            <div className="weekly-dropdown-menu">
+                                                <button
+                                                    type="button"
+                                                    className="weekly-dropdown-item"
+                                                    onClick={() => handleWeeklyStatusChange(meeting.id || meeting.meeting_id, 'active')}
+                                                >
+                                                    <CalendarPlusIcon size={16} weight="fill" />
+                                                    Active Weekly
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="weekly-dropdown-item"
+                                                    onClick={() => handleWeeklyStatusChange(meeting.id || meeting.meeting_id, 'deactive')}
+                                                >
+                                                    <CalendarXIcon size={16} weight="fill" />
+                                                    Deactive Weekly
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <p className="meeting-time">
                                         <strong>Time : </strong>
                                         {getTimeRange(meeting.start_time, meeting.end_time)}
@@ -747,7 +962,7 @@ const AdminMeetingPage = () => {
                                         <button
                                             type="button"
                                             className="meeting-card-action-btn delete-btn"
-                                            onClick={() => handleDeleteMeetingClick(meeting.id || meeting.meeting_id)}
+                                            onClick={() => handleDeleteMeetingClick(meeting)}
                                             title="Delete"
                                             aria-label="Delete meeting"
                                         >
@@ -819,6 +1034,14 @@ const AdminMeetingPage = () => {
                     </div>
                 </div>
             )}
+
+            <WeeklyDeleteModal
+                show={showWeeklyDeleteModal}
+                onClose={closeWeeklyDeleteModal}
+                onConfirmThisWeek={() => confirmDeleteMeeting(false)}
+                onConfirmAllWeeks={() => confirmDeleteMeeting(true)}
+                confirming={deletingMeeting}
+            />
 
             <ConfirmDeleteModal
                 show={showDeleteMeetingModal}
