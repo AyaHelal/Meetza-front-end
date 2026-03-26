@@ -135,6 +135,30 @@ export default function Calendar() {
     return now >= start && now < end;
   }, []);
 
+  const handleDeleteMeeting = async (meeting) => {
+    if (!meeting) return;
+    
+    const meetingId = meeting.id || meeting.meeting_id;
+    if (!meetingId) return;
+    
+    try {
+      await api.delete(`/meeting/${meetingId}`);
+      smartToast.success("Meeting deleted successfully");
+      
+      // Notify AdminMeetingPage and other calendar instances to refresh
+      window.dispatchEvent(new Event("calendarMeetingsUpdated"));
+      try {
+        localStorage.setItem("calendarMeetingsUpdatedAt", String(Date.now()));
+      } catch {}
+      
+      // Refresh calendar data
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      smartToast.error(error.response?.data?.message || "Failed to delete meeting");
+    }
+  };
+
   const handleJoinMeeting = useCallback(async (meeting) => {
     const id = getMeetingId(meeting);
     if (!id) return;
@@ -444,6 +468,26 @@ export default function Calendar() {
             }}
           >
             Join
+          </button>
+          <button
+            type="button"
+            className="calendar-context-menu-delete-btn"
+            style={{
+              width: "100%",
+              border: 0,
+              padding: "10px 12px",
+              textAlign: "left",
+              cursor: "pointer",
+              borderRadius: 8,
+              backgroundColor: "transparent",
+            }}
+            onClick={() => {
+              const meeting = contextMenu.meeting;
+              setContextMenu({ open: false, x: 0, y: 0, meeting: null });
+              handleDeleteMeeting(meeting);
+            }}
+          >
+            Delete
           </button>
         </div>
       ) : null}
