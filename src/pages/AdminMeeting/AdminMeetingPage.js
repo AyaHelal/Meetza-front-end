@@ -87,7 +87,7 @@ const emptyFormState = () => ({
     group_id: "",
     description: "",
     recordMeeting: "Recording",
-    weeklyOption: "Active Weekly",
+    weeklyOption: "Active",
     poster_file: null,
     files: [],
 });
@@ -201,8 +201,8 @@ function AdminCreateMeetingForm({
                         <input
                             type="radio"
                             name="weeklyOption"
-                            value="Active Weekly"
-                            checked={formData.weeklyOption === "Active Weekly"}
+                            value="Active"
+                            checked={formData.weeklyOption === "Active"}
                             onChange={handleInputChange}
                         />
                         Active
@@ -211,8 +211,8 @@ function AdminCreateMeetingForm({
                         <input
                             type="radio"
                             name="weeklyOption"
-                            value="Deactive Weekly"
-                            checked={formData.weeklyOption === "Deactive Weekly"}
+                            value="Deactive"
+                            checked={formData.weeklyOption === "Deactive"}
                             onChange={handleInputChange}
                         />
                         Deactive
@@ -539,7 +539,7 @@ const AdminMeetingPage = () => {
             form.append("group_id", formData.group_id);
             form.append("status", formData.status);
             form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
-            form.append("weekly", formData.weeklyOption === "Active Weekly" ? "1" : formData.weeklyOption === "Deactive Weekly" ? "0" : "");
+            form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "");
 
             if (formData.description) form.append("description", formData.description);
             form.append("poster_file", formData.poster_file);
@@ -629,10 +629,8 @@ const AdminMeetingPage = () => {
 
             let res;
             if (isWeeklyActive && deleteAllWeeks) {
-                // First deactivate recurrence for all future weeks
-                await api.patch(`/meeting/${meetingId}/deactivate-recurrence`);
-                // Then delete the current meeting
-                res = await api.delete(`/meeting/${meetingId}`);
+                // Delete all weekly meetings (series)
+                res = await api.delete(`/meeting/${meetingId}`, { params: { scope: 'series' } });
             } else {
                 // Regular delete for this week only
                 res = await api.delete(`/meeting/${meetingId}`);
@@ -690,7 +688,7 @@ const AdminMeetingPage = () => {
             group_id: meeting.group_id || "",
             description: meeting.description || "",
             recordMeeting: isRecording(meeting.record_meeting) ? "Recording" : "Not Recording",
-            weeklyOption: "Active Weekly",
+            weeklyOption: meeting.is_weekly === 1 ? "Active" : meeting.is_weekly === 0 ? "Deactive" : "Active",
             poster_file: null,
             files: [],
         });
@@ -719,6 +717,7 @@ const AdminMeetingPage = () => {
                 form.append("status", formData.status);
                 form.append("group_id", formData.group_id || originalMeeting.group_id);
                 form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
+                form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "");
                 if (formData.description != null) form.append("description", formData.description);
                 if (hasPoster) form.append("poster_file", formData.poster_file);
                 const res = await api.put(`/meeting/${editingMeetingId}`, form, {
@@ -742,6 +741,7 @@ const AdminMeetingPage = () => {
                     status: formData.status,
                     group_id: formData.group_id || originalMeeting.group_id,
                     recording: formData.recordMeeting === "Recording" ? "1" : "0",
+                    weekly: formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "",
                 };
                 const res = await api.put(`/meeting/${editingMeetingId}`, payload);
                 if (res.data?.success) {
