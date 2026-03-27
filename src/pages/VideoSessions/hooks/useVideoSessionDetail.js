@@ -529,29 +529,54 @@ export function useVideoSessionDetail(session, options = {}) {
     };
   }, [detail?.videoUrl, session?.videoUrl, videoDuration]);
 
-  const formatRelativeTime = useCallback((isoString) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    if (Number.isNaN(date.getTime())) return "";
-    let diff = Math.max(0, new Date().getTime() - date.getTime());
-    const sec = Math.floor(diff / 1000);
-    if (sec < 10) return "just now";
-    if (sec < 60) return `${sec} seconds ago`;
-    const min = Math.floor(sec / 60);
-    if (min === 1) return "1 minute ago";
-    if (min < 60) return `${min} minutes ago`;
-    const hour = Math.floor(min / 60);
-    if (hour === 1) return "1 hour ago";
-    if (hour < 24) return `${hour} hours ago`;
-    const day = Math.floor(hour / 24);
-    if (day === 1) return "1 day ago";
-    if (day < 30) return `${day} days ago`;
-    const month = Math.floor(day / 30);
-    if (month === 1) return "1 month ago";
-    if (month < 12) return `${month} months ago`;
-    const year = Math.floor(month / 12);
-    return year === 1 ? "1 year ago" : `${year} years ago`;
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  const formatRelativeTime = useCallback(
+    (isoString) => {
+      if (!isoString) return "";
+      let date = new Date(isoString);
+
+      // Handle MySQL datetime string "YYYY-MM-DD HH:mm:ss" - treat as UTC
+      if (typeof isoString === "string" && !isoString.includes("T") && !isoString.includes("Z")) {
+        date = new Date(isoString.replace(" ", "T") + "Z");
+      }
+
+      if (Number.isNaN(date.getTime())) return "";
+      let diff = Math.max(0, new Date().getTime() - date.getTime());
+      const sec = Math.floor(diff / 1000);
+
+      if (sec < 10) return "just now";
+      if (sec < 60) return `${sec} seconds ago`;
+
+      const min = Math.floor(sec / 60);
+      if (min === 1) return "1 minute ago";
+      if (min < 60) return `${min} minutes ago`;
+
+      const hour = Math.floor(min / 60);
+      if (hour === 1) return "1 hour ago";
+      if (hour < 24) return `${hour} hours ago`;
+
+      const day = Math.floor(hour / 24);
+      if (day === 1) return "1 day ago";
+      if (day < 30) return `${day} days ago`;
+
+      const month = Math.floor(day / 30);
+      if (month === 1) return "1 month ago";
+      if (month < 12) return `${month} months ago`;
+
+      const year = Math.floor(month / 12);
+      if (year === 1) return "1 year ago";
+      return `${year} years ago`;
+    },
+    [tick]
+  );
 
   const getDaySuffix = useCallback((d) => {
     if (d >= 11 && d <= 13) return "th";
@@ -565,13 +590,21 @@ export function useVideoSessionDetail(session, options = {}) {
 
   const formatFullDate = useCallback((dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    let date = new Date(dateString);
+
+    // Same MySQL fix
+    if (typeof dateString === "string" && !dateString.includes("T") && !dateString.includes("Z")) {
+      date = new Date(dateString.replace(" ", "T") + "Z");
+    }
+
     if (Number.isNaN(date.getTime())) return "";
-    const day = date.getUTCDate();
-    const month = date.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
-    const year = date.getUTCFullYear();
-    return `${day}${getDaySuffix(day)} of ${month} ${year}`;
-  }, [getDaySuffix]);
+
+    return date.toLocaleDateString("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, []);
 
   const formatTime = useCallback((seconds) => {
     if (!seconds || Number.isNaN(seconds)) return "00:00";
