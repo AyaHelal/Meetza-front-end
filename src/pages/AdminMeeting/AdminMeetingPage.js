@@ -211,11 +211,11 @@ function AdminCreateMeetingForm({
                         <input
                             type="radio"
                             name="weeklyOption"
-                            value="Deactive"
-                            checked={formData.weeklyOption === "Deactive"}
+                            value="Inactive"
+                            checked={formData.weeklyOption === "Inactive"}
                             onChange={handleInputChange}
                         />
-                        Deactive
+                        Inactive
                     </label>
                 </div>
             </div>
@@ -539,7 +539,7 @@ const AdminMeetingPage = () => {
             form.append("group_id", formData.group_id);
             form.append("status", formData.status);
             form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
-            form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "");
+            form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Inactive" ? "0" : "");
 
             if (formData.description) form.append("description", formData.description);
             form.append("poster_file", formData.poster_file);
@@ -688,7 +688,7 @@ const AdminMeetingPage = () => {
             group_id: meeting.group_id || "",
             description: meeting.description || "",
             recordMeeting: isRecording(meeting.record_meeting) ? "Recording" : "Not Recording",
-            weeklyOption: meeting.is_weekly === 1 ? "Active" : meeting.is_weekly === 0 ? "Deactive" : "Active",
+            weeklyOption: meeting.is_weekly === 1 ? "Active" : meeting.is_weekly === 0 ? "Inactive" : "Active",
             poster_file: null,
             files: [],
         });
@@ -717,7 +717,7 @@ const AdminMeetingPage = () => {
                 form.append("status", formData.status);
                 form.append("group_id", formData.group_id || originalMeeting.group_id);
                 form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
-                form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "");
+                form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Inactive" ? "0" : "");
                 if (formData.description != null) form.append("description", formData.description);
                 if (hasPoster) form.append("poster_file", formData.poster_file);
                 const res = await api.put(`/meeting/${editingMeetingId}`, form, {
@@ -741,7 +741,7 @@ const AdminMeetingPage = () => {
                     status: formData.status,
                     group_id: formData.group_id || originalMeeting.group_id,
                     recording: formData.recordMeeting === "Recording" ? "1" : "0",
-                    weekly: formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Deactive" ? "0" : "",
+                    weekly: formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Inactive" ? "0" : "",
                 };
                 const res = await api.put(`/meeting/${editingMeetingId}`, payload);
                 if (res.data?.success) {
@@ -906,7 +906,7 @@ const AdminMeetingPage = () => {
                                             ) : (
                                                 <CalendarPlusIcon size={20} weight="fill" />
                                             )}
-                                            {meeting.is_weekly === 1 ? "Active Weekly" : meeting.is_weekly === 0 ? "Deactive Weekly" : "Set Weekly"}
+                                            {meeting.is_weekly === 1 ? "Active Weekly" : meeting.is_weekly === 0 ? "Inactive Weekly" : "Set Weekly"}
                                             <CaretDown size={12} weight="bold" />
                                         </button>
 
@@ -923,10 +923,10 @@ const AdminMeetingPage = () => {
                                                 <button
                                                     type="button"
                                                     className="weekly-dropdown-item"
-                                                    onClick={() => handleWeeklyStatusChange(meeting.id || meeting.meeting_id, 'deactive')}
+                                                    onClick={() => handleWeeklyStatusChange(meeting.id || meeting.meeting_id, 'Inactive')}
                                                 >
                                                     <CalendarXIcon size={16} weight="fill" />
-                                                    Deactive Weekly
+                                                    Inactive Weekly
                                                 </button>
                                             </div>
                                         )}

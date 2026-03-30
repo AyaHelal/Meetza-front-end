@@ -379,10 +379,25 @@ export function useVideoSessionDetail(session, options = {}) {
       setLoadingDetail(true);
       setDetailError(null);
       try {
-        const data = await getVideoDetail(session.id);
+        const [data, commentsData] = await Promise.all([
+          getVideoDetail(session.id),
+          getVideoComments(session.id).catch(() => null)
+        ]);
+
         if (cancelled) return;
+
         const v = data.video ?? {};
         const admin = data.admin ?? {};
+        
+        // Use comments from specialized call if successful, otherwise fallback to detail data
+        const finalComments = (commentsData && Array.isArray(commentsData.comments)) 
+          ? commentsData.comments 
+          : (Array.isArray(data.comments) ? data.comments : []);
+          
+        const finalCommentCount = (commentsData && typeof commentsData.commentCount === 'number')
+          ? commentsData.commentCount
+          : (data.commentCount ?? finalComments.length);
+
         const parsedDetail = {
           title: v.title ?? session.title,
           description: data.description ?? v.description ?? session.description,
@@ -392,7 +407,7 @@ export function useVideoSessionDetail(session, options = {}) {
           likesCount: data.likes_count ?? 0,
           dislikesCount: data.dislikes_count ?? 0,
           savedCount: data.saved_count ?? 0,
-          commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : 0),
+          commentCount: finalCommentCount,
           topics: data.topics ?? session.topics ?? { ar: [], en: [] },
         };
         const rawSaved = data.is_saved ?? data.isSaved ?? data.saved ?? null;
@@ -424,11 +439,9 @@ export function useVideoSessionDetail(session, options = {}) {
         const isDisliked = data.user_dislike ?? data.is_disliked ?? data.user_disliked ?? data.disliked ?? data.has_disliked ?? v.user_dislike ?? v.is_disliked ?? false;
         setLiked(Boolean(isLiked));
         setDisliked(Boolean(isDisliked));
-        const commentsData = await getVideoComments(session.id);
-        if (cancelled) return;
-        const nested = nestComments(Array.isArray(commentsData.comments) ? commentsData.comments : []);
+
+        const nested = nestComments(finalComments);
         setComments(nested);
-        setDetail((prev) => ({ ...prev, commentCount: commentsData.commentCount ?? parsedDetail.commentCount }));
       } catch (err) {
         if (!cancelled) setDetailError(err?.message || "Failed to load video details");
       } finally {
@@ -599,12 +612,13 @@ export function useVideoSessionDetail(session, options = {}) {
 
     if (Number.isNaN(date.getTime())) return "";
 
-    return date.toLocaleDateString("ar-EG", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  }, []);
+    const d = date.getDate();
+    const m = date.toLocaleString("en-US", { month: "long" });
+    const y = date.getFullYear();
+    const suffix = getDaySuffix(d);
+
+    return `${d}${suffix} of ${m} ${y}`;
+  }, [getDaySuffix]);
 
   const formatTime = useCallback((seconds) => {
     if (!seconds || Number.isNaN(seconds)) return "00:00";
