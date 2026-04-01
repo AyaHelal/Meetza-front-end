@@ -46,7 +46,20 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap, setMediaStateMap } = useMeetingContext();
+  const {
+    participants,
+    setParticipants,
+    setMeetingId,
+    setHasJoined,
+    hasJoined,
+    addChatMessage,
+    localParticipantAudioMuted,
+    setLocalParticipantAudioMuted,
+    mediaStateMap,
+    setMediaStateMap,
+    micLockedByAdmin,
+    setMicLockedByAdmin,
+  } = useMeetingContext();
 
   // Get persistent media streams and state from MediaContext
   const {
@@ -94,7 +107,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const lastMeetingIdForPreJoinRef = useRef(null);
   const preJoinPromptedRef = useRef({});
   const preJoinCompletedRef = useRef({});
-  const preJoinOpenedThisLoadRef = useRef(false);
 
   const meetingId = useMeetingRoomMeetingId({
     location,
@@ -127,6 +139,14 @@ const MeetingRoom = ({ recordRegionRef }) => {
       sessionStorage.setItem("meetza_videoMuted", String(videoMuted));
     } catch { /* ignore */ }
   }, [audioMuted, videoMuted]);
+
+  useEffect(() => {
+    setMicLockedByAdmin(false);
+  }, [meetingId, setMicLockedByAdmin]);
+
+  useEffect(() => {
+    if (!hasJoined) setMicLockedByAdmin(false);
+  }, [hasJoined, setMicLockedByAdmin]);
 
   const rtc = useMeetingRoomRtc({
     socket,
@@ -161,6 +181,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     localParticipantVolume,
     remoteVideoRefsMap,
     screenTrackRef,
+    micLockedByAdmin,
   });
 
   const preJoin = useMeetingPreJoin((stream, videoMuted, audioMuted) => {
@@ -180,7 +201,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
         sessionStorage.setItem(`meeting_preJoinCompleted_${key}`, "true");
       } catch { /* ignore */ }
     });
-    preJoinOpenedThisLoadRef.current = true;
     rtc.startJoinRef.current?.({ preObtainedStream: stream, initialVideoMuted: videoMuted, initialAudioMuted: audioMuted });
   });
 
@@ -215,7 +235,8 @@ const MeetingRoom = ({ recordRegionRef }) => {
       }
     })();
     const activeMeetingId = (() => { try { return sessionStorage.getItem("activeMeetingId"); } catch { return null; } })();
-    const stableKey = activeMeetingId ? String(activeMeetingId) : String(mid);
+    // Always key pre-join state by the meeting we are opening — not stale activeMeetingId from another meeting
+    const stableKey = String(mid);
     const isReturning = !!activeMeetingId && String(activeMeetingId) === String(mid);
     const storedHasJoined = (() => { try { return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true"; } catch { return false; } })();
     const firstJoin = !isReturning && !hasJoined && !storedHasJoined;
@@ -227,12 +248,14 @@ const MeetingRoom = ({ recordRegionRef }) => {
       }
     })();
     const alreadyEnteredThisLoad = !!preJoinCompletedRef.current[stableKey] || completedFromStorage;
-    const shouldShowPreJoin = (!preJoinOpenedThisLoadRef.current && !alreadyEnteredThisLoad && firstJoin) || (isPageReload && isReturning);
+    // Do NOT use a "modal already opened" ref in shouldShowPreJoin: after the first open we set
+    // preJoinPromptedRef, and on socket reconnect isConnected flips → effect re-runs. If shouldShowPreJoin
+    // then became false, we would fall through to startAndJoinMeetingRtc and skip the lobby entirely.
+    const shouldShowPreJoin = (!alreadyEnteredThisLoad && firstJoin) || (isPageReload && isReturning);
     if (shouldShowPreJoin) {
-      // Guard: don't reopen the modal repeatedly due to reconnects/rerenders.
+      // Open modal once per meeting id; on reconnect still return here so we never auto-join past the lobby.
       if (!preJoinPromptedRef.current[stableKey]) {
         preJoinPromptedRef.current[stableKey] = true;
-        preJoinOpenedThisLoadRef.current = true;
         setShowPreJoinModal(true);
       }
       return;
@@ -505,6 +528,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setContextAudioMuted,
     setLocalParticipantAudioMuted,
     getVideoMuted: () => videoMuted,
+    getAudioMuted: () => audioMuted,
+    setVideoMuted,
+    setContextVideoMuted,
+    setMicLockedByAdmin,
   });
 
   const handleToggleScreenShare = async () => {
@@ -604,6 +631,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
         setCommentText={chat.setCommentText}
         audioMuted={audioMuted}
         videoMuted={videoMuted}
+        micLockedByAdmin={micLockedByAdmin}
         handRaised={hand.handRaised}
         screenSharing={screenSharing}
         meetingId={meetingId}

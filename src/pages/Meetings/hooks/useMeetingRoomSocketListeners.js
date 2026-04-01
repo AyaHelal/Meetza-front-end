@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { toParticipant } from "../components/meetingRoomUtils";
+import { toParticipant, isScreenShareVideoTrack } from "../components/meetingRoomUtils";
 import * as webrtcService from "../../../services/webrtcService";
 import * as meetingSocketService from "../services/meetingSocketService";
 
@@ -34,6 +34,10 @@ export function useMeetingRoomSocketListeners({
   setContextAudioMuted,
   setLocalParticipantAudioMuted,
   getVideoMuted,
+  getAudioMuted,
+  setVideoMuted,
+  setContextVideoMuted,
+  setMicLockedByAdmin,
 }) {
   const toP = toParticipantFn || toParticipant;
 
@@ -320,8 +324,26 @@ export function useMeetingRoomSocketListeners({
         return next;
       });
     };
+    /** Disable/enable audio leaving this device to every peer (stream tracks + all RTCRtpSender audio tracks). */
+    const syncLocalOutgoingAudio = (muted) => {
+      const enabled = !muted;
+      const stream = localStreamRef?.current;
+      if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = enabled));
+      if (peersRef?.current) {
+        for (const [, pc] of peersRef.current.entries()) {
+          if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+          pc.getSenders()
+            .filter((s) => s.track?.kind === "audio")
+            .forEach((s) => {
+              if (s.track) s.track.enabled = enabled;
+            });
+        }
+      }
+    };
+
     const onMediaStateUpdated = (data) => {
-      const sid = data?.socketId || data?.id;
+      // Some servers send targetSocketId when an admin action affects another participant
+      const sid = data?.targetSocketId || data?.socketId || data?.id;
       const mid = data?.meetingId;
       if (!sid || !mid || mid !== meetingIdRef.current) return;
       setMediaStateMap((m) => ({
@@ -332,20 +354,121 @@ export function useMeetingRoomSocketListeners({
           ...(data.videoMuted !== undefined && { videoMuted: !!data.videoMuted }),
         },
       }));
-      // Keep localParticipantAudioMuted in sync for other participants (so admin list reflects mute/unmute from target)
+      // Keep localParticipantAudioMuted in sync for every client (tiles + participant list mute playback)
       if (setLocalParticipantAudioMuted && data.audioMuted !== undefined) {
         setLocalParticipantAudioMuted((prev) => ({ ...prev, [sid]: !!data.audioMuted }));
       }
-      // When admin muted us: show mic as muted in control bar + participants list and disable our audio tracks
+      // When our mic state changed (self): UI + stop audio to all peers
       if (sid === socket.id && setAudioMuted && setContextAudioMuted && setLocalParticipantAudioMuted) {
         if (data.audioMuted !== undefined) {
           const muted = !!data.audioMuted;
           setAudioMuted(muted);
           setContextAudioMuted(muted);
           setLocalParticipantAudioMuted((prev) => ({ ...prev, [socket.id]: muted }));
-          const stream = localStreamRef.current;
-          if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !muted));
+          syncLocalOutgoingAudio(muted);
         }
+      }
+    };
+
+    /**
+     * Target client: server sends adminMuteYou (or legacy adminSetYourAudio).
+     * Applies outgoing audio/video and echoes updateMediaState.
+     */
+    const applyForcedMediaFromAdmin = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+
+      const nextAudio =
+        typeof data.audioMuted === "boolean"
+          ? data.audioMuted
+          : typeof data.muted === "boolean"
+            ? data.muted
+            : undefined;
+
+      if (nextAudio !== undefined) {
+        if (setAudioMuted) setAudioMuted(nextAudio);
+        if (setContextAudioMuted) setContextAudioMuted(nextAudio);
+        syncLocalOutgoingAudio(nextAudio);
+        if (setLocalParticipantAudioMuted) {
+          setLocalParticipantAudioMuted((prev) => ({ ...prev, [socket.id]: nextAudio }));
+        }
+        if (setMicLockedByAdmin) {
+          setMicLockedByAdmin(!!nextAudio);
+        }
+      }
+
+      if (data.videoMuted === true && setVideoMuted && setContextVideoMuted) {
+        setVideoMuted(true);
+        setContextVideoMuted(true);
+        const stream = localStreamRef?.current;
+        if (stream) {
+          stream.getVideoTracks().forEach((t) => {
+            if (!isScreenShareVideoTrack(t)) t.enabled = false;
+          });
+        }
+        if (peersRef?.current) {
+          for (const [, pc] of peersRef.current.entries()) {
+            if (pc.signalingState === "closed" || pc.connectionState === "closed") continue;
+            pc.getSenders()
+              .filter((s) => s.track?.kind === "video" && s.track && !isScreenShareVideoTrack(s.track))
+              .forEach((s) => {
+                s.track.enabled = false;
+              });
+          }
+        }
+      }
+
+      const outA =
+        typeof data.audioMuted === "boolean"
+          ? data.audioMuted
+          : typeof data.muted === "boolean"
+            ? data.muted
+            : typeof getAudioMuted === "function"
+              ? getAudioMuted()
+              : true;
+      const outV =
+        typeof data.videoMuted === "boolean"
+          ? data.videoMuted
+          : typeof getVideoMuted === "function"
+            ? getVideoMuted()
+            : true;
+      meetingSocketService.updateMediaState(socket, mid, outA, outV);
+    };
+
+    /** Room broadcast (e.g. participantMutedByAdmin): update everyone’s maps; target also applies tracks if included. */
+    const onRoomAdminParticipantMute = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+      const sid = data?.targetSocketId ?? data?.socketId ?? data?.id;
+      if (!sid) return;
+
+      const audioEffective =
+        typeof data?.audioMuted === "boolean"
+          ? data.audioMuted
+          : typeof data?.muted === "boolean"
+            ? data.muted
+            : undefined;
+      const hasVideo = typeof data?.videoMuted === "boolean";
+      if (audioEffective === undefined && !hasVideo) return;
+
+      setMediaStateMap((m) => ({
+        ...m,
+        [sid]: {
+          ...(m[sid] || {}),
+          ...(audioEffective !== undefined && { audioMuted: !!audioEffective }),
+          ...(hasVideo && { videoMuted: !!data.videoMuted }),
+        },
+      }));
+      if (setLocalParticipantAudioMuted && audioEffective !== undefined) {
+        setLocalParticipantAudioMuted((prev) => ({ ...prev, [sid]: !!audioEffective }));
+      }
+
+      if (sid === socket.id) {
+        applyForcedMediaFromAdmin({
+          meetingId: mid,
+          ...(audioEffective !== undefined && { audioMuted: audioEffective }),
+          ...(hasVideo && { videoMuted: data.videoMuted }),
+        });
       }
     };
 
@@ -355,19 +478,16 @@ export function useMeetingRoomSocketListeners({
     socket.on("handRaised", onHandRaised);
     socket.on("mediaStateUpdated", onMediaStateUpdated);
 
-    // Admin muted/unmuted this participant — apply real mic mute (track + state + broadcast)
-    const onAdminSetYourAudio = (data) => {
-      const mid = data?.meetingId;
-      if (!mid || mid !== meetingIdRef.current) return;
-      const muted = !!data.audioMuted;
-      if (setAudioMuted) setAudioMuted(muted);
-      if (setContextAudioMuted) setContextAudioMuted(muted);
-      const stream = localStreamRef?.current;
-      if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !muted));
-      const videoMuted = typeof getVideoMuted === "function" ? getVideoMuted() : undefined;
-      meetingSocketService.updateMediaState(socket, mid, muted, videoMuted);
-    };
-    socket.on("adminSetYourAudio", onAdminSetYourAudio);
+    socket.on(meetingSocketService.MEETING_EVENTS.ADMIN_MUTE_YOU, applyForcedMediaFromAdmin);
+    socket.on("adminSetYourAudio", applyForcedMediaFromAdmin);
+
+    const roomAdminMuteEvents = [
+      meetingSocketService.MEETING_EVENTS.PARTICIPANT_MUTED_BY_ADMIN,
+      meetingSocketService.MEETING_EVENTS.PARTICIPANT_ADMIN_MUTE,
+      meetingSocketService.MEETING_EVENTS.PARTICIPANT_ADMIN_MUTE_ALT,
+      "adminMuteParticipantBroadcast",
+    ];
+    roomAdminMuteEvents.forEach((ev) => socket.on(ev, onRoomAdminParticipantMute));
 
     const onReaction = (data) => {
       try {
@@ -418,7 +538,9 @@ export function useMeetingRoomSocketListeners({
       socket.off("webrtcIceCandidate", onIceCandidate);
       socket.off("handRaised", onHandRaised);
       socket.off("mediaStateUpdated", onMediaStateUpdated);
-      socket.off("adminSetYourAudio", onAdminSetYourAudio);
+      socket.off(meetingSocketService.MEETING_EVENTS.ADMIN_MUTE_YOU, applyForcedMediaFromAdmin);
+      socket.off("adminSetYourAudio", applyForcedMediaFromAdmin);
+      roomAdminMuteEvents.forEach((ev) => socket.off(ev, onRoomAdminParticipantMute));
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);

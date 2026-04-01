@@ -17,6 +17,8 @@ export const MeetingProvider = ({ children }) => {
   const [meetingId, setMeetingIdState] = useState(null);
   const [hasJoined, setHasJoined] = useState(false);
   const [localParticipantAudioMuted, setLocalParticipantAudioMutedState] = useState({});
+  /** When true, host muted you — mic control is disabled until host unmutes */
+  const [micLockedByAdmin, setMicLockedByAdminState] = useState(false);
   const [mediaStateMap, setMediaStateMapState] = useState({});
   const setMediaStateMap = useCallback((updater) => {
     setMediaStateMapState((prev) => (typeof updater === "function" ? updater(prev) : updater));
@@ -54,6 +56,12 @@ export const MeetingProvider = ({ children }) => {
 
   const setLocalParticipantAudioMuted = useCallback((updater) => {
     setLocalParticipantAudioMutedState((prev) => (typeof updater === "function" ? updater(prev) : updater));
+  }, []);
+
+  const setMicLockedByAdmin = useCallback((value) => {
+    setMicLockedByAdminState((prev) =>
+      typeof value === "function" ? !!value(prev) : !!value
+    );
   }, []);
 
   // Load messages when meetingId is set (including on initial mount)
@@ -137,6 +145,8 @@ export const MeetingProvider = ({ children }) => {
     addChatMessage,
     localParticipantAudioMuted,
     setLocalParticipantAudioMuted,
+    micLockedByAdmin,
+    setMicLockedByAdmin,
     mediaStateMap,
     setMediaStateMap,
   };
