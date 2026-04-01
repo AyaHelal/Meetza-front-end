@@ -575,12 +575,37 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
 }
 
 .calendar-month-grid-meeting-title {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.calendar-month-grid-delete-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.calendar-month-grid-delete-btn:hover {
+  color: #fff;
+  background-color: rgba(239, 68, 68, 0.9);
+  transform: scale(1.1);
 }
 
 .calendar-week-grid {
@@ -888,17 +913,48 @@
   flex-shrink: 0;
 }
 
+.calendar-event-card-body-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 4px;
+}
+
 .calendar-event-card-title {
   margin: 0;
   padding: 8px 10px 2px;
   font-size: 0.95rem;
   font-weight: 700;
   color: #1f2937;
+  flex: 1;
+}
+
+.calendar-card-delete-icon {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 6px;
+  margin-top: 6px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.calendar-card-delete-icon:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+  transform: scale(1.1);
 }
 
 .calendar-event-card-desc {
   margin: 0;
-  padding: 0 9px 9px;
+  padding: 0 10px 10px;
   font-size: 0.8rem;
   color: #6b7280;
   line-height: 1.35;

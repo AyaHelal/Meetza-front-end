@@ -16,6 +16,7 @@ import {
   buildWeekEvents,
   filterMeetingsByView,
   filterMeetingsByDateRange,
+  isMeetingLive,
 } from "./utils/calendarUtils";
 import "./Calendar.css";
 
@@ -44,7 +45,11 @@ export default function Calendar() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { socket } = useSocket();
 
-  const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, meeting: null });
+
+  const isAdminRole = useMemo(() => {
+    const role = (user?.role || "").toString().trim().toLowerCase();
+    return role === "administrator" || role.includes("super_admin") || role.includes("super-admin");
+  }, [user]);
 
   // When user clears search, restore the date they were viewing before they searched.
   const dateBeforeSearchRef = useRef(null);
@@ -66,7 +71,6 @@ export default function Calendar() {
     let cancelled = false;
 
     const userRole = (user?.role || "").toString().trim().toLowerCase();
-    const isAdminRole = userRole === "administrator" || userRole.includes("super_admin") || userRole.includes("super-admin");
     const endpoint = isAdminRole ? "/group" : "/chat/groups";
 
     api
@@ -101,42 +105,15 @@ export default function Calendar() {
     };
   }, [user?.role]);
 
-  useEffect(() => {
-    const handleClose = () => setContextMenu((prev) => (prev.open ? { open: false, x: 0, y: 0, meeting: null } : prev));
-    const handleEsc = (e) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("mousedown", handleClose);
-    window.addEventListener("scroll", handleClose, true);
-    window.addEventListener("keydown", handleEsc);
-    return () => {
-      window.removeEventListener("mousedown", handleClose);
-      window.removeEventListener("scroll", handleClose, true);
-      window.removeEventListener("keydown", handleEsc);
-    };
-  }, []);
 
   const getMeetingId = useCallback((m) => {
     if (!m) return null;
     return m.id ?? m.meeting_id ?? m.meetingId ?? null;
   }, []);
 
-  const isMeetingLive = useCallback((m) => {
-    if (!m) return false;
-    const status = (m.status || "").toString().trim().toLowerCase();
-    if (["completed", "cancelled"].includes(status)) return false;
-    const startRaw = m.start_time ?? m.startTime ?? m.start;
-    const endRaw = m.end_time ?? m.endTime ?? m.end;
-    if (!startRaw || !endRaw) return false;
-    const start = new Date(startRaw);
-    const end = new Date(endRaw);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
-    const now = new Date();
-    return now >= start && now < end;
-  }, []);
 
   const handleDeleteMeeting = async (meeting) => {
-    if (!meeting) return;
+    if (!meeting || !isAdminRole) return;
     
     const meetingId = meeting.id || meeting.meeting_id;
     if (!meetingId) return;
@@ -170,13 +147,6 @@ export default function Calendar() {
     }
   }, [getMeetingId, navigate]);
 
-  const handleMeetingRightClick = useCallback((e, meeting) => {
-    if (!meeting) return;
-    if (!isMeetingLive(meeting)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ open: true, x: e.clientX, y: e.clientY, meeting });
-  }, [isMeetingLive]);
 
   const weekDates = useMemo(() => {
     if (viewMode === VIEW_MODE.DAY) {
@@ -432,65 +402,6 @@ export default function Calendar() {
 
   return (
     <div className="calendar-page">
-      {contextMenu.open ? (
-        <div
-          style={{
-            position: "fixed",
-            top: contextMenu.y,
-            left: contextMenu.x,
-            background: "#fff",
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 10,
-            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
-            padding: 6,
-            zIndex: 9999,
-            minWidth: 140,
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          <button
-            type="button"
-            className="calendar-context-menu-join-btn"
-            style={{
-              width: "100%",
-              border: 0,
-              padding: "10px 12px",
-              textAlign: "left",
-              cursor: "pointer",
-              borderRadius: 8,
-            }}
-            onClick={() => {
-              const meeting = contextMenu.meeting;
-              setContextMenu({ open: false, x: 0, y: 0, meeting: null });
-              handleJoinMeeting(meeting);
-            }}
-          >
-            Join
-          </button>
-          <button
-            type="button"
-            className="calendar-context-menu-delete-btn"
-            style={{
-              width: "100%",
-              border: 0,
-              padding: "10px 12px",
-              textAlign: "left",
-              cursor: "pointer",
-              borderRadius: 8,
-              backgroundColor: "transparent",
-            }}
-            onClick={() => {
-              const meeting = contextMenu.meeting;
-              setContextMenu({ open: false, x: 0, y: 0, meeting: null });
-              handleDeleteMeeting(meeting);
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      ) : null}
       <div className="calendar-toolbar-card">
         <CalendarHeader />
       <CalendarToolbar
@@ -517,17 +428,21 @@ export default function Calendar() {
       ) : showWeekLikeGrid ? (
         <CalendarWeekGrid
           events={filteredWeekEvents}
-        weekDates={weekDates}
+          weekDates={weekDates}
           onPrev={goPrev}
           onNext={goNext}
-          onMeetingRightClick={handleMeetingRightClick}
+          onJoinMeeting={handleJoinMeeting}
+          onDeleteMeeting={handleDeleteMeeting}
+          isAdminRole={isAdminRole}
         />
       ) : (
         <CalendarMonthGrid
           currentDate={currentDate}
           meetings={filteredMonthMeetings}
           groupsMap={groupsMap}
-          onMeetingRightClick={handleMeetingRightClick}
+          onJoinMeeting={handleJoinMeeting}
+          onDeleteMeeting={handleDeleteMeeting}
+          isAdminRole={isAdminRole}
         />
       )}
     </div>

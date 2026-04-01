@@ -25,7 +25,7 @@ function isSameDay(a, b) {
   );
 }
 
-export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext, onMeetingRightClick }) {
+export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext, onJoinMeeting, onDeleteMeeting, isAdminRole }) {
   const today = new Date();
   const headerDaysScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
@@ -190,7 +190,9 @@ export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext, on
                       <CalendarEventCard
                         key={ev.id}
                         event={ev}
-                        onMeetingRightClick={onMeetingRightClick}
+                        onJoinMeeting={onJoinMeeting}
+                        onDeleteMeeting={onDeleteMeeting}
+                        isAdminRole={isAdminRole}
                         style={{
                           top: cardTop,
                           height: cardHeight,
