@@ -330,3 +330,16 @@ export function formatCompactTimeRange(start, end) {
     d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   return `${fmt(start)} – ${fmt(end)}`;
 }
+export function isMeetingLive(m) {
+  if (!m) return false;
+  const status = (m.status || "").toString().trim().toLowerCase();
+  if (["completed", "cancelled"].includes(status)) return false;
+  const startRaw = m.start_time ?? m.startTime ?? m.start;
+  const endRaw = m.end_time ?? m.endTime ?? m.end;
+  if (!startRaw || !endRaw) return false;
+  const start = new Date(startRaw);
+  const end = new Date(endRaw);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+  const now = new Date();
+  return now >= start && now < end;
+}

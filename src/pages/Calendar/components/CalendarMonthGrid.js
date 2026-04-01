@@ -1,7 +1,14 @@
 import React, { useMemo } from "react";
-import { getMonthMatrix, formatTimeRange } from "../utils/calendarUtils";
+import { Trash } from "@phosphor-icons/react";
+import { getMonthMatrix, formatTimeRange, isMeetingLive } from "../utils/calendarUtils";
 
-export default function CalendarMonthGrid({ currentDate, meetings, onMeetingRightClick }) {
+export default function CalendarMonthGrid({ 
+  currentDate, 
+  meetings, 
+  onJoinMeeting, 
+  onDeleteMeeting, 
+  isAdminRole 
+}) {
   const matrix = useMemo(() => getMonthMatrix(currentDate), [currentDate]);
   const month = currentDate.getMonth();
 
@@ -65,11 +72,26 @@ export default function CalendarMonthGrid({ currentDate, meetings, onMeetingRigh
                         <div
                           key={meeting.id ?? meeting.meeting_id ?? `${start.getTime()}`}
                           className="calendar-month-grid-meeting"
-                          style={{ backgroundColor: bg }}
+                          style={{ backgroundColor: bg, cursor: isMeetingLive(meeting) ? "pointer" : "default" }}
                           title={`${title} — ${formatTimeRange(start, end)}`}
-                          onContextMenu={(e) => onMeetingRightClick?.(e, meeting)}
+                          onClick={() => {
+                            if (isMeetingLive(meeting)) onJoinMeeting?.(meeting);
+                          }}
                         >
                           <span className="calendar-month-grid-meeting-title">{title}</span>
+                          {isAdminRole && (
+                            <button
+                              type="button"
+                              className="calendar-month-grid-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteMeeting?.(meeting);
+                              }}
+                              title="Delete meeting"
+                            >
+                              <Trash size={12} weight="bold" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
