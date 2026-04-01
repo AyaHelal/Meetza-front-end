@@ -221,16 +221,27 @@ const MeetingRightSidebar = () => {
         });
     }, [participants, meetingInfo?.administrator_id]);
 
-    // Handler to mute/unmute a participant — tells the participant to mute their mic (real mute at their side)
-    const handleAdminMuteParticipant = useCallback((participantSocketId, shouldMute) => {
-        if (!participantSocketId) return;
-        setLocalParticipantAudioMuted((prev) => ({ ...prev, [participantSocketId]: shouldMute }));
+    // Backend expects { meetingId, targetUserId, audioMuted, videoMuted } → target gets "adminMuteYou", room gets "participantMutedByAdmin"
+    const handleAdminMuteParticipant = useCallback((participant, shouldMute) => {
+        const socketId = participant?.socketId;
+        const targetUserId = getParticipantUserId(participant);
+        if (!socketId || targetUserId == null || String(targetUserId).trim() === "") return;
+        setLocalParticipantAudioMuted((prev) => ({ ...prev, [socketId]: shouldMute }));
         if (socket && meetingId) {
-            socket.emit("adminMuteParticipant", {
-                meetingId,
-                targetSocketId: participantSocketId,
-                muted: shouldMute,
-            });
+            socket.emit(
+                "adminMuteParticipant",
+                {
+                    meetingId,
+                    targetUserId,
+                    audioMuted: shouldMute,
+                    videoMuted: false,
+                },
+                (ack) => {
+                    if (ack && ack.ok === false && ack.message) {
+                        smartToast.error(ack.message);
+                    }
+                }
+            );
         }
     }, [socket, meetingId, setLocalParticipantAudioMuted]);
 
@@ -428,7 +439,13 @@ const participantMicMuted = isSelf
                             : (socketId
                                 ? (localParticipantAudioMuted[socketId] !== undefined ? !!localParticipantAudioMuted[socketId] : !!(mediaStateMap[socketId]?.audioMuted))
                                 : true);
-                        const showMuteBtn = isMeetingAdmin && !isAdmin && socketId;
+                        const targetUserId = getParticipantUserId(participant);
+                        const showMuteBtn =
+                            isMeetingAdmin &&
+                            !isAdmin &&
+                            socketId &&
+                            targetUserId != null &&
+                            String(targetUserId).trim() !== "";
 
                         const displayName = isSelf
                             ? (authUser?.name || getParticipantDisplayName(participant, index))
@@ -470,7 +487,7 @@ const participantMicMuted = isSelf
                                                 <button
                                                     type="button"
                                                     className="participant-mute-btn"
-                                                    onClick={() => handleAdminMuteParticipant(socketId, !participantMicMuted)}
+                                                    onClick={() => handleAdminMuteParticipant(participant, !participantMicMuted)}
                                                     title={participantMicMuted ? 'Unmute' : 'Mute'}
                                                     aria-label={participantMicMuted ? 'Unmute' : 'Mute'}
                                                 >

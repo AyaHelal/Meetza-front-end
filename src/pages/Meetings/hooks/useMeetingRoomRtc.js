@@ -77,6 +77,7 @@ export function useMeetingRoomRtc(opts) {
     peersRef: peers.peersRef,
     makingOfferRef: peers.makingOfferRef,
     ensureMediaTracks: media.ensureMediaTracks,
+    micLockedByAdmin: opts.micLockedByAdmin,
   });
 
   const toggleVideo = useMeetingToggleVideo({

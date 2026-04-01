@@ -39,6 +39,7 @@
 | `webrtcOffer` | `{ toSocketId, meetingId, sdp }` | WebRTC offer |
 | `webrtcAnswer` | `{ toSocketId, meetingId, sdp }` | WebRTC answer |
 | `webrtcIceCandidate` | `{ toSocketId, meetingId, candidate }` | ICE candidate |
+| `adminMuteParticipant` | `{ meetingId, targetUserId, audioMuted, videoMuted? }` | Admin forces mute/unmute (backend resolves socket; `audioMuted: false` unmutes) |
 
 ### Backend → Client (on)
 
@@ -46,7 +47,13 @@
 |-------|---------|-------------|
 | `participantJoined` | `{ socketId, userId, name, email, user_photo, meetingId }` | Someone joined |
 | `participantLeft` | `{ socketId, userId, meetingId }` | Someone left |
-| `mediaStateUpdated` | `{ socketId, userId, meetingId, audioMuted, videoMuted }` | Remote media state changed |
+| `mediaStateUpdated` | `{ socketId` or `targetSocketId`, `meetingId`, `audioMuted`, `videoMuted` } | Remote media state changed (client prefers `targetSocketId` when present) |
+| `adminMuteYou` | `{ meetingId, audioMuted, videoMuted }` | **Target only** — apply forced mic/cam and emit `updateMediaState` |
+| `adminSetYourAudio` | `{ meetingId, muted?, audioMuted?, videoMuted? }` | Legacy alias — same handling as `adminMuteYou` |
+| `participantMutedByAdmin` | `{ meetingId, targetUserId, targetSocketId, audioMuted, videoMuted }` | **Room** (except acting admin) — update `mediaStateMap` / playback mute for `targetSocketId` |
+| `participantAdminMute` | `{ meetingId, targetSocketId, ... }` | Optional alternate broadcast (still supported) |
+| `meetingParticipantAdminMuted` | same as `participantAdminMute` | Alternate event name supported by the client |
+| `adminMuteParticipantBroadcast` | same as `participantAdminMute` | Alternate event name supported by the client |
 | `handRaised` | `{ socketId, userId, meetingId, raised }` | Remote hand raise changed |
 | `reaction` | `{ socketId, userId, meetingId, type }` | Reaction from another participant |
 | `webrtcOffer` | `{ fromSocketId, fromUserId, meetingId, sdp }` | Incoming WebRTC offer |
@@ -106,6 +113,13 @@
 2. When enabling: `ensureMediaTracks()` gets `getUserMedia`, adds tracks to stream and peers
 3. Backend broadcasts `mediaStateUpdated`
 4. Recipients: update `mediaStateMap[socketId]`
+
+### Admin mute participant
+
+1. Admin → `adminMuteParticipant` with `meetingId`, `targetUserId`, `audioMuted`, `videoMuted` (optional ack).
+2. Backend → **target** (`io.to(target.socketId)`): `adminMuteYou` with `{ meetingId, audioMuted, videoMuted }`.
+3. Backend → **room** (`socket.to(room)`): `participantMutedByAdmin` with `{ meetingId, targetUserId, targetSocketId, audioMuted, videoMuted }` so every other client updates tiles/list for that socket id.
+4. Target applies mute on all outgoing audio/video paths and emits `updateMediaState`.
 
 ---
 

@@ -24,6 +24,14 @@ export const MEETING_EVENTS = {
   SCREEN_SHARE_STOPPED: "screenShareStopped",
   MEETING_ENDED: "meetingEnded",
   MEETING_CHAT_MESSAGE: "meetingChatMessage",
+  /** Server → all clients in room: admin forced mute/unmute for targetSocketId (keeps UI + playback in sync for everyone). */
+  PARTICIPANT_ADMIN_MUTE: "participantAdminMute",
+  /** Alternate event names some backends use — see useMeetingRoomSocketListeners */
+  PARTICIPANT_ADMIN_MUTE_ALT: "meetingParticipantAdminMuted",
+  /** Server → room (except actor): admin muted/unmuted a participant by user id */
+  PARTICIPANT_MUTED_BY_ADMIN: "participantMutedByAdmin",
+  /** Server → target only: apply forced mic/cam state */
+  ADMIN_MUTE_YOU: "adminMuteYou",
 };
 
 export function joinMeeting(socket, meetingId, callback) {

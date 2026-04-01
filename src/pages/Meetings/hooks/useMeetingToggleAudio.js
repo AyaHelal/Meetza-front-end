@@ -16,9 +16,11 @@ export function useMeetingToggleAudio(opts) {
     meetingIdRef,
     socket,
     ensureMediaTracks,
+    micLockedByAdmin,
   } = opts;
 
   const handleToggleAudio = useCallback(async () => {
+    if (micLockedByAdmin) return;
     const nextMuted = !audioMuted;
     if (nextMuted) {
       setAudioMuted(true);
@@ -108,7 +110,7 @@ export function useMeetingToggleAudio(opts) {
     }
     const mid = meetingIdRef.current;
     if (socket && mid) meetingSocketService.updateMediaState(socket, mid, nextMuted, videoMuted);
-  }, [audioMuted, videoMuted, setAudioMuted, setContextAudioMuted, localStreamRef, peersRef, meetingIdRef, socket, ensureMediaTracks]);
+  }, [audioMuted, videoMuted, micLockedByAdmin, setAudioMuted, setContextAudioMuted, localStreamRef, peersRef, meetingIdRef, socket, ensureMediaTracks]);
 
   return { handleToggleAudio };
 }

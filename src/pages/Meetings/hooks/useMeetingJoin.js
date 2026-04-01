@@ -269,7 +269,10 @@ export function useMeetingJoin(opts) {
     setHasJoined(false);
     setMediaContextHasJoined(false);
     try {
-      if (mid) sessionStorage.removeItem(`meeting_hasJoined_${mid}`);
+      if (mid) {
+        sessionStorage.removeItem(`meeting_hasJoined_${mid}`);
+        sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+      }
       sessionStorage.removeItem("activeMeetingId");
       sessionStorage.removeItem("activeMeetingGroupId");
     } catch (e) {

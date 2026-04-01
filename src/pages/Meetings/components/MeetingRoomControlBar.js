@@ -21,6 +21,7 @@ const MeetingRoomControlBar = ({
   setCommentText,
   audioMuted,
   videoMuted,
+  micLockedByAdmin = false,
   handRaised,
   screenSharing,
   meetingId,
@@ -55,13 +56,21 @@ const MeetingRoomControlBar = ({
       <div className="meeting-room-controls">
         <button
           type="button"
-          className={`meeting-room-control-btn ${audioMuted ? "" : "active"}`}
+          className={`meeting-room-control-btn ${audioMuted || micLockedByAdmin ? "" : "active"} ${micLockedByAdmin ? "meeting-room-control-btn--mic-locked" : ""}`}
           aria-label="Microphone"
           onClick={handleToggleAudio}
-          disabled={!meetingId}
-          title={!meetingId ? "Missing meeting id" : audioMuted ? "Unmute" : "Mute"}
+          disabled={!meetingId || micLockedByAdmin}
+          title={
+            !meetingId
+              ? "Missing meeting id"
+              : micLockedByAdmin
+                ? "Microphone locked by host — wait to be unmuted"
+                : audioMuted
+                  ? "Unmute"
+                  : "Mute"
+          }
         >
-          {audioMuted ? (
+          {audioMuted || micLockedByAdmin ? (
             <MicrophoneSlash size={22} weight="regular" />
           ) : (
             <Microphone size={22} weight="regular" />
