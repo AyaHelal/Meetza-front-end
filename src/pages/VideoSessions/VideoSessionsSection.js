@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Lottie from "lottie-react";
 import noDataFoundAnimation from "../../lottie/noDataFound.json";
 import { useAuth } from "../../context/AuthContext";
@@ -9,6 +9,7 @@ import VideoSessionDetail from "./components/VideoSessionDetail";
 import PostVideoModal from "./components/PostVideoModal";
 import { updateVideo, deleteVideo } from "./services";
 import { smartToast } from "../../API/toastManager";
+import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
 import "./VideoSessions.css";
 
 /**
@@ -22,6 +23,8 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
   const [sessionToEdit, setSessionToEdit] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -67,20 +70,27 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
     }
   };
 
-  const handleDeleteFromCard = async (session) => {
+  const handleDeleteFromCard = useCallback((session) => {
     if (!session?.id) return;
-    const confirmed = window.confirm("Are you sure you want to delete this video? This cannot be undone.");
-    if (!confirmed) return;
+    setVideoToDelete(session);
+  }, []);
+
+  const onConfirmDelete = useCallback(async () => {
+    if (!videoToDelete?.id) return;
+    setIsDeleting(true);
     try {
-      await deleteVideo(session.id);
+      await deleteVideo(videoToDelete.id);
       smartToast.success("Video deleted");
-      if (selectedSession?.id === session.id) setSelectedSession(null);
+      if (selectedSession?.id === videoToDelete.id) setSelectedSession(null);
+      setVideoToDelete(null);
       refetch?.();
     } catch (err) {
       console.error("Failed to delete video", err);
       smartToast.error(err?.response?.data?.message || err?.message || "Failed to delete video");
+    } finally {
+      setIsDeleting(false);
     }
-  };
+  }, [videoToDelete, selectedSession, refetch]);
 
   const handleHeaderBack = selectedSession ? () => setSelectedSession(null) : onBack;
 
@@ -230,6 +240,17 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        show={!!videoToDelete}
+        onClose={() => setVideoToDelete(null)}
+        onConfirm={onConfirmDelete}
+        title="Delete Video"
+        message={`Are you sure you want to delete "${videoToDelete?.title}"? This cannot be undone.`}
+        confirming={isDeleting}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

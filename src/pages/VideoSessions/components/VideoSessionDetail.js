@@ -20,6 +20,7 @@ import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
 import { useVideoSessionDetail } from "../hooks/useVideoSessionDetail";
 import { downloadVideo } from "../../../utils/videoUtils";
+import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 
 const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} weight="regular" {...props} />;
 
@@ -43,6 +44,8 @@ export default function VideoSessionDetail({
   const [shareCopied, setShareCopied] = React.useState(false);
   const commentsSectionRef = React.useRef(null);
   const [downloading, setDownloading] = React.useState(false);
+  const [showVideoDeleteModal, setShowVideoDeleteModal] = React.useState(false);
+  const [commentToDeleteId, setCommentToDeleteId] = React.useState(null);
 
   const api = useVideoSessionDetail(session, {
     relatedSessions,
@@ -414,7 +417,7 @@ export default function VideoSessionDetail({
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowAdminMenu(false);
-                            handleDelete();
+                            setShowVideoDeleteModal(true);
                           }}
                         >
                           {deleting ? <Spinner size={18} className="spinning" /> : <Trash size={18} />}
@@ -644,7 +647,7 @@ export default function VideoSessionDetail({
                                 >
                                   <PencilSimple size={18} />
                                 </button>
-                                <button className="vsd-delete-btn" onClick={() => handleDeleteComment(c.id)} title="Delete">
+                                <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(c.id)} title="Delete">
                                   <Trash size={18} />
                                 </button>
                               </>
@@ -853,6 +856,61 @@ export default function VideoSessionDetail({
           </div>
         </div>
       )}
+
+      {/* Action Modals */}
+      <RenderModals
+        showVideoDeleteModal={showVideoDeleteModal}
+        setShowVideoDeleteModal={setShowVideoDeleteModal}
+        onConfirmVideoDelete={handleDelete}
+        deletingVideo={deleting}
+        commentToDeleteId={commentToDeleteId}
+        setCommentToDeleteId={setCommentToDeleteId}
+        onConfirmCommentDelete={handleDeleteComment}
+      />
     </div>
   );
 }
+
+
+/* Final Cleanup: Placing modals at the bottom of the component structure */
+
+const RenderModals = ({
+  showVideoDeleteModal,
+  setShowVideoDeleteModal,
+  onConfirmVideoDelete,
+  deletingVideo,
+  commentToDeleteId,
+  setCommentToDeleteId,
+  onConfirmCommentDelete,
+}) => (
+  <>
+    {/* Delete Video Modal */}
+    <ConfirmDeleteModal
+      show={showVideoDeleteModal}
+      onClose={() => setShowVideoDeleteModal(false)}
+      onConfirm={async () => {
+        await onConfirmVideoDelete();
+        setShowVideoDeleteModal(false);
+      }}
+      title="Delete Video"
+      message="Are you sure you want to delete this video? This cannot be undone."
+      confirming={deletingVideo}
+      confirmLabel="Delete"
+    />
+
+    {/* Delete Comment Modal */}
+    <ConfirmDeleteModal
+      show={!!commentToDeleteId}
+      onClose={() => setCommentToDeleteId(null)}
+      onConfirm={async () => {
+        if (commentToDeleteId) {
+          await onConfirmCommentDelete(commentToDeleteId);
+          setCommentToDeleteId(null);
+        }
+      }}
+      title="Delete Comment"
+      message="Are you sure you want to delete this comment?"
+      confirmLabel="Delete"
+    />
+  </>
+);
