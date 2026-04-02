@@ -357,7 +357,6 @@ export function useVideoSessionDetail(session, options = {}) {
 
   const handleDelete = useCallback(async () => {
     if (!session?.id) return;
-    if (!window.confirm("Are you sure you want to delete this video? This cannot be undone.")) return;
     setDeleting(true);
     try {
       await deleteVideo(session.id);

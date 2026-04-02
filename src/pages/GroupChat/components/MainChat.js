@@ -180,6 +180,9 @@ const MainChat = ({
       contentTab={contentTab}
       setContentTab={setContentTab}
       onMediaClick={handlePhotoClick}
+      groupId={groupId}
+      userRole={userRole}
+      currentUserEmail={currentUserEmail}
     />
   ) : null;
 

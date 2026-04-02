@@ -12,6 +12,30 @@ export function getPositions() {
   return api.get('/position');
 }
 
+export function deleteResource(contentId, resourceId) {
+  return api.delete(`/group-contents/${contentId}/files/${resourceId}`);
+}
+
+export function addResource(contentId, file) {
+  const form = new FormData();
+  form.append("files", file);
+  return api.post(`/group-contents/${contentId}/files`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+export function addLinkResource(contentId, link) {
+  const form = new FormData();
+  form.append("links", link);
+  return api.post(`/group-contents/${contentId}/files`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+export function getUserByEmail(email) {
+  return api.get(`/user/email/${encodeURIComponent(email)}`);
+}
+
 export function createGroup(formData, adminId) {
   const fd = new FormData();
   fd.append('group_name', formData.name);
@@ -28,6 +52,14 @@ export function createGroup(formData, adminId) {
 
 export function joinGroup(groupId, memberId) {
   return api.post('/group-membership/', { group_id: groupId, member_id: memberId });
+}
+
+export function deleteMembership(membershipId) {
+  return api.delete(`/group-membership/${membershipId}`);
+}
+
+export function getGroupMemberships() {
+  return api.get('/group-membership');
 }
 
 export async function getGroupMembership(groupId) {
