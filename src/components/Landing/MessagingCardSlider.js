@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import Lottie from 'lottie-react';
+import chatAnimation from '../../lottie/Chat.json';
+import bookAppointmentAnimation from '../../lottie/BookAppointmentAnimation.json';
+import animatedPlayButton from '../../lottie/AnimatedPlayButton.json';
+import videoConferencingGIF from '../../lottie/VideoConferencingGIF.json';
+import contentManager from '../../lottie/ContentManager.json';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './MessagingCardSlider.css';
 
@@ -25,27 +31,32 @@ export default function MessagingCardSlider() {
         {
             title: "Start Your Own Meeting",
             description: "Host a meeting for your team in just a few clicks and share the link instantly.",
-            image: "/assets/card2_image.png"
+            image: "/assets/card2_image.png",
+            lottie: videoConferencingGIF
         },
         {
             title: "Record & Save",
             description: "Record your meetings and keep them safely in your Videos library",
-            image: "/assets/card3_image.png"
+            image: "/assets/card3_image.png",
+            lottie: animatedPlayButton
         },
         {
             title: "Real-time Chat",
             description: "Stay connected with team members through instant group chat.",
-            image: "/assets/card_image.png"
+            image: "/assets/card_image.png",
+            lottie: chatAnimation
         },
         {
             title: "Plan Ahead",
             description: "Schedule upcoming sessions and get reminders before they start.",
-            image: "/assets/card4_image.png"
+            image: "/assets/card4_image.png",
+            lottie: bookAppointmentAnimation
         },
         {
             title: "Work Together",
             description: "Share ideas, documents, and build progress with your team.",
-            image: "/assets/card5_image.png"
+            image: "/assets/card5_image.png",
+            lottie: contentManager
         }
     ];
 
@@ -144,6 +155,8 @@ export default function MessagingCardSlider() {
                                 const cardPosition = index - actualPosition;
                                 const absPosition = Math.abs(cardPosition);
                                 const offsetY = absPosition % 2 === 1 ? (isMobile ? 20 : 30) : 0; // Odd positions higher, even positions at base
+                                const isLargeCard = card.title === "Start Your Own Meeting" || card.title === "Work Together";
+                                const minHeightValue = isLargeCard ? (isMobile ? '0px' : '250px') : (isMobile ? '0px' : '180px');
 
                                 return (
                                     <div key={index} style={{
@@ -166,27 +179,41 @@ export default function MessagingCardSlider() {
                                             {/* Image Container */}
                                             <div style={{
                                                 borderRadius: isMobile ? '12px' : '15px',
-                                                marginBottom: isMobile ? '10px' : '20px',
+                                                marginBottom: isMobile ? '10px' : '30px',
                                                 overflow: 'hidden',
-                                                minHeight: isMobile ? '0px' : '180px',
+                                                minHeight: minHeightValue,
                                                 position: 'relative'
                                             }}>
-                                                <img
-                                                    src={card.image}
-                                                    alt={card.title}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover',
-                                                        display: 'block'
-                                                    }}
-                                                />
+                                                {card.lottie ? (
+                                                    <Lottie
+                                                        animationData={card.lottie}
+                                                        loop
+                                                        autoplay
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                            display: 'block'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={card.image}
+                                                        alt={card.title}
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                            display: 'block'
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
 
                                             {/* Card Content */}
                                             <h5 style={{
                                                 color: '#FFFFFF',
-                                                marginBottom: isMobile ? '8px' : '15px',
+                                                marginBottom: isMobile ? '8px' : '2px',
                                                 fontWeight: '600',
                                                 fontSize: isMobile ? '16px' : '32px'
                                             }}>
