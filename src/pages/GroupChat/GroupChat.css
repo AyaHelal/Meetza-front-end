@@ -26,15 +26,16 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable; /* reserve scrollbar space so width doesn't change when chat is hidden */
+  scrollbar-gutter: stable;
+  /* reserve scrollbar space so width doesn't change when chat is hidden */
 }
 
-.group-chat-page-scroll-wrap > .home-container {
+.group-chat-page-scroll-wrap>.home-container {
   flex-shrink: 0;
 }
 
 /* When viewing video sessions only: hide chat so only video section is visible */
-.group-chat-page-scroll-wrap.video-section-active > .home-container {
+.group-chat-page-scroll-wrap.video-section-active>.home-container {
   display: none !important;
 }
 
@@ -63,6 +64,7 @@ body.group-chat-active {
   .group-chat-page-scroll-wrap {
     -webkit-overflow-scrolling: touch;
   }
+
   .video-sessions-section-wrap {
     min-height: 100vh;
     min-height: 100dvh;
@@ -423,9 +425,11 @@ body.group-chat-active {
   align-items: center;
   margin-bottom: 4px;
 }
+
 .chat-name {
   font-size: 15px;
 }
+
 .chat-item.active .chat-name {
   color: #ffffff;
 }
@@ -480,11 +484,9 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  background-image: radial-gradient(
-    circle at top right,
-    #80baf5 0%,
-    transparent 50%
-  );
+  background-image: radial-gradient(circle at top right,
+      #80baf5 0%,
+      transparent 50%);
   overflow: hidden;
   margin: 20px 0;
   border-radius: 12px;
@@ -540,7 +542,7 @@ body.group-chat-active {
   box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
   /* subtle breathing animation when a meeting is available */
   animation: joinMeetingPulse 1.6s ease-in-out infinite,
-             joinMeetingBounce 1.6s ease-in-out infinite;
+    joinMeetingBounce 1.6s ease-in-out infinite;
 }
 
 .join-meetings-btn:hover {
@@ -564,14 +566,17 @@ body.group-chat-active {
     box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
     transform: translateY(0) scale(1);
   }
+
   35% {
     box-shadow: 0 0 18px rgba(0, 118, 234, 0.55);
     transform: translateY(-1px) scale(1.02);
   }
+
   70% {
     box-shadow: 0 0 10px rgba(0, 118, 234, 0.25);
     transform: translateY(0) scale(1);
   }
+
   100% {
     box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
     transform: translateY(0) scale(1);
@@ -580,9 +585,12 @@ body.group-chat-active {
 
 /* Gentle up‑down motion to feel like the button is "calling" you */
 @keyframes joinMeetingBounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-3px);
   }
@@ -615,7 +623,8 @@ body.group-chat-active {
   gap: 15px;
   min-height: 0;
   align-items: stretch;
-  scroll-behavior: auto; /* Disable smooth scrolling */
+  scroll-behavior: auto;
+  /* Disable smooth scrolling */
 }
 
 .no-messages-container {
@@ -1147,7 +1156,7 @@ body.group-chat-active {
 }
 
 /* When link is below text, remove top border radius to connect with text bubble */
-.message-text + .message-media-list .message-media-link {
+.message-text+.message-media-list .message-media-link {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-bottom-left-radius: 18px;
@@ -1386,7 +1395,8 @@ body.group-chat-active {
   margin: 20px;
   border-radius: 12px;
   height: calc(100vh - 40px);
-  padding-bottom: 85px; /* Space for fixed UserStatus component */
+  padding-bottom: 85px;
+  /* Space for fixed UserStatus component */
   box-sizing: border-box;
 }
 
@@ -1747,10 +1757,12 @@ body.group-chat-active {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.8;
   }
+
   50% {
     transform: translate(-50%, -50%) scale(1.5);
     opacity: 0.4;
   }
+
   100% {
     transform: translate(-50%, -50%) scale(2);
     opacity: 0;
@@ -2098,6 +2110,7 @@ body.group-chat-active {
   cursor: default;
   flex-shrink: 0;
 }
+
 .status-icon.status-speaker svg {
   color: #00dc85 !important;
   stroke: currentColor;
@@ -2147,15 +2160,18 @@ body.group-chat-active {
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
 }
+
 .status-return-to-meeting:hover {
   background: #00b86d;
   transform: scale(1.02);
 }
+
 .status-return-to-meeting svg {
   color: #fff !important;
   stroke: currentColor;
   fill: currentColor;
 }
+
 .status-return-label {
   white-space: nowrap;
 }
@@ -2204,7 +2220,8 @@ body.group-chat-active {
     max-height: 100vh;
     max-height: 100dvh;
     overflow-y: auto;
-    padding-bottom: 100px; /* Space for fixed UserStatus component */
+    padding-bottom: 100px;
+    /* Space for fixed UserStatus component */
     background-color: #f4f4f4;
   }
 
@@ -2279,13 +2296,16 @@ body.group-chat-active {
   .chats-search .search-icon {
     left: 30px;
   }
+
   .tab.active {
     background-color: #1976d2 !important;
     color: white !important;
   }
+
   .tab {
     background-color: white !important;
   }
+
   .chats-tabs {
     padding: 0 15px 10px 15px;
     margin-left: 10px !important;
@@ -2481,7 +2501,8 @@ body.group-chat-active {
     margin: 0;
     border-radius: 0;
     padding: 0;
-    padding-bottom: 100px; /* Space for fixed UserStatus component */
+    padding-bottom: 100px;
+    /* Space for fixed UserStatus component */
     overflow-y: auto;
     flex-direction: column;
     justify-content: flex-start;
@@ -2743,6 +2764,7 @@ body.group-chat-active {
 }
 
 @media (max-width: 576px) {
+
   /* Logo Section - Mobile Only */
   .logo-section {
     display: flex;
@@ -2904,6 +2926,7 @@ body.group-chat-active {
     font-size: 14px;
     color: #666;
   }
+
   .nav-icon {
     width: 36px;
     height: 36px;
@@ -2917,6 +2940,7 @@ body.group-chat-active {
   .chats-panel {
     height: 180px;
   }
+
   .logo-section {
     display: flex;
   }
@@ -2928,6 +2952,7 @@ body.group-chat-active {
     height: 80px !important;
     display: flex;
   }
+
   .chats-header {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -2973,7 +2998,7 @@ body.group-chat-active {
     font-size: 12px;
     /* keep the pulse/bounce but a bit softer on mobile */
     animation: joinMeetingPulse 1.8s ease-in-out infinite,
-               joinMeetingBounce 1.8s ease-in-out infinite;
+      joinMeetingBounce 1.8s ease-in-out infinite;
   }
 
   .search-icon-header {
@@ -3164,9 +3189,8 @@ body.group-chat-active {
   }
 
   .main-chat {
-    height: calc(
-      100vh - 80px - 100px
-    ); /* Full height minus top offset and space for fixed UserStatus */
+    height: calc(100vh - 80px - 100px);
+    /* Full height minus top offset and space for fixed UserStatus */
     left: 3%;
     right: 3%;
     width: auto;
@@ -3242,6 +3266,7 @@ body.group-chat-active {
 }
 
 .expanded-section1 {
+  padding-top: 0 !important;
   padding: 1.5rem;
   margin-bottom: 1rem;
 }
@@ -3278,8 +3303,8 @@ body.group-chat-active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.member-item > .member-avatar,
-.member-item > .member-avatar-fallback {
+.member-item>.member-avatar,
+.member-item>.member-avatar-fallback {
   flex-shrink: 0;
   flex-grow: 0;
 }
@@ -3319,7 +3344,7 @@ body.group-chat-active {
   opacity: 1 !important;
 }
 
-.member-item > div:not(.member-avatar-fallback) {
+.member-item>div:not(.member-avatar-fallback) {
   flex: 1;
   min-width: 0;
 }
@@ -3420,12 +3445,15 @@ body.group-chat-active {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 .tabs-header::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 .tab-item {
@@ -3438,13 +3466,16 @@ body.group-chat-active {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
 .tab-item.active {
   background: #1976d2;
   color: white;
 }
+
 .tab-item:hover {
   background: #d0d0d0;
 }
+
 .expanded-items {
   display: flex;
   flex-wrap: wrap;
@@ -3723,11 +3754,13 @@ body.group-chat-active {
 }
 
 @keyframes voiceWave {
+
   0%,
   100% {
     transform: scaleY(0.5);
     opacity: 0.7;
   }
+
   50% {
     transform: scaleY(1);
     opacity: 1;
@@ -4005,6 +4038,7 @@ body.group-chat-active {
     opacity: 0;
     transform: translateY(-5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

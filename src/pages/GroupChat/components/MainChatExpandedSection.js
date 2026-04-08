@@ -124,8 +124,8 @@ function DocumentList({ items, onContextMenu, onTouchStart, onTouchEnd }) {
       {items.length === 0 && <p className="empty-state">No documents yet.</p>}
       {items.map((item, index) =>
         item.media_type === "audio" ? (
-          <div 
-            key={item.id || index} 
+          <div
+            key={item.id || index}
             className="document-item audio-item"
             onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
             onTouchStart={(e) => onTouchStart && onTouchStart(e, item)}
@@ -209,13 +209,13 @@ function TabbedSection({ source, tabValue, onTabChange, onMediaClick, onContextM
         </div>
         {isAdmin && (
           <div className="admin-actions-resources">
-            <button 
+            <button
               className="admin-action-btn upload-btn"
               onClick={onUploadFile}
             >
               <Plus size={18} weight="bold" /> Upload File
             </button>
-            <button 
+            <button
               className="admin-action-btn add-link-btn"
               onClick={onAddLink}
             >
@@ -248,6 +248,8 @@ export default function MainChatExpandedSection({
   userRole,
   currentUserEmail,
   onCloseSection,
+  contentName,
+  onUpdateContentName,
 }) {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
@@ -270,6 +272,38 @@ export default function MainChatExpandedSection({
   const [isSubmittingLink, setIsSubmittingLink] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [editVal, setEditVal] = useState("");
+  const titleInputRef = useRef(null);
+
+  useEffect(() => {
+    setEditVal(contentName || "");
+  }, [contentName]);
+
+  useEffect(() => {
+    if (isEditingContent && titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [isEditingContent]);
+
+  const handleSaveContentName = () => {
+    setIsEditingContent(false);
+    if (editVal.trim() !== contentName && onUpdateContentName) {
+      onUpdateContentName(editVal.trim());
+    } else {
+      setEditVal(contentName || "");
+    }
+  };
+
+  const handleTitleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSaveContentName();
+    } else if (e.key === "Escape") {
+      setIsEditingContent(false);
+      setEditVal(contentName || "");
+    }
+  };
+
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isAdmin = normalizedUserRole === "administrator" || normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
 
@@ -282,12 +316,12 @@ export default function MainChatExpandedSection({
           const res = await getGroupMemberships();
           // The API might return the array in res.data.data or res.data
           const allGroups = res.data?.data || res.data || [];
-          
+
           if (Array.isArray(allGroups)) {
             const map = {};
             // Find the current group's data in the global list
             const currentGroupData = allGroups.find(g => String(g.group_id || g.id) === String(groupId));
-            
+
             if (currentGroupData?.members && Array.isArray(currentGroupData.members)) {
               currentGroupData.members.forEach(m => {
                 if (m.member_id && m.membership_id) {
@@ -342,13 +376,13 @@ export default function MainChatExpandedSection({
     if (!isAdmin) return;
     const touch = e.touches[0];
     const coords = { x: touch.clientX, y: touch.clientY };
-    
+
     if (touchTimer.current) clearTimeout(touchTimer.current);
-    
+
     touchTimer.current = setTimeout(() => {
-      handleContextMenu({ 
-        clientX: coords.x, 
-        clientY: coords.y 
+      handleContextMenu({
+        clientX: coords.x,
+        clientY: coords.y
       }, item);
       touchTimer.current = null;
     }, 600); // 600ms long press
@@ -421,9 +455,9 @@ export default function MainChatExpandedSection({
       smartToast.success("Member added successfully!");
       setShowAddMemberModal(false);
       setNewMemberEmail("");
-      
+
       // Auto-refresh the page to show new member (or we could use a refetch prop if available)
-      window.location.reload(); 
+      window.location.reload();
     } catch (error) {
       console.error("Failed to add member:", error);
       const errorMsg = error.response?.data?.message || "Failed to add member. Please check if the user is already in the group.";
@@ -440,7 +474,7 @@ export default function MainChatExpandedSection({
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!groupInfo?.content?.id) {
       smartToast.error("Group content ID not found");
       return;
@@ -502,7 +536,7 @@ export default function MainChatExpandedSection({
           <div className="members-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h4 style={{ margin: 0 }}>Members ({members.length})</h4>
             {isAdmin && (
-              <button 
+              <button
                 className="add-member-btn-plus"
                 onClick={() => setShowAddMemberModal(true)}
                 style={{
@@ -539,7 +573,7 @@ export default function MainChatExpandedSection({
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className={`member-role ${member.role === "Administrator" ? "admin-role" : ""}`}>{member.role}</span>
                   {isAdmin && member.email !== currentUserEmail && member.role !== "Administrator" && (
-                    <button 
+                    <button
                       className="delete-member-btn"
                       onClick={() => {
                         setMemberToDelete(member);
@@ -580,7 +614,7 @@ export default function MainChatExpandedSection({
 
           {/* Add Member Modal */}
           {showAddMemberModal && (
-            <div 
+            <div
               className="add-member-modal-overlay"
               style={{
                 position: 'fixed',
@@ -594,7 +628,7 @@ export default function MainChatExpandedSection({
               }}
               onClick={() => setShowAddMemberModal(false)}
             >
-              <div 
+              <div
                 className="add-member-modal"
                 style={{
                   background: 'white',
@@ -608,7 +642,7 @@ export default function MainChatExpandedSection({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>Add New Member</h3>
-                  <button 
+                  <button
                     onClick={() => setShowAddMemberModal(false)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}
                   >
@@ -618,7 +652,7 @@ export default function MainChatExpandedSection({
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Member Email</label>
-                  <input 
+                  <input
                     type="email"
                     placeholder="Enter email address"
                     className="form-control"
@@ -638,14 +672,14 @@ export default function MainChatExpandedSection({
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
+                  <button
                     onClick={() => setShowAddMemberModal(false)}
                     className="btn btn-light"
                     style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#f5f5f5', border: 'none' }}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleAddMember}
                     disabled={isAdding}
                     className="btn btn-primary"
@@ -669,11 +703,11 @@ export default function MainChatExpandedSection({
           <div className="media-header">
             <h4>Media, Links and Docs</h4>
           </div>
-          <TabbedSection 
-            source={mediaTabResources} 
-            tabValue={mediaTab} 
-            onTabChange={setMediaTab} 
-            onMediaClick={onMediaClick} 
+          <TabbedSection
+            source={mediaTabResources}
+            tabValue={mediaTab}
+            onTabChange={setMediaTab}
+            onMediaClick={onMediaClick}
             onContextMenu={null}
             onTouchStart={null}
             onTouchEnd={null}
@@ -692,11 +726,11 @@ export default function MainChatExpandedSection({
               <X size={24} />
             </button>
           </div>
-          <TabbedSection 
-            source={contentResources} 
-            tabValue={contentTab} 
-            onTabChange={setContentTab} 
-            onMediaClick={onMediaClick} 
+          <TabbedSection
+            source={contentResources}
+            tabValue={contentTab}
+            onTabChange={setContentTab}
+            onMediaClick={onMediaClick}
             onContextMenu={handleContextMenu}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -708,11 +742,11 @@ export default function MainChatExpandedSection({
       );
     } else {
       expandedContentBody = (
-        <TabbedSection 
-          source={contentResources} 
-          tabValue={contentTab} 
-          onTabChange={setContentTab} 
-          onMediaClick={onMediaClick} 
+        <TabbedSection
+          source={contentResources}
+          tabValue={contentTab}
+          onTabChange={setContentTab}
+          onMediaClick={onMediaClick}
           onContextMenu={handleContextMenu}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -725,9 +759,65 @@ export default function MainChatExpandedSection({
 
     return (
       <div className="expanded-section1" onClick={handleClick}>
+        {contentName && (expandedSection === "contents" || activeSection === "contents") && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 20px 4px 20px',
+            width: '100%',
+          }}>
+            {isEditingContent ? (
+              <input
+                ref={titleInputRef}
+                value={editVal}
+                onChange={(e) => setEditVal(e.target.value)}
+                onBlur={handleSaveContentName}
+                onKeyDown={handleTitleKeyDown}
+                style={{
+                  fontSize: '18px',
+                  color: '#1a1a1a',
+                  fontWeight: 600,
+                  border: '1px solid #ccc',
+                  background: 'white',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  outline: 'none',
+                  width: 'fit-content',
+                  minWidth: '200px',
+                  textAlign: 'center'
+                }}
+              />
+            ) : (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingContent(true);
+                }}
+                style={{
+                  fontSize: '18px',
+                  color: '#1a1a1a',
+                  fontWeight: 600,
+                  cursor: 'text',
+                  padding: '6px 16px',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  borderRadius: '6px',
+                  transition: 'background-color 0.2s',
+                  display: 'inline-block',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                title="Click to edit content name"
+              >
+                {contentName}
+              </span>
+            )}
+          </div>
+        )}
         {expandedContentBody}
         {contextMenu.visible && (
-          <div 
+          <div
             style={{
               position: 'fixed',
               top: contextMenu.y,
@@ -741,7 +831,7 @@ export default function MainChatExpandedSection({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               onClick={() => {
                 setResourceToDelete(contextMenu.item);
                 setShowDeleteResourceModal(true);
@@ -778,7 +868,7 @@ export default function MainChatExpandedSection({
         />
 
         {/* Hidden File Input */}
-        <input 
+        <input
           ref={fileInputRef}
           type="file"
           style={{ display: 'none' }}
@@ -787,7 +877,7 @@ export default function MainChatExpandedSection({
 
         {/* Add Link Modal */}
         {showAddLinkModal && (
-          <div 
+          <div
             className="add-member-modal-overlay"
             style={{
               position: 'fixed',
@@ -801,7 +891,7 @@ export default function MainChatExpandedSection({
             }}
             onClick={() => setShowAddLinkModal(false)}
           >
-            <div 
+            <div
               className="add-member-modal"
               style={{
                 background: 'white',
@@ -815,7 +905,7 @@ export default function MainChatExpandedSection({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>Add External Link</h3>
-                <button 
+                <button
                   onClick={() => setShowAddLinkModal(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}
                 >
@@ -825,7 +915,7 @@ export default function MainChatExpandedSection({
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Link URL</label>
-                <input 
+                <input
                   type="url"
                   placeholder="https://example.com"
                   className="form-control"
@@ -846,14 +936,14 @@ export default function MainChatExpandedSection({
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button 
+                <button
                   onClick={() => setShowAddLinkModal(false)}
                   className="btn btn-light"
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#f5f5f5', border: 'none' }}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleAddLinkResource}
                   disabled={isSubmittingLink}
                   className="btn btn-primary"
