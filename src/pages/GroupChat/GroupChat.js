@@ -197,7 +197,7 @@ export default function GroupChat() {
       openGroupIdFromStateRef.current = true;
       setSelectedChat(index);
       if (window.innerWidth <= 768) setShowMainChat(true);
-      navigate("/home", { replace: true, state: {} });
+      navigate("/messages", { replace: true, state: {} });
     }
   }, [groupChats, location.state?.groupId, navigate]);
 

@@ -178,7 +178,10 @@ const LeftNavbar = ({
           <div className="nav-icons-group-top">
             <div
               className={`nav-icon ${activeNav === "home" ? "active" : ""}`}
-              onClick={() => setActiveNav("home")}
+              onClick={() => {
+                navigate("/home");
+                setActiveNav("home");
+              }}
               title="Home"
             >
               <House size={32} />
@@ -192,7 +195,10 @@ const LeftNavbar = ({
             </div>
             <div
               className={`nav-icon ${activeNav === "messages" ? "active" : ""}`}
-              onClick={() => setActiveNav("messages")}
+              onClick={() => {
+                navigate("/messages");
+                setActiveNav("messages");
+              }}
               title="Messages"
             >
               <Envelope size={32} />
