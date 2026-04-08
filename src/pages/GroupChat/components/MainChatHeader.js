@@ -47,12 +47,17 @@ export default function MainChatHeader({
           </button>
         )
       )}
-      <h3
-        onClick={groupId && onGroupNameClick ? onGroupNameClick : undefined}
-        style={groupId && onGroupNameClick ? { cursor: "pointer" } : {}}
+      <div 
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, justifySelf: 'flex-start' }}
       >
-        {chatTitle}
-      </h3>
+        <h3 
+          onClick={groupId && onGroupNameClick ? onGroupNameClick : undefined}
+          style={{ margin: 0, fontSize: '1.2rem', cursor: groupId && onGroupNameClick ? "pointer" : "default" }}
+        >
+          {chatTitle}
+        </h3>
+      </div>
+
       <div className="chat-header-actions">
         {showCreateMeetingButton && (
           <button

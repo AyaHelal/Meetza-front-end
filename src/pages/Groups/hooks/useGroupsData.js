@@ -70,6 +70,7 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
 
   return {
     groups,
+    setGroups,
     loading,
     userRole,
     isSuperAdmin,

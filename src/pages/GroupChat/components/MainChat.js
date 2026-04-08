@@ -166,6 +166,43 @@ const MainChat = ({
     }
   };
 
+  const [localContentName, setLocalContentName] = useState(null);
+
+  useEffect(() => {
+    setLocalContentName(null);
+  }, [groupId]);
+
+  const activeContentName = localContentName || groupInfo?.content?.group_content_name || groupInfo?.content?.content_name || groupInfo?.content?.name || "Content Resources";
+
+  const handleUpdateContentName = async (newName) => {
+    if (!groupInfo?.content?.id) return;
+    
+    // Set locally to trigger instant React re-render without page refresh
+    setLocalContentName(newName);
+    
+    if (groupInfo.content) {
+      groupInfo.content.group_content_name = newName;
+      groupInfo.content.content_name = newName;
+      groupInfo.content.name = newName;
+    }
+    
+    try {
+      await api.put(`/group-contents/${groupInfo.content.id}`, { 
+        name: newName, 
+        content_name: newName, 
+        group_content_name: newName 
+      }).catch(async () => {
+         const form = new FormData();
+         form.append('group_content_name', newName);
+         await api.put(`/group/${groupId}`, form);
+      });
+      smartToast.success("Content name updated successfully");
+    } catch (error) {
+      console.error("Error updating content name:", error);
+      smartToast.error("Could not save new content name to server");
+    }
+  };
+
   const showExpanded = !!(activeSection || expandedSection);
   const expandedContent = showExpanded ? (
     <MainChatExpandedSection
@@ -183,6 +220,8 @@ const MainChat = ({
       groupId={groupId}
       userRole={userRole}
       currentUserEmail={currentUserEmail}
+      contentName={activeContentName}
+      onUpdateContentName={handleUpdateContentName}
     />
   ) : null;
 
@@ -200,6 +239,7 @@ const MainChat = ({
         setExpandedSection={setExpandedSection}
         onBackToChats={onBackToChats}
         chatTitle={chatTitle}
+        contentName={activeContentName}
         groupId={groupId}
         onGroupNameClick={onGroupNameClick}
         showCreateMeetingButton={showCreateMeetingButton}
@@ -207,6 +247,7 @@ const MainChat = ({
         isInMeeting={isInMeeting}
         handleJoinMeeting={handleJoinMeeting}
         onCreateMeeting={onCreateMeeting}
+        onUpdateContentName={handleUpdateContentName}
       />
       <div className="chat-messages" ref={messagesContainerRef}>
         <MainChatMessageList
