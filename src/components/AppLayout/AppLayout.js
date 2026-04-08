@@ -82,6 +82,11 @@ const AppLayout = () => {
       location.pathname === "/home" ||
       location.pathname.startsWith("/home")
     ) {
+      setActiveNav("home");
+    } else if (
+      location.pathname === "/messages" ||
+      location.pathname.startsWith("/messages")
+    ) {
       setActiveNav("messages");
     } else if (
       location.pathname === "/groups" ||
@@ -148,12 +153,15 @@ const AppLayout = () => {
   // Handle navigation from LeftNavbar
   const handleNavClick = (nav) => {
     // Only navigate if we're not already on that route
-    if (nav === "users" && location.pathname !== "/groups") {
-      setActiveNav(nav);
-      navigate("/groups", { replace: false });
-    } else if (nav === "messages" && location.pathname !== "/home") {
+    if (nav === "home" && location.pathname !== "/home") {
       setActiveNav(nav);
       navigate("/home", { replace: false });
+    } else if (nav === "users" && location.pathname !== "/groups") {
+      setActiveNav(nav);
+      navigate("/groups", { replace: false });
+    } else if (nav === "messages" && location.pathname !== "/messages") {
+      setActiveNav(nav);
+      navigate("/messages", { replace: false });
     } else if (nav === "calendar" && location.pathname !== "/calendar") {
       setActiveNav(nav);
       navigate("/calendar", { replace: false });
@@ -229,7 +237,7 @@ const AppLayout = () => {
   ];
 
   const isVideoSectionActive =
-    location.pathname === "/home" && location.hash === "#video-sessions";
+    location.pathname === "/messages" && location.hash === "#video-sessions";
 
   return (
     <MediaProvider>

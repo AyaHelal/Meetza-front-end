@@ -23,11 +23,20 @@ body.group-chat-active {
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-  /* reserve scrollbar space so width doesn't change when chat is hidden */
+  /* Hide scrollbar but keep wheel / touch scroll (messages page) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.group-chat-page-scroll-wrap::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .group-chat-page-scroll-wrap>.home-container {
@@ -39,9 +48,8 @@ body.group-chat-active {
   display: none !important;
 }
 
-/* Keep scrollbar in video-section view so card width doesn't jump (fallback if scrollbar-gutter not supported) */
 .group-chat-page-scroll-wrap.video-section-active {
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .group-chat-video-sessions-view {

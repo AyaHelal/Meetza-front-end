@@ -856,7 +856,7 @@ const AdminMeetingPage = () => {
                                         <p className="meeting-subtitle">
                                             {meeting.group_id ? (
                                                 <Link
-                                                    to="/home"
+                                                    to="/messages"
                                                     state={{ groupId: meeting.group_id }}
                                                     className="meeting-group-link"
                                                 >

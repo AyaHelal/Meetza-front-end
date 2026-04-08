@@ -7,6 +7,7 @@ import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import GroupChat from './pages/GroupChat/GroupChat';
+import HomePage from './pages/Home/HomePage';
 import VideoSessions from './pages/VideoSessions/VideoSessions';
 import AllVideosPage from './pages/VideoSessions/AllVideosPage';
 import SavedVideos from './pages/SavedVideos/SavedVideos';
@@ -79,8 +80,13 @@ const AppRoutes = () => {
   // Show loader only on initial navigation to /home (not when switching between pages)
   useEffect(() => {
     // Only show loader on initial mount or when coming from a different route type
-    const isProtectedRoute = location.pathname === "/home" || location.pathname === "/groups";
-    const wasProtectedRoute = sessionStorage.getItem('lastRoute')?.startsWith('/home') ||
+    const isProtectedRoute =
+      location.pathname === "/home" ||
+      location.pathname === "/messages" ||
+      location.pathname === "/groups";
+    const wasProtectedRoute =
+      sessionStorage.getItem('lastRoute')?.startsWith('/home') ||
+      sessionStorage.getItem('lastRoute')?.startsWith('/messages') ||
       sessionStorage.getItem('lastRoute')?.startsWith('/groups');
 
     if (isProtectedRoute && !wasProtectedRoute && location.pathname === "/home") {
@@ -206,7 +212,8 @@ const AppRoutes = () => {
         element={token ? <AppLayout /> : <Navigate to="/landing" replace />}
       >
         <Route index element={<Navigate to="/home" replace />} />
-        <Route path="home" element={<GroupChat />} />
+        <Route path="home" element={<HomePage />} />
+        <Route path="messages" element={<GroupChat />} />
         <Route path="video" element={<AllVideosPage />} />
         <Route path="video/:slug" element={<VideoBySlugPage />} />
         <Route path="video-sessions" element={<VideoSessions />} />
