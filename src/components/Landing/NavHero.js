@@ -104,9 +104,6 @@ export default function HeroNav() {
                             </div>
                         </li>
                         <li className="nav-item">
-                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Safety</button>
-                        </li>
-                        <li className="nav-item">
                             <button
                                 type="button"
                                 className="nav-link btn btn-link p-0"
@@ -130,7 +127,19 @@ export default function HeroNav() {
                             </a>
                         </li>
                         <li className="nav-item">
-                            <button type="button" className="nav-link btn btn-link p-0" onClick={closeMenu}>Careers</button>
+                            <button
+                                type="button"
+                                className="nav-link btn btn-link p-0"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    closeMenu();
+                                    // Scroll to Careers section on Landing
+                                    const el = document.getElementById('landing-careers');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                            >
+                                Careers
+                            </button>
                         </li>
                         <li className="nav-item">
                             <button
