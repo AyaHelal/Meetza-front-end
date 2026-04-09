@@ -3352,9 +3352,35 @@ body.group-chat-active {
   opacity: 1 !important;
 }
 
-.member-item>div:not(.member-avatar-fallback) {
+/* Name/email column grows; actions column stays tight (no huge gap before role badge) */
+.member-item > div:not(.member-avatar-fallback):not(.member-item-actions) {
   flex: 1;
   min-width: 0;
+}
+
+.member-item-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Remove icon flush next to Administrator label */
+.member-admin-role-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.member-admin-role-inline .remove-group-admin-btn {
+  padding: 2px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.member-admin-role-inline .member-role {
+  margin-left: 0;
 }
 
 .member-item h5 {

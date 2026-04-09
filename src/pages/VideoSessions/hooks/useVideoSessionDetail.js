@@ -408,6 +408,8 @@ export function useVideoSessionDetail(session, options = {}) {
           savedCount: data.saved_count ?? 0,
           commentCount: finalCommentCount,
           topics: data.topics ?? session.topics ?? { ar: [], en: [] },
+          groupName: v.group_name ?? session?.groupName ?? session?.group_name ?? null,
+          group_id: v.group_id ?? session?.group_id ?? session?.groupId ?? null,
         };
         const rawSaved = data.is_saved ?? data.isSaved ?? data.saved ?? null;
         const hasUserSavedFlag = rawSaved !== null && rawSaved !== undefined;
@@ -500,6 +502,8 @@ export function useVideoSessionDetail(session, options = {}) {
           savedCount: data.saved_count ?? detail?.savedCount ?? 0,
           commentCount: data.commentCount ?? (Array.isArray(data.comments) ? data.comments.length : detail?.commentCount ?? 0),
           topics: data.topics ?? detail?.topics ?? session?.topics ?? { ar: [], en: [] },
+          groupName: v.group_name ?? detail?.groupName ?? session?.groupName ?? session?.group_name ?? null,
+          group_id: v.group_id ?? detail?.group_id ?? session?.group_id ?? null,
         };
         const commentsData = await getVideoComments(session.id);
         setDetail((prev) => ({ ...prev, ...parsed, commentCount: commentsData.commentCount ?? parsed.commentCount }));
@@ -701,6 +705,8 @@ export function useVideoSessionDetail(session, options = {}) {
   const dislikesCount = detail?.dislikesCount ?? 0;
   const savedCount = detail?.savedCount ?? 0;
   const commentCount = detail?.commentCount ?? comments.length;
+  const groupName =
+    detail?.groupName ?? session?.groupName ?? session?.group_name ?? null;
   const sourceRelated = (relatedVideos?.length > 0 ? relatedVideos : relatedSessions) || [];
   const related = sourceRelated.filter((s) => (s.id ?? s.title) !== (session?.id ?? session?.title));
 
@@ -713,6 +719,7 @@ export function useVideoSessionDetail(session, options = {}) {
     title,
     description,
     topics,
+    groupName,
     instructor,
     liked,
     disliked,

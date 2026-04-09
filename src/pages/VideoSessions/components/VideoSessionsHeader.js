@@ -16,6 +16,8 @@ export default function VideoSessionsHeader({
   isAdmin = false,
   onPostVideoClick,
   groupId = null,
+  groupName = null,
+  subtitle = null,
 }) {
   const navigate = useNavigate();
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -110,9 +112,22 @@ export default function VideoSessionsHeader({
         </button>
         <div className="video-sessions-header-text">
           <h1 className="video-sessions-header-title">Video sessions</h1>
-          <p className="video-sessions-header-subtitle">
-            All of your video sessions is here.
-          </p>
+          {groupName ? (
+            <p className="video-sessions-header-group-name" title={`Group: ${groupName}`}>
+              {groupName}
+            </p>
+          ) : null}
+          {subtitle ? (
+            <p className="video-sessions-header-subtitle">{subtitle}</p>
+          ) : !groupName ? (
+            <p className="video-sessions-header-subtitle">
+              All of your video sessions is here.
+            </p>
+          ) : (
+            <p className="video-sessions-header-subtitle video-sessions-header-subtitle--muted">
+              Videos for this group.
+            </p>
+          )}
         </div>
       </div>
       {isAdmin && onPostVideoClick && (
@@ -164,6 +179,11 @@ export default function VideoSessionsHeader({
                     <h4 className="video-sessions-header-suggestion-title">
                       {s.title || "Video"}
                     </h4>
+                    {(s.groupName || s.group_name) && (
+                      <span className="video-sessions-header-suggestion-group">
+                        {s.groupName || s.group_name}
+                      </span>
+                    )}
                   </div>
                 </button>
               ))

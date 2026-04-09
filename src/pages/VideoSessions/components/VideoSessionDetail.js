@@ -81,6 +81,7 @@ export default function VideoSessionDetail({
     thumbnailUrl,
     title,
     description,
+    groupName: groupNameFromHook,
     instructor,
     liked,
     disliked,
@@ -187,6 +188,7 @@ export default function VideoSessionDetail({
   };
 
   const thumbUrl = thumbnailUrl || DEFAULT_THUMB;
+  const groupLabel = groupNameFromHook ?? session?.groupName ?? session?.group_name ?? null;
 
   return (
     <div className="video-session-detail">
@@ -256,7 +258,14 @@ export default function VideoSessionDetail({
           <div className="video-session-detail-content">
             {/* Title + actions */}
             <div className="video-session-detail-title-row">
-              <h2 className="video-session-detail-title">{title}</h2>
+              <div className="video-session-detail-title-stack">
+                <h2 className="video-session-detail-title">{title}</h2>
+                {!!groupLabel && (
+                  <p className="video-session-detail-group" title={`Group: ${groupLabel}`}>
+                    {groupLabel}
+                  </p>
+                )}
+              </div>
               <div className="video-session-detail-actions">
                 <button
                   type="button"
@@ -683,9 +692,14 @@ export default function VideoSessionDetail({
                   </div>
                   <div className="video-session-detail-related-info">
                     <span className="video-session-detail-related-item-title">{s.title ?? "Video"}</span>
-                    {(s.admin?.name || s.group_name || instructor) && (
+                    {(s.groupName || s.group_name) && (
+                      <span className="video-session-detail-related-group">
+                        {s.groupName || s.group_name}
+                      </span>
+                    )}
+                    {(s.admin?.name || s.instructor) && (
                       <span className="video-session-detail-related-instructor">
-                        {s.admin?.name || s.group_name || instructor}
+                        {s.admin?.name || s.instructor}
                       </span>
                     )}
                     {(s.created_at || s.createdAt) && (

@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Microphone, Play, Plus, Trash, Image as ImageIcon, Link as LinkIcon, FileText, DownloadSimple, X, Video, CaretDown, CaretUp } from "@phosphor-icons/react";
+import { Microphone, Play, Plus, Trash, Image as ImageIcon, Link as LinkIcon, FileText, DownloadSimple, X, Video, CaretDown, CaretUp, UserPlus, UserMinus } from "@phosphor-icons/react";
 import { File } from "lucide-react";
 import { categorizeResources } from "./utils";
 import { getDownloadFileName, getFileExtensionForLabel, getInitials } from "../utils/mainChatMessageUtils";
-import { getUserByEmail, joinGroup, deleteMembership, getGroupMemberships, deleteResource, addResource, addLinkResource } from "../../Groups/services/groupsService";
+import {
+  getUserByEmail,
+  joinGroup,
+  deleteMembership,
+  getGroupMemberships,
+  deleteResource,
+  addResource,
+  addLinkResource,
+  addGroupAdmin,
+  removeGroupAdminByEmail,
+} from "../../Groups/services/groupsService";
+import { AssignGroupAdminMeetzaModal, RemoveGroupAdminMeetzaModal } from "./GroupAdminMeetzaModals";
 import { smartToast } from "../../../API/toastManager";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import { useRef } from "react";
@@ -250,6 +261,7 @@ export default function MainChatExpandedSection({
   onCloseSection,
   contentName,
   onUpdateContentName,
+  onRefreshGroupInfo,
 }) {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
@@ -275,6 +287,15 @@ export default function MainChatExpandedSection({
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editVal, setEditVal] = useState("");
   const titleInputRef = useRef(null);
+
+  const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
+  const [assignAdminForm, setAssignAdminForm] = useState({ email: "", role: "" });
+  const [assigningAdmin, setAssigningAdmin] = useState(false);
+
+  const [showRemoveAdminModal, setShowRemoveAdminModal] = useState(false);
+  const [removeAdminEmail, setRemoveAdminEmail] = useState("");
+  const [removeAdminEmailReadOnly, setRemoveAdminEmailReadOnly] = useState(false);
+  const [removingAdmin, setRemovingAdmin] = useState(false);
 
   useEffect(() => {
     setEditVal(contentName || "");
@@ -306,6 +327,55 @@ export default function MainChatExpandedSection({
 
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isAdmin = normalizedUserRole === "administrator" || normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
+
+  const groupLabelForModals =
+    groupInfo?.group?.group_name ||
+    groupInfo?.group_name ||
+    groupInfo?.group?.name ||
+    "Group";
+
+  const handleAssignGroupAdmin = async () => {
+    const email = (assignAdminForm.email || "").trim();
+    if (!email || !groupId || assigningAdmin) return;
+    setAssigningAdmin(true);
+    try {
+      await addGroupAdmin(groupId, { email, role: assignAdminForm.role });
+      smartToast.success("Admin assigned successfully");
+      setShowAssignAdminModal(false);
+      setAssignAdminForm({ email: "", role: "" });
+      await onRefreshGroupInfo?.();
+    } catch (error) {
+      console.error("assign group admin:", error);
+      smartToast.error(error?.response?.data?.message || error?.message || "Failed to assign admin");
+    } finally {
+      setAssigningAdmin(false);
+    }
+  };
+
+  const handleRemoveGroupAdmin = async () => {
+    const email = (removeAdminEmail || "").trim();
+    if (!email || !groupId || removingAdmin) return;
+    setRemovingAdmin(true);
+    try {
+      await removeGroupAdminByEmail(groupId, email);
+      smartToast.success("Admin removed");
+      setShowRemoveAdminModal(false);
+      setRemoveAdminEmail("");
+      setRemoveAdminEmailReadOnly(false);
+      await onRefreshGroupInfo?.();
+    } catch (error) {
+      console.error("remove group admin:", error);
+      smartToast.error(error?.response?.data?.message || error?.message || "Failed to remove admin");
+    } finally {
+      setRemovingAdmin(false);
+    }
+  };
+
+  const openRemoveAdminModal = (member, { readOnlyEmail = true } = {}) => {
+    setRemoveAdminEmail((member?.email || "").trim());
+    setRemoveAdminEmailReadOnly(readOnlyEmail);
+    setShowRemoveAdminModal(true);
+  };
 
   const [membershipMap, setMembershipMap] = useState({});
 
@@ -533,29 +603,57 @@ export default function MainChatExpandedSection({
       });
       return (
         <div className="expanded-section1">
-          <div className="members-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div className="members-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: 8, flexWrap: 'wrap' }}>
             <h4 style={{ margin: 0 }}>Members ({members.length})</h4>
             {isAdmin && (
-              <button
-                className="add-member-btn-plus"
-                onClick={() => setShowAddMemberModal(true)}
-                style={{
-                  background: '#0076EA',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                title="Add Member"
-              >
-                <Plus size={20} weight="bold" />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  className="add-member-btn-plus group-admin-action-btn"
+                  onClick={() => {
+                    setAssignAdminForm({ email: "", role: "" });
+                    setShowAssignAdminModal(true);
+                  }}
+                  style={{
+                    background: '#059669',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                  title="Assign group admin"
+                  aria-label="Assign group admin"
+                >
+                  <UserPlus size={20} weight="bold" />
+                </button>
+                <button
+                  className="add-member-btn-plus"
+                  onClick={() => setShowAddMemberModal(true)}
+                  style={{
+                    background: '#0076EA',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                  title="Add Member"
+                  aria-label="Add member"
+                >
+                  <Plus size={20} weight="bold" />
+                </button>
+              </div>
             )}
           </div>
           <div className="members-list">
@@ -572,6 +670,38 @@ export default function MainChatExpandedSection({
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className={`member-role ${member.role === "Administrator" ? "admin-role" : ""}`}>{member.role}</span>
+                  {isAdmin &&
+                    member.role === "Administrator" &&
+                    member.email &&
+                    String(member.email).trim().toLowerCase() !== String(currentUserEmail || "").trim().toLowerCase() && (
+                      <button
+                        type="button"
+                        className="remove-group-admin-btn"
+                        onClick={() => openRemoveAdminModal(member, { readOnlyEmail: true })}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#b45309",
+                          cursor: "pointer",
+                          padding: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "4px",
+                          transition: "background 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#fffbeb";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "none";
+                        }}
+                        title="Remove assigned admin"
+                        aria-label="Remove assigned admin"
+                      >
+                        <UserMinus size={20} weight="bold" />
+                      </button>
+                    )}
                   {isAdmin && member.email !== currentUserEmail && member.role !== "Administrator" && (
                     <button
                       className="delete-member-btn"
@@ -611,6 +741,36 @@ export default function MainChatExpandedSection({
             message={`Are you sure you want to remove ${memberToDelete?.name || 'this member'} from the group?`}
             confirming={isDeletingMember}
           />
+
+          {showAssignAdminModal && (
+            <AssignGroupAdminMeetzaModal
+              groupLabel={groupLabelForModals}
+              formData={assignAdminForm}
+              setFormData={setAssignAdminForm}
+              onSubmit={handleAssignGroupAdmin}
+              onClose={() => {
+                if (!assigningAdmin) setShowAssignAdminModal(false);
+              }}
+              saving={assigningAdmin}
+            />
+          )}
+          {showRemoveAdminModal && (
+            <RemoveGroupAdminMeetzaModal
+              groupLabel={groupLabelForModals}
+              email={removeAdminEmail}
+              setEmail={setRemoveAdminEmail}
+              emailReadOnly={removeAdminEmailReadOnly}
+              onConfirm={handleRemoveGroupAdmin}
+              onClose={() => {
+                if (!removingAdmin) {
+                  setShowRemoveAdminModal(false);
+                  setRemoveAdminEmail("");
+                  setRemoveAdminEmailReadOnly(false);
+                }
+              }}
+              saving={removingAdmin}
+            />
+          )}
 
           {/* Add Member Modal */}
           {showAddMemberModal && (

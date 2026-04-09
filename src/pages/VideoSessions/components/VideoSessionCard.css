@@ -136,6 +136,18 @@
   text-overflow: ellipsis;
 }
 
+.video-session-card-group {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #047857;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .video-session-card-topics {
   display: flex;
   flex-wrap: wrap;

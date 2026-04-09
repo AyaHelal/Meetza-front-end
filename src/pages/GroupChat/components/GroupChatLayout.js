@@ -46,6 +46,7 @@ function GroupChatLayout({
   loadingMoreMessages = false,
   onLoadMoreMessages,
   onVideoSessionsClick,
+  onRefreshGroupInfo,
 }) {
   if (loading) {
     return (
@@ -97,6 +98,7 @@ function GroupChatLayout({
         hasMoreMessages={hasMoreMessages}
         loadingMoreMessages={loadingMoreMessages}
         onLoadMoreMessages={onLoadMoreMessages}
+        onRefreshGroupInfo={onRefreshGroupInfo}
       />
 
       {selectedChatData && (

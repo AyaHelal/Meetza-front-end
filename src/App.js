@@ -30,7 +30,7 @@ import AdminRoute from './components/AdminRoute';
 import CalendarRoute from './components/CalendarRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
-import { useEffect, useContext, useRef } from "react";
+import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
@@ -38,6 +38,30 @@ const AppRoutes = () => {
   const navigate = useNavigate();
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
   const socialLoginProcessed = useRef(false);
+  const prevPathRef = useRef(location.pathname);
+  const [routeLoading, setRouteLoading] = useState(true);
+
+  // Show Lottie on first paint and on route changes, except specific "back to home" transitions.
+  useEffect(() => {
+    const current = location.pathname;
+    const prev = prevPathRef.current || "";
+    prevPathRef.current = current;
+
+    const isAuthRoute = (p) => p === "/login" || p === "/signup";
+    const isLandingRoute = (p) => p === "/" || p === "/landing";
+
+    const suppressAuthSwitchLoader = isAuthRoute(current) && isAuthRoute(prev);
+    const suppressAuthEntryFromLanding = isAuthRoute(current) && isLandingRoute(prev);
+
+    if (suppressAuthSwitchLoader || suppressAuthEntryFromLanding) {
+      setRouteLoading(false);
+      return;
+    }
+
+    setRouteLoading(true);
+    const t = setTimeout(() => setRouteLoading(false), 650);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
 
   // When user closes tab/window while in a meeting, call leave API (same as Leave button)
   // Uses sendBeacon (more reliable on unload) with token in URL - backend accepts it via verifyTokenOrQuery
@@ -148,7 +172,7 @@ const AppRoutes = () => {
     }
   }, [location.search, loginUser, navigate]);
 
-  if (initializing) {
+  if (initializing || routeLoading) {
     return <PageLoader />;
   }
 

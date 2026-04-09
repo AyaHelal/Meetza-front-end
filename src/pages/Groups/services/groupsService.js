@@ -62,15 +62,94 @@ export function getGroupMemberships() {
   return api.get('/group-membership');
 }
 
+/** POST /group/:id/admins — same body as meetza-admin: { email, role?: 'OWNER' | 'ADMIN' } */
+export function addGroupAdmin(groupId, payload) {
+  const id = encodeURIComponent(String(groupId));
+  const email = String(payload?.email || '').trim();
+  if (!email) return Promise.reject(new Error('email is required'));
+  const body = { email };
+  const role = String(payload?.role || '').trim().toUpperCase();
+  if (role === 'OWNER' || role === 'ADMIN') body.role = role;
+  return api.post(`/group/${id}/admins`, body);
+}
+
+/** DELETE /group/:id/admins/:email — same as meetza-admin */
+export function removeGroupAdminByEmail(groupId, email) {
+  const id = encodeURIComponent(String(groupId));
+  const em = encodeURIComponent(String(email || '').trim());
+  if (!String(email || '').trim()) return Promise.reject(new Error('email is required'));
+  return api.delete(`/group/${id}/admins/${em}`);
+}
+
 export async function getGroupMembership(groupId) {
   const res = await api.get(`/chat/groups/${groupId}/info`);
   return res.data?.data?.members || [];
 }
 
+/**
+ * API may return group admins as `admins: [{ user_id, role, name, email, ... }]`.
+ * Pick OWNER first, then ADMIN, else first entry — for display + legacy `administrator_id` filter.
+ */
+function pickPrimaryAdminFromAdmins(admins) {
+  if (!Array.isArray(admins) || admins.length === 0) return null;
+  const upper = (r) => String(r || '').toUpperCase();
+  const owner = admins.find((a) => upper(a.role) === 'OWNER');
+  if (owner) return owner;
+  const adm = admins.find((a) => upper(a.role) === 'ADMIN');
+  if (adm) return adm;
+  return admins[0];
+}
+
+/** True if this user is a legacy group admin or listed in `admins`. */
+export function groupIsManagedByUser(group, userId) {
+  if (userId == null || !group) return false;
+  const uid = String(userId);
+  const legacyIds = [
+    group.administrator_id,
+    group.admin_id,
+    group.adminId,
+    group.user_id,
+    group.admin?.id,
+  ];
+  if (legacyIds.some((id) => id != null && String(id) === uid)) return true;
+  if (Array.isArray(group.admins)) {
+    return group.admins.some((a) => a?.user_id != null && String(a.user_id) === uid);
+  }
+  return false;
+}
+
+export function normalizeGroupRecord(group) {
+  if (!group || typeof group !== 'object') return group;
+  const primary = pickPrimaryAdminFromAdmins(group.admins);
+  const adminUserId = primary?.user_id ?? primary?.userId ?? null;
+  const adminName =
+    primary?.name ??
+    group.admin_name ??
+    group.admin?.name ??
+    null;
+
+  return {
+    ...group,
+    admin_name: group.admin_name ?? adminName ?? undefined,
+    admin:
+      group.admin ??
+      (adminName != null
+        ? { id: adminUserId, name: adminName }
+        : undefined),
+    administrator_id:
+      group.administrator_id ??
+      group.admin_id ??
+      group.adminId ??
+      adminUserId ??
+      undefined,
+  };
+}
+
 export function parseGroupsResponse(response) {
-  if (Array.isArray(response?.data?.data)) return response.data.data;
-  if (Array.isArray(response?.data)) return response.data;
-  if (response?.data?.success && Array.isArray(response?.data?.data)) return response.data.data;
-  if (response?.data?.success && Array.isArray(response?.data?.groups)) return response.data.groups;
-  return [];
+  let raw = [];
+  if (Array.isArray(response?.data?.data)) raw = response.data.data;
+  else if (Array.isArray(response?.data)) raw = response.data;
+  else if (response?.data?.success && Array.isArray(response?.data?.data)) raw = response.data.data;
+  else if (response?.data?.success && Array.isArray(response?.data?.groups)) raw = response.data.groups;
+  return raw.map((g) => normalizeGroupRecord(g));
 }

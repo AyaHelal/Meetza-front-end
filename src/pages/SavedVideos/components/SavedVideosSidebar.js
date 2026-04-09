@@ -17,6 +17,7 @@ export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRem
           videos.map((v) => {
             const isActive = String(v.id) === String(selectedId);
             const isRemoving = removingId != null && String(removingId) === String(v.id);
+            const groupLabel = v.groupName ?? v.group_name ?? null;
             return (
               <div
                 key={v.id ?? v.title}
@@ -40,6 +41,9 @@ export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRem
                   <span className="video-session-detail-related-item-title">
                     {v.title || "Video"}
                   </span>
+                  {!!groupLabel && (
+                    <span className="video-session-detail-related-group">{groupLabel}</span>
+                  )}
                   {!!v.instructor && (
                     <span className="video-session-detail-related-instructor">{v.instructor}</span>
                   )}

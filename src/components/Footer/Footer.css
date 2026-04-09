@@ -41,15 +41,15 @@
   flex: 1;
   min-width: 300px;
   display: flex;
-  justify-content: center;
+  justify-content: end;
 }
 
 .footer-links {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2rem;
-  justify-items: center;
-  text-align: center;
+  justify-items: start;
+  text-align: start;
 }
 
 .footer-section h6 {

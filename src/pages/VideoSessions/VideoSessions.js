@@ -12,6 +12,16 @@ function VideoSessionsContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get("group_id") || null;
+  const groupNameParam = searchParams.get("group_name");
+  const groupNameFromUrl = groupNameParam
+    ? (() => {
+        try {
+          return decodeURIComponent(String(groupNameParam).replace(/\+/g, " "));
+        } catch {
+          return String(groupNameParam);
+        }
+      })()
+    : null;
   const { user } = useAuth();
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
 
@@ -66,6 +76,7 @@ function VideoSessionsContent() {
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
         groupId={groupId}
+        groupName={groupNameFromUrl}
       />
       <PostVideoModal
         isOpen={postVideoModalOpen}

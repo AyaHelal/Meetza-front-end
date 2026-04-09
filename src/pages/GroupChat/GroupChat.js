@@ -18,6 +18,7 @@ import {
 } from "./hooks";
 import { useMainChatMeeting } from "./hooks/useMainChatMeeting";
 import { getMeetingsByGroupId } from "./services/mainChatService";
+import { getGroupInfo } from "./services/groupChatService";
 import { meetingToCalendarEvent, getMeetingId } from "./utils/mainChatMeetingUtils";
 import { extractLinksFromMessages } from "./utils/groupChatFormatters";
 
@@ -112,6 +113,16 @@ export default function GroupChat() {
       setGroupMeetings(Array.isArray(list) ? list : []);
     });
   }, [api, currentGroupId]);
+
+  const refreshGroupInfo = useCallback(async () => {
+    if (!currentGroupId) return;
+    try {
+      const info = await getGroupInfo(api, currentGroupId);
+      if (info) setGroupInfo(info);
+    } catch (e) {
+      console.error("refreshGroupInfo:", e);
+    }
+  }, [api, currentGroupId, setGroupInfo]);
 
   useEffect(() => {
     if (!currentGroupId) {
@@ -580,6 +591,7 @@ export default function GroupChat() {
         loadingMoreMessages={loadingMoreMessages}
         onLoadMoreMessages={loadMoreMessages}
         onVideoSessionsClick={handleVideoSessionsClick}
+        onRefreshGroupInfo={refreshGroupInfo}
       />
       <div ref={videoSectionRef} id="video-sessions-section" className="video-sessions-section-wrap">
         <VideoSessionsProvider>

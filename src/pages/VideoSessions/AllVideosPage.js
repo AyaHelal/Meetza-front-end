@@ -107,7 +107,11 @@ function AllVideosContent() {
   const filteredSessions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (q.length < 3) return sessions;
-    return sessions.filter((s) => (s.title || "").toLowerCase().includes(q));
+    return sessions.filter((s) => {
+      const title = (s.title || "").toLowerCase();
+      const group = (s.groupName ?? s.group_name ?? "").toLowerCase();
+      return title.includes(q) || (group && group.includes(q));
+    });
   }, [sessions, searchQuery]);
 
   const handleBack = () => {
@@ -128,6 +132,7 @@ function AllVideosContent() {
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
         groupId={null}
+        subtitle="All videos you can access — group name is on each card."
       />
       <PostVideoModal
         isOpen={postVideoModalOpen}

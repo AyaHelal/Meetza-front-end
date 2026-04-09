@@ -52,16 +52,38 @@ export default function SavedVideosPage() {
   const { savedVideos, loading, error, refetch, removeFromSaved, removingId } =
     useSavedVideos(selectedGroupId);
 
+  const groupNameById = useMemo(
+    () => Object.fromEntries(groupsList.map((g) => [g.id, g.name])),
+    [groupsList],
+  );
+
+  const savedVideosWithGroup = useMemo(
+    () =>
+      savedVideos.map((v) => ({
+        ...v,
+        groupName:
+          v.groupName ??
+          v.group_name ??
+          (v.group_id != null ? groupNameById[String(v.group_id)] : null) ??
+          null,
+      })),
+    [savedVideos, groupNameById],
+  );
+
   const filtered = useMemo(() => {
     const q = (searchQuery || "").toLowerCase().trim();
-    if (q.length < 3) return savedVideos;
-    return savedVideos.filter((v) => (v.title || "").toLowerCase().includes(q));
-  }, [savedVideos, searchQuery]);
+    if (q.length < 3) return savedVideosWithGroup;
+    return savedVideosWithGroup.filter((v) => {
+      const title = (v.title || "").toLowerCase();
+      const gn = (v.groupName || "").toLowerCase();
+      return title.includes(q) || (gn && gn.includes(q));
+    });
+  }, [savedVideosWithGroup, searchQuery]);
 
   const selected = useMemo(() => {
     if (!selectedId) return null;
-    return savedVideos.find((v) => String(v.id) === String(selectedId)) || null;
-  }, [savedVideos, selectedId]);
+    return savedVideosWithGroup.find((v) => String(v.id) === String(selectedId)) || null;
+  }, [savedVideosWithGroup, selectedId]);
 
   const handleBack = useCallback(() => {
     if (selectedId) {
@@ -81,7 +103,7 @@ export default function SavedVideosPage() {
         title="Saved videos"
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        videos={savedVideos}
+        videos={savedVideosWithGroup}
         onSuggestionSelect={(video) => {
           if (!video?.id) return;
           setSelectedId(video.id);
@@ -129,7 +151,7 @@ export default function SavedVideosPage() {
                   <div className="saved-videos-selected-body">
                     <SavedVideosDetail
                       session={selected}
-                      savedVideos={savedVideos}
+                      savedVideos={savedVideosWithGroup}
                       onBack={handleBack}
                       onSelectSession={(video) => handleSelect(video)}
                       onUnsave={async (videoId) => {

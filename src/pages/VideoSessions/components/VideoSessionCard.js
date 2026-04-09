@@ -14,6 +14,7 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
   const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
   const duration = session?.duration ?? "24:22";
   const title = session?.title ?? "Video Title";
+  const groupLabel = session?.groupName ?? session?.group_name ?? null;
   const description = session?.description;
   const hasDescription = description && description.trim() !== "" && description.toLowerCase() !== "null";
 
@@ -97,7 +98,12 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
       <div className="video-session-card-content">
         <div className="video-session-card-text">
           <h3 className="video-session-card-title">{title}</h3>
-          
+          {!!groupLabel && (
+            <span className="video-session-card-group" title={`Group: ${groupLabel}`}>
+              {groupLabel}
+            </span>
+          )}
+
           {/* Topics Tags */}
           {(() => {
             const raw = session?.topics;
