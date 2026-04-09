@@ -203,6 +203,7 @@ const Groups = () => {
           groups={filteredGroups}
           loading={loading}
           userRole={userRole}
+          isSuperAdmin={isSuperAdmin}
           joinedGroups={joinedGroups}
           onJoinGroup={handleJoinGroup}
           onEditGroup={handleEditGroupClick}

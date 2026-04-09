@@ -11,7 +11,9 @@
 
 .video-session-card[role="button"] {
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .video-session-card[role="button"]:hover {
@@ -21,8 +23,9 @@
 .video-session-card-thumb-wrap {
   position: relative;
   width: 100%;
-  flex-grow: 1;
-  display: flex;
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto;
+  display: block;
   background: #f3f4f6;
   overflow: hidden;
   border-radius: 24px 24px 0 0;
@@ -93,8 +96,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Content row: title/description + 3-dots (vertical) menu */
@@ -128,26 +135,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
- 
- .video-session-card-topics {
-   display: flex;
-   flex-wrap: wrap;
-   gap: 4px;
-   margin-bottom: 6px;
- }
- 
- .video-session-card-topic-tag {
-   font-size: 0.65rem;
-   font-weight: 600;
-   color: #4b5563;
-   background: #f3f4f6;
-   padding: 2px 8px;
-   border-radius: 4px;
-   border: 1px solid #e5e7eb;
-   white-space: nowrap;
- }
- 
- .video-session-card-description {
+
+.video-session-card-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.video-session-card-topic-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.video-session-card-description {
   margin: 0;
   padding: 0;
   font-size: 0.875rem;
@@ -178,7 +185,9 @@
   background: transparent;
   color: #6b7280;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .video-session-card-menu-btn:hover {
   background: #f3f4f6;

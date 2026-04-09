@@ -3,6 +3,9 @@ import { Container } from "react-bootstrap";
 import HomeHeroBanner from "./components/HomeHeroBanner";
 import HomeStatsCarousel from "./components/HomeStatsCarousel";
 import HomeUpcomingMeetingsCarousel from "./components/HomeUpcomingMeetingsCarousel";
+import HomePeopleCarousel from "./components/HomePeopleCarousel";
+import HomeVideosCarousel from "./components/HomeVideosCarousel";
+import HomeSavedVideosCarousel from "./components/HomeSavedVideosCarousel";
 import "./HomePage.css";
 
 /**
@@ -17,7 +20,12 @@ export default function HomePage() {
         <div className="home-section-divider" role="presentation" />
         <HomeUpcomingMeetingsCarousel />
         <div className="home-section-divider" role="presentation" />
-        <div className="home-dashboard-placeholder" aria-hidden="true" />
+        <HomeVideosCarousel />
+        <div className="home-section-divider" role="presentation" />
+        <HomePeopleCarousel />
+        <div className="home-section-divider" role="presentation" />
+        <HomeSavedVideosCarousel />
+        <div className="home-section-divider" role="presentation" />
       </Container>
     </div>
   );
