@@ -344,8 +344,8 @@
 .video-session-detail-group {
   margin: 0;
   font-size: 0.85rem;
-  font-weight: 600;
-  color: #047857;
+  font-weight: 500;
+  color: #666666;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -886,8 +886,8 @@
 
 .video-session-detail-related-group {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: #047857;
+  font-weight: 500;
+  color: #666666;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;

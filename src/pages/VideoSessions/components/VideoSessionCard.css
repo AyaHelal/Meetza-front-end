@@ -139,8 +139,8 @@
 .video-session-card-group {
   display: block;
   font-size: 0.78rem;
-  font-weight: 600;
-  color: #047857;
+  font-weight: 500;
+  color: #666666;
   margin: 0 0 6px 0;
   line-height: 1.25;
   overflow: hidden;
