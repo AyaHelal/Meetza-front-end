@@ -41,8 +41,13 @@ const MessageItem = ({
   const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
   const isOwnMessage = emailMatch || nameMatch;
 
+  const isGroupAdminRole =
+    userRole === 'Administrator' ||
+    userRole === 'Super_Admin' ||
+    (typeof userRole === 'string' && userRole.toLowerCase().includes('super_admin'));
+
   const handleRightClick = (e) => {
-    if (!isOwnMessage && userRole !== 'Administrator') return;
+    if (!isOwnMessage && !isGroupAdminRole) return;
     e.preventDefault();
     const isMobile = window.innerWidth <= 768;
     if (isMobile && messageRef.current) {
@@ -143,7 +148,7 @@ const MessageItem = ({
         )}
         <MessageItemMedia finalMedia={finalMedia} isOwnMessage={isOwnMessage} onMediaClick={onMediaClick} />
       </div>
-      {showContextMenu && (isOwnMessage || userRole === 'Administrator') && (
+      {showContextMenu && (isOwnMessage || isGroupAdminRole) && (
         <div className="context-menu" ref={menuRef} style={{ left: menuPosition.x, top: menuPosition.y }}>
           {isOwnMessage && <button onClick={handleEdit}>Edit</button>}
           <button onClick={handleDelete}>Delete</button>

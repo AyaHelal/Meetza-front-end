@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getGroups, getGroupMembership, parseGroupsResponse } from '../services/groupsService';
+import { getGroups, getGroupMembership, parseGroupsResponse, groupIsManagedByUser } from '../services/groupsService';
 import { smartToast } from '../../../API/toastManager';
 
 function normalizeRole(user) {
@@ -33,7 +33,7 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
       const isAdminRole = normalizedRole === 'Administrator';
       const visibleGroups =
         isAdminRole && !isSuperAdminRole && currentUserId
-          ? uniqueGroups.filter((group) => group.administrator_id === currentUserId)
+          ? uniqueGroups.filter((group) => groupIsManagedByUser(group, currentUserId))
           : uniqueGroups;
 
       setGroups(visibleGroups);

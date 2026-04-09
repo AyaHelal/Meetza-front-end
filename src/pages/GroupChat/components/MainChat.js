@@ -48,6 +48,7 @@ const MainChat = ({
   onLoadMoreMessages,
   meetingId,
   onCreateMeeting,
+  onRefreshGroupInfo,
 }) => {
   const params = useParams();
   const [searchParams] = useSearchParams();
@@ -71,7 +72,7 @@ const MainChat = ({
   const handleJoinMeeting = () => handleJoinMeetingFromHook({ searchParams, params });
 
   const showJoinMeetingButton = !!groupId && normalizedUserRole === "member" && hasMeeting;
-  const showCreateMeetingButton = !!groupId && isAdministrator && onCreateMeeting;
+  const showCreateMeetingButton = !!groupId && (isAdministrator || isSuperAdmin) && onCreateMeeting;
 
   const [messages, setMessages] = useMainChatMessagesLocal(initialMessages);
   const { messagesContainerRef, messagesEndRef } = useMainChatScroll(messages, groupId, showMainChat, isMobile);
@@ -222,6 +223,7 @@ const MainChat = ({
       currentUserEmail={currentUserEmail}
       contentName={activeContentName}
       onUpdateContentName={handleUpdateContentName}
+      onRefreshGroupInfo={onRefreshGroupInfo}
     />
   ) : null;
 

@@ -31,6 +31,13 @@ function formatDurationForDisplay(value) {
 export function mapVideoToSession(raw) {
   const durationRaw = raw.duration ?? raw.duration_seconds ?? null;
   const duration = formatDurationForDisplay(durationRaw) ?? durationRaw;
+  const groupName =
+    raw.group_name ??
+    raw.groupName ??
+    raw.group?.group_name ??
+    raw.group?.name ??
+    null;
+  const groupId = raw.group_id ?? raw.groupId ?? raw.group?.id ?? null;
   return {
     ...raw,
     id: raw.id,
@@ -41,6 +48,9 @@ export function mapVideoToSession(raw) {
     duration,
     instructor: raw.admin?.name ?? raw.instructor ?? raw.instructor_name ?? null,
     createdAt: raw.created_at ?? raw.createdAt ?? null,
+    group_id: groupId,
+    group_name: groupName,
+    groupName,
   };
 }
 

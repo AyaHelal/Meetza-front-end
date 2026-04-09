@@ -33,11 +33,14 @@ export default function VideoBySlugPage() {
           data?.videoId ??
           null;
 
+        const groupLabel = parsed?.groupName ?? parsed?.group_name ?? v?.group_name ?? null;
         setSession({
           ...parsed,
           id: fallbackId,
           title: parsed?.title ?? v?.title ?? (typeof slug === "string" ? slug : "Video Title"),
           slug: parsed?.slug ?? v?.slug ?? (typeof slug === "string" ? slug : undefined),
+          group_name: groupLabel,
+          groupName: groupLabel,
         });
       } catch (err) {
         if (!cancelled) setError(err?.response?.data?.message || err?.message || "Failed to load video");

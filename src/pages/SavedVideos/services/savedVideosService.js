@@ -13,12 +13,22 @@ function mapSavedVideoItem(item) {
   const title = v?.title ?? item?.title ?? "Video";
   const instructor = item?.admin_name ?? item?.adminName ?? v?.admin_name ?? v?.adminName ?? v?.admin?.name ?? null;
   const savedAt = item?.saved_at ?? item?.savedAt ?? item?.created_at ?? item?.createdAt ?? null;
+  const groupId = v?.group_id ?? item?.group_id ?? null;
+  const groupName =
+    v?.group_name ??
+    item?.group_name ??
+    v?.groupName ??
+    item?.groupName ??
+    null;
 
   return {
     ...v,
     id,
     title,
     instructor,
+    group_id: groupId,
+    group_name: groupName,
+    groupName,
     thumbnailUrl: v?.poster_url ?? v?.thumbnail_url ?? v?.thumbnail ?? v?.cover_url ?? null,
     videoUrl: v?.video_url ?? v?.videoUrl ?? v?.url ?? null,
     duration: v?.duration ?? v?.duration_seconds ?? null,
