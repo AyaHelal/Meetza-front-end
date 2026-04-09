@@ -19,10 +19,16 @@ const item = {
 export default function HeroSection() {
     const navigate = useNavigate();
     return (
-        <div className="hero-section" style={{
-            background: 'url(/assets/landing_bg.png) no-repeat center center',
-            backgroundSize: 'cover'
-        }}>
+        <div
+            className="hero-section"
+            style={{
+                backgroundImage: "url(/assets/landing_bg.png)",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "cover",
+                backgroundPosition: "top center",
+                backgroundAttachment: "fixed",
+            }}
+        >
             <HeroNav />
             <motion.div
                 className="container text-center text-white"

@@ -127,8 +127,8 @@ export default function MessagingCardSlider() {
 
     return (
         <div className="messaging-card-slider-container" style={{
-            minHeight: isMobile ? 'auto' : '100vh',
-            padding: isMobile ? '20px 15px' : '60px 20px',
+            minHeight: 'auto',
+            padding: isMobile ? '20px 15px' : '32px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -137,7 +137,7 @@ export default function MessagingCardSlider() {
                 <div style={{ position: 'relative' }}>
                     {/* Slider Container */}
                     <div style={{
-                        padding: isMobile ? '15px 0' : '20px 0',
+                        padding: isMobile ? '12px 0' : '12px 0',
                         position: 'relative'
                     }}>
                         <div
@@ -154,9 +154,9 @@ export default function MessagingCardSlider() {
                             {duplicatedCards.map((card, index) => {
                                 const cardPosition = index - actualPosition;
                                 const absPosition = Math.abs(cardPosition);
-                                const offsetY = absPosition % 2 === 1 ? (isMobile ? 20 : 30) : 0; // Odd positions higher, even positions at base
+                                const offsetY = absPosition % 2 === 1 ? (isMobile ? 14 : 18) : 0; // Odd positions higher, even positions at base
                                 const isLargeCard = card.title === "Start Your Own Meeting" || card.title === "Work Together";
-                                const minHeightValue = isLargeCard ? (isMobile ? '0px' : '250px') : (isMobile ? '0px' : '180px');
+                                const minHeightValue = isLargeCard ? (isMobile ? '140px' : '180px') : (isMobile ? '120px' : '140px');
 
                                 return (
                                     <div key={index} style={{
@@ -171,18 +171,21 @@ export default function MessagingCardSlider() {
                                         <div style={{
                                             background: 'linear-gradient(135deg, #214AB8 0%, #00DC85 100%)',
                                             borderRadius: isMobile ? '24px' : '32px',
-                                            padding: isMobile ? '15px' : '30px',
+                                            padding: isMobile ? '14px' : '20px',
                                             boxShadow: '0 10px 30px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.2)',
-                                            height: '100%',
-                                            transition: 'box-shadow 0.3s ease'
+                                            transition: 'box-shadow 0.3s ease',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            height: isMobile ? '280px' : '520px'
                                         }}>
                                             {/* Image Container */}
                                             <div style={{
                                                 borderRadius: isMobile ? '12px' : '15px',
-                                                marginBottom: isMobile ? '10px' : '30px',
+                                                marginBottom: isMobile ? '10px' : '16px',
                                                 overflow: 'hidden',
                                                 minHeight: minHeightValue,
-                                                position: 'relative'
+                                                position: 'relative',
+                                                flex: '1 1 auto'
                                             }}>
                                                 {card.lottie ? (
                                                     <Lottie

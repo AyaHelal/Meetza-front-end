@@ -6,6 +6,8 @@ import { API_BASE_URL } from './API/axiosInstance';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
+import Blog from './pages/Blog/Blog';
+import BlogPost from './pages/Blog/BlogPost';
 import GroupChat from './pages/GroupChat/GroupChat';
 import HomePage from './pages/Home/HomePage';
 import VideoSessions from './pages/VideoSessions/VideoSessions';
@@ -202,6 +204,8 @@ const AppRoutes = () => {
       />
       {/* Public Landing route */}
       <Route path="/landing" element={<Landing />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />
