@@ -133,7 +133,7 @@
 .home-see-more.btn-link {
   border: none;
   background: none !important;
-  color: #2563eb !important;
+  color: #111827 !important;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -142,7 +142,7 @@
 
 .home-see-more:hover {
   text-decoration: underline !important;
-  color: #1d4ed8 !important;
+  color: #000 !important;
 }
 
 .home-bootstrap-carousel .carousel-control-prev,
@@ -243,6 +243,14 @@
   }
 }
 
+/* Mobile: hide slider nav buttons (use swipe only) */
+@media (max-width: 575px) {
+  .home-bootstrap-carousel .carousel-control-prev,
+  .home-bootstrap-carousel .carousel-control-next {
+    display: none !important;
+  }
+}
+
 .home-stats-carousel,
 .home-meetings-carousel {
   padding-bottom: 0.5rem;
@@ -285,8 +293,7 @@
 
 .home-stats-slider-wrap .carousel-control-prev:disabled,
 .home-stats-slider-wrap .carousel-control-next:disabled {
-  opacity: 0.35;
-  pointer-events: none;
+  display: none;
 }
 
 /* Upcoming meetings: same horizontal scroll pattern as stats */
@@ -331,8 +338,210 @@
 
 .home-meetings-slider-wrap .carousel-control-prev:disabled,
 .home-meetings-slider-wrap .carousel-control-next:disabled {
-  opacity: 0.35;
-  pointer-events: none;
+  display: none;
+}
+
+/* Videos: horizontal scroll track (same pattern, different card size) */
+.home-videos-slider-wrap .home-videos-slider-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.85rem;
+}
+
+.home-videos-slider-wrap .home-videos-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.home-videos-slider-wrap .home-videos-slider-slide {
+  display: flex;
+  flex: 0 0 min(260px, calc((100% - 3 * 1rem) / 4));
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 991px) {
+  .home-videos-slider-wrap .home-videos-slider-slide {
+    flex: 0 0 min(260px, calc((100% - 1rem) / 2));
+  }
+}
+
+@media (max-width: 575px) {
+  .home-videos-slider-wrap .home-videos-slider-slide {
+    flex: 0 0 min(260px, 86%);
+  }
+}
+
+.home-videos-slider-wrap .carousel-control-prev:disabled,
+.home-videos-slider-wrap .carousel-control-next:disabled {
+  display: none;
+}
+
+/* People: horizontal scroll track */
+.home-people-slider-wrap .home-people-slider-track {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+
+.home-people-slider-wrap .home-people-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.home-people-slider-wrap .home-people-slider-slide {
+  display: flex;
+  flex: 0 0 min(190px, calc((100% - 3 * 1.25rem) / 4));
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 991px) {
+  .home-people-slider-wrap .home-people-slider-slide {
+    flex: 0 0 min(190px, calc((100% - 1.25rem) / 2));
+  }
+}
+
+@media (max-width: 575px) {
+  .home-people-slider-wrap .home-people-slider-slide {
+    flex: 0 0 min(190px, 70%);
+  }
+}
+
+.home-people-slider-wrap .carousel-control-prev:disabled,
+.home-people-slider-wrap .carousel-control-next:disabled {
+  display: none;
+}
+
+.home-people-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.25rem 0.25rem;
+  background: transparent;
+}
+
+.home-people-card-avatar-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.home-people-card-avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.home-people-card-name {
+  margin: 0.75rem 0 0.1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-people-card-role {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Video card matches screenshot: image, title, status line, thin green progress */
+.home-video-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.home-video-card-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.home-video-card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-video-card-body {
+  padding: 0.65rem 0.75rem 0.75rem;
+}
+
+.home-video-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.4rem 0;
+  line-height: 1.25;
+}
+
+.home-video-card-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.home-video-card-status-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+}
+
+.home-video-card-status-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.home-video-card-progress {
+  width: 100%;
+  height: 3px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.home-video-card-progress-bar {
+  display: block;
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
 }
 
 /* Stat cards: icon + title row, then value/unit, then arrow (end) */

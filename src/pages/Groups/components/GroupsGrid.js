@@ -11,9 +11,13 @@ function GroupCard({ group, index, userRole, joinedGroups, onJoin, onEdit, onDel
   const photo = group.group_photo || group.photo || DEFAULT_POSTER;
   const instructor = group.admin?.name || group.admin_name || 'Unknown';
   const isJoined = groupId && joinedGroups.includes(groupId);
+  const isMemberView = userRole === 'Member';
 
   return (
-    <div key={groupId || group.name || index} className="group-card">
+    <div
+      key={groupId || group.name || index}
+      className={`group-card ${isMemberView ? 'group-card--member' : 'group-card--admin'}`}
+    >
       <div className="group-card-image">
         <img
           src={photo}
@@ -25,63 +29,85 @@ function GroupCard({ group, index, userRole, joinedGroups, onJoin, onEdit, onDel
         />
       </div>
       <div className="group-card-body">
-        <div className="d-flex justify-content-between align-items-start mb-2">
-          <div className="group-card-title mb-0" style={{ wordBreak: 'break-word', paddingRight: '8px' }}>{name}</div>
-          {userRole === 'Administrator' && groupId && (
-            <div className="d-flex gap-2 align-items-center flex-shrink-0">
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(group); }}
-                onMouseEnter={() => setHoverEdit(true)}
-                onMouseLeave={() => setHoverEdit(false)}
-                title="Edit Group"
-                style={{ 
-                  border: 'none', 
-                  background: hoverEdit ? '#f3f4f6' : 'transparent', 
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  transition: 'background 0.2s ease'
-                }}
-              >
-                <PencilSimpleLineIcon size={20} color="#000" weight="bold" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(group); }}
-                onMouseEnter={() => setHoverDelete(true)}
-                onMouseLeave={() => setHoverDelete(false)}
-                title="Delete Group"
-                style={{ 
-                  border: 'none', 
-                  background: hoverDelete ? 'rgb(255,241,240)' : 'transparent', 
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  transition: 'background 0.2s ease'
-                }}
-              >
-                <TrashIcon size={20} color="#ff4d4f" weight="bold" />
-              </button>
-            </div>
-          )}
-        </div>
-        {userRole === 'Member' && groupId && (
+        {isMemberView ? (
           <>
-            <div className="group-card-instructor">{`Dr. ${instructor}`}</div>
+            <div className="group-card-title group-card-title--member">{name || 'Title'}</div>
+            <div className="group-card-instructor">{`Dr ${instructor}`}</div>
             <button
-              className={`group-join-btn py-2 w-50 align-items-center ${isJoined ? 'joined' : ''}`}
-              onClick={() => onJoin(groupId)}
-              disabled={isJoined}
+              className={`group-join-btn group-join-btn--member ${isJoined ? 'joined' : ''}`}
+              onClick={() => groupId && onJoin(groupId)}
+              disabled={isJoined || !groupId}
             >
               {isJoined ? 'Joined' : 'Join'}
             </button>
           </>
+        ) : (
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <div
+              className="group-card-title mb-0"
+              style={{ wordBreak: 'break-word', paddingRight: '8px' }}
+            >
+              {name}
+            </div>
+            {userRole === 'Administrator' && groupId && (
+              <div className="d-flex gap-2 align-items-center flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(group);
+                  }}
+                  onMouseEnter={() => setHoverEdit(true)}
+                  onMouseLeave={() => setHoverEdit(false)}
+                  title="Edit Group"
+                  style={{
+                    border: 'none',
+                    background: hoverEdit ? '#f3f4f6' : 'transparent',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    transition: 'background 0.2s ease',
+                  }}
+                >
+                  <PencilSimpleLineIcon size={20} color="#000" weight="bold" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(group);
+                  }}
+                  onMouseEnter={() => setHoverDelete(true)}
+                  onMouseLeave={() => setHoverDelete(false)}
+                  title="Delete Group"
+                  style={{
+                    border: 'none',
+                    background: hoverDelete ? 'rgb(255,241,240)' : 'transparent',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    transition: 'background 0.2s ease',
+                  }}
+                >
+                  <TrashIcon size={20} color="#ff4d4f" weight="bold" />
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-export default function GroupsGrid({ groups, loading, userRole, joinedGroups, onJoinGroup, onEditGroup, onDeleteGroup }) {
+export default function GroupsGrid({
+  groups,
+  loading,
+  userRole,
+  isSuperAdmin,
+  joinedGroups,
+  onJoinGroup,
+  onEditGroup,
+  onDeleteGroup,
+}) {
   if (loading) {
     return (
       <div className="loading-container">
@@ -89,6 +115,7 @@ export default function GroupsGrid({ groups, loading, userRole, joinedGroups, on
       </div>
     );
   }
+  const canManageGroups = userRole === 'Administrator' && !isSuperAdmin;
   return (
     <div className="groups-grid">
       {groups.map((group, index) => (
@@ -96,7 +123,7 @@ export default function GroupsGrid({ groups, loading, userRole, joinedGroups, on
           key={group.group_id || group.id || index}
           group={group}
           index={index}
-          userRole={userRole}
+          userRole={canManageGroups ? userRole : 'Member'}
           joinedGroups={joinedGroups}
           onJoin={onJoinGroup}
           onEdit={onEditGroup}

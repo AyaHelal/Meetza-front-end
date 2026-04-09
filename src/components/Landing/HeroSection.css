@@ -1,6 +1,5 @@
 /* Hero Section Styles */
 .hero-section {
-  background-size: cover;
   z-index: 1;
   background-attachment: fixed;
   min-height: 100vh;
@@ -10,6 +9,24 @@
   flex-direction: column;
   overflow-x: hidden;
   margin-bottom: 0;
+}
+
+/* Soften transition into next section */
+.hero-section::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(120px, 18vh, 240px);
+  pointer-events: none;
+  /* Fade hero into the page background below */
+  background: linear-gradient(
+    to bottom,
+    rgba(33, 74, 184, 0) 0%,
+    rgba(33, 74, 184, 0.65) 55%,
+    rgba(33, 74, 184, 0.92) 100%
+  );
 }
 
 .hero-content {
@@ -377,6 +394,46 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Landing navbar "Discover" dropdown */
+.hero-nav-container .hero-discover {
+  position: relative;
+}
+
+.hero-nav-container .hero-discover .dropdown-toggle::after {
+  margin-left: 0.5rem;
+  vertical-align: 0.15em;
+}
+
+.hero-nav-container .hero-discover-menu {
+  background: rgba(50, 65, 106, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 0.4rem;
+  min-width: 240px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25);
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item {
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item:hover,
+.hero-nav-container .hero-discover-menu .dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item:active {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(0);
+}
+
 /* Increase gaps between links on desktop */
 @media (min-width: 992px) {
   .hero-nav-container .navbar-nav {
@@ -408,10 +465,9 @@
   outline: none;
 }
 
-.hero-section{
+.hero-section {
   min-height: 0;
 }
-
 
 .hero-login-btn:active {
   transform: translateY(0);
@@ -448,6 +504,17 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+  }
+
+  .hero-nav-container .hero-discover-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    margin: 0.25rem 0 0.5rem 0;
+  }
+
+  .hero-nav-container .hero-discover-menu .dropdown-item {
+    text-align: center;
   }
 
   .hero-nav-container .navbar-nav {
