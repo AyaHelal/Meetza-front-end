@@ -8,6 +8,10 @@ import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
 import Blog from './pages/Blog/Blog';
 import BlogPost from './pages/Blog/BlogPost';
+import TermsPage from './pages/Legal/TermsPage';
+import PrivacyPage from './pages/Legal/PrivacyPage';
+import GuidelinesPage from './pages/Legal/GuidelinesPage';
+import LicensesPage from './pages/Legal/LicensesPage';
 import GroupChat from './pages/GroupChat/GroupChat';
 import HomePage from './pages/Home/HomePage';
 import VideoSessions from './pages/VideoSessions/VideoSessions';
@@ -26,20 +30,14 @@ import AdminRoute from './components/AdminRoute';
 import CalendarRoute from './components/CalendarRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
-import { useState, useEffect, useContext, useRef } from "react";
+import { useEffect, useContext, useRef } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const AppRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
   const socialLoginProcessed = useRef(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // When user closes tab/window while in a meeting, call leave API (same as Leave button)
   // Uses sendBeacon (more reliable on unload) with token in URL - backend accepts it via verifyTokenOrQuery
@@ -70,36 +68,6 @@ const AppRoutes = () => {
     };
   }, []);
 
-
-  useEffect(() => {
-    if (location.pathname.startsWith("/landing")) {
-      setLoading(true);
-      const timer = setTimeout(() => setLoading(false), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [location]);
-
-  // Show loader only on initial navigation to /home (not when switching between pages)
-  useEffect(() => {
-    // Only show loader on initial mount or when coming from a different route type
-    const isProtectedRoute =
-      location.pathname === "/home" ||
-      location.pathname === "/messages" ||
-      location.pathname === "/groups";
-    const wasProtectedRoute =
-      sessionStorage.getItem('lastRoute')?.startsWith('/home') ||
-      sessionStorage.getItem('lastRoute')?.startsWith('/messages') ||
-      sessionStorage.getItem('lastRoute')?.startsWith('/groups');
-
-    if (isProtectedRoute && !wasProtectedRoute && location.pathname === "/home") {
-      setLoading(true);
-      const timer = setTimeout(() => setLoading(false), 500);
-      return () => clearTimeout(timer);
-    }
-
-  // Store current route
-  sessionStorage.setItem('lastRoute', location.pathname);
-  }, [location.pathname]);
 
   // Handle social login redirect
   useEffect(() => {
@@ -159,9 +127,6 @@ const AppRoutes = () => {
         // Store token and user data in localStorage (like normal login)
         loginUser(userData, token, true); // true = localStorage (remember me)
 
-        // Verify token was stored
-        const storedToken = localStorage.getItem('token');
-
         // Wait a bit for state to update, then navigate
         setTimeout(() => {
           // Verify token is still there before navigating
@@ -183,7 +148,7 @@ const AppRoutes = () => {
     }
   }, [location.search, loginUser, navigate]);
 
-  if (loading || initializing) {
+  if (initializing) {
     return <PageLoader />;
   }
 
@@ -206,6 +171,10 @@ const AppRoutes = () => {
       <Route path="/landing" element={<Landing />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/guidelines" element={<GuidelinesPage />} />
+      <Route path="/licenses" element={<LicensesPage />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />

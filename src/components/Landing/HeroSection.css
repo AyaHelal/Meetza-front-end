@@ -446,6 +446,20 @@
 .hero-nav-container .nav-link:focus {
   transform: translateY(-2px);
   outline: none;
+  box-shadow: none !important;
+}
+
+/* Remove Bootstrap focus ring/border on nav items (Landing navbar only) */
+.hero-nav-container .nav-link:focus-visible,
+.hero-nav-container .nav-link:focus,
+.hero-nav-container .dropdown-toggle:focus,
+.hero-nav-container .dropdown-toggle:focus-visible,
+.hero-nav-container .dropdown-item:focus,
+.hero-nav-container .dropdown-item:focus-visible,
+.hero-nav-container .btn:focus,
+.hero-nav-container .btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .hero-login-btn {
@@ -570,8 +584,8 @@
     padding: 0.625rem 0.875rem;
     min-height: 44px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: start;
+    justify-content: start;
     touch-action: manipulation;
   }
 

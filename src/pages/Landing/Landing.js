@@ -5,6 +5,7 @@ import MessagingCardSlider from "../../components/Landing/MessagingCardSlider";
 import FeatureCard from "../../components/FeatureCard/FeatureCard";
 import ContactSection from "../../components/Landing/ContactSection";
 import SupportSection from "../../components/Landing/SupportSection";
+import CareersSection from "../../components/Landing/CareersSection";
 import "./Landing.css";
 import BackToTop from './BackToTop';
 import { useEffect } from "react";
@@ -153,6 +154,10 @@ const Landing = () => {
 
             <div className="page-block">
               <SupportSection />
+            </div>
+
+            <div className="page-block">
+              <CareersSection />
             </div>
 
             {/* Contact Section */}
