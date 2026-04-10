@@ -45,9 +45,7 @@ export default function Blog() {
             <div className="blog-featured__badge">Featured</div>
             <div className="blog-featured__meta">
               <span className="blog-chip">{featured.category}</span>
-              <span className="blog-meta">
-                {featured.date} · {featured.readTime}
-              </span>
+              <span className="blog-meta">{featured.date}</span>
             </div>
             <h2 className="blog-featured__title">{featured.title}</h2>
             <p className="blog-featured__excerpt">{featured.excerpt}</p>
@@ -94,9 +92,7 @@ export default function Blog() {
             <article key={post.slug} className="blog-card">
               <div className="blog-card__meta">
                 <span className="blog-chip">{post.category}</span>
-                <span className="blog-meta">
-                  {post.date} · {post.readTime}
-                </span>
+                <span className="blog-meta">{post.date}</span>
               </div>
               <h3 className="blog-card__title">{post.title}</h3>
               <p className="blog-card__excerpt">{post.excerpt}</p>

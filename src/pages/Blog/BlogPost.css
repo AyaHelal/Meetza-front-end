@@ -82,6 +82,14 @@
   font-weight: 900;
 }
 
+.blogpost-h3 {
+  margin: 14px 0 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  opacity: 0.98;
+  color: rgba(255, 255, 255, 0.98);
+}
+
 .blogpost-p {
   margin: 0 0 10px;
   line-height: 1.65;

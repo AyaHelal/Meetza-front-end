@@ -5,6 +5,13 @@ import "./BlogPost.css";
 
 function renderBlocks(lines) {
   return lines.map((line, idx) => {
+    if (line.startsWith("### ")) {
+      return (
+        <h3 key={idx} className="blogpost-h3">
+          {line.replace("### ", "")}
+        </h3>
+      );
+    }
     if (line.startsWith("## ")) {
       return (
         <h2 key={idx} className="blogpost-h2">
@@ -110,9 +117,7 @@ export default function BlogPost() {
         <div className="blogpost-hero">
           <div className="blogpost-meta">
             <span className="blogpost-chip">{post.category}</span>
-            <span className="blogpost-metaText">
-              {post.date} · {post.readTime}
-            </span>
+            <span className="blogpost-metaText">{post.date}</span>
           </div>
           <h1 className="blogpost-title">{post.title}</h1>
           <p className="blogpost-excerpt">{post.excerpt}</p>
@@ -133,9 +138,7 @@ export default function BlogPost() {
                 >
                   <div className="blogpost-meta">
                     <span className="blogpost-chip">{p.category}</span>
-                    <span className="blogpost-metaText">
-                      {p.date} · {p.readTime}
-                    </span>
+                    <span className="blogpost-metaText">{p.date}</span>
                   </div>
                   <div className="blogpost-relatedTitle">{p.title}</div>
                   <div className="blogpost-relatedExcerpt">{p.excerpt}</div>
