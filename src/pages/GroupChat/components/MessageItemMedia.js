@@ -124,7 +124,6 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
             <FileIconPlaceholder name={finalFileName} />
             <div className="message-media-doc-text">
               <span className="message-media-doc-meta">
-                <span className="doc-meta-separator">•</span>
                 <span className="doc-meta-type">{finalFileName}</span>
               </span>
             </div>
