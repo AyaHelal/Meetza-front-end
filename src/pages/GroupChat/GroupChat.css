@@ -710,6 +710,7 @@ body.group-chat-active {
 
 .message-content {
   max-width: 70%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -773,6 +774,8 @@ body.group-chat-active {
   gap: 0;
   margin-top: 0;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .message-media {
@@ -1234,9 +1237,9 @@ body.group-chat-active {
   color: rgba(255, 255, 255, 0.95);
 }
 
-.message-media-doc {
-  display: inline-flex;
-  align-items: center;
+.message-media.message-media-doc {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
   text-decoration: none;
   color: inherit;
@@ -1244,9 +1247,45 @@ body.group-chat-active {
   border-radius: 12px;
   background: #f0f4ff;
   border: 1px solid rgba(0, 0, 0, 0.05);
+  max-width: min(100%, 280px);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.message-own .message-media.message-media-doc {
+  align-self: flex-end;
+}
+
+.message-other .message-media.message-media-doc {
+  align-self: flex-start;
+}
+
+.message-media-doc-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.message-media-doc-meta {
+  display: block;
+  min-width: 0;
+}
+
+.message-media-doc .doc-meta-type {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d1d1d;
+  line-height: 1.35;
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .message-media-doc-badge {
+  flex-shrink: 0;
   background: #1976d2;
   color: #fff;
   padding: 6px 10px;
