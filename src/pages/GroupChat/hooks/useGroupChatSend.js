@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { buildSendMessageFormData, getGroupInfo, sendMessageRest } from "../services/groupChatService";
 import { formatMessage, getMediaLabel, deriveMediaCategory } from "../utils/groupChatFormatters";
 import { smartToast } from "../../../API/toastManager";
+import { playChatSendSound } from "../../../utils/uiSounds";
 
 /**
  * Send message handler: optimistic update, then socket or REST.
@@ -123,6 +124,7 @@ export function useGroupChatSend(
             setMessages((prev) =>
               prev.map((msg) => (msg.id === tempId ? formatMessage(data) : msg))
             );
+            playChatSendSound();
             if ((file && finalMediaType !== "voice_note") || containsLink) {
               await refreshGroupInfo();
             }
@@ -162,6 +164,7 @@ export function useGroupChatSend(
                     msg.id === tempId ? formatMessage(ack.data) : msg
                   );
                 });
+                playChatSendSound();
                 if (containsLink) await refreshGroupInfo();
                 if (localMediaUrl) URL.revokeObjectURL(localMediaUrl);
                 setIsSendingMessage(false);
