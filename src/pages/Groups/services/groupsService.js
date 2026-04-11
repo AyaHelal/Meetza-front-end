@@ -37,8 +37,9 @@ export function getUserByEmail(email) {
 }
 
 /**
- * Create group — matches backend: `administrator_id`, optional `admins` (JSON array in multipart),
- * optional `position_id`, JSON body when no photo else multipart.
+ * Create group — backend: `administrator_id` (primary) plus `administrator_ids[0]`, `[1]`, …
+ * for super-admin multi-select (see `extractArray` in groupController). Optional `position_id`;
+ * JSON body when no photo, else multipart.
  *
  * @param {object} form — from create modal: `name`, `year`, `semester`, `content_name`, `content_description`, `description`, `photo`, optional `position_id`
  * @param {{ selfUserId: string|number, isSuperAdmin: boolean, adminIds?: (string|number)[] }} ctx
@@ -84,8 +85,10 @@ export function createGroup(form, ctx) {
   if (desc !== undefined && desc !== null && String(desc).trim() !== '') {
     payload.description = String(desc);
   }
-  if (adminIdsNorm.length > 0) {
-    payload.admins = adminIdsNorm;
+  if (isSuperAdmin && adminIdsNorm.length > 0) {
+    adminIdsNorm.forEach((id, index) => {
+      payload[`administrator_ids[${index}]`] = id;
+    });
   }
 
   const group_photo = form?.photo;
@@ -93,11 +96,7 @@ export function createGroup(form, ctx) {
     const fd = new FormData();
     Object.entries(payload).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
-      if (k === 'admins' && Array.isArray(v)) {
-        fd.append(k, JSON.stringify(v));
-      } else {
-        fd.append(k, v);
-      }
+      fd.append(k, v);
     });
     fd.append('group_photo', group_photo);
     return api.post('/group', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -117,23 +116,31 @@ export function getGroupMemberships() {
   return api.get('/group-membership');
 }
 
-/** POST /group/:id/admins — same body as meetza-admin: { email, role?: 'OWNER' | 'ADMIN' } */
+/**
+ * POST /group/:id/admins — body: { email, role? } for one admin, or { emails: string[], role? } for several.
+ */
 export function addGroupAdmin(groupId, payload) {
   const id = encodeURIComponent(String(groupId));
-  const email = String(payload?.email || '').trim();
-  if (!email) return Promise.reject(new Error('email is required'));
-  const body = { email };
+  const fromArray = Array.isArray(payload?.emails)
+    ? payload.emails.map((e) => String(e || '').trim()).filter(Boolean)
+    : [];
+  const single = String(payload?.email || '').trim();
+  const emails = fromArray.length > 0 ? fromArray : single ? [single] : [];
+  if (emails.length === 0) {
+    return Promise.reject(new Error('At least one email is required'));
+  }
+  const body = emails.length === 1 ? { email: emails[0] } : { emails };
   const role = String(payload?.role || '').trim().toUpperCase();
   if (role === 'OWNER' || role === 'ADMIN') body.role = role;
   return api.post(`/group/${id}/admins`, body);
 }
 
-/** DELETE /group/:id/admins/:email — same as meetza-admin */
+/** DELETE /group/:id/admins — body `{ email }` (same route as meetza-admin bulk remove). */
 export function removeGroupAdminByEmail(groupId, email) {
   const id = encodeURIComponent(String(groupId));
-  const em = encodeURIComponent(String(email || '').trim());
-  if (!String(email || '').trim()) return Promise.reject(new Error('email is required'));
-  return api.delete(`/group/${id}/admins/${em}`);
+  const em = String(email || '').trim();
+  if (!em) return Promise.reject(new Error('email is required'));
+  return api.delete(`/group/${id}/admins`, { data: { email: em } });
 }
 
 export async function getGroupMembership(groupId) {
@@ -320,7 +327,10 @@ export function groupIsManagedByUser(group, userId) {
   ];
   if (legacyIds.some((id) => id != null && String(id) === uid)) return true;
   if (Array.isArray(group.admins)) {
-    return group.admins.some((a) => a?.user_id != null && String(a.user_id) === uid);
+    return group.admins.some((a) => {
+      const aid = a?.user_id ?? a?.userId;
+      return aid != null && String(aid) === uid;
+    });
   }
   return false;
 }

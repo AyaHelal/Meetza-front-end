@@ -7,6 +7,7 @@ import SavedVideosDetail from "./SavedVideosDetail";
 import useSavedVideos from "../hooks/useSavedVideos";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../API/axiosInstance";
+import { dedupeById } from "../../../utils/dedupeById";
 
 export default function SavedVideosPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function SavedVideosPage() {
         if (cancelled) return;
         const raw = res?.data?.data ?? res?.data;
         const payload = Array.isArray(raw) ? raw : [];
-        const list = payload
+        const list = dedupeById(payload)
           .map((g) => {
             const id = g.id ?? g.group_id ?? g._id;
             const name = g.name ?? g.group_name ?? g.title ?? g.content_name ?? g.group_content_name ?? "—";

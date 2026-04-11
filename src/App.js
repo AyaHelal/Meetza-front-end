@@ -33,18 +33,36 @@ import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+/** Left-nav / AppLayout routes: suppress Lottie only when navigating between these. */
+function isMainAppShellPath(pathname) {
+  if (!pathname || typeof pathname !== "string") return false;
+  const exact = [
+    "/home",
+    "/messages",
+    "/groups",
+    "/calendar",
+    "/meetings",
+    "/video-sessions",
+    "/saved-videos",
+    "/admin-meetings",
+  ];
+  if (exact.includes(pathname)) return true;
+  return /^\/video(\/|$)/.test(pathname);
+}
+
 const AppRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
   const socialLoginProcessed = useRef(false);
   const prevPathRef = useRef(location.pathname);
-  const [routeLoading, setRouteLoading] = useState(true);
+  const [routeLoading, setRouteLoading] = useState(false);
 
-  // Show Lottie on first paint and on route changes, except specific "back to home" transitions.
+  // Lottie on route change for login, logout, landing, etc. — not when swapping main shell tabs only.
   useEffect(() => {
     const current = location.pathname;
-    const prev = prevPathRef.current || "";
+    const prev = prevPathRef.current ?? "";
     prevPathRef.current = current;
 
     const isAuthRoute = (p) => p === "/login" || p === "/signup";
@@ -52,8 +70,9 @@ const AppRoutes = () => {
 
     const suppressAuthSwitchLoader = isAuthRoute(current) && isAuthRoute(prev);
     const suppressAuthEntryFromLanding = isAuthRoute(current) && isLandingRoute(prev);
+    const suppressMainShellLoader = isMainAppShellPath(current) && isMainAppShellPath(prev);
 
-    if (suppressAuthSwitchLoader || suppressAuthEntryFromLanding) {
+    if (suppressMainShellLoader || suppressAuthSwitchLoader || suppressAuthEntryFromLanding) {
       setRouteLoading(false);
       return;
     }

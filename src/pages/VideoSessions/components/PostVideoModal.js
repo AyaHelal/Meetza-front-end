@@ -3,6 +3,7 @@ import api from "../../../API/axiosInstance";
 import { createVideo, summarizeVideo, buildFileUrl } from "../services";
 import { smartToast } from "../../../API/toastManager";
 import "./PostVideoModal.css";
+import { dedupeById } from "../../../utils/dedupeById";
 
 /** Get video duration from a File. Returns { formatted: "HH:MM:SS", seconds: number } for API. */
 function getVideoDuration(file) {
@@ -64,7 +65,7 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
         const res = await api.get("/group");
         const payload = Array.isArray(res.data) ? res.data : res.data?.data || [];
         if (cancelled) return;
-        setGroups(payload.map((g) => ({ id: g.id, name: g.name || g.group_name })));
+        setGroups(dedupeById(payload).map((g) => ({ id: g.id, name: g.name || g.group_name })));
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to load groups:", err);
@@ -181,7 +182,7 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="e.g. Super 26 shahd"
+              placeholder="e.g. Super 26 meetza"
               required
             />
           </div>

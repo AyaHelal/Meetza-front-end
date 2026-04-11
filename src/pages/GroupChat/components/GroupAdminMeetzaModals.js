@@ -22,7 +22,7 @@ const panelStyle = {
 };
 
 /**
- * Assign group admin — same contract as meetza-admin: POST /group/:id/admins { email, role? }.
+ * Assign group admin — POST /group/:id/admins with { email, role? } or { emails, role? }.
  */
 export function AssignGroupAdminMeetzaModal({
   groupLabel,
@@ -54,17 +54,27 @@ export function AssignGroupAdminMeetzaModal({
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>Group</label>
         <input type="text" value={groupLabel} disabled style={{ width: "100%", padding: "10px 12px", marginBottom: "1rem", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb" }} />
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>
-          Email <span style={{ color: "#dc2626" }}>*</span>
+          Administrator email(s) <span style={{ color: "#dc2626" }}>*</span>
         </label>
-        <input
-          type="email"
-          name="email"
-          value={formData.email || ""}
+        <textarea
+          name="emailsText"
+          value={formData.emailsText || ""}
           onChange={handleChange}
-          placeholder="user@example.com"
-          style={{ width: "100%", padding: "10px 12px", marginBottom: "1rem", borderRadius: 8, border: "1px solid #e5e7eb" }}
-          autoComplete="email"
+          placeholder="One per line or separated by commas"
+          rows={4}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            marginBottom: "0.35rem",
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            resize: "vertical",
+            fontFamily: "inherit",
+          }}
         />
+        <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", color: "#6b7280" }}>
+          You can assign several administrators at once.
+        </p>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>Role (optional)</label>
         <select
           name="role"
@@ -79,7 +89,7 @@ export function AssignGroupAdminMeetzaModal({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={saving || !(formData.email || "").trim()}
+          disabled={saving || !(formData.emailsText || "").trim()}
           style={{
             width: "100%",
             padding: "12px",
@@ -88,7 +98,7 @@ export function AssignGroupAdminMeetzaModal({
             background: saving ? "#93c5fd" : "#0076EA",
             color: "#fff",
             fontWeight: 600,
-            cursor: saving || !(formData.email || "").trim() ? "not-allowed" : "pointer",
+            cursor: saving || !(formData.emailsText || "").trim() ? "not-allowed" : "pointer",
           }}
         >
           {saving ? "Assigning…" : "Assign"}
@@ -99,7 +109,7 @@ export function AssignGroupAdminMeetzaModal({
 }
 
 /**
- * Remove group admin — same as meetza-admin: DELETE /group/:id/admins/:email
+ * Remove group admin — DELETE /group/:id/admins with `{ email }` in the body.
  */
 export function RemoveGroupAdminMeetzaModal({
   groupLabel,

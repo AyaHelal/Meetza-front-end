@@ -174,7 +174,7 @@ function getMeetingGroupName(m, groupsMap) {
 
 /**
  * Map meetings to week/day grid events.
- * Each event has: { id, dayIndex, start, end, title, description, groupName, imageUrl, lockType, _meeting }
+ * Each event has: { id, dayIndex, start, end, title, description, groupName, imageUrl, _meeting }
  * @param {Array} meetings
  * @param {Array} weekDates
  * @param {Record<string, string>|null} [groupsMap] - optional { [group_id]: name } to resolve group name from group_id
@@ -218,7 +218,6 @@ export function buildWeekEvents(meetings, weekDates, groupsMap = null) {
         description: m.description ?? "",
         groupName: getMeetingGroupName(m, groupsMap) ?? "—",
         imageUrl: posterUrl || baseImage,
-        lockType: m.recording ? "red" : "blue",
         _meeting: m,
       };
     });

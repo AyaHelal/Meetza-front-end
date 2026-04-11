@@ -19,15 +19,13 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
   const timeLabel = compactCard
     ? formatCompactTimeRange(event.start, event.end)
     : `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
-  const now = new Date();
-  const isFutureMeeting = event.start > now;
-  const isLocked = isFutureMeeting;
-  const lockBg = isFutureMeeting
-    ? "rgba(231, 76, 60, 0.6)"
-    : (event.lockType === "red" ? "rgba(231, 76, 60, 0.85)" : "rgba(52, 152, 219, 0.85)");
   const noDescription = !event.description?.trim();
 
   const isLive = isMeetingLive(event?._meeting);
+  /** Same opacity for live (blue) vs not live (red) — translucent badge */
+  const LOCK_BG_LIVE = "rgba(52, 152, 219, 0.5)";
+  const LOCK_BG_OFF = "rgba(231, 76, 60, 0.5)";
+  const lockBg = isLive ? LOCK_BG_LIVE : LOCK_BG_OFF;
 
   return (
     <div
@@ -54,7 +52,7 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
             </span>
           </div>
           <span className="calendar-event-card-lock" style={{ backgroundColor: lockBg }}>
-            {isLocked ? <Lock size={16} weight="regular" /> : <LockOpen size={16} weight="regular" />}
+            {isLive ? <LockOpen size={16} weight="regular" /> : <Lock size={16} weight="regular" />}
           </span>
         </div>
       </div>

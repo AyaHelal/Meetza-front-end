@@ -16,6 +16,7 @@ import {
 } from "../../Groups/services/groupsService";
 import { AssignGroupAdminMeetzaModal, RemoveGroupAdminMeetzaModal } from "./GroupAdminMeetzaModals";
 import { smartToast } from "../../../API/toastManager";
+import { parseEmailsInput } from "../../../utils/parseEmailsInput";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import { useRef } from "react";
 
@@ -289,7 +290,7 @@ export default function MainChatExpandedSection({
   const titleInputRef = useRef(null);
 
   const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
-  const [assignAdminForm, setAssignAdminForm] = useState({ email: "", role: "" });
+  const [assignAdminForm, setAssignAdminForm] = useState({ emailsText: "", role: "" });
   const [assigningAdmin, setAssigningAdmin] = useState(false);
 
   const [showRemoveAdminModal, setShowRemoveAdminModal] = useState(false);
@@ -335,15 +336,41 @@ export default function MainChatExpandedSection({
     "Group";
 
   const handleAssignGroupAdmin = async () => {
-    const email = (assignAdminForm.email || "").trim();
-    if (!email || !groupId || assigningAdmin) return;
+    const emails = parseEmailsInput(assignAdminForm.emailsText || "");
+    if (!groupId || assigningAdmin) return;
+    if (emails.length === 0) {
+      smartToast.error("Please enter at least one email");
+      return;
+    }
     setAssigningAdmin(true);
     try {
-      await addGroupAdmin(groupId, { email, role: assignAdminForm.role });
-      smartToast.success("Admin assigned successfully");
-      setShowAssignAdminModal(false);
-      setAssignAdminForm({ email: "", role: "" });
-      await onRefreshGroupInfo?.();
+      const payload =
+        emails.length === 1
+          ? { email: emails[0], role: assignAdminForm.role }
+          : { emails, role: assignAdminForm.role };
+      const { data: resBody } = await addGroupAdmin(groupId, payload);
+      const results = Array.isArray(resBody?.data) ? resBody.data : [];
+      const allOk = results.length > 0 && results.every((r) => r.success);
+      const someOk = results.some((r) => r.success);
+
+      if (allOk) {
+        smartToast.success(resBody?.message || "Admin assigned successfully");
+        setShowAssignAdminModal(false);
+        setAssignAdminForm({ emailsText: "", role: "" });
+        await onRefreshGroupInfo?.();
+      } else if (someOk) {
+        const failed = results
+          .filter((r) => !r.success)
+          .map((r) => `${r.email}: ${r.message || "failed"}`)
+          .join(" · ");
+        smartToast.warning(`${resBody?.message || "Some admins could not be added"}. ${failed}`);
+        await onRefreshGroupInfo?.();
+      } else {
+        const failed = results.length
+          ? results.map((r) => `${r.email}: ${r.message || "failed"}`).join(" · ")
+          : resBody?.message || "Failed to assign admin";
+        smartToast.error(failed);
+      }
     } catch (error) {
       console.error("assign group admin:", error);
       smartToast.error(error?.response?.data?.message || error?.message || "Failed to assign admin");
@@ -357,15 +384,39 @@ export default function MainChatExpandedSection({
     if (!email || !groupId || removingAdmin) return;
     setRemovingAdmin(true);
     try {
-      await removeGroupAdminByEmail(groupId, email);
-      smartToast.success("Admin removed");
-      setShowRemoveAdminModal(false);
-      setRemoveAdminEmail("");
-      setRemoveAdminEmailReadOnly(false);
-      await onRefreshGroupInfo?.();
+      const { data: resBody } = await removeGroupAdminByEmail(groupId, email);
+      const results = Array.isArray(resBody?.data) ? resBody.data : [];
+      const allOk = results.length > 0 && results.every((r) => r.success);
+      const someOk = results.some((r) => r.success);
+
+      if (allOk) {
+        smartToast.success(resBody?.message || "Admin removed");
+        setShowRemoveAdminModal(false);
+        setRemoveAdminEmail("");
+        setRemoveAdminEmailReadOnly(false);
+        await onRefreshGroupInfo?.();
+      } else if (someOk) {
+        const failed = results
+          .filter((r) => !r.success)
+          .map((r) => `${r.email}: ${r.message || "failed"}`)
+          .join(" · ");
+        smartToast.warning(`${resBody?.message || "Some removals failed"}. ${failed}`);
+        await onRefreshGroupInfo?.();
+      } else {
+        const failed = results.length
+          ? results.map((r) => `${r.email}: ${r.message || "failed"}`).join(" · ")
+          : resBody?.message || "Failed to remove admin";
+        smartToast.error(failed);
+      }
     } catch (error) {
       console.error("remove group admin:", error);
-      smartToast.error(error?.response?.data?.message || error?.message || "Failed to remove admin");
+      const resData = error?.response?.data;
+      const errResults = Array.isArray(resData?.data) ? resData.data : [];
+      if (errResults.length) {
+        smartToast.error(errResults.map((r) => `${r.email}: ${r.message || "failed"}`).join(" · "));
+      } else {
+        smartToast.error(resData?.message || error?.message || "Failed to remove admin");
+      }
     } finally {
       setRemovingAdmin(false);
     }
@@ -611,7 +662,7 @@ export default function MainChatExpandedSection({
                   type="button"
                   className="add-member-btn-plus group-admin-action-btn"
                   onClick={() => {
-                    setAssignAdminForm({ email: "", role: "" });
+                    setAssignAdminForm({ emailsText: "", role: "" });
                     setShowAssignAdminModal(true);
                   }}
                   style={{

@@ -15,6 +15,8 @@ import {
   CaretDown
 } from "@phosphor-icons/react";
 import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
+import { dedupeById } from "../../utils/dedupeById";
+import { groupIsManagedByUser } from "../Groups/services/groupsService";
 
 const getCurrentDateTimeLocal = () => {
     const d = new Date();
@@ -46,6 +48,21 @@ const formatForInput = (value) => {
 
 const isRecording = (value) =>
     value === true || value === 1 || value === "1";
+
+/**
+ * GET /meeting may attach `admins[]` with `group_admin_id` / `user_id` instead of top-level `administrator_id`.
+ */
+const userIsMeetingAdmin = (meeting, userId) => {
+    if (meeting == null || userId == null || userId === "") return false;
+    const uid = String(userId);
+    if (meeting.administrator_id != null && String(meeting.administrator_id) === uid) return true;
+    const admins = meeting.admins;
+    if (!Array.isArray(admins)) return false;
+    return admins.some((a) => {
+        const aid = a?.user_id ?? a?.group_admin_id ?? a?.id;
+        return aid != null && String(aid) === uid;
+    });
+};
 
 const STORAGE_KEY_RECORD_FLAGS = "meetza_admin_meeting_record_flags";
 
@@ -414,24 +431,20 @@ const AdminMeetingPage = () => {
         };
     }, [isMobileTablet, showCreateMeetingModal]);
 
-    // Fetch groups for create-meeting dropdown (same API as meetza-admin)
-    const fetchGroups = async () => {
+    // Same visibility as Groups page: GET /group + groupIsManagedByUser (includes group_admin / admins[])
+    const fetchGroups = useCallback(async () => {
         try {
             setGroupsLoading(true);
             const res = await api.get("/group");
             const payload = Array.isArray(res.data) ? res.data : res.data?.data || [];
             const currentUser = user || JSON.parse(localStorage.getItem("user") || "{}");
-            const isSuperAdmin = currentUser?.role === "Super_Admin";
-            const isAdministrator = currentUser?.role === "Administrator";
-            let list = payload;
-            if (isAdministrator && !isSuperAdmin) {
-                list = payload.filter(
-                    (g) =>
-                        g.admin_id === currentUser?.id ||
-                        g.adminId === currentUser?.id ||
-                        g.administrator_id === currentUser?.id ||
-                        g.user_id === currentUser?.id
-                );
+            const roleNorm = String(currentUser?.role || "").trim();
+            const isSuperAdmin = roleNorm === "Super_Admin";
+            const isAdministrator =
+                roleNorm === "Administrator" || roleNorm.toLowerCase() === "administrator";
+            let list = dedupeById(payload);
+            if (isAdministrator && !isSuperAdmin && currentUser?.id != null) {
+                list = list.filter((g) => groupIsManagedByUser(g, currentUser.id));
             }
             setGroups(list.map((g) => ({ id: g.id, name: g.name || g.group_name })));
         } catch (error) {
@@ -440,12 +453,15 @@ const AdminMeetingPage = () => {
         } finally {
             setGroupsLoading(false);
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         fetchMeetings();
+    }, [user?.id]);
+
+    useEffect(() => {
         fetchGroups();
-    }, []);
+    }, [fetchGroups]);
 
     // GET /meeting with token – backend returns only this admin's meetings for Administrator role
     const fetchMeetings = async (options) => {
@@ -461,14 +477,16 @@ const AdminMeetingPage = () => {
             } else if (Array.isArray(data)) {
                 meetingsList = data;
             }
-            // Client-side filter: show only meetings where current user is administrator (if backend didn't)
+            // Client-side filter: Administrator sees meetings they co-admin (admins[] / group_admin_id), not only legacy administrator_id
             const currentUser = user || JSON.parse(localStorage.getItem("user") || "{}");
-            const isAdmin = currentUser?.role === "Administrator" || currentUser?.role === "Super_Admin";
-            if (isAdmin && currentUser?.id) {
-                const filtered = meetingsList.filter(
-                    (m) => m.administrator_id === currentUser.id || currentUser.role === "Super_Admin"
-                );
-                meetingsList = currentUser.role === "Super_Admin" ? meetingsList : filtered;
+            const roleNorm = String(currentUser?.role || "").trim();
+            const isSuperAdmin = roleNorm === "Super_Admin";
+            const isAdministrator =
+                roleNorm === "Administrator" || roleNorm.toLowerCase() === "administrator";
+            if ((isAdministrator || isSuperAdmin) && currentUser?.id != null && String(currentUser.id) !== "") {
+                if (!isSuperAdmin) {
+                    meetingsList = meetingsList.filter((m) => userIsMeetingAdmin(m, currentUser.id));
+                }
             }
             const patch = options?.patchRecordMeeting;
             if (patch?.id != null) {
