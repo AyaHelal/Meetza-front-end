@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getGroupInfo, sendMessageRest } from "../services/groupChatService";
+import { buildSendMessageFormData, getGroupInfo, sendMessageRest } from "../services/groupChatService";
 import { formatMessage, getMediaLabel, deriveMediaCategory } from "../utils/groupChatFormatters";
 import { smartToast } from "../../../API/toastManager";
 
@@ -21,7 +21,7 @@ export function useGroupChatSend(
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const handleSendMessage = useCallback(
-    async ({ text, file, mediaCategory }) => {
+    async ({ text, file, mediaCategory, parentMessageId, parentPreview }) => {
       if (selectedChat === null) return false;
       const groupId = groupChats[selectedChat]?.id;
       if (!groupId) return false;
@@ -50,6 +50,7 @@ export function useGroupChatSend(
           hour12: true,
         }),
         text: trimmedText,
+        message: trimmedText,
         date: new Date().toLocaleDateString("en-GB", {
           day: "numeric",
           month: "short",
@@ -59,6 +60,19 @@ export function useGroupChatSend(
         senderPhoto: user?.photo || null,
         senderEmail: user?.email || null,
         media: [],
+        ...(parentMessageId
+          ? {
+              parent_message_id: parentMessageId,
+              parent_message:
+                parentPreview && (parentPreview.sender || parentPreview.text)
+                  ? {
+                      id: parentMessageId,
+                      sender: parentPreview.sender || "User",
+                      text: (parentPreview.text || "").slice(0, 240),
+                    }
+                  : { id: parentMessageId, sender: "", text: "" },
+            }
+          : {}),
       };
 
       if (file) {
@@ -86,23 +100,13 @@ export function useGroupChatSend(
         )
       );
 
-      const formData = new FormData();
-      if (trimmedText) formData.append("message", trimmedText);
-      if (file) {
-        formData.append("media", file);
-        let ft =
-          mediaCategory === "voice_note"
-            ? "voice_note"
-            : mediaCategory === "audio" ||
-                (file.type?.startsWith("audio/") && mediaCategory !== "voice_note")
-              ? "audio"
-              : file.type?.startsWith("video/") && mediaCategory === "voice_note"
-                ? "voice_note"
-                : normalizedType || "document";
-        if (ft) formData.append("media_type", ft);
-        if (file.type) formData.append("file_mime", file.type);
-        if (file.name) formData.append("file_name", file.name);
-      }
+      const formData = buildSendMessageFormData({
+        messageText: trimmedText,
+        file,
+        mediaCategory,
+        normalizedType,
+        parentMessageId,
+      });
 
       setIsSendingMessage(true);
       const containsLink = trimmedText && /https?:\/\/[^\s<>,;]+/i.test(trimmedText);
@@ -141,6 +145,10 @@ export function useGroupChatSend(
         if (file) return await sendViaRestAPI();
         if (socket && isConnected) {
           return new Promise((resolve) => {
+            const socketOptions =
+              parentMessageId != null && parentMessageId !== ""
+                ? { parentMessageId }
+                : {};
             socketSendMessage(groupId, trimmedText, async (ack) => {
               if (ack?.ok && ack.data) {
                 setMessages((prev) => {
@@ -161,7 +169,7 @@ export function useGroupChatSend(
               } else {
                 sendViaRestAPI().then(resolve);
               }
-            });
+            }, socketOptions);
           });
         }
         return await sendViaRestAPI();

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import ChatInput from "./ChatInput";
 import MainChatHeader from "./MainChatHeader";
@@ -7,6 +7,7 @@ import MainChatMessageList from "./MainChatMessageList";
 import MainChatPhotoModal from "./MainChatPhotoModal";
 import { deleteMessage, updateMessage } from "../../../API/auth";
 import { formatMessages } from "../utils/mainChatMessageUtils";
+import { getReplySnippetForMessage } from "../utils/messageItemUtils";
 import "./MainChat.css";
 import "../GroupChat.css";
 import { smartToast } from "../../../API/toastManager";
@@ -61,6 +62,7 @@ const MainChat = ({
   const [modalPhoto, setModalPhoto] = useState(null);
   const [contentTab, setContentTab] = useState("media");
   const [mediaTab, setMediaTab] = useState("media");
+  const [replyTo, setReplyTo] = useState(null);
 
   const { hasMeeting, isInMeeting, handleJoinMeeting: handleJoinMeetingFromHook } = useMainChatMeeting(
     api,
@@ -92,6 +94,38 @@ const MainChat = ({
     setContentTab("media");
     setMediaTab("media");
   }, [activeSection]);
+
+  useEffect(() => {
+    setReplyTo(null);
+  }, [groupId]);
+
+  const handleReplyToMessage = useCallback((message) => {
+    if (!message?.id || String(message.id).startsWith("temp-") || message.is_deleted) return;
+    setReplyTo({
+      id: message.id,
+      sender: message.sender || "User",
+      snippet: getReplySnippetForMessage(message) || "Message",
+    });
+  }, []);
+
+  const handleSendWithReply = useCallback(
+    async (payload) => {
+      const ok = await onSendMessage({
+        ...payload,
+        ...(replyTo?.id
+          ? {
+              parentMessageId: replyTo.id,
+              parentPreview: { sender: replyTo.sender, text: replyTo.snippet },
+            }
+          : {}),
+      });
+      if (ok) setReplyTo(null);
+      return ok;
+    },
+    [onSendMessage, replyTo]
+  );
+
+  const handleCancelReply = useCallback(() => setReplyTo(null), []);
 
   const handlePhotoClick = (item) => {
     if (item.isLink) {
@@ -264,10 +298,17 @@ const MainChat = ({
                           currentUserEmail={currentUserEmail}
                           onMediaClick={handlePhotoClick}
                           userRole={userRole}
+          onReply={handleReplyToMessage}
         />
       </div>
       {!activeSection && !expandedSection && groupId && !isSuperAdmin && (
-        <ChatInput onSendMessage={onSendMessage} isSending={isSendingMessage} />
+        <ChatInput
+          chatId={groupId}
+          replyTo={replyTo}
+          onCancelReply={handleCancelReply}
+          onSendMessage={handleSendWithReply}
+          isSending={isSendingMessage}
+        />
       )}
       <MainChatPhotoModal modalPhoto={modalPhoto} onClose={closeModal} />
     </div>

@@ -13,6 +13,7 @@ export default function MainChatMessageList({
   currentUserEmail,
   onMediaClick,
   userRole,
+  onReply,
 }) {
   if (loading) {
     return (
@@ -85,6 +86,7 @@ export default function MainChatMessageList({
                 currentUserEmail={currentUserEmail}
                 onMediaClick={onMediaClick}
                 userRole={userRole}
+                onReply={onReply}
               />
             </React.Fragment>
           );

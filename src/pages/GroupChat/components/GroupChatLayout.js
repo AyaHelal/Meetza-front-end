@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import ChatsPanel from "./ChatsPanel";
 import MainChat from "./MainChat";
 import RightSidebar from "./RightSidebar";
@@ -48,6 +48,8 @@ function GroupChatLayout({
   onVideoSessionsClick,
   onRefreshGroupInfo,
 }) {
+  const emptyMessages = useMemo(() => [], []);
+
   if (loading) {
     return (
       <div
@@ -75,7 +77,7 @@ function GroupChatLayout({
 
       <MainChat
         key={selectedChatData?.id || "no-chat"}
-        messages={selectedChatData ? messages : []}
+        messages={selectedChatData ? messages : emptyMessages}
         chatTitle={chatTitle}
         isMobile={isMobile}
         showMainChat={showMainChat}

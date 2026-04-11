@@ -92,7 +92,7 @@ export const SocketProvider = ({ children }) => {
           token: token, // JWT token is required for authentication
         },
         transports: ["websocket", "polling"], // fallback options
-        reconnection: false,
+        reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: Infinity,
@@ -274,8 +274,8 @@ export const SocketProvider = ({ children }) => {
     socket.emit("leaveGroup", { groupId: groupId });
   };
 
-  // Helper function to send a message
-  const sendMessage = (groupId, message, callback) => {
+  // Helper function to send a message (optional `options.parentMessageId` for replies)
+  const sendMessage = (groupId, message, callback, options) => {
     if (!socket || !isConnected) {
       if (callback) {
         callback({ ok: false, message: "Socket not connected" });
@@ -283,7 +283,18 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    socket.emit("sendMessage", { groupId, message }, (ack) => {
+    const opts = options && typeof options === "object" ? options : {};
+    const parentMessageId =
+      opts.parentMessageId != null && opts.parentMessageId !== ""
+        ? opts.parentMessageId
+        : undefined;
+    const payload = {
+      groupId,
+      message,
+      ...(parentMessageId !== undefined ? { parentMessageId } : {}),
+    };
+
+    socket.emit("sendMessage", payload, (ack) => {
       if (ack && ack.ok) {
       } else {
         console.error(

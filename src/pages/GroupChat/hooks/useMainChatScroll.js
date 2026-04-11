@@ -13,6 +13,9 @@ export function useMainChatScroll(messages, groupId, showMainChat, isMobile) {
   const prevMessagesLengthRef = useRef(0);
   const lastOpenedGroupIdRef = useRef(null);
   const pendingInitialScrollRef = useRef(false);
+  /** Avoid re-running the heavy initial-scroll suite on every message array update (socket/optimistic). */
+  const layoutScrollGroupIdRef = useRef(null);
+  const layoutScrollPrevLenRef = useRef(0);
 
   const checkIfAtBottom = () => {
     const container = messagesContainerRef.current;
@@ -36,7 +39,10 @@ export function useMainChatScroll(messages, groupId, showMainChat, isMobile) {
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const handleScroll = () => setIsUserAtBottom(checkIfAtBottom());
+    const handleScroll = () => {
+      const atBottom = checkIfAtBottom();
+      setIsUserAtBottom((prev) => (prev === atBottom ? prev : atBottom));
+    };
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
@@ -62,9 +68,10 @@ export function useMainChatScroll(messages, groupId, showMainChat, isMobile) {
   useEffect(() => {
     const currentLen = messages.length;
     const prevLen = prevMessagesLengthRef.current;
-    if (currentLen > prevLen && isUserAtBottom) scrollToBottom(true);
+    // Instant scroll avoids stacking many `smooth` scrollIntoView calls (jitter / lag).
+    if (currentLen > prevLen && isUserAtBottom) scrollToBottom(true, true);
     prevMessagesLengthRef.current = currentLen;
-  }, [messages, isUserAtBottom]);
+  }, [messages.length, isUserAtBottom]);
 
   useEffect(() => {
     if (!(showMainChat || !isMobile) || !groupId) return;
@@ -94,7 +101,29 @@ export function useMainChatScroll(messages, groupId, showMainChat, isMobile) {
   useLayoutEffect(() => {
     if (!pendingInitialScrollRef.current) return;
     const container = messagesContainerRef.current;
-    if (!container) return;
+    if (!container || !groupId) return;
+
+    const len = messages.length;
+    if (len === 0) return;
+
+    const groupChanged = layoutScrollGroupIdRef.current !== groupId;
+    if (groupChanged) {
+      layoutScrollGroupIdRef.current = groupId;
+      layoutScrollPrevLenRef.current = 0;
+    }
+
+    const prevLen = layoutScrollPrevLenRef.current;
+    layoutScrollPrevLenRef.current = len;
+
+    // Only on new group or first time messages appear (0 → n). Not on every append/replace.
+    const shouldRunInitialSuite = groupChanged || prevLen === 0;
+    if (!shouldRunInitialSuite) {
+      const clearPending = setTimeout(() => {
+        pendingInitialScrollRef.current = false;
+      }, 0);
+      return () => clearTimeout(clearPending);
+    }
+
     const run = () => {
       const c = messagesContainerRef.current;
       if (!c) return;
@@ -108,17 +137,16 @@ export function useMainChatScroll(messages, groupId, showMainChat, isMobile) {
     });
     const t1 = setTimeout(run, 100);
     const t2 = setTimeout(run, 400);
-    const t3 = setTimeout(run, 1000);
-    const t4 = setTimeout(() => {
+    const t3 = setTimeout(() => {
       pendingInitialScrollRef.current = false;
-    }, 1200);
+    }, 600);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(t4);
     };
-  }, [messages, groupId]);
+    // Only `messages.length` — full `messages` updates every socket merge and retriggers scroll jitter.
+  }, [messages.length, groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     messagesContainerRef,

@@ -1,6 +1,7 @@
 /**
  * Helpers for MessageItem: link detection, display text, media type, file names.
  */
+import { getMediaLabel } from "./groupChatFormatters";
 
 export function isLinkItem(item) {
   const declaredType = item?.media_type || item?.file_type || '';
@@ -27,6 +28,26 @@ export function getDisplayText(message, finalMedia) {
   });
   displayText = displayText.replace(/\s+/g, ' ').trim();
   return displayText || '';
+}
+
+/** Short preview for reply banner / quoted context (matches MessageItem media + text rules). */
+export function getReplySnippetForMessage(message) {
+  if (!message || message.is_deleted) return "";
+  const raw = String(message.message || message.text || "").trim();
+  const isLinkMessage = raw && /^https?:\/\/\S+$/i.test(raw);
+  const finalMedia =
+    message.media?.length > 0
+      ? message.media
+      : isLinkMessage
+        ? [{ media_type: "link", media_url: raw }]
+        : [];
+  const displayText = getDisplayText(message, finalMedia);
+  if (displayText) return displayText.slice(0, 120);
+  if (finalMedia.length > 0) {
+    const m = finalMedia[0];
+    return getMediaLabel(m.media_type, m.file_name).slice(0, 120);
+  }
+  return raw.slice(0, 120);
 }
 
 export function getExtension(mediaItem) {
