@@ -10,7 +10,6 @@ import { ConfirmDeleteModal } from '../../components/shared/ConfirmDeleteModal';
 import api from '../../API/axiosInstance';
 import {
   useGroupsFilters,
-  usePositions,
   useGroupsData,
   useCreateGroupForm,
 } from './hooks';
@@ -26,6 +25,8 @@ const Groups = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [createModalAdmins, setCreateModalAdmins] = useState([]);
+  const [createModalAdminsLoading, setCreateModalAdminsLoading] = useState(false);
 
   const filters = useGroupsFilters();
   const {
@@ -41,7 +42,6 @@ const Groups = () => {
     handleSemesterToggle,
   } = filters;
 
-  const { positions } = usePositions(user, showCreateModal);
   const {
     groups,
     setGroups,
@@ -58,8 +58,14 @@ const Groups = () => {
       smartToast.error('You must be logged in to create a group');
       return;
     }
+    const { adminIds, ...rest } = groupData;
+
     try {
-      await createGroup(groupData, user.id);
+      await createGroup(rest, {
+        selfUserId: user.id,
+        isSuperAdmin,
+        adminIds: Array.isArray(adminIds) ? adminIds : [],
+      });
       smartToast.success('Group created successfully!');
       setShowCreateModal(false);
       await fetchGroupsAndMembership();
@@ -70,7 +76,50 @@ const Groups = () => {
     }
   };
 
-  const { formData, handleContentChange, handleSubmit } = useCreateGroupForm(handleCreateGroup);
+  const { formData, handleContentChange, handleSubmit } = useCreateGroupForm(handleCreateGroup, {
+    isSuperAdmin,
+  });
+
+  useEffect(() => {
+    if (!showCreateModal || !isSuperAdmin) return undefined;
+    let cancelled = false;
+    setCreateModalAdminsLoading(true);
+    (async () => {
+      try {
+        const res = await api.get('/user');
+        if (cancelled) return;
+        const payload = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        const list = payload
+          .filter((u) => {
+            const r = String(u.role || u.Role || '').trim();
+            const lower = r.toLowerCase();
+            return (
+              r === 'Administrator' ||
+              lower === 'administrator' ||
+              r === 'Admin' ||
+              lower === 'admin' ||
+              lower.includes('super_admin') ||
+              lower.includes('super-admin')
+            );
+          })
+          .map((u) => ({
+            id: u.id ?? u._id,
+            name: String(u.name ?? u.username ?? '').trim(),
+            email: String(u.email ?? '').trim(),
+            position_id: u.position_id ?? u.positionId ?? '',
+          }))
+          .filter((row) => row.id != null && String(row.id).trim() !== '');
+        if (!cancelled) setCreateModalAdmins(list);
+      } catch {
+        if (!cancelled) setCreateModalAdmins([]);
+      } finally {
+        if (!cancelled) setCreateModalAdminsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreateModal, isSuperAdmin]);
 
   const handleCreateGroupSubmit = async () => {
     const result = await handleSubmit();
@@ -123,29 +172,64 @@ const Groups = () => {
   const handleUpdateGroupSubmit = async (formData) => {
     if (!groupToEdit) return;
     const id = groupToEdit.group_id || groupToEdit.id;
-    const { group_name, position_id, description, group_photo } = formData;
-    const group_content_id = groupToEdit.group_content_id || groupToEdit.content_id;
-    
+    const { group_name, description, group_photo, year, semester } = formData;
+
+    const payload = {};
+    if (group_name !== undefined) payload.group_name = group_name;
+    if (description !== undefined) payload.description = description;
+    if (year !== '' && year !== undefined && year !== null) {
+      const y = String(year).trim();
+      if (y && !['1', '2', '3', '4'].includes(y)) {
+        smartToast.error('Year must be 1, 2, 3, or 4.');
+        return;
+      }
+      if (y) payload.year = y;
+    }
+    if (semester !== '' && semester !== undefined && semester !== null) {
+      payload.semester = semester;
+    }
+
+    const hasText =
+      Boolean(String(payload.group_name || '').trim()) ||
+      Boolean(String(payload.description || '').trim()) ||
+      Boolean(payload.year) ||
+      Boolean(payload.semester);
+    const hasPhoto = Boolean(group_photo);
+    if (!hasText && !hasPhoto) {
+      smartToast.error(
+        'Change at least one field: name, description, year, semester, or poster.'
+      );
+      return;
+    }
+
     setActionSubmitting(true);
     try {
-      const payload = {
-        ...(group_name !== undefined && { group_name }),
-        ...(position_id !== undefined && { position_id }),
-        group_content_id: group_content_id ?? null,
-        ...(description !== undefined && { description })
-      };
-
-      let response;
       if (group_photo) {
-        const form = new FormData();
-        Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null) form.append(k, v); });
-        form.append('group_photo', group_photo);
-        response = await api.put(`/group/${id}`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') fd.append(k, String(v));
+        });
+        fd.append('group_photo', group_photo);
+        await api.put(`/group/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        response = await api.put(`/group/${id}`, payload);
+        await api.put(`/group/${id}`, payload);
       }
 
-      setGroups(prev => prev.map(g => (g.id === id || g.group_id === id) ? { ...g, ...payload, group_name: payload.group_name || g.group_name } : g));
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === id || g.group_id === id
+            ? {
+              ...g,
+              ...payload,
+              name: payload.group_name ?? g.name,
+              group_name: payload.group_name ?? g.group_name,
+              year: payload.year ?? g.year,
+              semester: payload.semester ?? g.semester,
+              description: payload.description ?? g.description,
+            }
+            : g
+        )
+      );
       smartToast.success('Group updated successfully!');
       setShowEditModal(false);
       setGroupToEdit(null);
@@ -161,10 +245,10 @@ const Groups = () => {
   const filteredGroups =
     searchQuery.length >= SEARCH_MIN_LENGTH
       ? groups.filter((group) =>
-          (group.name || group.title || group.group_name || '')
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
-        )
+        (group.name || group.title || group.group_name || '')
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      )
       : groups;
 
   useEffect(() => {
@@ -215,14 +299,15 @@ const Groups = () => {
         onClose={() => setShowCreateModal(false)}
         formData={formData}
         handleContentChange={handleContentChange}
-        positions={positions}
         onSubmit={handleCreateGroupSubmit}
+        isSuperAdmin={isSuperAdmin}
+        adminUsers={createModalAdmins}
+        adminUsersLoading={createModalAdminsLoading}
       />
       <EditGroupModal
         show={showEditModal}
         onClose={() => setShowEditModal(false)}
         group={groupToEdit}
-        positions={positions}
         onSubmit={handleUpdateGroupSubmit}
         submitting={actionSubmitting}
       />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Select from 'react-select';
 import { SEMESTER_OPTIONS } from '../constants';
 
@@ -10,20 +10,30 @@ export default function CreateGroupModal({
   onClose,
   formData,
   handleContentChange,
-  positions,
   onSubmit,
-  submitting,
+  isSuperAdmin = false,
+  adminUsers = [],
+  adminUsersLoading = false,
 }) {
+  const adminOptions = useMemo(
+    () =>
+      adminUsers
+        .map((u) => {
+          const id = u.id;
+          const base = u.name || u.email || 'User';
+          const label = u.email ? `${base} (${u.email})` : base;
+          return { value: id, label, user: u };
+        })
+        .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' })),
+    [adminUsers]
+  );
+
   if (!show) return null;
 
-  const positionOptions = positions.map((p) => ({
-    value: p.id,
-    label: p.name || p.position_name || p.title || `Position ${p.id}`,
-  }));
-  const selectedPosition = positions.find((p) => String(p.id) === String(formData.position_id));
-  const positionValue = selectedPosition
-    ? { value: selectedPosition.id, label: selectedPosition.name || selectedPosition.position_name || selectedPosition.title || `Position ${selectedPosition.id}` }
-    : null;
+  const adminIds = Array.isArray(formData.admin_ids) ? formData.admin_ids : [];
+  const adminSelectValue = adminIds
+    .map((id) => adminOptions.find((o) => String(o.value) === String(id)))
+    .filter(Boolean);
   const semesterValue = formData.semester ? { value: formData.semester, label: formData.semester } : null;
 
   return (
@@ -51,20 +61,42 @@ export default function CreateGroupModal({
                 />
               </div>
 
-              <div className="mb-0 lg-mb-4">
-                <label className="form-label fw-semibold" style={labelStyle}>
-                  Position <span style={{ color: '#FF0000' }}>*</span>
-                </label>
-                <Select
-                  className="rounded-3 size mb-3"
-                  options={positionOptions}
-                  value={positionValue}
-                  onChange={(opt) => handleContentChange({ target: { name: 'position_id', value: opt?.value ?? '' } })}
-                  placeholder="Select a position"
-                  menuPortalTarget={document.body}
-                  styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                />
-              </div>
+              {isSuperAdmin && (
+                <div className="mb-0 lg-mb-4">
+                  <label className="form-label fw-semibold" style={labelStyle}>
+                    Group admins <span style={{ color: '#FF0000' }}>*</span>
+                  </label>
+                  <Select
+                    className="rounded-3 size mb-3"
+                    isMulti
+                    closeMenuOnSelect={false}
+                    options={adminOptions}
+                    value={adminSelectValue}
+                    onChange={(opts) => {
+                      const ordered = (opts || []).map((o) => o.value);
+                      handleContentChange({ target: { name: 'admin_ids', value: ordered } });
+                      const first = opts?.[0]?.user;
+                      if (first?.position_id != null && String(first.position_id).trim() !== '') {
+                        handleContentChange({
+                          target: { name: 'position_id', value: first.position_id },
+                        });
+                      } else {
+                        handleContentChange({ target: { name: 'position_id', value: '' } });
+                      }
+                    }}
+                    placeholder={
+                      adminUsersLoading ? 'Loading users…' : 'Select one or more administrators'
+                    }
+                    isLoading={adminUsersLoading}
+                    isDisabled={adminUsersLoading}
+                    menuPortalTarget={document.body}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                  />
+                  <small className="text-muted d-block mt-1">
+                    First selected is the primary group administrator.
+                  </small>
+                </div>
+              )}
 
               <div className="mb-4">
                 <label className="form-label fw-semibold" style={labelStyle}>
@@ -160,7 +192,7 @@ export default function CreateGroupModal({
                     type="button"
                     className="btn rounded-3 px-5 py-2"
                     onClick={onSubmit}
-                    disabled={submitting}
+                    disabled={Boolean(isSuperAdmin && adminUsersLoading)}
                     style={{
                       background: '#0076EA',
                       color: 'white',

@@ -20,6 +20,8 @@ export const SEMESTER_OPTIONS = [
 export const INITIAL_FORM_DATA = {
   group_name: '',
   position_id: '',
+  /** Super-admin: ordered user ids; first = primary `administrator_id` */
+  admin_ids: [],
   year: '',
   semester: '',
   group_content_name: '',

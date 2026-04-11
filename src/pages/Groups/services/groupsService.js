@@ -36,18 +36,73 @@ export function getUserByEmail(email) {
   return api.get(`/user/email/${encodeURIComponent(email)}`);
 }
 
-export function createGroup(formData, adminId) {
-  const fd = new FormData();
-  fd.append('group_name', formData.name);
-  fd.append('year', formData.year);
-  fd.append('semester', formData.semester);
-  fd.append('position_id', formData.position_id);
-  fd.append('group_content_name', formData.content_name);
-  if (formData.content_description) fd.append('group_content_description', formData.content_description);
-  if (formData.description) fd.append('description', formData.description);
-  if (formData.photo) fd.append('group_photo', formData.photo);
-  fd.append('admin_id', adminId);
-  return api.post('/group', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+/**
+ * Create group — matches backend: `administrator_id`, optional `admins` (JSON array in multipart),
+ * optional `position_id`, JSON body when no photo else multipart.
+ *
+ * @param {object} form — from create modal: `name`, `year`, `semester`, `content_name`, `content_description`, `description`, `photo`, optional `position_id`
+ * @param {{ selfUserId: string|number, isSuperAdmin: boolean, adminIds?: (string|number)[] }} ctx
+ */
+export function createGroup(form, ctx) {
+  const { selfUserId, isSuperAdmin, adminIds = [] } = ctx || {};
+
+  const adminIdsNorm = (Array.isArray(adminIds) ? adminIds : [])
+    .map((id) => (id != null && String(id).trim() !== '' ? String(id).trim() : null))
+    .filter(Boolean);
+
+  let administrator_id;
+  if (isSuperAdmin && adminIdsNorm.length > 0) {
+    administrator_id = adminIdsNorm[0];
+  } else if (selfUserId != null && String(selfUserId).trim() !== '') {
+    administrator_id = String(selfUserId).trim();
+  } else {
+    return Promise.reject(new Error('Missing administrator_id (log in again or select at least one admin)'));
+  }
+
+  const group_name = String(form?.name ?? '');
+  const year = String(form?.year ?? '');
+  const semester = String(form?.semester ?? '');
+  const group_content_name = String(form?.content_name ?? '');
+
+  const payload = {
+    group_name,
+    year,
+    semester,
+    group_content_name,
+    administrator_id,
+  };
+
+  const pos = form?.position_id;
+  if (pos !== undefined && pos !== null && String(pos).trim() !== '') {
+    payload.position_id = String(pos);
+  }
+  const gcd = form?.content_description;
+  if (gcd !== undefined && gcd !== null && String(gcd).trim() !== '') {
+    payload.group_content_description = String(gcd);
+  }
+  const desc = form?.description;
+  if (desc !== undefined && desc !== null && String(desc).trim() !== '') {
+    payload.description = String(desc);
+  }
+  if (adminIdsNorm.length > 0) {
+    payload.admins = adminIdsNorm;
+  }
+
+  const group_photo = form?.photo;
+  if (group_photo) {
+    const fd = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v === undefined || v === null) return;
+      if (k === 'admins' && Array.isArray(v)) {
+        fd.append(k, JSON.stringify(v));
+      } else {
+        fd.append(k, v);
+      }
+    });
+    fd.append('group_photo', group_photo);
+    return api.post('/group', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  }
+  return api.post('/group', payload);
 }
 
 export function joinGroup(groupId, memberId) {
@@ -90,7 +145,7 @@ export async function getGroupMembership(groupId) {
  * API may return group admins as `admins: [{ user_id, role, name, email, ... }]`.
  * Pick OWNER first, then ADMIN, else first entry — for display + legacy `administrator_id` filter.
  */
-function pickPrimaryAdminFromAdmins(admins) {
+export function pickPrimaryAdminFromAdmins(admins) {
   if (!Array.isArray(admins) || admins.length === 0) return null;
   const upper = (r) => String(r || '').toUpperCase();
   const owner = admins.find((a) => upper(a.role) === 'OWNER');
@@ -98,6 +153,158 @@ function pickPrimaryAdminFromAdmins(admins) {
   const adm = admins.find((a) => upper(a.role) === 'ADMIN');
   if (adm) return adm;
   return admins[0];
+}
+
+/**
+ * Build a de-duplicated list of administrators from group records (API fallback).
+ * Uses each group's `admins` array when present (OWNER / ADMIN / co-admins), else legacy primary fields.
+ * @param {Array<object>} groupsList
+ * @returns {{ id: string|number, name: string, email: string }[]}
+ */
+export function collectUniqueAdminsFromGroups(groupsList) {
+  if (!Array.isArray(groupsList)) return [];
+  const map = new Map();
+
+  const add = (id, name, email) => {
+    if (id == null) return;
+    const key = String(id);
+    const nm = String(name ?? '').trim();
+    const em = String(email ?? '').trim();
+    if (!map.has(key)) {
+      map.set(key, { id, name: nm || `Administrator ${key}`, email: em });
+      return;
+    }
+    const cur = map.get(key);
+    map.set(key, {
+      id,
+      name: nm || cur.name,
+      email: em || cur.email,
+    });
+  };
+
+  for (const g of groupsList) {
+    if (Array.isArray(g.admins) && g.admins.length > 0) {
+      for (const a of g.admins) {
+        const uid = a.user_id ?? a.userId ?? a.id ?? a.member_id;
+        const nm = a.name ?? a.full_name ?? a.username ?? a.email;
+        const em = a.email ?? '';
+        add(uid, nm, em);
+      }
+      continue;
+    }
+    const primary = pickPrimaryAdminFromAdmins(g.admins);
+    const id =
+      g.administrator_id ??
+      g.admin_id ??
+      g.adminId ??
+      primary?.user_id ??
+      primary?.userId ??
+      g.admin?.id;
+    const name =
+      g.admin_name ??
+      g.admin?.name ??
+      primary?.name ??
+      primary?.email ??
+      (id != null ? `Administrator ${id}` : '');
+    const email = primary?.email ?? g.admin?.email ?? '';
+    add(id, name, email);
+  }
+  return [...map.values()];
+}
+
+/** True if `name` is only our UUID fallback, not a real display name. */
+function isPlaceholderAdminName(name, idKey) {
+  const n = String(name ?? '').trim();
+  if (!n) return true;
+  if (n === `Administrator ${idKey}`) return true;
+  return /^Administrator\s+[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/i.test(n);
+}
+
+/** Prefer a real name over "Administrator <uuid>" when merging duplicates. */
+function pickBetterAdminName(incoming, existing, idKey) {
+  const inc = String(incoming ?? '').trim();
+  const ex = String(existing ?? '').trim();
+  if (!isPlaceholderAdminName(inc, idKey)) return inc || `Administrator ${idKey}`;
+  if (!isPlaceholderAdminName(ex, idKey)) return ex;
+  return inc || ex || `Administrator ${idKey}`;
+}
+
+/**
+ * Merge administrator rows by `id`.
+ * Pass **full-detail lists last** (e.g. `mergeAdministratorLists(fromGroups, fromApi)` so `/administrator/` wins on conflicts).
+ */
+function mergeAdministratorLists(...lists) {
+  const map = new Map();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const row of list) {
+      const id = row?.id ?? row?.user_id ?? row?.userId;
+      if (id == null) continue;
+      const key = String(id);
+      const name = String(row.name ?? '').trim();
+      const email = String(row.email ?? '').trim();
+      if (!map.has(key)) {
+        map.set(key, { id, name: name || `Administrator ${key}`, email });
+      } else {
+        const cur = map.get(key);
+        map.set(key, {
+          id,
+          name: pickBetterAdminName(name, cur.name, key),
+          email: email || cur.email,
+        });
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+  );
+}
+
+/** Map API user rows to `{ id, name, email }` for the create-group admin picker. */
+function mapRowsToAdministrators(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((u) => ({
+      id: u.id ?? u.user_id ?? u.userId,
+      name: (u.name ?? u.full_name ?? u.username ?? u.email ?? '').toString().trim(),
+      email: (u.email ?? '').toString().trim(),
+    }))
+    .filter((u) => u.id != null);
+}
+
+/**
+ * Super-admin: administrators for "Group administrator" on create.
+ * Primary: GET /administrator/ (all site administrators).
+ * Also merges admins discovered from `groupsList` (e.g. co-admins) and falls back to GET /user/administrators if needed.
+ */
+export async function getAdministrators(groupsFallback = []) {
+  let fromApi = [];
+  for (const path of ['/administrator/', '/administrator']) {
+    try {
+      const res = await api.get(path);
+      const raw = res?.data?.data ?? res?.data;
+      fromApi = mapRowsToAdministrators(Array.isArray(raw) ? raw : []);
+      if (fromApi.length > 0) break;
+    } catch (e) {
+      if (e.response?.status !== 404 && e.response?.status !== 403) {
+        console.warn(`getAdministrators: GET ${path}`, e);
+      }
+    }
+  }
+  if (fromApi.length === 0) {
+    try {
+      const res = await api.get('/user/administrators');
+      const raw = res?.data?.data ?? res?.data;
+      fromApi = mapRowsToAdministrators(Array.isArray(raw) ? raw : []);
+    } catch (e2) {
+      if (e2.response?.status !== 404 && e2.response?.status !== 403) {
+        console.warn('getAdministrators: GET /user/administrators', e2);
+      }
+    }
+  }
+  const fromGroups = collectUniqueAdminsFromGroups(groupsFallback);
+  // Groups-derived rows often only have UUID fallbacks; `/administrator/` has real names — merge API last.
+  return mergeAdministratorLists(fromGroups, fromApi);
 }
 
 /** True if this user is a legacy group admin or listed in `admins`. */
