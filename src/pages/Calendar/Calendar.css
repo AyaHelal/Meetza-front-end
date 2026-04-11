@@ -571,6 +571,7 @@
   font-size: 0.7rem;
   font-weight: 500;
   color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -579,6 +580,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 4px;
+}
+
+.calendar-month-grid-meeting-lock {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0.95;
 }
 
 .calendar-month-grid-meeting-title {
@@ -911,6 +921,7 @@
   color: #fff;
   border-radius: 6px 6px 0 0;
   flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
 }
 
 .calendar-event-card-body-header {

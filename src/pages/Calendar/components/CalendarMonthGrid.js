@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Trash } from "@phosphor-icons/react";
+import { Trash, Lock, LockOpen } from "@phosphor-icons/react";
 import { getMonthMatrix, formatTimeRange, isMeetingLive } from "../utils/calendarUtils";
 
 export default function CalendarMonthGrid({ 
@@ -57,27 +57,23 @@ export default function CalendarMonthGrid({
                     {date.getDate()}
                   </div>
                   <div className="calendar-month-grid-cell-meetings">
-                    {dayMeetings.map(({ meeting, start, end }, idx) => {
+                    {dayMeetings.map(({ meeting, start, end }) => {
                       const title = meeting.title ?? "Meeting";
-                      const colors = [
-                        "var(--calendar-event-blue, #3b82f6)",
-                        "var(--calendar-event-orange, #f97316)",
-                        "var(--calendar-event-green, #22c55e)",
-                        "var(--calendar-event-purple, #a855f7)",
-                        "var(--calendar-event-red, #ef4444)",
-                        "var(--calendar-event-teal, #14b8a6)",
-                      ];
-                      const bg = colors[idx % colors.length];
+                      const live = isMeetingLive(meeting);
+                      const bg = live ? "rgba(52, 152, 219, 0.5)" : "rgba(231, 76, 60, 0.5)";
                       return (
                         <div
                           key={meeting.id ?? meeting.meeting_id ?? `${start.getTime()}`}
                           className="calendar-month-grid-meeting"
-                          style={{ backgroundColor: bg, cursor: isMeetingLive(meeting) ? "pointer" : "default" }}
+                          style={{ backgroundColor: bg, cursor: live ? "pointer" : "default" }}
                           title={`${title} — ${formatTimeRange(start, end)}`}
                           onClick={() => {
-                            if (isMeetingLive(meeting)) onJoinMeeting?.(meeting);
+                            if (live) onJoinMeeting?.(meeting);
                           }}
                         >
+                          <span className="calendar-month-grid-meeting-lock" aria-hidden>
+                            {live ? <LockOpen size={12} weight="bold" /> : <Lock size={12} weight="bold" />}
+                          </span>
                           <span className="calendar-month-grid-meeting-title">{title}</span>
                           {isAdminRole && (
                             <button

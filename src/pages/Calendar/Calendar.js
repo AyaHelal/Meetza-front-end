@@ -86,6 +86,7 @@ export default function Calendar() {
           const name = g.name ?? g.group_name ?? g.title ?? g.content_name ?? g.group_content_name ?? "";
           if (id != null && id !== "") {
             const idStr = String(id);
+            if (map[idStr] !== undefined) return;
             const nameStr = name && String(name).trim() ? String(name).trim() : "—";
             map[idStr] = nameStr;
             list.push({ id: idStr, name: nameStr });
