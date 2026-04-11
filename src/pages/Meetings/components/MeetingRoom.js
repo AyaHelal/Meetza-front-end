@@ -35,6 +35,12 @@ import { AuthContext } from "../../../context/AuthContext";
 import { useMeetingContext } from "../../../context/MeetingContext";
 import { useMediaContext } from "../../../context/MediaContext";
 
+/** Survives React StrictMode remount so we do not open pre-join twice for the same meeting tab session. */
+const preJoinUiGateStorageKey = (meetingId) => `meetza_preJoinUiGate_${String(meetingId)}`;
+
+/** Same logical meeting must use one string id — otherwise `5 !== "5"` resets pre-join state and the modal reopens after Enter. */
+const normalizeMeetingId = (id) => (id == null || id === "" ? null : String(id));
+
 const MeetingRoom = ({ recordRegionRef }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [localStream, setLocalStream] = useState(null);
@@ -46,20 +52,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const {
-    participants,
-    setParticipants,
-    setMeetingId,
-    setHasJoined,
-    hasJoined,
-    addChatMessage,
-    localParticipantAudioMuted,
-    setLocalParticipantAudioMuted,
-    mediaStateMap,
-    setMediaStateMap,
-    micLockedByAdmin,
-    setMicLockedByAdmin,
-  } = useMeetingContext();
+  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap, setMediaStateMap } = useMeetingContext();
 
   // Get persistent media streams and state from MediaContext
   const {
@@ -107,6 +100,11 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const lastMeetingIdForPreJoinRef = useRef(null);
   const preJoinPromptedRef = useRef({});
   const preJoinCompletedRef = useRef({});
+  const preJoinOpenedThisLoadRef = useRef(false);
+  const userDismissedPreJoinRef = useRef({});
+  const [preJoinDismissTick, setPreJoinDismissTick] = useState(0);
+  /** After a full page reload while this meeting is open, reset join/pre-join once so user goes through join again. */
+  const reloadJoinResetDoneForMidRef = useRef(null);
 
   const meetingId = useMeetingRoomMeetingId({
     location,
@@ -119,20 +117,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const selfMemberIdForInfo = user?.id ?? user?.member_id ?? null;
   const { meetingInfo, isMeetingAdmin } = useMeetingInfo(meetingId, selfMemberIdForInfo);
 
-  // First-time join (not returning to same meeting)
-  const isFirstJoin = useMemo(() => {
-    const mid = meetingIdRef.current || meetingId;
-    if (!mid) return true;
-    try {
-      const stored = sessionStorage.getItem("activeMeetingId");
-      const isReturning = stored === String(mid);
-      const storedHasJoined = sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true";
-      return !isReturning && !hasJoined && !storedHasJoined;
-    } catch {
-      return true;
-    }
-  }, [meetingId, hasJoined]);
-
   useEffect(() => {
     try {
       sessionStorage.setItem("meetza_audioMuted", String(audioMuted));
@@ -140,13 +124,19 @@ const MeetingRoom = ({ recordRegionRef }) => {
     } catch { /* ignore */ }
   }, [audioMuted, videoMuted]);
 
-  useEffect(() => {
-    setMicLockedByAdmin(false);
-  }, [meetingId, setMicLockedByAdmin]);
-
-  useEffect(() => {
-    if (!hasJoined) setMicLockedByAdmin(false);
-  }, [hasJoined, setMicLockedByAdmin]);
+  const handlePreJoinDismiss = useCallback(() => {
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+    if (mid != null) {
+      userDismissedPreJoinRef.current[mid] = true;
+      try {
+        sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+      } catch {
+        /* ignore */
+      }
+    }
+    preJoinOpenedThisLoadRef.current = false;
+    setPreJoinDismissTick((t) => t + 1);
+  }, [meetingId]);
 
   const rtc = useMeetingRoomRtc({
     socket,
@@ -181,17 +171,16 @@ const MeetingRoom = ({ recordRegionRef }) => {
     localParticipantVolume,
     remoteVideoRefsMap,
     screenTrackRef,
-    micLockedByAdmin,
   });
 
   const preJoin = useMeetingPreJoin((stream, videoMuted, audioMuted) => {
-    const mid = meetingIdRef.current || meetingId;
-    const keysToMark = [];
-    if (mid != null) keysToMark.push(String(mid));
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+    if (!mid) return;
+    const keysToMark = [mid];
 
     try {
-      const active = sessionStorage.getItem("activeMeetingId");
-      if (active) keysToMark.push(String(active));
+      const active = normalizeMeetingId(sessionStorage.getItem("activeMeetingId"));
+      if (active && active !== mid) keysToMark.push(active);
     } catch { /* ignore */ }
 
     keysToMark.forEach((key) => {
@@ -201,8 +190,18 @@ const MeetingRoom = ({ recordRegionRef }) => {
         sessionStorage.setItem(`meeting_preJoinCompleted_${key}`, "true");
       } catch { /* ignore */ }
     });
+    // Pre-join UI finished — allow RTC effect path; keep refs aligned with `waitingOnPreJoinUi` / `shouldShowPreJoin`.
+    preJoinOpenedThisLoadRef.current = false;
+    try {
+      sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+    } catch {
+      /* ignore */
+    }
     rtc.startJoinRef.current?.({ preObtainedStream: stream, initialVideoMuted: videoMuted, initialAudioMuted: audioMuted });
-  });
+  }, handlePreJoinDismiss);
+
+  const showPreJoinModalRef = useRef(preJoin.showPreJoinModal);
+  showPreJoinModalRef.current = preJoin.showPreJoinModal;
 
   const chat = useMeetingChat({
     socket,
@@ -217,13 +216,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   const setShowPreJoinModal = preJoin.setShowPreJoinModal;
   useEffect(() => {
-    if (!meetingId || !socket || !isConnected) return;
-    const mid = meetingIdRef.current || meetingId;
-    if (lastMeetingIdForPreJoinRef.current !== mid) {
-      lastMeetingIdForPreJoinRef.current = mid;
-      userLeftMeetingRef.current = false;
-    }
-    if (userLeftMeetingRef.current) return;
+    if (!socket || !isConnected) return;
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+    if (!mid) return;
+
     const isPageReload = (() => {
       try {
         const navEntries = performance?.getEntriesByType?.("navigation");
@@ -234,12 +230,76 @@ const MeetingRoom = ({ recordRegionRef }) => {
         return false;
       }
     })();
-    const activeMeetingId = (() => { try { return sessionStorage.getItem("activeMeetingId"); } catch { return null; } })();
-    // Always key pre-join state by the meeting we are opening — not stale activeMeetingId from another meeting
-    const stableKey = String(mid);
-    const isReturning = !!activeMeetingId && String(activeMeetingId) === String(mid);
-    const storedHasJoined = (() => { try { return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true"; } catch { return false; } })();
-    const firstJoin = !isReturning && !hasJoined && !storedHasJoined;
+
+    if (
+      isPageReload &&
+      reloadJoinResetDoneForMidRef.current !== mid
+    ) {
+      reloadJoinResetDoneForMidRef.current = mid;
+      preJoinCompletedRef.current = {};
+      preJoinOpenedThisLoadRef.current = false;
+      preJoinPromptedRef.current = {};
+      try {
+        sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+        sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+        sessionStorage.removeItem(`meeting_hasJoined_${mid}`);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const prevMidNorm = normalizeMeetingId(lastMeetingIdForPreJoinRef.current);
+    if (prevMidNorm !== mid) {
+      if (prevMidNorm != null) {
+        reloadJoinResetDoneForMidRef.current = null;
+        try {
+          sessionStorage.removeItem(preJoinUiGateStorageKey(prevMidNorm));
+        } catch {
+          /* ignore */
+        }
+      }
+      lastMeetingIdForPreJoinRef.current = mid;
+      userLeftMeetingRef.current = false;
+      preJoinOpenedThisLoadRef.current = false;
+      preJoinPromptedRef.current = {};
+      userDismissedPreJoinRef.current = {};
+
+      let completedForMidInStorage = false;
+      try {
+        completedForMidInStorage =
+          sessionStorage.getItem(`meeting_preJoinCompleted_${mid}`) === "true";
+      } catch {
+        /* ignore */
+      }
+
+      if (prevMidNorm != null) {
+        // Switched to another meeting — fresh pre-join for `mid`.
+        preJoinCompletedRef.current = {};
+        try {
+          sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+          sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+        } catch {
+          /* ignore */
+        }
+      } else {
+        // First attach for this MeetingRoom instance (includes React StrictMode remount after Enter).
+        // Do NOT wipe meeting_preJoinCompleted_* here — that would erase completion from the previous mount
+        // and reopen the camera/mic modal a second time.
+        if (completedForMidInStorage) {
+          preJoinCompletedRef.current[mid] = true;
+        } else {
+          preJoinCompletedRef.current = {};
+          try {
+            sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+            sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    if (userLeftMeetingRef.current) return;
+    const stableKey = mid;
     const completedFromStorage = (() => {
       try {
         return sessionStorage.getItem(`meeting_preJoinCompleted_${stableKey}`) === "true";
@@ -247,23 +307,69 @@ const MeetingRoom = ({ recordRegionRef }) => {
         return false;
       }
     })();
-    const alreadyEnteredThisLoad = !!preJoinCompletedRef.current[stableKey] || completedFromStorage;
-    // Do NOT use a "modal already opened" ref in shouldShowPreJoin: after the first open we set
-    // preJoinPromptedRef, and on socket reconnect isConnected flips → effect re-runs. If shouldShowPreJoin
-    // then became false, we would fall through to startAndJoinMeetingRtc and skip the lobby entirely.
-    const shouldShowPreJoin = (!alreadyEnteredThisLoad && firstJoin) || (isPageReload && isReturning);
+    // After a full page reload, show pre-join again; sessionStorage completion only applies within same document load.
+    const alreadyEnteredThisLoad =
+      !!preJoinCompletedRef.current[stableKey] || (!isPageReload && completedFromStorage);
+
+    // Modal is open and user has not confirmed — do not start RTC or re-trigger logic (fixes socket reconnect / dep churn).
+    const waitingOnPreJoinUi =
+      preJoinOpenedThisLoadRef.current && !preJoinCompletedRef.current[stableKey];
+    if (waitingOnPreJoinUi) {
+      return;
+    }
+
+    // One gate: not completed yet, not already in room, not already showing pre-join this visit.
+    // Avoid (isPageReload && isReturning) — it kept shouldShowPreJoin true after the modal opened and caused duplicate opens / races after refresh.
+    const shouldShowPreJoin =
+      !alreadyEnteredThisLoad &&
+      !hasJoined &&
+      !preJoinOpenedThisLoadRef.current &&
+      !userDismissedPreJoinRef.current[stableKey];
+
     if (shouldShowPreJoin) {
-      // Open modal once per meeting id; on reconnect still return here so we never auto-join past the lobby.
-      if (!preJoinPromptedRef.current[stableKey]) {
-        preJoinPromptedRef.current[stableKey] = true;
-        setShowPreJoinModal(true);
+      let gateAlreadySet = false;
+      try {
+        gateAlreadySet = sessionStorage.getItem(preJoinUiGateStorageKey(stableKey)) === "1";
+      } catch {
+        /* ignore */
       }
+      if (gateAlreadySet) {
+        const preJoinDone =
+          sessionStorage.getItem(`meeting_preJoinCompleted_${stableKey}`) === "true";
+        if (preJoinDone) {
+          preJoinCompletedRef.current[stableKey] = true;
+          preJoinOpenedThisLoadRef.current = false;
+          try {
+            sessionStorage.removeItem(preJoinUiGateStorageKey(stableKey));
+          } catch {
+            /* ignore */
+          }
+          // Remount / StrictMode: gate stuck from first open but user already confirmed — do not reopen modal.
+        } else {
+          preJoinPromptedRef.current[stableKey] = true;
+          preJoinOpenedThisLoadRef.current = true;
+          if (!showPreJoinModalRef.current) setShowPreJoinModal(true);
+          return;
+        }
+      } else {
+        try {
+          sessionStorage.setItem(preJoinUiGateStorageKey(stableKey), "1");
+        } catch {
+          /* ignore */
+        }
+        preJoinPromptedRef.current[stableKey] = true;
+        preJoinOpenedThisLoadRef.current = true;
+        setShowPreJoinModal(true);
+        return;
+      }
+    }
+    if (userDismissedPreJoinRef.current[stableKey]) {
       return;
     }
     rtc.startAndJoinMeetingRtc().then((result) => {
       if (result?.error) smartToast.error(result.error);
     });
-  }, [meetingId, socket, isConnected, hasJoined, setShowPreJoinModal]);
+  }, [meetingId, socket, isConnected, hasJoined, setShowPreJoinModal, preJoinDismissTick]);
 
   useEffect(() => {
     if (!setMeetingMediaRefs) return;
@@ -398,8 +504,14 @@ const MeetingRoom = ({ recordRegionRef }) => {
   });
   const handleLeaveMeeting = useCallback(() => {
     userLeftMeetingRef.current = true;
+    try {
+      const m = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+      if (m != null) sessionStorage.removeItem(preJoinUiGateStorageKey(m));
+    } catch {
+      /* ignore */
+    }
     handleLeaveMeetingBase();
-  }, [handleLeaveMeetingBase]);
+  }, [handleLeaveMeetingBase, meetingId]);
 
   // Reset activeSlide to 0 if admin and currently on slide 2
   useEffect(() => {
@@ -528,10 +640,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setContextAudioMuted,
     setLocalParticipantAudioMuted,
     getVideoMuted: () => videoMuted,
-    getAudioMuted: () => audioMuted,
-    setVideoMuted,
-    setContextVideoMuted,
-    setMicLockedByAdmin,
   });
 
   const handleToggleScreenShare = async () => {
@@ -631,7 +739,6 @@ const MeetingRoom = ({ recordRegionRef }) => {
         setCommentText={chat.setCommentText}
         audioMuted={audioMuted}
         videoMuted={videoMuted}
-        micLockedByAdmin={micLockedByAdmin}
         handRaised={hand.handRaised}
         screenSharing={screenSharing}
         meetingId={meetingId}

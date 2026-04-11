@@ -131,60 +131,70 @@ const UserPhoto = ({
       const isSuccess = response.status >= 200 && response.status < 300;
       
       if (response.data && isSuccess) {
-        let photoUrl = response.data.user_photo ||
-          response.data.photo ||
-          response.data.data?.user_photo ||
-          response.data.data?.photo ||
-          response.data.user?.user_photo ||
-          response.data.user?.photo ||
-          response.data.profile_photo ||
-          response.data.avatar;
+        const payload = response.data?.data ?? response.data;
+        let photoUrl =
+          payload?.user_photo ||
+          payload?.photo ||
+          response.data?.user_photo ||
+          response.data?.photo ||
+          response.data?.user?.user_photo ||
+          response.data?.user?.photo ||
+          response.data?.profile_photo ||
+          response.data?.avatar;
 
-        // If we can't find the photo URL in the response, check existing photo or try to fetch updated user
         if (!photoUrl) {
-          const existingPhoto = user?.user_photo || user?.photo || authUser?.user_photo || authUser?.photo;
-          if (existingPhoto) {
-            photoUrl = existingPhoto;
-          } else {
-            // Upload was successful but no URL in response - try to fetch updated user data
-            try {
-              const userResponse = await axiosInstance.get(`/user/${userId}`);
-              const fetchedUser = userResponse.data?.user || userResponse.data?.data || userResponse.data;
-              
-              photoUrl = fetchedUser?.user_photo || 
-                        fetchedUser?.photo || 
-                        fetchedUser?.profile_photo || 
-                        fetchedUser?.avatar;
-              
-              if (photoUrl) {
-              } else {
-                // Still no URL, but upload was successful - keep local preview
-                // Don't show error - upload was successful, photo will be available on refresh
-              }
-            } catch (fetchError) {
-              // Don't show error - upload was successful
-            }
+          try {
+            const userResponse = await axiosInstance.get(`/user/${userId}`);
+            const fetchedUser =
+              userResponse.data?.data ??
+              userResponse.data?.user ??
+              userResponse.data;
+            photoUrl =
+              fetchedUser?.user_photo ||
+              fetchedUser?.photo ||
+              fetchedUser?.profile_photo ||
+              fetchedUser?.avatar;
+          } catch {
+            /* ignore */
           }
         }
 
         const photoUpdatedAt = Date.now();
         const currentUser = user || authUser;
-        
-        // If we have a photoUrl, use it. Otherwise, keep the local preview URL temporarily
-        // The local preview will be replaced when the user data refreshes or on page reload
-        const finalPhotoUrl = photoUrl || tempPreviewUrl || currentUser?.user_photo || currentUser?.photo;
-        
+
+        const finalPhotoUrl =
+          photoUrl ||
+          tempPreviewUrl ||
+          currentUser?.user_photo ||
+          currentUser?.photo;
+
+        const fromServer =
+          payload &&
+          typeof payload === "object" &&
+          (payload.id || payload.email)
+            ? payload
+            : null;
+
         const updatedUser = {
           ...currentUser,
+          ...(fromServer || {}),
           user_photo: finalPhotoUrl,
           photo: finalPhotoUrl,
-          photoUpdatedAt: photoUpdatedAt
+          photoUpdatedAt,
         };
 
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const rememberMe = localStorage.getItem('remember') === 'true';
 
         loginUser(updatedUser, token, rememberMe);
+        if (
+          tempPreviewUrl &&
+          typeof finalPhotoUrl === "string" &&
+          !finalPhotoUrl.startsWith("blob:")
+        ) {
+          URL.revokeObjectURL(tempPreviewUrl);
+        }
+        setLocalPhotoUrl(null);
         smartToast.success('Profile photo updated successfully');
       }
     } catch (error) {

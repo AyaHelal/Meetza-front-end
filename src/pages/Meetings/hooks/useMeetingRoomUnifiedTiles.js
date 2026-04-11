@@ -86,10 +86,18 @@ export function useMeetingRoomUnifiedTiles({
           if (isScreen && !stream.getVideoTracks?.().length) return;
 
           const showVideo = isScreen || !remoteVideoMuted;
+          // One MediaStream may bundle camera + screen; <video> would otherwise show the first (camera) track.
+          let displayStream = stream;
+          if (isScreen) {
+            const st = getScreenShareTrack(stream);
+            if (st) {
+              displayStream = new MediaStream([st, ...stream.getAudioTracks()]);
+            }
+          }
           tiles.push({
             ...base,
             tileId: isScreen ? `${sid}-screen` : sid,
-            stream,
+            stream: displayStream,
             isScreenShare: isScreen,
             isScreenOnlyTile: isScreen,
             showVideo: !!showVideo,
@@ -113,16 +121,42 @@ export function useMeetingRoomUnifiedTiles({
     return { memberTiles: members, adminTile: admin };
   }, [unifiedTiles, isMeetingAdmin]);
 
+  /** Any meeting host id (creator + group/meeting admins from API) — same idea as Participate list. Never use tile.id (socket). */
+  const hostAdminUserIdSet = useMemo(() => {
+    const set = new Set();
+    if (!meetingInfo) return set;
+    const aid = meetingInfo.administrator_id;
+    if (aid != null && String(aid).trim() !== "") set.add(String(aid));
+    for (const row of meetingInfo.admins || []) {
+      const uid = row?.group_admin_id ?? row?.user_id ?? row?.userId;
+      if (uid != null && String(uid).trim() !== "") set.add(String(uid));
+    }
+    return set;
+  }, [meetingInfo?.administrator_id, meetingInfo?.admins]);
+
   const adminTileForMembers = useMemo(() => {
-    if (isMeetingAdmin || !meetingInfo?.administrator_id) return null;
+    if (isMeetingAdmin || hostAdminUserIdSet.size === 0) return null;
     const adminTiles = unifiedTiles.filter((tile) => {
-      const tileUserId = tile?.member_id || tile?.user_id || tile?.userId || tile?.id;
-      return tileUserId && String(tileUserId) === String(meetingInfo.administrator_id);
+      const tileUserId = tile?.member_id ?? tile?.user_id ?? tile?.userId;
+      return tileUserId != null && hostAdminUserIdSet.has(String(tileUserId));
     });
     if (!adminTiles.length) return null;
-    const screenTile = adminTiles.find((tile) => tile.isScreenShare);
-    return screenTile || adminTiles[0] || null;
-  }, [unifiedTiles, meetingInfo?.administrator_id, isMeetingAdmin]);
+    const screenTile =
+      adminTiles.find((tile) => tile.isScreenShare) ||
+      adminTiles.find((tile) => tile.stream && getScreenShareTrack(tile.stream));
+    const chosen = screenTile || adminTiles[0] || null;
+    if (!chosen?.stream) return chosen;
+    const st = getScreenShareTrack(chosen.stream);
+    if (!st) return chosen;
+    const screenOnly = new MediaStream([st, ...chosen.stream.getAudioTracks()]);
+    const hasLiveScreen = st.readyState === "live" || st.readyState === "new";
+    return {
+      ...chosen,
+      stream: screenOnly,
+      isScreenShare: true,
+      showVideo: hasLiveScreen || chosen.showVideo !== false,
+    };
+  }, [unifiedTiles, hostAdminUserIdSet, isMeetingAdmin]);
 
   return { unifiedTiles, memberTiles, adminTile, adminTileForMembers };
 }

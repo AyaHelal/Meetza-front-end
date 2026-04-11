@@ -7,7 +7,7 @@
  * Fetch meeting details by ID.
  * @param {import("axios").AxiosInstance} api - axios instance
  * @param {string} meetingId
- * @returns {Promise<{ administrator_id, recording, title, description, group_id } | null>}
+ * @returns {Promise<{ administrator_id, recording, title, description, group_id, admins } | null>}
  */
 export async function getMeetingInfo(api, meetingId) {
   if (!meetingId) return null;
@@ -29,6 +29,7 @@ export async function getMeetingInfo(api, meetingId) {
       title: meeting.title,
       description: meeting.description,
       group_id: meeting.group_id,
+      admins: Array.isArray(meeting.admins) ? meeting.admins : [],
     };
   } catch (err) {
     return null;

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
-const MeetingContext = createContext(null);
+export const MeetingContext = createContext(null);
 
 export const useMeetingContext = () => {
   const ctx = useContext(MeetingContext);

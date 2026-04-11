@@ -102,7 +102,15 @@ const MeetingRightSidebar = () => {
                 meeting = root;
             }
             setMeetingDescription(meeting?.description || '');
-            setMeetingInfo(meeting ? { group_id: meeting.group_id, administrator_id: meeting.administrator_id } : null);
+            setMeetingInfo(
+                meeting
+                    ? {
+                        group_id: meeting.group_id,
+                        administrator_id: meeting.administrator_id,
+                        admins: Array.isArray(meeting.admins) ? meeting.admins : [],
+                    }
+                    : null
+            );
         } catch (err) {
             setMeetingDescription('');
             setMeetingInfo(null);
@@ -136,8 +144,22 @@ const MeetingRightSidebar = () => {
     }, []);
 
     const currentUserId = authUser?.id ?? authUser?.user_id ?? null;
+
+    /** User ids who should show the Admin badge and get host controls (meeting creator + group admins from API). */
+    const adminBadgeUserIds = useMemo(() => {
+        const set = new Set();
+        if (!meetingInfo) return set;
+        const aid = meetingInfo.administrator_id;
+        if (aid != null && String(aid).trim() !== '') set.add(String(aid));
+        for (const row of meetingInfo.admins || []) {
+            const uid = row?.group_admin_id ?? row?.user_id ?? row?.userId;
+            if (uid != null && String(uid).trim() !== '') set.add(String(uid));
+        }
+        return set;
+    }, [meetingInfo?.administrator_id, meetingInfo?.admins]);
+
     const isMeetingAdmin = Boolean(
-        currentUserId && meetingInfo?.administrator_id && String(currentUserId) === String(meetingInfo.administrator_id)
+        currentUserId != null && adminBadgeUserIds.has(String(currentUserId))
     );
     const showAddResourceBtn = isMeetingAdmin && meetingId;
     const canAddResource = showAddResourceBtn && groupContentId;
@@ -208,9 +230,16 @@ const MeetingRightSidebar = () => {
 
     // Participants are socket-driven from MeetingContext - no REST fetch
     const participants = hasJoined ? socketParticipants : [];
-    const getParticipantUserId = (p) => p?.member_id ?? p?.user_id ?? p?.userId ?? p?.id;
-    const isParticipantMeetingAdmin = (p) =>
-        Boolean(meetingInfo?.administrator_id && getParticipantUserId(p) && String(getParticipantUserId(p)) === String(meetingInfo.administrator_id));
+    /** Never use p.id here — it is often the socket id, not the DB user id. */
+    const getParticipantUserId = (p) => p?.member_id ?? p?.user_id ?? p?.userId ?? null;
+    const isParticipantMeetingAdmin = useCallback(
+        (p) => {
+            const uid = getParticipantUserId(p);
+            if (uid == null || String(uid).trim() === '') return false;
+            return adminBadgeUserIds.has(String(uid));
+        },
+        [adminBadgeUserIds]
+    );
     const sortedParticipants = useMemo(() => {
         return [...participants].sort((a, b) => {
             const aAdmin = isParticipantMeetingAdmin(a);
@@ -219,7 +248,12 @@ const MeetingRightSidebar = () => {
             if (!aAdmin && bAdmin) return 1;
             return 0;
         });
-    }, [participants, meetingInfo?.administrator_id]);
+    }, [participants, isParticipantMeetingAdmin]);
+
+    const adminParticipantsCount = useMemo(
+        () => sortedParticipants.filter((p) => isParticipantMeetingAdmin(p)).length,
+        [sortedParticipants, isParticipantMeetingAdmin]
+    );
 
     // Backend expects { meetingId, targetUserId, audioMuted, videoMuted } → target gets "adminMuteYou", room gets "participantMutedByAdmin"
     const handleAdminMuteParticipant = useCallback((participant, shouldMute) => {
@@ -459,7 +493,7 @@ const participantMicMuted = isSelf
                         return (
                             <div
                                 key={participant?.socketId || participant?.member_id || participant?.id || index}
-                                className={`participant-item ${isAdmin ? 'participant-item--admin-pinned' : ''}`}
+                                className={`participant-item ${isAdmin && adminParticipantsCount === 1 ? 'participant-item--admin-pinned' : ''}`}
                             >
                                 <div className="participant-avatar">
                                     {photoSrc ? (
@@ -480,10 +514,11 @@ const participantMicMuted = isSelf
                                         <span className={`participant-status ${getParticipantStatusLabel(participant).toLowerCase()}`}>
                                             {getParticipantStatusLabel(participant)}
                                         </span>
-                                        {isAdmin ? (
-                                            <span className="participant-badge-admin">Admin</span>
-                                        ) : (
-                                            showMuteBtn ? (
+                                        <div className="participant-status-row-actions">
+                                            {isAdmin ? (
+                                                <span className="participant-badge-admin">Admin</span>
+                                            ) : null}
+                                            {showMuteBtn ? (
                                                 <button
                                                     type="button"
                                                     className="participant-mute-btn"
@@ -498,15 +533,20 @@ const participantMicMuted = isSelf
                                                     )}
                                                 </button>
                                             ) : (
-                                                <div className="participant-mute-indicator" aria-hidden="true">
+                                                <div
+                                                    className="participant-mute-indicator"
+                                                    aria-hidden={isAdmin ? undefined : true}
+                                                    aria-label={isAdmin ? (participantMicMuted ? 'Mic muted (listen)' : 'Mic on (listen)') : undefined}
+                                                    title={participantMicMuted ? 'Muted for you' : 'Unmuted'}
+                                                >
                                                     {participantMicMuted ? (
                                                         <MicrophoneSlash size={20} weight="regular" />
                                                     ) : (
                                                         <Microphone size={20} weight="regular" />
                                                     )}
                                                 </div>
-                                            )
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

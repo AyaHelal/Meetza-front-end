@@ -14,9 +14,10 @@ export function useMeetingRoomMeetingId({
   const meetingId = useMemo(() => {
     const fromLocation =
       location?.state?.meetingId || searchParams.get("meetingId") || null;
-    if (fromLocation) return fromLocation;
+    if (fromLocation != null && String(fromLocation).trim() !== "") return String(fromLocation);
     try {
-      return sessionStorage.getItem("activeMeetingId") || null;
+      const stored = sessionStorage.getItem("activeMeetingId");
+      return stored != null && String(stored).trim() !== "" ? String(stored) : null;
     } catch {
       return null;
     }

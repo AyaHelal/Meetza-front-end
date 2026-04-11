@@ -1,24 +1,39 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { getScreenShareTrack, isScreenShareVideoTrack } from "./meetingRoomUtils";
 
 const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localParticipantAudioMuted, localParticipantVolume, meetingSpeakerMuted }) => {
+  const displayStream = useMemo(() => {
+    if (!adminTile?.stream) return null;
+    const st = getScreenShareTrack(adminTile.stream);
+    if (st) {
+      return new MediaStream([st, ...adminTile.stream.getAudioTracks()]);
+    }
+    return adminTile.stream;
+  }, [adminTile?.stream]);
+
   const streamHasLiveVideo =
-    adminTile?.stream &&
-    typeof adminTile.stream.getVideoTracks === "function" &&
-    adminTile.stream.getVideoTracks().some((t) => t.enabled && t.readyState === "live");
+    displayStream &&
+    typeof displayStream.getVideoTracks === "function" &&
+    displayStream.getVideoTracks().some((t) => {
+      if (t.readyState === "ended") return false;
+      if (t.readyState !== "live" && t.readyState !== "new") return false;
+      if (isScreenShareVideoTrack(t)) return true;
+      return t.enabled;
+    });
   const hasVideo = !!(adminTile?.showVideo !== false && streamHasLiveVideo);
   const showAvatar = !hasVideo && adminTile;
 
-  const audioFallback = !hasVideo && adminTile && adminTile.stream ? (
+  const audioFallback = !hasVideo && adminTile && displayStream ? (
     <audio
-      key={`admin-audio-${adminTile.socketId}-${adminTile.stream?.id || "no-stream"}`}
+      key={`admin-audio-${adminTile.socketId}-${displayStream?.id || "no-stream"}`}
       autoPlay
       ref={(el) => {
         if (el) {
           if (remoteVideoRefsMap) {
             remoteVideoRefsMap.current?.set(adminTile.socketId, el);
           }
-          if (el.srcObject !== adminTile.stream) {
-            el.srcObject = adminTile.stream;
+          if (el.srcObject !== displayStream) {
+            el.srcObject = displayStream;
           }
           el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
           el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);
@@ -35,18 +50,18 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
       <div className={`meeting-room-screen-preview ${hasVideo ? "has-video" : ""} ${showAvatar ? "has-placeholder" : ""}`}>
         {hasVideo ? (
           <video
-            key={`admin-video-${adminTile.socketId}-${adminTile.stream?.id || "no-stream"}`}
+            key={`admin-video-${adminTile.socketId}-${displayStream?.id || adminTile.stream?.id || "no-stream"}`}
             autoPlay
             playsInline
             muted={!!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId]}
             style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "0" }}
             ref={(el) => {
-              if (el && adminTile.stream) {
+              if (el && displayStream) {
                 if (remoteVideoRefsMap) {
                   remoteVideoRefsMap.current?.set(adminTile.socketId, el);
                 }
-                if (el.srcObject !== adminTile.stream) {
-                  el.srcObject = adminTile.stream;
+                if (el.srcObject !== displayStream) {
+                  el.srcObject = displayStream;
                 }
                 el.muted = !!meetingSpeakerMuted || !!localParticipantAudioMuted?.[adminTile.socketId];
                 el.volume = meetingSpeakerMuted ? 0 : (localParticipantVolume?.[adminTile.socketId] ?? 1);

@@ -39,7 +39,17 @@ export const isScreenShareVideoTrack = (videoTrack) => {
     const s = videoTrack.getSettings?.();
     if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") return true;
     const label = (videoTrack.label || "").toLowerCase();
-    if (label.includes("screen") || label.includes("display")) return true;
+    if (
+      label.includes("screen") ||
+      label.includes("display") ||
+      label.includes("monitor") ||
+      label.includes("entire") ||
+      label.includes("desktop") ||
+      label.includes("presentation") ||
+      label.includes("region")
+    ) {
+      return true;
+    }
   } catch { }
   return false;
 };
@@ -53,7 +63,8 @@ export const isScreenShareStream = (stream) => {
 export const getScreenShareTrack = (stream) => {
   if (!stream) return null;
   const t = stream.getVideoTracks().find(isScreenShareVideoTrack);
-  return t && t.readyState === "live" ? t : null;
+  if (!t || t.readyState === "ended") return null;
+  return t;
 };
 
 /** Toggle fullscreen for a DOM element (with vendor prefixes). */

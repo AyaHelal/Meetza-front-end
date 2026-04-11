@@ -594,6 +594,11 @@ const AdminMeetingPage = () => {
         if (!meetingId) return;
         try {
             await api.post(`/meeting/${meetingId}/join`);
+            try {
+                sessionStorage.setItem("activeMeetingId", String(meetingId));
+            } catch {
+                /* ignore */
+            }
             navigate("/meetings", { state: { meetingId } });
         } catch (err) {
             smartToast.error(err.response?.data?.message || "Failed to join meeting");
