@@ -165,6 +165,14 @@ export function useMainChatMeeting(api, groupId, groupInfo, meetingIdProp, socke
 
       await joinMeeting(api, dynamicMeetingId);
       smartToast.success("Successfully joined the meeting!");
+      try {
+        sessionStorage.setItem("activeMeetingId", String(dynamicMeetingId));
+        if (groupId != null) {
+          sessionStorage.setItem("activeMeetingGroupId", String(groupId));
+        }
+      } catch {
+        /* ignore */
+      }
       navigate("/meetings", { state: { meetingId: dynamicMeetingId, groupId } });
     } catch (error) {
       smartToast.error(

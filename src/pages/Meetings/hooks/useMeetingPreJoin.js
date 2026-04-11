@@ -4,6 +4,7 @@ import * as webrtcService from "../../../services/webrtcService";
 /**
  * Pre-join modal state and handlers. Requests camera/mic when modal opens; cleanup on close.
  * @param {() => void} onEnterMeeting - (stream, videoMuted, audioMuted) => void; called when user clicks Enter
+ * @param {() => void} [onDismiss] - called when user closes the modal without entering (Cancel / overlay)
  * @returns {{
  *   showPreJoinModal: boolean,
  *   setShowPreJoinModal: (v: boolean) => void,
@@ -20,7 +21,7 @@ import * as webrtcService from "../../../services/webrtcService";
  *   clearPreJoinError: () => void,
  * }}
  */
-export function useMeetingPreJoin(onEnterMeeting) {
+export function useMeetingPreJoin(onEnterMeeting, onDismiss) {
   const [showPreJoinModal, setShowPreJoinModal] = useState(false);
   const [preJoinStream, setPreJoinStream] = useState(null);
   const [preJoinVideoMuted, setPreJoinVideoMuted] = useState(false);
@@ -28,9 +29,12 @@ export function useMeetingPreJoin(onEnterMeeting) {
   const [preJoinLoading, setPreJoinLoading] = useState(false);
   const [preJoinError, setPreJoinError] = useState(null);
   const preJoinVideoRef = useRef(null);
+  /** Bumps on each pre-join open cycle so Strict Mode / rapid re-runs do not apply a stale getUserMedia result twice. */
+  const mediaRequestCycleRef = useRef(0);
 
   useEffect(() => {
     if (!showPreJoinModal || preJoinStream || preJoinError) return;
+    const cycle = ++mediaRequestCycleRef.current;
     let cancelled = false;
     setPreJoinLoading(true);
     webrtcService
@@ -39,7 +43,7 @@ export function useMeetingPreJoin(onEnterMeeting) {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       })
       .then((stream) => {
-        if (cancelled) {
+        if (cancelled || cycle !== mediaRequestCycleRef.current) {
           webrtcService.stopAllTracks(stream);
           return;
         }
@@ -57,7 +61,7 @@ export function useMeetingPreJoin(onEnterMeeting) {
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
           })
           .then((audioStream) => {
-            if (cancelled) {
+            if (cancelled || cycle !== mediaRequestCycleRef.current) {
               webrtcService.stopAllTracks(audioStream);
               return;
             }
@@ -67,7 +71,7 @@ export function useMeetingPreJoin(onEnterMeeting) {
             setPreJoinLoading(false);
           })
           .catch((audioErr) => {
-            if (!cancelled) {
+            if (!cancelled && cycle === mediaRequestCycleRef.current) {
               setPreJoinError(err.message || audioErr.message || "Could not access camera/microphone.");
               setPreJoinLoading(false);
             }
@@ -96,7 +100,8 @@ export function useMeetingPreJoin(onEnterMeeting) {
     setShowPreJoinModal(false);
     setPreJoinError(null);
     setPreJoinLoading(false);
-  }, [preJoinStream]);
+    if (typeof onDismiss === "function") onDismiss();
+  }, [preJoinStream, onDismiss]);
 
   const handlePreJoinToggleVideo = useCallback(() => {
     setPreJoinVideoMuted((v) => {

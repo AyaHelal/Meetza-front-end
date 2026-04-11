@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import api from "../../../API/axiosInstance";
 import * as meetingSocketService from "../services/meetingSocketService";
 import { toParticipant, isScreenShareVideoTrack } from "../components/meetingRoomUtils";
 
@@ -12,7 +13,6 @@ export function useMeetingJoin(opts) {
     isConnected,
     meetingIdRef,
     startedRef,
-    hasJoined,
     preJoin,
     localStreamRef,
     setLocalStream,
@@ -59,21 +59,35 @@ export function useMeetingJoin(opts) {
       if (startedRef.current) return;
 
       const { preObtainedStream, initialVideoMuted, initialAudioMuted } = options;
-      const isReturning = (() => {
+      const wasFullPageReload = (() => {
         try {
-          return sessionStorage.getItem("activeMeetingId") === String(mid);
+          const nav = performance?.getEntriesByType?.("navigation")?.[0];
+          if (nav?.type === "reload") return true;
+          return performance?.navigation?.type === 1;
         } catch {
           return false;
         }
       })();
-      const storedHasJoined = (() => {
-        try {
-          return sessionStorage.getItem(`meeting_hasJoined_${mid}`) === "true";
-        } catch {
-          return false;
+      const isReturning =
+        !wasFullPageReload &&
+        (() => {
+          try {
+            return sessionStorage.getItem("activeMeetingId") === String(mid);
+          } catch {
+            return false;
+          }
+        })();
+
+      try {
+        await api.post(`/meeting/${mid}/join`);
+      } catch (e) {
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.message || e?.message || "Could not join the meeting.";
+        if (status >= 400 && status < 500) {
+          startedRef.current = false;
+          return { error: msg };
         }
-      })();
-      const isFirstJoin = !isReturning && !hasJoined && !storedHasJoined;
+      }
 
       startedRef.current = true;
 
@@ -245,7 +259,6 @@ export function useMeetingJoin(opts) {
     [
       socket,
       isConnected,
-      hasJoined,
       ensureLocalMedia,
       createPeerConnection,
       createAndSendOffer,

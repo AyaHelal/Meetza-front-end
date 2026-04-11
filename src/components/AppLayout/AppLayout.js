@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useContext, useRef } from "react";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   X,
@@ -41,23 +41,29 @@ const AppLayout = () => {
   const [activeGroupId, setActiveGroupId] = useState(null);
   const hasFetchedInitialCountRef = useRef(false);
 
+  const syncActiveMeetingFromStorage = React.useCallback(() => {
+    try {
+      const mid = sessionStorage.getItem("activeMeetingId");
+      const gid = sessionStorage.getItem("activeMeetingGroupId");
+      setActiveMeetingId(mid || null);
+      setActiveGroupId(gid || null);
+    } catch {
+      setActiveMeetingId(null);
+      setActiveGroupId(null);
+    }
+  }, []);
+
+  // Same tick as navigation after calendar/chat set sessionStorage — avoids one render without MeetingProvider (duplicate pre-join).
+  useLayoutEffect(() => {
+    syncActiveMeetingFromStorage();
+  }, [location.pathname, location.key, syncActiveMeetingFromStorage]);
+
   // Sync active meeting from sessionStorage (for Return to meeting)
   useEffect(() => {
-    const sync = () => {
-      try {
-        const mid = sessionStorage.getItem("activeMeetingId");
-        const gid = sessionStorage.getItem("activeMeetingGroupId");
-        setActiveMeetingId(mid || null);
-        setActiveGroupId(gid || null);
-      } catch {
-        setActiveMeetingId(null);
-        setActiveGroupId(null);
-      }
-    };
-    sync();
-    const interval = setInterval(sync, 500);
+    syncActiveMeetingFromStorage();
+    const interval = setInterval(syncActiveMeetingFromStorage, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [syncActiveMeetingFromStorage]);
 
   // Fetch initial count when socket connects (only once)
   useEffect(() => {
@@ -336,26 +342,25 @@ const AppLayout = () => {
 
         {activeMeetingId ? (
           <MeetingProvider>
-            {/* Meeting UI: visible on /meetings, hidden when away so audio keeps playing */}
-            <div
-              className="app-layout-content"
-              style={location.pathname !== "/meetings" ? { display: "none" } : undefined}
-              aria-hidden={location.pathname !== "/meetings"}
-            >
-              <div className="meetings-container">
-                <div className="meetings-center">
-                  <MeetingRoom />
-                  <MeetingChat />
-                </div>
-                <MeetingRightSidebar />
-              </div>
-            </div>
-            {/* When away: show current page; meeting keeps running hidden above */}
+            {/* One MeetingRoom: route /meetings renders it via <Outlet /> (Meetings.js). When away, keep a hidden copy so media/socket stay alive. */}
             {location.pathname !== "/meetings" && (
-              <div className="app-layout-content">
-                <Outlet />
+              <div
+                className="app-layout-content"
+                style={{ display: "none" }}
+                aria-hidden
+              >
+                <div className="meetings-container">
+                  <div className="meetings-center">
+                    <MeetingRoom />
+                    <MeetingChat />
+                  </div>
+                  <MeetingRightSidebar />
+                </div>
               </div>
             )}
+            <div className="app-layout-content">
+              <Outlet />
+            </div>
             {!isMobile && (
               <div className="fixed-user-status">
                 <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />

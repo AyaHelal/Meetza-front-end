@@ -142,6 +142,11 @@ export default function Calendar() {
     if (!id) return;
     try {
       await api.post(`/meeting/${id}/join`);
+      try {
+        sessionStorage.setItem("activeMeetingId", String(id));
+      } catch {
+        /* ignore */
+      }
       navigate("/meetings", { state: { meetingId: id } });
     } catch (err) {
       smartToast.error(err?.response?.data?.message || "Failed to join meeting");
