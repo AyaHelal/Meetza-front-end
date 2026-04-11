@@ -10,19 +10,25 @@ export default function CreateGroupModal({
   onClose,
   formData,
   handleContentChange,
-  positions,
   onSubmit,
-  submitting,
+  isSuperAdmin = false,
+  administrators = [],
+  administratorsLoading = false,
 }) {
   if (!show) return null;
 
-  const positionOptions = positions.map((p) => ({
-    value: p.id,
-    label: p.name || p.position_name || p.title || `Position ${p.id}`,
+  const adminOptions = administrators.map((a) => ({
+    value: a.id,
+    label: a.email ? `${a.name} (${a.email})` : a.name || `Administrator ${a.id}`,
   }));
-  const selectedPosition = positions.find((p) => String(p.id) === String(formData.position_id));
-  const positionValue = selectedPosition
-    ? { value: selectedPosition.id, label: selectedPosition.name || selectedPosition.position_name || selectedPosition.title || `Position ${selectedPosition.id}` }
+  const selectedAdmin = administrators.find((a) => String(a.id) === String(formData.assigned_admin_id));
+  const adminSelectValue = selectedAdmin
+    ? {
+      value: selectedAdmin.id,
+      label: selectedAdmin.email
+        ? `${selectedAdmin.name} (${selectedAdmin.email})`
+        : selectedAdmin.name || `Administrator ${selectedAdmin.id}`,
+    }
     : null;
   const semesterValue = formData.semester ? { value: formData.semester, label: formData.semester } : null;
 
@@ -51,20 +57,37 @@ export default function CreateGroupModal({
                 />
               </div>
 
-              <div className="mb-0 lg-mb-4">
-                <label className="form-label fw-semibold" style={labelStyle}>
-                  Position <span style={{ color: '#FF0000' }}>*</span>
-                </label>
-                <Select
-                  className="rounded-3 size mb-3"
-                  options={positionOptions}
-                  value={positionValue}
-                  onChange={(opt) => handleContentChange({ target: { name: 'position_id', value: opt?.value ?? '' } })}
-                  placeholder="Select a position"
-                  menuPortalTarget={document.body}
-                  styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                />
-              </div>
+              {isSuperAdmin && (
+                <div className="mb-0 lg-mb-4">
+                  <label className="form-label fw-semibold" style={labelStyle}>
+                    Group administrator <span style={{ color: '#FF0000' }}>*</span>
+                  </label>
+                  <Select
+                    className="rounded-3 size mb-3"
+                    options={adminOptions}
+                    value={adminSelectValue}
+                    onChange={(opt) => {
+                      const id = opt?.value ?? '';
+                      const sel = administrators.find((a) => String(a.id) === String(id));
+                      handleContentChange({ target: { name: 'assigned_admin_id', value: id } });
+                      if (sel?.position_id != null && String(sel.position_id).trim() !== '') {
+                        handleContentChange({
+                          target: { name: 'position_id', value: sel.position_id },
+                        });
+                      } else {
+                        handleContentChange({ target: { name: 'position_id', value: '' } });
+                      }
+                    }}
+                    placeholder={
+                      administratorsLoading ? 'Loading administrators…' : 'Select an administrator'
+                    }
+                    isLoading={administratorsLoading}
+                    isDisabled={administratorsLoading}
+                    menuPortalTarget={document.body}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                  />
+                </div>
+              )}
 
               <div className="mb-4">
                 <label className="form-label fw-semibold" style={labelStyle}>
@@ -160,7 +183,7 @@ export default function CreateGroupModal({
                     type="button"
                     className="btn rounded-3 px-5 py-2"
                     onClick={onSubmit}
-                    disabled={submitting}
+                    disabled={Boolean(isSuperAdmin && administratorsLoading)}
                     style={{
                       background: '#0076EA',
                       color: 'white',

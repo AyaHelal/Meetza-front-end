@@ -20,6 +20,7 @@ export const SEMESTER_OPTIONS = [
 export const INITIAL_FORM_DATA = {
   group_name: '',
   position_id: '',
+  assigned_admin_id: '',
   year: '',
   semester: '',
   group_content_name: '',

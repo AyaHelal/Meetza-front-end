@@ -36,17 +36,46 @@ export function getUserByEmail(email) {
   return api.get(`/user/email/${encodeURIComponent(email)}`);
 }
 
-export function createGroup(formData, adminId) {
+/** Load a user by id (for position_id when super admin assigns a group administrator). */
+export async function getUserById(userId) {
+  if (userId == null) throw new Error('user id is required');
+  const res = await api.get(`/user/${encodeURIComponent(String(userId))}`);
+  return res.data?.data ?? res.data?.user ?? res.data;
+}
+
+/**
+ * Create group (multipart).
+ * @param {object} formData — name, year, semester, content_name, optional position_id, etc.
+ * @param {string|number} adminId — default: group administrator user id
+ * @param {object} [options]
+ * @param {string|number} [options.assigneeAdministratorId] — when set, sends admin_id = adminId (caller should pass super admin) and administrator_id = assignee (group owner). Use when the API rejects owner-only admin_id for super-admin JWTs.
+ */
+export function createGroup(formData, adminId, options = {}) {
+  const assigneeId = options.assigneeAdministratorId;
   const fd = new FormData();
-  fd.append('group_name', formData.name);
-  fd.append('year', formData.year);
-  fd.append('semester', formData.semester);
-  fd.append('position_id', formData.position_id);
-  fd.append('group_content_name', formData.content_name);
-  if (formData.content_description) fd.append('group_content_description', formData.content_description);
-  if (formData.description) fd.append('description', formData.description);
-  if (formData.photo) fd.append('group_photo', formData.photo);
-  fd.append('admin_id', adminId);
+  fd.append('group_name', String(formData.name ?? ''));
+  fd.append('year', String(formData.year ?? ''));
+  fd.append('semester', String(formData.semester ?? ''));
+  const pos = formData.position_id;
+  if (pos != null && String(pos).trim() !== '') {
+    fd.append('position_id', String(pos));
+  }
+  fd.append('group_content_name', String(formData.content_name ?? ''));
+  if (formData.content_description) {
+    fd.append('group_content_description', String(formData.content_description));
+  }
+  if (formData.description) {
+    fd.append('description', String(formData.description));
+  }
+  if (formData.photo) {
+    fd.append('group_photo', formData.photo);
+  }
+  if (assigneeId != null && String(assigneeId).trim() !== '') {
+    fd.append('admin_id', String(adminId));
+    fd.append('administrator_id', String(assigneeId));
+  } else {
+    fd.append('admin_id', String(adminId));
+  }
   return api.post('/group', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
 }
 
@@ -90,7 +119,7 @@ export async function getGroupMembership(groupId) {
  * API may return group admins as `admins: [{ user_id, role, name, email, ... }]`.
  * Pick OWNER first, then ADMIN, else first entry — for display + legacy `administrator_id` filter.
  */
-function pickPrimaryAdminFromAdmins(admins) {
+export function pickPrimaryAdminFromAdmins(admins) {
   if (!Array.isArray(admins) || admins.length === 0) return null;
   const upper = (r) => String(r || '').toUpperCase();
   const owner = admins.find((a) => upper(a.role) === 'OWNER');
@@ -98,6 +127,71 @@ function pickPrimaryAdminFromAdmins(admins) {
   const adm = admins.find((a) => upper(a.role) === 'ADMIN');
   if (adm) return adm;
   return admins[0];
+}
+
+/**
+ * Build a de-duplicated list of administrators from group records (fallback when no list endpoint).
+ * @param {Array<object>} groupsList
+ * @returns {{ id: string|number, name: string, email: string, position_id?: string|number }[]}
+ */
+export function collectUniqueAdminsFromGroups(groupsList) {
+  if (!Array.isArray(groupsList)) return [];
+  const map = new Map();
+  for (const g of groupsList) {
+    const primary = pickPrimaryAdminFromAdmins(g.admins);
+    const id =
+      g.administrator_id ??
+      g.admin_id ??
+      g.adminId ??
+      primary?.user_id ??
+      primary?.userId ??
+      g.admin?.id;
+    if (id == null) continue;
+    const key = String(id);
+    if (map.has(key)) continue;
+    const name =
+      g.admin_name ??
+      g.admin?.name ??
+      primary?.name ??
+      primary?.email ??
+      `Administrator ${key}`;
+    const email = primary?.email ?? g.admin?.email ?? '';
+    const positionId = g.position_id ?? g.positionId ?? primary?.position_id ?? undefined;
+    map.set(key, {
+      id,
+      name: String(name).trim() || `Administrator ${key}`,
+      email: String(email || '').trim(),
+      ...(positionId != null && positionId !== '' ? { position_id: positionId } : {}),
+    });
+  }
+  return [...map.values()];
+}
+
+/**
+ * Super-admin: list system administrators for assigning a new group.
+ * Tries GET /user/administrators; falls back to admins inferred from groups if the route is missing.
+ */
+export async function getAdministrators(groupsFallback = []) {
+  try {
+    const res = await api.get('/user/administrators');
+    const raw = res?.data?.data ?? res?.data;
+    const list = Array.isArray(raw) ? raw : [];
+    const mapped = list
+      .map((u) => ({
+        id: u.id ?? u.user_id ?? u.userId,
+        name: (u.name ?? u.full_name ?? u.username ?? u.email ?? '').toString().trim(),
+        email: (u.email ?? '').toString().trim(),
+        position_id: u.position_id ?? u.positionId ?? u.position?.id,
+      }))
+      .filter((u) => u.id != null);
+    if (mapped.length > 0) return mapped;
+  } catch (e) {
+    if (e.response?.status !== 404 && e.response?.status !== 403) {
+      console.warn('getAdministrators API failed, using groups fallback if available', e);
+    }
+  }
+  const fromGroups = collectUniqueAdminsFromGroups(groupsFallback);
+  return fromGroups.length > 0 ? fromGroups : [];
 }
 
 /** True if this user is a legacy group admin or listed in `admins`. */
