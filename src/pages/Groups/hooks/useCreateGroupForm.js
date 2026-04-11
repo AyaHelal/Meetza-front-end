@@ -20,8 +20,11 @@ export function useCreateGroupForm(onCreateGroup, options = {}) {
     if (!formData.group_name || !formData.year || !formData.semester || !formData.group_content_name) {
       return { error: 'Please fill all required fields: group name, year, semester and content name' };
     }
-    if (isSuperAdmin && (formData.assigned_admin_id == null || formData.assigned_admin_id === '')) {
-      return { error: 'Please select an administrator for this group' };
+    if (
+      isSuperAdmin &&
+      (!Array.isArray(formData.admin_ids) || formData.admin_ids.length === 0)
+    ) {
+      return { error: 'Please select at least one group admin' };
     }
     try {
       const payload = {
@@ -36,8 +39,8 @@ export function useCreateGroupForm(onCreateGroup, options = {}) {
       if (formData.position_id != null && formData.position_id !== '') {
         payload.position_id = formData.position_id;
       }
-      if (isSuperAdmin && formData.assigned_admin_id !== '' && formData.assigned_admin_id != null) {
-        payload.adminUserId = formData.assigned_admin_id;
+      if (isSuperAdmin && Array.isArray(formData.admin_ids) && formData.admin_ids.length > 0) {
+        payload.adminIds = formData.admin_ids.map((id) => String(id).trim()).filter(Boolean);
       }
       await onCreateGroup(payload);
       resetForm();

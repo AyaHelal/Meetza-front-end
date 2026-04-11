@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { smartToast } from '../../API/toastManager';
 import { useAuth } from '../../context/AuthContext';
-import { createGroup, joinGroup, getAdministrators, getUserById } from './services/groupsService';
+import { createGroup, joinGroup } from './services/groupsService';
 import GroupsFilterPanel from './components/GroupsFilterPanel';
 import GroupsGrid from './components/GroupsGrid';
 import CreateGroupModal from './components/CreateGroupModal';
@@ -27,9 +27,6 @@ const Groups = () => {
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [createModalAdmins, setCreateModalAdmins] = useState([]);
   const [createModalAdminsLoading, setCreateModalAdminsLoading] = useState(false);
-  /** Edit group no longer loads a separate admin list; kept so any stale references / props stay defined. */
-  const [editModalAdmins] = useState([]);
-  const [editModalAdminsLoading] = useState(false);
 
   const filters = useGroupsFilters();
   const {
@@ -61,34 +58,14 @@ const Groups = () => {
       smartToast.error('You must be logged in to create a group');
       return;
     }
-    const { adminUserId, ...rest } = groupData;
-    const assignId =
-      adminUserId != null && String(adminUserId).trim() !== '' ? adminUserId : null;
-
-    let payload = { ...rest };
-    if (assignId && (!payload.position_id || String(payload.position_id).trim() === '')) {
-      try {
-        const profile = await getUserById(assignId);
-        const pid = profile?.position_id ?? profile?.positionId ?? profile?.position?.id;
-        if (pid != null && String(pid).trim() !== '') {
-          payload = { ...payload, position_id: pid };
-        }
-      } catch (_) {
-        /* profile optional */
-      }
-    }
+    const { adminIds, ...rest } = groupData;
 
     try {
-      if (assignId) {
-        try {
-          await createGroup(payload, user.id, { assigneeAdministratorId: assignId });
-        } catch (firstErr) {
-          if (firstErr.response?.status !== 400) throw firstErr;
-          await createGroup(payload, assignId);
-        }
-      } else {
-        await createGroup(payload, user.id);
-      }
+      await createGroup(rest, {
+        selfUserId: user.id,
+        isSuperAdmin,
+        adminIds: Array.isArray(adminIds) ? adminIds : [],
+      });
       smartToast.success('Group created successfully!');
       setShowCreateModal(false);
       await fetchGroupsAndMembership();
@@ -107,20 +84,42 @@ const Groups = () => {
     if (!showCreateModal || !isSuperAdmin) return undefined;
     let cancelled = false;
     setCreateModalAdminsLoading(true);
-    getAdministrators(groups)
-      .then((list) => {
-        if (!cancelled) setCreateModalAdmins(Array.isArray(list) ? list : []);
-      })
-      .catch(() => {
+    (async () => {
+      try {
+        const res = await api.get('/user');
+        if (cancelled) return;
+        const payload = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        const list = payload
+          .filter((u) => {
+            const r = String(u.role || u.Role || '').trim();
+            const lower = r.toLowerCase();
+            return (
+              r === 'Administrator' ||
+              lower === 'administrator' ||
+              r === 'Admin' ||
+              lower === 'admin' ||
+              lower.includes('super_admin') ||
+              lower.includes('super-admin')
+            );
+          })
+          .map((u) => ({
+            id: u.id ?? u._id,
+            name: String(u.name ?? u.username ?? '').trim(),
+            email: String(u.email ?? '').trim(),
+            position_id: u.position_id ?? u.positionId ?? '',
+          }))
+          .filter((row) => row.id != null && String(row.id).trim() !== '');
+        if (!cancelled) setCreateModalAdmins(list);
+      } catch {
         if (!cancelled) setCreateModalAdmins([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setCreateModalAdminsLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [showCreateModal, isSuperAdmin, groups]);
+  }, [showCreateModal, isSuperAdmin]);
 
   const handleCreateGroupSubmit = async () => {
     const result = await handleSubmit();
@@ -302,8 +301,8 @@ const Groups = () => {
         handleContentChange={handleContentChange}
         onSubmit={handleCreateGroupSubmit}
         isSuperAdmin={isSuperAdmin}
-        administrators={createModalAdmins}
-        administratorsLoading={createModalAdminsLoading}
+        adminUsers={createModalAdmins}
+        adminUsersLoading={createModalAdminsLoading}
       />
       <EditGroupModal
         show={showEditModal}
@@ -311,8 +310,6 @@ const Groups = () => {
         group={groupToEdit}
         onSubmit={handleUpdateGroupSubmit}
         submitting={actionSubmitting}
-        administrators={editModalAdmins}
-        administratorsLoading={editModalAdminsLoading}
       />
       <ConfirmDeleteModal
         show={showDeleteModal}
