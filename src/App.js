@@ -33,6 +33,7 @@ import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ensureUiSoundsUnlocked } from "./utils/uiSounds";
 
 /** Left-nav / AppLayout routes: suppress Lottie only when navigating between these. */
 function isMainAppShellPath(pathname) {
@@ -58,6 +59,10 @@ const AppRoutes = () => {
   const socialLoginProcessed = useRef(false);
   const prevPathRef = useRef(location.pathname);
   const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    ensureUiSoundsUnlocked();
+  }, []);
 
   // Lottie on route change for login, logout, landing, etc. — not when swapping main shell tabs only.
   useEffect(() => {

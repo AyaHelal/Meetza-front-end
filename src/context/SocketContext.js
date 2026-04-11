@@ -10,6 +10,7 @@ import {
 import { io } from "socket.io-client";
 import { AuthContext } from "./AuthContext";
 import api from "../API/axiosInstance";
+import { ensureUiSoundsUnlocked, playNotificationSound } from "../utils/uiSounds";
 
 const SocketContext = createContext();
 
@@ -34,8 +35,8 @@ export const SocketProvider = ({ children }) => {
 
   // Use environment variable or default to ngrok URL
   // Socket.io connects at root, not /api, so remove /api suffix if present
-  const apiUrl = process.env.REACT_APP_SOCKET_URL || " http://localhost:4000";
-  const SERVER_URL = apiUrl.replace(/\/api$/, '');
+  const apiUrl = (process.env.REACT_APP_SOCKET_URL || "http://localhost:4000").trim();
+  const SERVER_URL = apiUrl.replace(/\/api$/, "");
 
   useEffect(() => {
     // Clear any pending connection timeout
@@ -102,6 +103,7 @@ export const SocketProvider = ({ children }) => {
       // Connection successful
       newSocket.on("connect", () => {
         setIsConnected(true);
+        ensureUiSoundsUnlocked();
 
         // Join notification room (backend does this automatically, but we can also explicitly join)
         newSocket.emit("join_notifications", (ack) => {
@@ -135,41 +137,6 @@ export const SocketProvider = ({ children }) => {
         hasLoggedSocketErrorRef.current = false;
       });
 
-      // Listen for new notifications (emitted to the user's notification room)
-      newSocket.on("newNotification", (notification) => {
-        setUnreadNotificationCount((prevCount) => {
-          const newCount = prevCount + 1;
-          return newCount;
-        });
-      });
-
-      // Also listen for 'new_notification' event name (backup)
-      newSocket.on("new_notification", (notification) => {
-        setUnreadNotificationCount((prevCount) => {
-          const newCount = prevCount + 1;
-          return newCount;
-        });
-      });
-
-      // Listen for notification_count_update event (backend sends the actual count)
-      newSocket.on("notification_count_update", (data) => {
-        // data can be an array with count, or an object with count property
-        const count = Array.isArray(data) && data[0]?.unreadCount !== undefined
-          ? data[0].unreadCount
-          : (data?.unreadCount !== undefined ? data.unreadCount : (typeof data === 'number' ? data : null));
-
-
-        if (count !== null && count !== undefined) {
-          setUnreadNotificationCount(count);
-        } else {
-          // If count is not provided, increment (fallback behavior)
-          setUnreadNotificationCount((prevCount) => {
-            const newCount = prevCount + 1;
-            return newCount;
-          });
-        }
-      });
-
       // Connection error
       newSocket.on("connect_error", (error) => {
         setIsConnected(false);
@@ -193,10 +160,6 @@ export const SocketProvider = ({ children }) => {
       // Disconnected
       newSocket.on("disconnect", (reason) => {
         setIsConnected(false);
-        // Remove all notification listeners on disconnect
-        newSocket.off("newNotification");
-        newSocket.off("new_notification");
-        newSocket.off("notification_count_update");
       });
 
       // Reconnection attempt
@@ -230,7 +193,51 @@ export const SocketProvider = ({ children }) => {
     };
   }, [token]);
 
+  // Bind notification listeners to the current socket instance (survives reconnect / state updates reliably).
+  useEffect(() => {
+    if (!socket) return;
 
+    const onNewNotification = () => {
+      playNotificationSound();
+    };
+
+    const onNotificationCountUpdate = (data) => {
+      const count =
+        Array.isArray(data) && data[0]?.unreadCount !== undefined
+          ? data[0].unreadCount
+          : data?.unreadCount !== undefined
+            ? data.unreadCount
+            : typeof data === "number"
+              ? data
+              : null;
+
+      if (count !== null && count !== undefined) {
+        const next = Number(count);
+        setUnreadNotificationCount((prevCount) => {
+          const prev = Number(prevCount) || 0;
+          if (!Number.isNaN(next) && next > prev) {
+            playNotificationSound();
+          }
+          return Number.isNaN(next) ? prev : next;
+        });
+      } else {
+        setUnreadNotificationCount((prevCount) => {
+          playNotificationSound();
+          return prevCount + 1;
+        });
+      }
+    };
+
+    socket.on("new_notification", onNewNotification);
+    socket.on("newNotification", onNewNotification);
+    socket.on("notification_count_update", onNotificationCountUpdate);
+
+    return () => {
+      socket.off("new_notification", onNewNotification);
+      socket.off("newNotification", onNewNotification);
+      socket.off("notification_count_update", onNotificationCountUpdate);
+    };
+  }, [socket]);
 
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
