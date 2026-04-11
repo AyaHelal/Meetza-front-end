@@ -12,6 +12,7 @@ const MessageItem = ({
   currentUserEmail,
   onMediaClick,
   userRole,
+  onReply,
 }) => {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -47,7 +48,9 @@ const MessageItem = ({
     (typeof userRole === 'string' && userRole.toLowerCase().includes('super_admin'));
 
   const handleRightClick = (e) => {
-    if (!isOwnMessage && !isGroupAdminRole) return;
+    const canModerate = isOwnMessage || isGroupAdminRole;
+    const canReply = Boolean(onReply) && !message.is_deleted && !String(message.id || "").startsWith("temp-");
+    if (!canModerate && !canReply) return;
     e.preventDefault();
     const isMobile = window.innerWidth <= 768;
     if (isMobile && messageRef.current) {
@@ -59,6 +62,11 @@ const MessageItem = ({
       setMenuPosition({ x: e.clientX, y: e.clientY });
     }
     setShowContextMenu(true);
+  };
+
+  const handleReply = () => {
+    onReply?.(message);
+    setShowContextMenu(false);
   };
 
   const handleDelete = () => {
@@ -106,7 +114,7 @@ const MessageItem = ({
     <div
       className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`}
       ref={messageRef}
-      onContextMenu={isOwnMessage || userRole === 'Administrator' ? handleRightClick : undefined}
+      onContextMenu={handleRightClick}
     >
       {!isOwnMessage && (
         <div className="message-avatar">
@@ -121,12 +129,31 @@ const MessageItem = ({
         {!isOwnMessage && (
           <div className="message-header">
             <span className="message-sender">{message.sender}</span>
+            {onReply && !message.is_deleted && !String(message.id || "").startsWith("temp-") && (
+              <button type="button" className="message-reply-btn" onClick={handleReply}>
+                Reply
+              </button>
+            )}
             <span className="message-time">{message.time}</span>
           </div>
         )}
         {isOwnMessage && (
           <div className="message-header message-header-own">
+            {onReply && !message.is_deleted && !String(message.id || "").startsWith("temp-") && (
+              <button type="button" className="message-reply-btn message-reply-btn-own" onClick={handleReply}>
+                Reply
+              </button>
+            )}
             <span className="message-time">{message.time}</span>
+          </div>
+        )}
+        {message.parent_message && (message.parent_message.text || message.parent_message.sender) && (
+          <div className={`message-reply-quote ${isOwnMessage ? "message-reply-quote-own" : ""}`}>
+            <span className="message-reply-quote-bar" aria-hidden />
+            <div className="message-reply-quote-body">
+              <span className="message-reply-quote-sender">{message.parent_message.sender || "User"}</span>
+              <span className="message-reply-quote-text">{message.parent_message.text || "…"}</span>
+            </div>
           </div>
         )}
         {displayText && (
@@ -148,10 +175,15 @@ const MessageItem = ({
         )}
         <MessageItemMedia finalMedia={finalMedia} isOwnMessage={isOwnMessage} onMediaClick={onMediaClick} />
       </div>
-      {showContextMenu && (isOwnMessage || isGroupAdminRole) && (
+      {showContextMenu && (
         <div className="context-menu" ref={menuRef} style={{ left: menuPosition.x, top: menuPosition.y }}>
-          {isOwnMessage && <button onClick={handleEdit}>Edit</button>}
-          <button onClick={handleDelete}>Delete</button>
+          {onReply && !message.is_deleted && !String(message.id || "").startsWith("temp-") && (
+            <button type="button" onClick={handleReply}>Reply</button>
+          )}
+          {isOwnMessage && <button type="button" onClick={handleEdit}>Edit</button>}
+          {(isOwnMessage || isGroupAdminRole) && (
+            <button type="button" onClick={handleDelete}>Delete</button>
+          )}
         </div>
       )}
     </div>

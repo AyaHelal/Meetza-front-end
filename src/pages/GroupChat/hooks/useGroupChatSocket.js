@@ -1,5 +1,27 @@
-import { useEffect } from "react";
+import { useEffect, useReducer } from "react";
 import { formatMessage, getMediaLabel } from "../utils/groupChatFormatters";
+
+function isMessageFromUser(messageData, user) {
+  if (!user || !messageData) return false;
+  const email = (messageData.sender_email || "").toLowerCase();
+  const userEmail = (user.email || "").toLowerCase();
+  if (email && userEmail && email === userEmail) return true;
+  const sid = messageData.sender_id;
+  const uid = user.id;
+  if (sid == null || uid == null) return false;
+  return String(sid) === String(uid);
+}
+
+function previewFromSocketMessage(messageData) {
+  const text = messageData.message || messageData.text;
+  if (text) return text;
+  const m = messageData.media?.[0];
+  if (!m) return "No messages yet";
+  return getMediaLabel(
+    m.media_type || m.mediaType,
+    m.file_name || m.fileName
+  );
+}
 
 const GROUP_EVENT_NAMES = [
   "groupCreated",
@@ -30,6 +52,19 @@ export function useGroupChatSocket(
   selectedChat,
   setSelectedChat
 ) {
+  const [rejoinGeneration, bumpRejoin] = useReducer((n) => n + 1, 0);
+
+  // After reconnect, server drops socket from all rooms — clear join cache and bump deps so we joinGroup again.
+  useEffect(() => {
+    if (!socket || !joinedGroupsRef) return;
+    const onReconnect = () => {
+      joinedGroupsRef.current?.clear?.();
+      bumpRejoin();
+    };
+    socket.on("connect", onReconnect);
+    return () => socket.off("connect", onReconnect);
+  }, [socket, joinedGroupsRef]);
+
   // Join all groups when socket and groupChats are ready
   useEffect(() => {
     if (!socket || !isConnected || groupChats.length === 0 || !joinedGroupsRef) return;
@@ -55,108 +90,98 @@ export function useGroupChatSocket(
         }
       });
     };
-  }, [socket, isConnected, groupChats, joinGroup, leaveGroup, joinedGroupsRef]);
+  }, [socket, isConnected, groupChats, joinGroup, leaveGroup, joinedGroupsRef, rejoinGeneration]);
 
   // Message listener
   useEffect(() => {
     if (!socket || !isConnected) return;
 
     const handleNewMessage = (messageData) => {
-      const messageGroupId = String(
-        messageData.group_id || messageData.groupId || messageData.group || ""
-      );
-      if (
-        !messageData ||
-        !messageGroupId ||
-        messageGroupId === "undefined" ||
-        messageGroupId === "null"
-      )
-        return;
-
-      const isForCurrentGroup =
-        currentGroupIdRef?.current &&
-        String(currentGroupIdRef.current) === messageGroupId;
-
-      if (isForCurrentGroup) {
-        const formattedMessage = formatMessage(messageData);
-        setMessages((prev) => {
-          const existingIndex = prev.findIndex((msg) => {
-            if (msg.id === messageData.id) return true;
-            if (msg.id?.startsWith("temp-") && messageData.id) {
-              const currentUser = userRef?.current;
-              const isFromCurrentUser =
-                messageData.sender_email === currentUser?.email ||
-                messageData.sender_id === currentUser?.id;
-              if (isFromCurrentUser && msg.text === messageData.message) {
-                const timeDiff = Math.abs(
-                  new Date(msg.created_at).getTime() -
-                    new Date(messageData.created_at).getTime()
-                );
-                if (timeDiff < 10000) return true;
-              }
-            }
-            return false;
-          });
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = formattedMessage;
-            return updated;
-          }
-          return [...prev, formattedMessage];
-        });
-
-        const currentUser = userRef?.current;
-        const isFromCurrentUser =
-          messageData.sender_email === currentUser?.email ||
-          messageData.sender_id === currentUser?.id;
-        if (
-          !isFromCurrentUser &&
-          currentGroupIdRef?.current &&
-          markAllMessagesReadRef?.current
-        ) {
-          markAllMessagesReadRef.current(currentGroupIdRef.current, (ack) => {
-            if (ack?.ok) {
-              setGroupChats((prev) =>
-                prev.map((g) =>
-                  String(g.id) === String(currentGroupIdRef.current)
-                    ? { ...g, unread: 0 }
-                    : g
-                )
-              );
-            }
-          });
-        }
-      }
-
-      if (
-        messageGroupId &&
-        messageGroupId !== "undefined" &&
-        messageGroupId !== "null"
-      ) {
-        setGroupChats((prev) =>
-          prev.map((group) => {
-            if (String(group.id) !== messageGroupId) return group;
-            const isCurrentGroup =
-              String(group.id) === String(currentGroupIdRef?.current);
-            const currentUser = userRef?.current;
-            const isFromCurrentUser =
-              messageData.sender_email === currentUser?.email ||
-              messageData.sender_id === currentUser?.id;
-            let newUnread = group.unread || 0;
-            if (isCurrentGroup) newUnread = 0;
-            else if (!isFromCurrentUser) newUnread = (group.unread || 0) + 1;
-            const messageSubject = messageData.message || messageData.text;
-            const subject =
-              messageSubject ||
-              (messageData.media?.length > 0
-                ? getMediaLabel(
-                    messageData.media[0].media_type,
-                    messageData.media[0].file_name
-                  )
-                : "No messages yet");
-            return { ...group, subject, unread: newUnread };
-          })
+      try {
+        const messageGroupId = String(
+          messageData.group_id || messageData.groupId || messageData.group || ""
         );
+        if (
+          !messageData ||
+          !messageGroupId ||
+          messageGroupId === "undefined" ||
+          messageGroupId === "null"
+        )
+          return;
+
+        const isForCurrentGroup =
+          currentGroupIdRef?.current &&
+          String(currentGroupIdRef.current) === messageGroupId;
+
+        if (isForCurrentGroup) {
+          const formattedMessage = formatMessage(messageData);
+          setMessages((prev) => {
+            const existingIndex = prev.findIndex((msg) => {
+              if (msg.id === messageData.id) return true;
+              if (msg.id?.startsWith("temp-") && messageData.id) {
+                const currentUser = userRef?.current;
+                const isFromCurrentUser = isMessageFromUser(messageData, currentUser);
+                if (isFromCurrentUser && msg.text === messageData.message) {
+                  const timeDiff = Math.abs(
+                    new Date(msg.created_at).getTime() -
+                      new Date(messageData.created_at).getTime()
+                  );
+                  if (timeDiff < 10000) return true;
+                }
+              }
+              return false;
+            });
+            if (existingIndex !== -1) {
+              const updated = [...prev];
+              updated[existingIndex] = formattedMessage;
+              return updated;
+            }
+            return [...prev, formattedMessage];
+          });
+
+          const currentUser = userRef?.current;
+          const isFromCurrentUser = isMessageFromUser(messageData, currentUser);
+          if (
+            !isFromCurrentUser &&
+            currentGroupIdRef?.current &&
+            markAllMessagesReadRef?.current
+          ) {
+            markAllMessagesReadRef.current(currentGroupIdRef.current, (ack) => {
+              if (ack?.ok) {
+                setGroupChats((prev) =>
+                  prev.map((g) =>
+                    String(g.id) === String(currentGroupIdRef.current)
+                      ? { ...g, unread: 0 }
+                      : g
+                  )
+                );
+              }
+            });
+          }
+        }
+
+        if (
+          messageGroupId &&
+          messageGroupId !== "undefined" &&
+          messageGroupId !== "null"
+        ) {
+          setGroupChats((prev) =>
+            prev.map((group) => {
+              if (String(group.id) !== messageGroupId) return group;
+              const isCurrentGroup =
+                String(group.id) === String(currentGroupIdRef?.current);
+              const currentUser = userRef?.current;
+              const isFromCurrentUser = isMessageFromUser(messageData, currentUser);
+              let newUnread = group.unread || 0;
+              if (isCurrentGroup) newUnread = 0;
+              else if (!isFromCurrentUser) newUnread = (group.unread || 0) + 1;
+              const subject = previewFromSocketMessage(messageData);
+              return { ...group, subject, unread: newUnread };
+            })
+          );
+        }
+      } catch (e) {
+        console.error("handleNewMessage:", e);
       }
     };
 

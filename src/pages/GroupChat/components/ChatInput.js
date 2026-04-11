@@ -4,7 +4,13 @@ import { Plus, Microphone, PaperPlaneTilt, Smiley, Image, File as FileIcon, MapP
 import EmojiPicker from 'emoji-picker-react';
 import './ChatInput.css';
 
-const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
+const ChatInput = ({
+    onSendMessage,
+    isSending = false,
+    chatId,
+    replyTo = null,
+    onCancelReply,
+}) => {
     const [message, setMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -402,6 +408,25 @@ const ChatInput = ({ onSendMessage, isSending = false, chatId }) => {
 
     return (
         <div className="chat-input shadow-sm">
+            {replyTo && (
+                <div className="chat-reply-banner" role="status">
+                    <div className="chat-reply-banner-body">
+                        <span className="chat-reply-banner-label">Replying to</span>
+                        <span className="chat-reply-banner-meta">{replyTo.sender}</span>
+                        {replyTo.snippet ? (
+                            <span className="chat-reply-banner-snippet">{replyTo.snippet}</span>
+                        ) : null}
+                    </div>
+                    <button
+                        type="button"
+                        className="chat-reply-banner-dismiss"
+                        onClick={() => onCancelReply?.()}
+                        aria-label="Cancel reply"
+                    >
+                        <X size={18} weight="bold" />
+                    </button>
+                </div>
+            )}
             {(previewUrl || recording) && (
                 <div className="chat-media-preview">
                     <div className="preview-content">

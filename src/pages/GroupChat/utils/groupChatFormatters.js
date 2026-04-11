@@ -3,7 +3,22 @@
  */
 import { normalizeMediaItems } from "../groupChatMessageMedia";
 
+function formatParentMessagePreview(parent) {
+  if (!parent || typeof parent !== "object") return null;
+  const sender = parent.sender_name ?? parent.sender;
+  const textRaw = parent.message ?? parent.text ?? "";
+  if (!sender && !String(textRaw).trim()) return null;
+  return {
+    id: parent.id,
+    sender: sender || "User",
+    text: String(textRaw).slice(0, 240),
+    senderPhoto: parent.sender_photo ?? parent.senderPhoto,
+  };
+}
+
 export function formatMessage(msg) {
+  const parentMessageId = msg.parent_message_id ?? msg.parentMessageId ?? null;
+  const parentRaw = msg.parent_message;
   return {
     id: msg.id,
     sender: msg.sender_name,
@@ -32,11 +47,15 @@ export function formatMessage(msg) {
         }),
     created_at: msg.created_at || new Date().toISOString(),
     text: msg.message,
+    message: msg.message,
     senderPhoto: msg.sender_photo,
     senderEmail: msg.sender_email,
     media: normalizeMediaItems(msg.media, msg.id),
     is_read: msg.is_read,
     read_at: msg.read_at,
+    is_deleted: msg.is_deleted,
+    parent_message_id: parentMessageId,
+    parent_message: formatParentMessagePreview(parentRaw),
   };
 }
 

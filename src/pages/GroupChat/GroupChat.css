@@ -748,6 +748,82 @@ body.group-chat-active {
   color: #999;
 }
 
+.message-reply-btn {
+  margin-left: auto;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1976d2;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.message-reply-btn:hover {
+  background: rgba(25, 118, 210, 0.08);
+}
+
+.message-header-own .message-reply-btn-own {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.message-reply-quote {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  max-width: 100%;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.message-reply-quote-own {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.message-reply-quote-bar {
+  width: 3px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: #1976d2;
+}
+
+.message-reply-quote-own .message-reply-quote-bar {
+  background: #1976d2;
+}
+
+.message-reply-quote-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.message-reply-quote-sender {
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.message-reply-quote-own .message-reply-quote-sender {
+  color: #1976d2;
+}
+
+.message-reply-quote-text {
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-reply-quote-own .message-reply-quote-text {
+  color: #555;
+}
+
 .message-text {
   font-size: 14px;
   color: #333333;

@@ -107,7 +107,53 @@ export async function markAllMessagesRead(api, groupId) {
 }
 
 /**
- * Send message via REST (supports text + file).
+ * Build multipart body for `POST /chat/groups/:groupId/messages`.
+ * When replying, include `parentMessageId` (same field name the server reads from `req.body`).
+ *
+ * @param {object} opts
+ * @param {string} [opts.messageText]
+ * @param {File|null} [opts.file]
+ * @param {string|null} [opts.mediaCategory]
+ * @param {string|null} [opts.normalizedType] from deriveMediaCategory (hook)
+ * @param {string|number|null} [opts.parentMessageId] parent message id for replies
+ * @returns {FormData}
+ */
+export function buildSendMessageFormData({
+  messageText = "",
+  file = null,
+  mediaCategory = null,
+  normalizedType = null,
+  parentMessageId = null,
+}) {
+  const formData = new FormData();
+  const trimmed = (messageText || "").trim();
+  if (trimmed) formData.append("message", trimmed);
+
+  if (parentMessageId != null && String(parentMessageId).trim() !== "") {
+    formData.append("parentMessageId", String(parentMessageId));
+  }
+
+  if (!file) return formData;
+
+  formData.append("media", file);
+  const ft =
+    mediaCategory === "voice_note"
+      ? "voice_note"
+      : mediaCategory === "audio" ||
+          (file.type?.startsWith("audio/") && mediaCategory !== "voice_note")
+        ? "audio"
+        : file.type?.startsWith("video/") && mediaCategory === "voice_note"
+          ? "voice_note"
+          : normalizedType || "document";
+  if (ft) formData.append("media_type", ft);
+  if (file.type) formData.append("file_mime", file.type);
+  if (file.name) formData.append("file_name", file.name);
+  return formData;
+}
+
+/**
+ * Send message via REST (supports text + file + optional reply `parentMessageId` in body).
+ * Prefer {@link buildSendMessageFormData} so reply id is always set consistently.
  * @param {import("axios").AxiosInstance} api
  * @param {string} groupId
  * @param {FormData} formData
