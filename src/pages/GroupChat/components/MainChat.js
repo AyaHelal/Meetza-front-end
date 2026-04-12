@@ -119,9 +119,9 @@ const MainChat = ({
         ...payload,
         ...(replyTo?.id
           ? {
-              parentMessageId: replyTo.id,
-              parentPreview: { sender: replyTo.sender, text: replyTo.snippet },
-            }
+            parentMessageId: replyTo.id,
+            parentPreview: { sender: replyTo.sender, text: replyTo.snippet },
+          }
           : {}),
       });
       if (ok) setReplyTo(null);
@@ -256,17 +256,17 @@ const MainChat = ({
       const response = await updateMessage(groupId, messageId, trimmedText);
       let updatedMessage = (response?.data != null ? response.data : response) ?? null;
       if (!updatedMessage?.id) throw new Error("Invalid response from update API");
-        const originalMessage = messages.find((msg) => msg.id === messageId);
-        const messageWithNewText = {
-          ...originalMessage,
-          ...updatedMessage,
+      const originalMessage = messages.find((msg) => msg.id === messageId);
+      const messageWithNewText = {
+        ...originalMessage,
+        ...updatedMessage,
         message: updatedMessage.message ?? updatedMessage.text ?? trimmedText,
         text: updatedMessage.text ?? updatedMessage.message ?? trimmedText,
       };
       const formattedUpdated = formatMessages([messageWithNewText])[0];
       setMessages((prev) => prev.map((msg) => (msg.id === messageId ? formattedUpdated : msg)));
-        smartToast.success("Message updated successfully");
-        if (onMessageEdited) onMessageEdited(messageId, trimmedText);
+      smartToast.success("Message updated successfully");
+      if (onMessageEdited) onMessageEdited(messageId, trimmedText);
     } catch (error) {
       smartToast.error("Failed to edit message");
       console.error("Error editing message:", error);
@@ -283,25 +283,25 @@ const MainChat = ({
 
   const handleUpdateContentName = async (newName) => {
     if (!groupInfo?.content?.id) return;
-    
+
     // Set locally to trigger instant React re-render without page refresh
     setLocalContentName(newName);
-    
+
     if (groupInfo.content) {
       groupInfo.content.group_content_name = newName;
       groupInfo.content.content_name = newName;
       groupInfo.content.name = newName;
     }
-    
+
     try {
-      await api.put(`/group-contents/${groupInfo.content.id}`, { 
-        name: newName, 
-        content_name: newName, 
-        group_content_name: newName 
+      await api.put(`/group-contents/${groupInfo.content.id}`, {
+        name: newName,
+        content_name: newName,
+        group_content_name: newName
       }).catch(async () => {
-         const form = new FormData();
-         form.append('group_content_name', newName);
-         await api.put(`/group/${groupId}`, form);
+        const form = new FormData();
+        form.append('group_content_name', newName);
+        await api.put(`/group/${groupId}`, form);
       });
       smartToast.success("Content name updated successfully");
     } catch (error) {
@@ -362,14 +362,14 @@ const MainChat = ({
           loading={loading}
           showExpanded={showExpanded}
           expandedContent={expandedContent}
-                          groupId={groupId}
+          groupId={groupId}
           messages={messages}
           messagesEndRef={messagesEndRef}
-                          onDeleteMessage={handleDeleteMessage}
-                          onEditMessage={handleEditMessage}
-                          currentUserEmail={currentUserEmail}
-                          onMediaClick={handlePhotoClick}
-                          userRole={userRole}
+          onDeleteMessage={handleDeleteMessage}
+          onEditMessage={handleEditMessage}
+          currentUserEmail={currentUserEmail}
+          onMediaClick={handlePhotoClick}
+          userRole={userRole}
           onReply={handleReplyToMessage}
           onReact={handleReactToMessage}
         />

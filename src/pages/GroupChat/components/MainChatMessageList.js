@@ -65,11 +65,11 @@ export default function MainChatMessageList({
           const prevDate =
             index > 0
               ? messages[index - 1].date ||
-                new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
+              new Date(messages[index - 1].created_at || Date.now()).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
               : null;
           const showSeparator = index === 0 || prevDate !== msgDate;
           return (

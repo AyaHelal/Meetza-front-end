@@ -39,12 +39,12 @@ body.group-chat-active {
   height: 0;
 }
 
-.group-chat-page-scroll-wrap>.home-container {
+.group-chat-page-scroll-wrap > .home-container {
   flex-shrink: 0;
 }
 
 /* When viewing video sessions only: hide chat so only video section is visible */
-.group-chat-page-scroll-wrap.video-section-active>.home-container {
+.group-chat-page-scroll-wrap.video-section-active > .home-container {
   display: none !important;
 }
 
@@ -92,8 +92,13 @@ body.group-chat-active {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Roboto", sans-serif;
+  font-family:
+    "Poppins",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    sans-serif;
   box-sizing: border-box;
 }
 
@@ -343,7 +348,7 @@ body.group-chat-active {
   font-weight: 600;
   color: #333;
   margin: 0;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 .no-groups-subtext {
@@ -351,7 +356,7 @@ body.group-chat-active {
   color: #666;
   margin: 0;
   line-height: 1.5;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 .go-to-groups-btn {
@@ -365,7 +370,7 @@ body.group-chat-active {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 8px;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
 }
 
@@ -492,9 +497,11 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  background-image: radial-gradient(circle at top right,
-      #80baf5 0%,
-      transparent 50%);
+  background-image: radial-gradient(
+    circle at top right,
+    #80baf5 0%,
+    transparent 50%
+  );
   overflow: hidden;
   margin: 20px 0;
   border-radius: 12px;
@@ -547,9 +554,10 @@ body.group-chat-active {
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
-  box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+  box-shadow: 0 0 0 rgba(0, 118, 234, 0);
   /* subtle breathing animation when a meeting is available */
-  animation: joinMeetingPulse 1.6s ease-in-out infinite,
+  animation:
+    joinMeetingPulse 1.6s ease-in-out infinite,
     joinMeetingBounce 1.6s ease-in-out infinite;
 }
 
@@ -571,7 +579,7 @@ body.group-chat-active {
 /* Glowing / pulsing shadow to draw attention when a meeting is available */
 @keyframes joinMeetingPulse {
   0% {
-    box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+    box-shadow: 0 0 0 rgba(0, 118, 234, 0);
     transform: translateY(0) scale(1);
   }
 
@@ -586,14 +594,13 @@ body.group-chat-active {
   }
 
   100% {
-    box-shadow: 0 0 0 rgba(0, 118, 234, 0.0);
+    box-shadow: 0 0 0 rgba(0, 118, 234, 0);
     transform: translateY(0) scale(1);
   }
 }
 
 /* Gentle up‑down motion to feel like the button is "calling" you */
 @keyframes joinMeetingBounce {
-
   0%,
   100% {
     transform: translateY(0);
@@ -1243,7 +1250,7 @@ body.group-chat-active {
 }
 
 /* When link is below text, remove top border radius to connect with text bubble */
-.message-text+.message-media-list .message-media-link {
+.message-text + .message-media-list .message-media-link {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-bottom-left-radius: 18px;
@@ -2027,7 +2034,10 @@ body.group-chat-active {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-  transition: padding 0.25s ease, min-width 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    padding 0.25s ease,
+    min-width 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 /* Expanded when Return to Meeting is visible */
@@ -2135,7 +2145,9 @@ body.group-chat-active {
   color: #000000;
   margin-bottom: 4px;
   white-space: nowrap;
-  transition: font-size 0.25s ease, margin 0.25s ease;
+  transition:
+    font-size 0.25s ease,
+    margin 0.25s ease;
 }
 
 .user-status-expanded .status-name {
@@ -2253,7 +2265,9 @@ body.group-chat-active {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    transform 0.2s;
 }
 
 .status-return-to-meeting:hover {
@@ -2281,7 +2295,9 @@ body.group-chat-active {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    transform 0.2s;
 }
 
 .status-return-to-meeting:hover {
@@ -2887,7 +2903,6 @@ body.group-chat-active {
 }
 
 @media (max-width: 576px) {
-
   /* Logo Section - Mobile Only */
   .logo-section {
     display: flex;
@@ -3120,7 +3135,8 @@ body.group-chat-active {
     padding: 6px 12px;
     font-size: 12px;
     /* keep the pulse/bounce but a bit softer on mobile */
-    animation: joinMeetingPulse 1.8s ease-in-out infinite,
+    animation:
+      joinMeetingPulse 1.8s ease-in-out infinite,
       joinMeetingBounce 1.8s ease-in-out infinite;
   }
 
@@ -3426,8 +3442,8 @@ body.group-chat-active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.member-item>.member-avatar,
-.member-item>.member-avatar-fallback {
+.member-item > .member-avatar,
+.member-item > .member-avatar-fallback {
   flex-shrink: 0;
   flex-grow: 0;
 }
@@ -3918,7 +3934,6 @@ body.group-chat-active {
 }
 
 @keyframes voiceWave {
-
   0%,
   100% {
     transform: scaleY(0.5);

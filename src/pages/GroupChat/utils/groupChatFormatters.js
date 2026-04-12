@@ -36,23 +36,6 @@ export function dedupeSingleReactedByMe(reactions) {
     .filter(Boolean);
 }
 
-/**
- * Drop lone `count === 1` rows for other emojis so a previous pick without `reactedByMe` does not stay
- * next to the new one (API often omits `reactedByMe` on solo reactions).
- * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>} list
- * @param {string} keepEmoji
- */
-function stripLoneOtherEmojiRows(list, keepEmoji) {
-  const keep = String(keepEmoji || "").trim();
-  return list.filter((r) => {
-    const c = Math.max(1, r.count || 1);
-    if (String(r.emoji) === keep) return true;
-    if (c > 1) return true;
-    if (r.reactedByMe) return true;
-    return false;
-  });
-}
-
 /** @param {{ _ts?: number }} a @param {{ _ts?: number }} b */
 function byReactionTimeDesc(a, b) {
   return (b._ts || 0) - (a._ts || 0);
@@ -122,8 +105,6 @@ export function optimisticReplaceMyReaction(reactions, newEmoji) {
       return { ...r, count: c - 1, reactedByMe: false };
     })
     .filter(Boolean);
-
-  list = stripLoneOtherEmojiRows(list, emoji);
 
   const j = list.findIndex((r) => r.emoji === emoji);
   if (j === -1) {
@@ -227,26 +208,26 @@ export function formatMessage(msg) {
     initials: msg.sender_name?.charAt(0)?.toUpperCase() || "U",
     time: msg.created_at
       ? new Date(msg.created_at).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
       : new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }),
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
     date: msg.created_at
       ? new Date(msg.created_at).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
       : new Date().toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        }),
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
     created_at: msg.created_at || new Date().toISOString(),
     text: msg.message,
     message: msg.message,
@@ -320,7 +301,7 @@ export function extractLinksFromMessages(messages = []) {
               is_downloadable: false,
             });
           }
-        } catch (e) {}
+        } catch (e) { }
       });
     }
   });
@@ -397,13 +378,13 @@ export function formatGroupForChatItem(group, unread = 0) {
     avatarImage: group.group_photo || null,
     date: group.last_message_at
       ? new Date(group.last_message_at).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-        })
+        day: "numeric",
+        month: "short",
+      })
       : new Date().toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-        }),
+        day: "numeric",
+        month: "short",
+      }),
     unread: unread ?? group.unread ?? group.unread_count ?? 0,
     group_name: group.group_name,
     group_content_id: group.group_content_id,
