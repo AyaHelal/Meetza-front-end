@@ -14,6 +14,7 @@ import GuidelinesPage from './pages/Legal/GuidelinesPage';
 import LicensesPage from './pages/Legal/LicensesPage';
 import GroupChat from './pages/GroupChat/GroupChat';
 import HomePage from './pages/Home/HomePage';
+import ProfilePage from './pages/Profile/ProfilePage';
 import VideoSessions from './pages/VideoSessions/VideoSessions';
 import AllVideosPage from './pages/VideoSessions/AllVideosPage';
 import SavedVideos from './pages/SavedVideos/SavedVideos';
@@ -47,6 +48,7 @@ function isMainAppShellPath(pathname) {
     "/video-sessions",
     "/saved-videos",
     "/admin-meetings",
+    "/profile",
   ];
   if (exact.includes(pathname)) return true;
   return /^\/video(\/|$)/.test(pathname);
@@ -234,6 +236,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="messages" element={<GroupChat />} />
         <Route path="video" element={<AllVideosPage />} />
         <Route path="video/:slug" element={<VideoBySlugPage />} />

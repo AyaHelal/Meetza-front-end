@@ -89,6 +89,8 @@ const AppLayout = () => {
       location.pathname.startsWith("/home")
     ) {
       setActiveNav("home");
+    } else if (location.pathname === "/profile" || location.pathname.startsWith("/profile")) {
+      setActiveNav("profile");
     } else if (
       location.pathname === "/messages" ||
       location.pathname.startsWith("/messages")
@@ -162,6 +164,9 @@ const AppLayout = () => {
     if (nav === "home" && location.pathname !== "/home") {
       setActiveNav(nav);
       navigate("/home", { replace: false });
+    } else if (nav === "profile" && location.pathname !== "/profile") {
+      setActiveNav(nav);
+      navigate("/profile", { replace: false });
     } else if (nav === "users" && location.pathname !== "/groups") {
       setActiveNav(nav);
       navigate("/groups", { replace: false });
