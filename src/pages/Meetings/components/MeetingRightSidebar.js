@@ -146,6 +146,11 @@ const MeetingRightSidebar = () => {
     }, []);
 
     const currentUserId = authUser?.id ?? authUser?.user_id ?? null;
+    const normalizedUserRole = (authUser?.role || "").toString().trim().toLowerCase();
+    const isSuperAdmin =
+        normalizedUserRole === "super_admin" ||
+        normalizedUserRole === "super-admin" ||
+        normalizedUserRole === "superadmin";
 
     /** User ids who should show the Admin badge and get host controls (meeting creator + group admins from API). */
     const adminBadgeUserIds = useMemo(() => {
@@ -163,7 +168,7 @@ const MeetingRightSidebar = () => {
     const isMeetingAdmin = Boolean(
         currentUserId != null && adminBadgeUserIds.has(String(currentUserId))
     );
-    const showAddResourceBtn = isMeetingAdmin && meetingId;
+    const showAddResourceBtn = Boolean((isMeetingAdmin || isSuperAdmin) && meetingId);
     const canAddResource = showAddResourceBtn && groupContentId;
 
     const handleAddResource = useCallback(
