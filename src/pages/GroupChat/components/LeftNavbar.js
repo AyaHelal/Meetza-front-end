@@ -188,7 +188,10 @@ const LeftNavbar = ({
             </div>
             <div
               className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
-              onClick={() => setActiveNav("profile")}
+              onClick={() => {
+                navigate("/profile");
+                setActiveNav("profile");
+              }}
               title="Profile"
             >
               <User size={32} />
