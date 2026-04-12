@@ -9,6 +9,8 @@ import { useMeetingContext } from '../../../context/MeetingContext';
 import { useSocket } from '../../../context/SocketContext';
 import { useMediaContext } from '../../../context/MediaContext';
 import { ConfirmDeleteModal } from '../../../components/shared/ConfirmDeleteModal';
+import PdfSummaryAction from '../../../components/PdfSummary/PdfSummaryAction';
+import { isPdfResource } from '../../../utils/pdfMedia';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -412,10 +414,12 @@ const MeetingRightSidebar = () => {
                                 <span>No resources attached to this meeting.</span>
                             </div>
                         ) : (
-                            resources.map((resItem) => (
+                            resources.map((resItem) => {
+                                const isPdf = isPdfResource(resItem);
+                                return (
                                 <div
                                     key={resItem.id}
-                                    className="description-item description-item--with-actions"
+                                    className={`description-item description-item--with-actions${isPdf ? ' description-item--pdf-resource' : ''}`}
                                     title={resItem.file_name || resItem.name}
                                 >
                                     <Paperclip size={20} weight="regular" className="item-icon" />
@@ -427,6 +431,14 @@ const MeetingRightSidebar = () => {
                                     >
                                         {resItem.file_name || 'Resource file'}
                                     </a>
+                                    {isPdf && resItem.file_url ? (
+                                        <PdfSummaryAction
+                                            fileUrl={resItem.file_url}
+                                            fileName={resItem.file_name || resItem.name || 'document.pdf'}
+                                            triggerClassName="pdf-summary-trigger--meeting-resource"
+                                            triggerLottieSize={20}
+                                        />
+                                    ) : null}
                                     {showAddResourceBtn && groupContentId && (
                                         <button
                                             type="button"
@@ -440,7 +452,8 @@ const MeetingRightSidebar = () => {
                                         </button>
                                     )}
                                 </div>
-                            ))
+                            );
+                            })
                         )}
                     </div>
                 </div>

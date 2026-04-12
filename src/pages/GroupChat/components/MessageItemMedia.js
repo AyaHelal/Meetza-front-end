@@ -1,6 +1,7 @@
 import React from 'react';
 import MessageItemAudioPlayer from './MessageItemAudioPlayer';
-import { getMediaType, getFileNameFromMedia, ensureFileExtension } from '../utils/messageItemUtils';
+import PdfSummaryAction from '../../../components/PdfSummary/PdfSummaryAction';
+import { getMediaType, getFileNameFromMedia, ensureFileExtension, getExtension } from '../utils/messageItemUtils';
 
 function FileIconPlaceholder({ name }) {
   const extension = name?.split('.')?.pop()?.toUpperCase() || 'FILE';
@@ -85,6 +86,9 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
 
         const fileName = getFileNameFromMedia(mediaItem);
         const finalFileName = ensureFileExtension(fileName, mediaItem);
+        const ext = getExtension(mediaItem);
+        const mime = String(mediaItem?.file_mime || mediaItem?.file_type || '').toLowerCase();
+        const isPdf = ext === 'pdf' || mime.includes('pdf');
 
         const handleDownload = async (e) => {
           e.preventDefault();
@@ -110,6 +114,39 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
           }
         };
 
+        const docInner = (
+          <>
+            <FileIconPlaceholder name={finalFileName} />
+            <div className="message-media-doc-text">
+              <span className="message-media-doc-meta">
+                <span className="doc-meta-type">{finalFileName}</span>
+              </span>
+            </div>
+          </>
+        );
+
+        if (isPdf) {
+          return (
+            <div
+              key={key}
+              className={`message-media-doc-outer message-media-doc--pdf${isOwnMessage ? ' message-media-doc-outer--own' : ' message-media-doc-outer--other'}`}
+            >
+              <PdfSummaryAction fileUrl={mediaUrl} fileName={finalFileName} />
+              <a
+                href={mediaUrl}
+                className="message-media message-media-doc"
+                onClick={handleDownload}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={finalFileName}
+                title={finalFileName}
+              >
+                {docInner}
+              </a>
+            </div>
+          );
+        }
+
         return (
           <a
             key={key}
@@ -121,12 +158,7 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
             download={finalFileName}
             title={finalFileName}
           >
-            <FileIconPlaceholder name={finalFileName} />
-            <div className="message-media-doc-text">
-              <span className="message-media-doc-meta">
-                <span className="doc-meta-type">{finalFileName}</span>
-              </span>
-            </div>
+            {docInner}
           </a>
         );
       })}
