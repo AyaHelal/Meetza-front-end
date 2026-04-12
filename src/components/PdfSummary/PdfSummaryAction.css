@@ -1,0 +1,293 @@
+/* AI PDF summary panel — matches video session AI summary look */
+
+@property --pdf-summary-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.pdf-summary-action .video-ai-summary {
+  position: fixed;
+  right: 260px;
+  bottom: 24px;
+  z-index: 10000;
+  max-width: 380px;
+  width: calc(100vw - 48px);
+  background: #ffffff;
+  border-radius: 14px;
+  animation:
+    pdfAiSummaryPopupIn 0.3s ease-out,
+    pdfCharmFloat 4s ease-in-out 0.3s infinite;
+  box-shadow:
+    0 0 0 1.5px rgba(167, 139, 250, 0.7),
+    0 0 20px rgba(139, 92, 246, 0.5),
+    0 0 40px rgba(96, 165, 250, 0.35),
+    0 0 60px rgba(167, 139, 250, 0.2);
+}
+
+.pdf-summary-action .video-ai-summary::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 15px;
+  background: conic-gradient(
+    from var(--pdf-summary-angle),
+    transparent 0%,
+    rgba(139, 92, 246, 0.6) 15%,
+    rgba(96, 165, 250, 0.8) 30%,
+    rgba(167, 139, 250, 0.6) 45%,
+    transparent 60%,
+    rgba(96, 165, 250, 0.4) 75%,
+    rgba(139, 92, 246, 0.6) 90%,
+    transparent 100%
+  );
+  animation: pdfRotateAngle 3s linear infinite;
+  z-index: -1;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1px;
+}
+
+@keyframes pdfAiSummaryPopupIn {
+  from {
+    opacity: 0;
+    transform: translate(20px, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes pdfRotateAngle {
+  to {
+    --pdf-summary-angle: 360deg;
+  }
+}
+
+@keyframes pdfCharmFloat {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1.5px rgba(167, 139, 250, 0.7),
+      0 0 20px rgba(139, 92, 246, 0.5),
+      0 0 40px rgba(96, 165, 250, 0.35),
+      0 0 60px rgba(167, 139, 250, 0.2);
+    transform: translateY(0px);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(96, 165, 250, 0.9),
+      0 0 25px rgba(96, 165, 250, 0.65),
+      0 0 50px rgba(139, 92, 246, 0.5),
+      0 0 80px rgba(167, 139, 250, 0.3);
+    transform: translateY(-3px);
+  }
+}
+
+.pdf-summary-action .video-ai-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.9);
+  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.pdf-summary-action--dragging .video-ai-summary {
+  cursor: grabbing;
+}
+
+.pdf-summary-action .video-ai-summary--user-positioned {
+  animation: none !important;
+  transform: none !important;
+}
+
+.pdf-summary-action .video-ai-summary-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pdf-summary-action .video-ai-summary-icon svg {
+  color: #60a5fa;
+}
+
+.pdf-summary-action .video-ai-summary-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.pdf-summary-action .video-ai-summary-close:hover {
+  background-color: #e5f0ff;
+  color: #1f2937;
+}
+
+.pdf-summary-action .video-ai-summary-content {
+  padding: 1rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pdf-summary-action .video-ai-summary-transcript,
+.pdf-summary-action .video-ai-summary-summary {
+  margin-bottom: 1rem;
+}
+
+.pdf-summary-action .video-ai-summary-transcript h4,
+.pdf-summary-action .video-ai-summary-summary h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pdf-summary-action .video-ai-summary-transcript p,
+.pdf-summary-action .video-ai-summary-summary p {
+  margin: 0;
+  line-height: 1.6;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .pdf-summary-action .video-ai-summary {
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdf-summary-action .video-ai-summary {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* Corner trigger on cards / message doc */
+.pdf-summary-trigger {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #1976d2;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  pointer-events: auto;
+}
+
+.pdf-summary-trigger:hover:not(:disabled) {
+  transform: scale(1.06);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
+}
+
+.pdf-summary-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pdf-summary-trigger__spinner {
+  animation: pdf-summary-trigger-spin 1s linear infinite;
+  color: #1976d2;
+}
+
+@keyframes pdf-summary-trigger-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pdf-summary-trigger--doc-card {
+  top: 4px;
+  right: 4px;
+}
+
+.message-media-doc-outer {
+  position: relative;
+  max-width: min(100%, 280px);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: visible;
+}
+
+.message-media-doc-outer--own {
+  align-self: flex-end;
+}
+
+.message-media-doc-outer--other {
+  align-self: flex-start;
+}
+
+.message-media-doc-outer .message-media.message-media-doc {
+  width: 100%;
+  max-width: 100%;
+}
+
+.message-media-doc--pdf .pdf-summary-trigger {
+  top: 13px;
+  right: -19px;
+}
+
+.description-item--pdf-resource .pdf-summary-trigger {
+  position: static;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* Meeting sidebar resources — smaller trigger, same white pill as default */
+.pdf-summary-trigger.pdf-summary-trigger--meeting-resource {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: #1976d2;
+}
+
+.pdf-summary-trigger.pdf-summary-trigger--meeting-resource:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.25);
+  transform: scale(1.05);
+}
+
+.pdf-summary-trigger.pdf-summary-trigger--meeting-resource .pdf-summary-trigger__spinner {
+  color: #1976d2;
+}

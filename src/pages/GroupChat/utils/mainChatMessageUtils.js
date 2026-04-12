@@ -156,17 +156,24 @@ export function getDownloadFileName(item) {
     return match ? match[1].toLowerCase() : null;
   };
 
-  let extension = getExtensionFromFileType(item.file_type) || getExtensionFromUrl(item.file_url) || getExtensionFromFileName(item.file_name);
+  const urlForName =
+    (typeof item.file_url === "string" && item.file_url.trim()) ||
+    (typeof item.media_url === "string" && item.media_url.trim()) ||
+    "";
+  let extension =
+    getExtensionFromFileType(item.file_type || item.media_type) ||
+    getExtensionFromUrl(item.file_url || item.media_url) ||
+    getExtensionFromFileName(item.file_name);
 
   if (item.file_name) {
     const existingExt = getExtensionFromFileName(item.file_name);
     if (existingExt) return item.file_name;
     return extension ? `${item.file_name}.${extension}` : item.file_name;
   }
-  if (item.file_url) {
+  if (urlForName) {
     try {
-      const urlPath = item.file_url.split("?")[0].split("#")[0];
-      const lastPart = urlPath.split("/").pop();
+      const urlPath = urlForName.split("?")[0].split("#")[0];
+      const lastPart = decodeURIComponent(urlPath.split("/").pop() || "");
       if (lastPart?.includes(".")) return lastPart;
       if (lastPart) return extension ? `${lastPart}.${extension}` : lastPart;
     } catch (e) {}

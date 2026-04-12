@@ -18,6 +18,8 @@ import { AssignGroupAdminMeetzaModal, RemoveGroupAdminMeetzaModal } from "./Grou
 import { smartToast } from "../../../API/toastManager";
 import { parseEmailsInput } from "../../../utils/parseEmailsInput";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
+import PdfSummaryAction from "../../../components/PdfSummary/PdfSummaryAction";
+import { isPdfResource } from "../../../utils/pdfMedia";
 import { useRef } from "react";
 
 function ResourceGrid({ items, onMediaClick, onContextMenu, onTouchStart, onTouchEnd }) {
@@ -150,7 +152,11 @@ function DocumentList({ items, onContextMenu, onTouchStart, onTouchEnd }) {
         ) : (
           (() => {
             const fileName = getDownloadFileName(item);
-            const fileUrl = item.file_url || item.media_url;
+            const fileUrl = item.file_url || item.media_url || item.url || item.resource_url || "";
+            const extFromLabel = getFileExtensionForLabel(fileName).toLowerCase();
+            const isPdf =
+              Boolean(fileUrl) &&
+              (isPdfResource(item) || extFromLabel === "pdf");
             const handleDownload = async (e) => {
               e.preventDefault();
               try {
@@ -174,6 +180,41 @@ function DocumentList({ items, onContextMenu, onTouchStart, onTouchEnd }) {
                 window.open(fileUrl, "_blank");
               }
             };
+            const cardInner = (
+              <>
+                <div className="document-icon">
+                  <span className="document-extension">{getFileExtensionForLabel(fileName)}</span>
+                </div>
+                <div className="document-name">{fileName}</div>
+              </>
+            );
+
+            if (isPdf) {
+              return (
+                <div key={item.id || index} className="document-square-wrap document-item--pdf">
+                  <PdfSummaryAction
+                    fileUrl={fileUrl}
+                    fileName={fileName}
+                    triggerClassName="pdf-summary-trigger--doc-card"
+                  />
+                  <a
+                    href={fileUrl}
+                    onClick={handleDownload}
+                    onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
+                    onTouchStart={(e) => onTouchStart && onTouchStart(e, item)}
+                    onTouchEnd={onTouchEnd}
+                    onTouchMove={onTouchEnd}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="document-item document-square"
+                    title={fileName}
+                  >
+                    {cardInner}
+                  </a>
+                </div>
+              );
+            }
+
             return (
               <a
                 key={item.id || index}
@@ -188,10 +229,7 @@ function DocumentList({ items, onContextMenu, onTouchStart, onTouchEnd }) {
                 className="document-item document-square"
                 title={fileName}
               >
-                <div className="document-icon">
-                  <span className="document-extension">{getFileExtensionForLabel(fileName)}</span>
-                </div>
-                <div className="document-name">{fileName}</div>
+                {cardInner}
               </a>
             );
           })()
@@ -201,7 +239,20 @@ function DocumentList({ items, onContextMenu, onTouchStart, onTouchEnd }) {
   );
 }
 
-function TabbedSection({ source, tabValue, onTabChange, onMediaClick, onContextMenu, onTouchStart, onTouchEnd, isAdmin, onUploadFile, onAddLink }) {
+function TabbedSection({
+  source,
+  tabValue,
+  onTabChange,
+  onMediaClick,
+  onContextMenu,
+  onTouchStart,
+  onTouchEnd,
+  isAdmin,
+  onUploadFile,
+  onAddLink,
+  /** Upload / Add link: only Group Info → Contents, never chat Media. */
+  showUploadLinkActions = false,
+}) {
   return (
     <div className="expanded-section">
       <div className="tabs-header-container">
@@ -219,7 +270,7 @@ function TabbedSection({ source, tabValue, onTabChange, onMediaClick, onContextM
             Documents
           </button>
         </div>
-        {isAdmin && (
+        {isAdmin && showUploadLinkActions && (
           <div className="admin-actions-resources">
             <button
               className="admin-action-btn upload-btn"
@@ -923,19 +974,17 @@ export default function MainChatExpandedSection({
             onTouchStart={null}
             onTouchEnd={null}
             isAdmin={isAdmin}
+            showUploadLinkActions={false}
             onUploadFile={handleUploadClick}
             onAddLink={() => setShowAddLinkModal(true)}
           />
         </>
       );
-    } else if (expandedSection === "contents") {
+    } else if (activeSection === "contents") {
       expandedContentBody = (
         <>
           <div className="media-header">
             <h4>Group Resources</h4>
-            <button className="close-btn" onClick={onCloseSection}>
-              <X size={24} />
-            </button>
           </div>
           <TabbedSection
             source={contentResources}
@@ -946,26 +995,14 @@ export default function MainChatExpandedSection({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             isAdmin={isAdmin}
+            showUploadLinkActions
             onUploadFile={handleUploadClick}
             onAddLink={() => setShowAddLinkModal(true)}
           />
         </>
       );
     } else {
-      expandedContentBody = (
-        <TabbedSection
-          source={contentResources}
-          tabValue={contentTab}
-          onTabChange={setContentTab}
-          onMediaClick={onMediaClick}
-          onContextMenu={handleContextMenu}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          isAdmin={isAdmin}
-          onUploadFile={handleUploadClick}
-          onAddLink={() => setShowAddLinkModal(true)}
-        />
-      );
+      expandedContentBody = null;
     }
 
     return (
