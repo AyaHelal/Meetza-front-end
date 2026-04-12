@@ -14,6 +14,7 @@ export default function MainChatMessageList({
   onMediaClick,
   userRole,
   onReply,
+  onReact,
 }) {
   if (loading) {
     return (
@@ -80,13 +81,13 @@ export default function MainChatMessageList({
               )}
               <MessageItem
                 message={msg}
-                groupId={groupId}
                 onDeleteMessage={onDeleteMessage}
                 onEditMessage={onEditMessage}
                 currentUserEmail={currentUserEmail}
                 onMediaClick={onMediaClick}
                 userRole={userRole}
                 onReply={onReply}
+                onReact={onReact}
               />
             </React.Fragment>
           );

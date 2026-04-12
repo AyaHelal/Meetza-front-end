@@ -166,3 +166,22 @@ export async function sendMessageRest(api, groupId, formData) {
   if (res?.data?.success && res.data.data) return res.data.data;
   return null;
 }
+
+/**
+ * React to a group message (REST).
+ * POST `/chat/groups/:groupId/messages/:messageId/react`
+ *
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} groupId
+ * @param {string} messageId
+ * @param {Record<string, unknown>} [body] — e.g. `{ emoji: "👍" }`; match your backend contract
+ * @returns {Promise<object|null>} Parsed `response.data` from axios (often `{ success, data }`)
+ */
+export async function reactToMessage(api, groupId, messageId, body = {}) {
+  if (!groupId || !messageId) return null;
+  const res = await api.post(
+    `/chat/groups/${groupId}/messages/${messageId}/react`,
+    body
+  );
+  return res?.data ?? null;
+}
