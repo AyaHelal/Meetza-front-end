@@ -172,15 +172,6 @@ export default function ProfilePage() {
                         <span className="profile-field-label">Email</span>
                         <div className="profile-field-value text-break">{email}</div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="profile-field-edit-btn flex-shrink-0"
-                        aria-label="Edit email"
-                        onClick={() => onEditField("Email")}
-                      >
-                        <PencilSimple size={20} />
-                      </Button>
                     </div>
                     <div className="profile-field-row">
                       <div className="profile-field-main">
