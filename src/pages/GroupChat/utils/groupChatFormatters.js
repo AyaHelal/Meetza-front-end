@@ -16,9 +16,211 @@ function formatParentMessagePreview(parent) {
   };
 }
 
+/**
+ * At most one reaction row may be `reactedByMe` (current user). If the API sends more, keep the last and fix counts.
+ * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>} reactions
+ */
+export function dedupeSingleReactedByMe(reactions) {
+  if (!Array.isArray(reactions) || reactions.length === 0) return reactions;
+  const mineIdx = reactions.map((r, i) => (r.reactedByMe ? i : -1)).filter((i) => i >= 0);
+  if (mineIdx.length <= 1) return reactions;
+  const keepIdx = mineIdx[mineIdx.length - 1];
+  return reactions
+    .map((r, i) => {
+      if (!r.reactedByMe) return r;
+      if (i === keepIdx) return r;
+      const c = Math.max(1, r.count || 1);
+      if (c <= 1) return null;
+      return { ...r, count: c - 1, reactedByMe: false };
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Drop lone `count === 1` rows for other emojis so a previous pick without `reactedByMe` does not stay
+ * next to the new one (API often omits `reactedByMe` on solo reactions).
+ * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>} list
+ * @param {string} keepEmoji
+ */
+function stripLoneOtherEmojiRows(list, keepEmoji) {
+  const keep = String(keepEmoji || "").trim();
+  return list.filter((r) => {
+    const c = Math.max(1, r.count || 1);
+    if (String(r.emoji) === keep) return true;
+    if (c > 1) return true;
+    if (r.reactedByMe) return true;
+    return false;
+  });
+}
+
+/** @param {{ _ts?: number }} a @param {{ _ts?: number }} b */
+function byReactionTimeDesc(a, b) {
+  return (b._ts || 0) - (a._ts || 0);
+}
+
+/**
+ * Same reactor on multiple solo rows — keep the newest only when we have real timestamps.
+ * (Do not use message `sender_id` as reactor id; it wrongly merges everyone's reactions.)
+ * @param {Array<object>} rows
+ */
+function collapseSameReactorRows(rows) {
+  if (!Array.isArray(rows) || rows.length < 2) return rows;
+  const keys = rows.map((r) => r.reactorKey ?? null);
+  if (!keys.every((k) => k != null && String(k) !== "")) return rows;
+  const first = String(keys[0]);
+  if (!keys.every((k) => String(k) === first)) return rows;
+  const allSolo = rows.every((r) => Math.max(1, r.count || 1) === 1);
+  if (!allSolo) return rows;
+  const sorted = [...rows].sort(byReactionTimeDesc);
+  const maxT = Math.max(0, ...sorted.map((r) => r._ts || 0));
+  if (maxT <= 0) return rows;
+  return [sorted[0]];
+}
+
+/**
+ * Fallback when the API omits per-user keys: two sole reactions, no "mine" flag.
+ * Only collapse when both rows have usable timestamps (otherwise array order is ambiguous and we
+ * must not drop the newer emoji for other clients).
+ * @param {Array<object>} rows
+ */
+function collapseTwinSoloStale(rows) {
+  if (!Array.isArray(rows) || rows.length !== 2) return rows;
+  if (rows.some((r) => r.reactorKey != null && String(r.reactorKey) !== "")) return rows;
+  const c0 = Math.max(1, rows[0].count || 1);
+  const c1 = Math.max(1, rows[1].count || 1);
+  if (c0 !== 1 || c1 !== 1) return rows;
+  if (rows.some((r) => r.reactedByMe)) return rows;
+  if (String(rows[0].emoji) === String(rows[1].emoji)) return rows;
+  const t0 = rows[0]._ts || 0;
+  const t1 = rows[1]._ts || 0;
+  if (t0 <= 0 && t1 <= 0) return rows;
+  if (t0 === t1) return rows;
+  return t0 > t1 ? [rows[0]] : [rows[1]];
+}
+
+function stripReactionNormInternals(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(({ _ts, reactorKey, ...pub }) => pub);
+}
+
+/**
+ * Client-side: switching emoji removes the previous `reactedByMe` row (or decrements if others share), then sets the new one.
+ * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>|undefined} reactions
+ * @param {string} newEmoji
+ */
+export function optimisticReplaceMyReaction(reactions, newEmoji) {
+  const emoji = String(newEmoji || "").trim();
+  if (!emoji) return Array.isArray(reactions) ? reactions : [];
+
+  let list = Array.isArray(reactions) ? reactions.map((r) => ({ ...r })) : [];
+
+  list = list
+    .map((r) => {
+      if (!r.reactedByMe) return r;
+      const c = Math.max(1, r.count || 1);
+      if (c <= 1) return null;
+      return { ...r, count: c - 1, reactedByMe: false };
+    })
+    .filter(Boolean);
+
+  list = stripLoneOtherEmojiRows(list, emoji);
+
+  const j = list.findIndex((r) => r.emoji === emoji);
+  if (j === -1) {
+    list.push({ emoji, count: 1, reactedByMe: true });
+    return dedupeSingleReactedByMe(list);
+  }
+  const prev = list[j];
+  const c = Math.max(1, prev.count || 1);
+  // After stripping `reactedByMe`, the row is "others only". If count is still 1, the API often
+  // already represents the current user alone (no `reactedByMe` flag) — do not +1 or it shows "2".
+  const nextCount = c <= 1 ? 1 : c + 1;
+  list[j] = {
+    ...prev,
+    count: nextCount,
+    reactedByMe: true,
+  };
+  return dedupeSingleReactedByMe(list);
+}
+
+/**
+ * Normalize reactions from API/socket payloads for UI chips.
+ * @param {object} msg
+ * @returns {Array<{ emoji: string, count: number, reactedByMe?: boolean }>}
+ */
+export function normalizeReactionsFromPayload(msg) {
+  if (!msg || typeof msg !== "object") return [];
+  const raw =
+    msg.reactions ??
+    msg.message_reactions ??
+    msg.emoji_reactions ??
+    msg.reaction_summary;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    if (raw.length > 0 && raw.every((x) => typeof x === "string")) {
+      const mapped = raw.map((emoji) => ({
+        emoji: String(emoji),
+        count: 1,
+        reactedByMe: false,
+      }));
+      return dedupeSingleReactedByMe(mapped);
+    }
+    const mapped = raw
+      .map((r) => {
+        if (typeof r === "string") {
+          const ts = 0;
+          return { emoji: r, count: 1, reactedByMe: false, reactorKey: null, _ts: ts };
+        }
+        const emoji = r.emoji ?? r.reaction ?? r.unicode ?? r.symbol;
+        if (!emoji) return null;
+        const timeRaw = r.updated_at ?? r.updatedAt ?? r.created_at ?? r.reacted_at ?? r.timestamp;
+        const parsed = timeRaw ? Date.parse(timeRaw) : NaN;
+        const _ts = Number.isFinite(parsed) ? parsed : 0;
+        const reactorKey =
+          r.user_id ??
+          r.userId ??
+          r.reactor_id ??
+          r.reactorId ??
+          r.member_id ??
+          r.memberId ??
+          r.profile_id ??
+          r.profileId ??
+          r.user_email ??
+          r.userEmail ??
+          r.email ??
+          null;
+        return {
+          emoji: String(emoji),
+          count: Math.max(1, Number(r.count ?? r.users_count ?? 1) || 1),
+          reactedByMe: Boolean(r.reacted_by_me ?? r.mine ?? r.is_mine ?? r.reactedByMe),
+          reactorKey: reactorKey != null && String(reactorKey) !== "" ? String(reactorKey) : null,
+          _ts,
+        };
+      })
+      .filter(Boolean);
+    let out = dedupeSingleReactedByMe(mapped);
+    out = collapseSameReactorRows(out);
+    out = collapseTwinSoloStale(out);
+    return stripReactionNormInternals(out);
+  }
+  if (typeof raw === "object") {
+    return Object.entries(raw).map(([emoji, v]) => {
+      const count =
+        typeof v === "number"
+          ? v
+          : typeof v === "object" && v != null && "count" in v
+            ? Number(v.count) || 1
+            : 1;
+      return { emoji, count: Math.max(1, count) };
+    });
+  }
+  return [];
+}
+
 export function formatMessage(msg) {
   const parentMessageId = msg.parent_message_id ?? msg.parentMessageId ?? null;
   const parentRaw = msg.parent_message;
+  const reactions = normalizeReactionsFromPayload(msg);
   return {
     id: msg.id,
     sender: msg.sender_name,
@@ -56,6 +258,7 @@ export function formatMessage(msg) {
     is_deleted: msg.is_deleted,
     parent_message_id: parentMessageId,
     parent_message: formatParentMessagePreview(parentRaw),
+    reactions,
   };
 }
 

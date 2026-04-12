@@ -7,6 +7,11 @@ import MainChatMessageList from "./MainChatMessageList";
 import MainChatPhotoModal from "./MainChatPhotoModal";
 import { deleteMessage, updateMessage } from "../../../API/auth";
 import { formatMessages } from "../utils/mainChatMessageUtils";
+import { reactToMessage } from "../services/groupChatService";
+import {
+  normalizeReactionsFromPayload,
+  optimisticReplaceMyReaction,
+} from "../utils/groupChatFormatters";
 import { getReplySnippetForMessage } from "../utils/messageItemUtils";
 import "./MainChat.css";
 import "../GroupChat.css";
@@ -177,6 +182,73 @@ const MainChat = ({
     }
   };
 
+  const handleReactToMessage = useCallback(
+    async (messageId, emoji) => {
+      if (!groupId || !messageId || !emoji?.trim()) return;
+      const trimmedEmoji = emoji.trim();
+      try {
+        const raw = await reactToMessage(api, groupId, messageId, { emoji: trimmedEmoji });
+        const data = raw?.data !== undefined ? raw.data : raw;
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id !== messageId) return msg;
+
+            const nextReactions = normalizeReactionsFromPayload(
+              data && typeof data === "object"
+                ? data.reactions != null
+                  ? { reactions: data.reactions }
+                  : data
+                : {}
+            );
+
+            const reactionBaseForReplace = (mergedMsg) => {
+              const fromMerge = mergedMsg?.reactions;
+              if (Array.isArray(fromMerge) && fromMerge.length > 0) return fromMerge;
+              if (Array.isArray(msg.reactions) && msg.reactions.length > 0) return msg.reactions;
+              return Array.isArray(fromMerge) ? fromMerge : [];
+            };
+
+            if (
+              data &&
+              typeof data === "object" &&
+              data.id != null &&
+              String(data.id) === String(messageId)
+            ) {
+              const merged = formatMessages([{ ...msg, ...data }])[0];
+              const base = reactionBaseForReplace(merged);
+              return formatMessages([
+                {
+                  ...merged,
+                  reactions: optimisticReplaceMyReaction(base, trimmedEmoji),
+                },
+              ])[0];
+            }
+
+            if (nextReactions.length > 0) {
+              return formatMessages([
+                {
+                  ...msg,
+                  reactions: optimisticReplaceMyReaction(nextReactions, trimmedEmoji),
+                },
+              ])[0];
+            }
+
+            return formatMessages([
+              {
+                ...msg,
+                reactions: optimisticReplaceMyReaction(msg.reactions, trimmedEmoji),
+              },
+            ])[0];
+          })
+        );
+      } catch (error) {
+        smartToast.error(error?.response?.data?.message || "Failed to send reaction");
+        console.error("reactToMessage:", error);
+      }
+    },
+    [groupId, setMessages]
+  );
+
   const handleEditMessage = async (messageId, newText) => {
     if (!groupId || !newText?.trim()) return;
     const trimmedText = newText.trim();
@@ -299,6 +371,7 @@ const MainChat = ({
                           onMediaClick={handlePhotoClick}
                           userRole={userRole}
           onReply={handleReplyToMessage}
+          onReact={handleReactToMessage}
         />
       </div>
       {!activeSection && !expandedSection && groupId && !isSuperAdmin && (
