@@ -10,9 +10,27 @@ import {
 import { io } from "socket.io-client";
 import { AuthContext } from "./AuthContext";
 import api from "../API/axiosInstance";
-import { ensureUiSoundsUnlocked, playNotificationSound } from "../utils/uiSounds";
+import {
+  ensureUiSoundsUnlocked,
+  playNotificationSound,
+  armSuppressChatIncomingForNotification,
+  playChatIncomingSound,
+  shouldSuppressChatIncomingSound,
+} from "../utils/uiSounds";
 
 const SocketContext = createContext();
+
+/** For global incoming-message sound only; mirrors GroupChat identity check. */
+function isGroupSocketMessageFromSelf(messageData, u) {
+  if (!u || !messageData) return false;
+  const email = (messageData.sender_email || "").toLowerCase();
+  const userEmail = (u.email || "").toLowerCase();
+  if (email && userEmail && email === userEmail) return true;
+  const sid = messageData.sender_id;
+  const uid = u.id;
+  if (sid == null || uid == null) return false;
+  return String(sid) === String(uid);
+}
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
@@ -23,15 +41,27 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }) => {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const socketRef = useRef(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const unreadNotificationCountRef = useRef(0);
   const hasLoggedSocketErrorRef = useRef(false);
   const lastTokenRef = useRef(null);
   const connectionTimeoutRef = useRef(null);
+  const userRef = useRef(user);
+  const activeGroupChatIdForSoundRef = useRef(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const setActiveGroupChatForSound = useCallback((groupId) => {
+    activeGroupChatIdForSoundRef.current =
+      groupId != null && groupId !== "" ? String(groupId) : null;
+  }, []);
 
   // Use environment variable or default to ngrok URL
   // Socket.io connects at root, not /api, so remove /api suffix if present
@@ -193,11 +223,16 @@ export const SocketProvider = ({ children }) => {
     };
   }, [token]);
 
+  useEffect(() => {
+    unreadNotificationCountRef.current = unreadNotificationCount;
+  }, [unreadNotificationCount]);
+
   // Bind notification listeners to the current socket instance (survives reconnect / state updates reliably).
   useEffect(() => {
     if (!socket) return;
 
     const onNewNotification = () => {
+      armSuppressChatIncomingForNotification();
       playNotificationSound();
     };
 
@@ -211,21 +246,24 @@ export const SocketProvider = ({ children }) => {
               ? data
               : null;
 
+      const prev = Number(unreadNotificationCountRef.current) || 0;
+      let next = prev;
+
       if (count !== null && count !== undefined) {
-        const next = Number(count);
-        setUnreadNotificationCount((prevCount) => {
-          const prev = Number(prevCount) || 0;
-          if (!Number.isNaN(next) && next > prev) {
-            playNotificationSound();
-          }
-          return Number.isNaN(next) ? prev : next;
-        });
+        const n = Number(count);
+        if (!Number.isNaN(n)) next = n;
       } else {
-        setUnreadNotificationCount((prevCount) => {
-          playNotificationSound();
-          return prevCount + 1;
-        });
+        next = prev + 1;
       }
+
+      if (next > prev) {
+        armSuppressChatIncomingForNotification();
+        playNotificationSound();
+      }
+
+      const nextSafe = Number.isNaN(next) ? prev : next;
+      unreadNotificationCountRef.current = nextSafe;
+      setUnreadNotificationCount(nextSafe);
     };
 
     socket.on("new_notification", onNewNotification);
@@ -238,6 +276,43 @@ export const SocketProvider = ({ children }) => {
       socket.off("notification_count_update", onNotificationCountUpdate);
     };
   }, [socket]);
+
+  /* Incoming chat sound app-wide. Does not touch message state — useGroupChatSocket keeps all message logic. */
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const onIncomingMessageSound = (messageData) => {
+      try {
+        const messageGroupId = String(
+          messageData?.group_id || messageData?.groupId || messageData?.group || ""
+        );
+        if (
+          !messageData ||
+          !messageGroupId ||
+          messageGroupId === "undefined" ||
+          messageGroupId === "null"
+        ) {
+          return;
+        }
+        if (isGroupSocketMessageFromSelf(messageData, userRef.current)) return;
+
+        const activeId = activeGroupChatIdForSoundRef.current;
+        const viewingThisThread =
+          Boolean(activeId) && String(activeId) === messageGroupId;
+
+        setTimeout(() => {
+          if (!shouldSuppressChatIncomingSound()) {
+            playChatIncomingSound(viewingThisThread);
+          }
+        }, 0);
+      } catch (_) {
+        /* ignore */
+      }
+    };
+
+    socket.on("message", onIncomingMessageSound);
+    return () => socket.off("message", onIncomingMessageSound);
+  }, [socket, isConnected]);
 
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
@@ -433,6 +508,7 @@ export const SocketProvider = ({ children }) => {
     socket,
     isConnected,
     connectionError,
+    setActiveGroupChatForSound,
     emit,
     joinGroup,
     leaveGroup,

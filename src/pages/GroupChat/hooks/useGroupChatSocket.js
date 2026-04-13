@@ -1,7 +1,5 @@
 import { useEffect, useReducer } from "react";
 import { formatMessage, getMediaLabel } from "../utils/groupChatFormatters";
-import { playChatIncomingSound } from "../../../utils/uiSounds";
-
 function isMessageFromUser(messageData, user) {
   if (!user || !messageData) return false;
   const email = (messageData.sender_email || "").toLowerCase();
@@ -180,14 +178,6 @@ export function useGroupChatSocket(
               return { ...group, subject, unread: newUnread };
             })
           );
-        }
-
-        const soundUser = userRef?.current;
-        if (!isMessageFromUser(messageData, soundUser)) {
-          const viewingThisThread =
-            Boolean(currentGroupIdRef?.current) &&
-            String(currentGroupIdRef.current) === messageGroupId;
-          playChatIncomingSound(viewingThisThread);
         }
       } catch (e) {
         console.error("handleNewMessage:", e);
