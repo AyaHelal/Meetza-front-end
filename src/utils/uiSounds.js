@@ -3,16 +3,15 @@
  * Browsers treat these consistently once the tab has had user interaction (typing in chat counts).
  */
 
-const base = process.env.PUBLIC_URL || "";
+const base = (process.env.PUBLIC_URL || "").replace(/\/$/, "");
 
 const URLS = {
   incomingMessage: `${base}/sounds/incoming-message.mp3`,
   chatMessagePop: `${base}/sounds/chat-message-pop.mp3`,
   sendMessage: `${base}/sounds/send-message.wav`,
-  /** MP3: same decode path as chat sounds; replace file to customize tone */
-  notification: `${base}/sounds/notification.mp3`,
-  notificationWavFallback: `${base}/sounds/notification.wav`,
 };
+
+const NOTIFICATION_SOUND_URL = `${base}/sounds/notification.wav`;
 
 const cache = {};
 
@@ -20,6 +19,7 @@ let unlockListenersAttached = false;
 
 /**
  * Registers listeners: first pointer/key primes cached Audio elements (helps autoplay on some browsers).
+ * Skip priming bell file — bell uses fresh Audio() so it never shares cache with chat sounds.
  */
 export function ensureUiSoundsUnlocked() {
   if (typeof document === "undefined" || unlockListenersAttached) return;
@@ -87,23 +87,60 @@ export function playChatIncomingSound(isActiveThread) {
   playKey(isActiveThread ? "chatMessagePop" : "incomingMessage");
 }
 
-let lastNotificationSoundAt = 0;
+/** Explicit flag: bell / notification path should mute the next chat incoming sounds (not time-based only). */
+let suppressNextChatIncoming = false;
+let suppressChatIncomingTimer = null;
+
+const DEFAULT_BELL_CHAT_SUPPRESS_MS = 1500;
+
+/**
+ * Call when a notification event arrives (before or without playNotificationSound).
+ * Resets the timer on each call so overlapping events stay covered.
+ */
+export function armSuppressChatIncomingForNotification(
+  ms = DEFAULT_BELL_CHAT_SUPPRESS_MS
+) {
+  suppressNextChatIncoming = true;
+  if (suppressChatIncomingTimer) {
+    clearTimeout(suppressChatIncomingTimer);
+    suppressChatIncomingTimer = null;
+  }
+  suppressChatIncomingTimer = setTimeout(() => {
+    suppressNextChatIncoming = false;
+    suppressChatIncomingTimer = null;
+  }, ms);
+}
+
+/**
+ * Group chat: skip playChatIncomingSound while a bell notification is active
+ * (`message` + `notification_count_update` often arrive together; count path used to arm too late).
+ */
+export function shouldSuppressChatIncomingSound() {
+  return suppressNextChatIncoming;
+}
+
+let lastNotificationDebounceAt = 0;
 const NOTIFICATION_SOUND_DEBOUNCE_MS = 400;
 
 /**
- * Same HTMLAudio stack as chat; debounced when `new_notification` + `notification_count_update` fire together.
- * Falls back: notification.mp3 → notification.wav → chat pop (short) if a source fails to play.
+ * Bell only (SocketContext). Plays `notification.wav`.
+ * Never uses chat-message-pop. Fresh Audio() so cache cannot swap files with chat.
  */
 export function playNotificationSound() {
+  armSuppressChatIncomingForNotification(DEFAULT_BELL_CHAT_SUPPRESS_MS);
   const now = Date.now();
-  if (now - lastNotificationSoundAt < NOTIFICATION_SOUND_DEBOUNCE_MS) return;
-  lastNotificationSoundAt = now;
+  if (now - lastNotificationDebounceAt < NOTIFICATION_SOUND_DEBOUNCE_MS) return;
+  lastNotificationDebounceAt = now;
 
-  playKey("notification", () => {
-    playKey("notificationWavFallback", () => {
-      playKey("chatMessagePop");
-    });
-  });
+  try {
+    const el = new Audio(NOTIFICATION_SOUND_URL);
+    el.volume = 1;
+    el.currentTime = 0;
+    const p = el.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 export function playChatSendSound() {

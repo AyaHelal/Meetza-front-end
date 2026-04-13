@@ -72,7 +72,9 @@
     justify-content: center;
     min-width: 20px;
     height: 32px;
-    padding: 0 ;
+    padding: 0;
+    /* Nudge slightly left (toward title) */
+    margin-inline-start: -9px;
     font-size: 14px;
     font-weight: 600;
     color: #ffebee;

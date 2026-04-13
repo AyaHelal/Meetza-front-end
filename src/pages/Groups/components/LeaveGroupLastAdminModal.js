@@ -1,10 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { buildFileUrl } from "../../VideoSessions/services/videoSessionsService";
-
-function candidatePhotoUrl(photo) {
-  if (!photo || typeof photo !== "string") return null;
-  return buildFileUrl(photo.trim()) || null;
-}
 
 /** Hide Super Admins from picker (backend also filters; this is a safety net if `role` is present). */
 function filterOutSuperAdminCandidates(list) {
@@ -19,7 +13,7 @@ function filterOutSuperAdminCandidates(list) {
 }
 
 /**
- * 409 LAST_ADMIN_ASSIGN_REQUIRED — pick successor admin then POST /group/:id/leave again.
+ * LAST_ADMIN_ASSIGN_REQUIRED (e.g. 409) — pick successor admin then POST /group/:id/leave again.
  */
 export default function LeaveGroupLastAdminModal({
   show,
@@ -94,37 +88,28 @@ export default function LeaveGroupLastAdminModal({
               <p className="text-danger small mb-0">No eligible administrators were returned. Contact support.</p>
             ) : (
               <>
-                <label className="form-label fw-semibold small mb-2">New admin</label>
-                <div className="leave-group-candidates list-group mb-3" style={{ maxHeight: 240, overflowY: "auto" }}>
+                <label className="form-label fw-semibold small mb-2" htmlFor="leave-new-admin-user">
+                  New administrator
+                </label>
+                <select
+                  id="leave-new-admin-user"
+                  className="form-select mb-3"
+                  value={selectedId}
+                  onChange={(e) => setSelectedId(e.target.value)}
+                  disabled={submitting}
+                >
+                  <option value="">Select an administrator…</option>
                   {visibleCandidates.map((c) => {
                     const id = String(c.id ?? c.user_id ?? "");
                     const name = String(c.name ?? c.username ?? "User").trim() || "User";
-                    const photoUrl = candidatePhotoUrl(c.user_photo);
-                    const active = selectedId === id;
+                    if (!id) return null;
                     return (
-                      <button
-                        key={id || name}
-                        type="button"
-                        className={`list-group-item list-group-item-action d-flex align-items-center gap-3 py-2 ${
-                          active ? "active" : ""
-                        }`}
-                        onClick={() => setSelectedId(id)}
-                        disabled={submitting || !id}
-                      >
-                        <span className="leave-group-candidate-avatar flex-shrink-0">
-                          {photoUrl ? (
-                            <img src={photoUrl} alt="" className="rounded-circle leave-group-candidate-photo" width={40} height={40} />
-                          ) : (
-                            <span className="leave-group-candidate-initial rounded-circle">
-                              {name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-start fw-medium">{name}</span>
-                      </button>
+                      <option key={id} value={id}>
+                        {name}
+                      </option>
                     );
                   })}
-                </div>
+                </select>
 
                 <label className="form-label fw-semibold small mb-1" htmlFor="leave-new-admin-role">
                   Role for new admin (optional)

@@ -38,6 +38,7 @@ export default function GroupChat() {
     markAllMessagesRead,
     getUnreadCount,
     sendMessage: socketSendMessage,
+    setActiveGroupChatForSound,
   } = useSocket();
 
   const [selectedChat, setSelectedChat] = useState(null);
@@ -76,6 +77,11 @@ export default function GroupChat() {
     if (selectedChat === null || !groupChats?.length) return null;
     return groupChats[selectedChat]?.id ?? null;
   }, [selectedChat, groupChats]);
+
+  useEffect(() => {
+    setActiveGroupChatForSound(currentGroupId);
+    return () => setActiveGroupChatForSound(null);
+  }, [currentGroupId, setActiveGroupChatForSound]);
 
   const {
     messages,
@@ -357,14 +363,18 @@ export default function GroupChat() {
       await refreshGroupsList(false, sel, chatsSnapshot, setSelectedChat);
       setGroupInfo(null);
     } catch (error) {
-      const status = error.response?.status;
       const data = error.response?.data;
-      if (status === 409 && data?.code === "LAST_ADMIN_ASSIGN_REQUIRED") {
+      if (data?.code === "LAST_ADMIN_ASSIGN_REQUIRED") {
         const payload = data?.data || {};
+        const candidates = Array.isArray(payload.admins)
+          ? payload.admins
+          : Array.isArray(payload.candidates)
+            ? payload.candidates
+            : [];
         setLastAdminLeaveModal({
-          groupId: gid,
+          groupId: payload.group_id ?? gid,
           groupName,
-          candidates: Array.isArray(payload.candidates) ? payload.candidates : [],
+          candidates,
           currentAdminRole: payload.current_admin_role ?? null,
         });
       } else {

@@ -14,6 +14,7 @@ import {
   BookmarkSimple,
 } from "@phosphor-icons/react";
 import api from "../../API/axiosInstance";
+import { getGroups } from "../../pages/GroupChat/services/groupChatService";
 import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
 import MobileHeader from "../MobileHeader/MobileHeader";
@@ -32,7 +33,15 @@ const AppLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logoutUser } = useContext(AuthContext);
-  const { socket, isConnected, unreadNotificationCount, setUnreadNotificationCount, markAllNotificationsRead, getUnreadNotificationCount } = useSocket();
+  const {
+    socket,
+    isConnected,
+    joinGroup,
+    unreadNotificationCount,
+    setUnreadNotificationCount,
+    markAllNotificationsRead,
+    getUnreadNotificationCount,
+  } = useSocket();
   const [activeNav, setActiveNav] = useState("messages");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -64,6 +73,29 @@ const AppLayout = () => {
     const interval = setInterval(syncActiveMeetingFromStorage, 500);
     return () => clearInterval(interval);
   }, [syncActiveMeetingFromStorage]);
+
+  // Re-join all chat rooms on route + when socket connects so `message` (and global sound) works off /messages,
+  // without changing useGroupChatSocket join/leave behavior.
+  useEffect(() => {
+    if (!socket || !isConnected || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await getGroups(api);
+        if (cancelled || !Array.isArray(groups)) return;
+        groups.forEach((g) => {
+          const id = g?.id;
+          if (id == null) return;
+          joinGroup(id, () => {});
+        });
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [socket, isConnected, user, location.pathname, joinGroup]);
 
   // Fetch initial count when socket connects (only once)
   useEffect(() => {
