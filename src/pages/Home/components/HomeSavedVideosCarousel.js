@@ -25,6 +25,7 @@ export default function HomeSavedVideosCarousel({ videos = null, limit = 10 }) {
       loading={loading}
       error={error}
       emptyMessage="No saved videos"
+      videoCardLinkTarget="saved"
     />
   );
 }

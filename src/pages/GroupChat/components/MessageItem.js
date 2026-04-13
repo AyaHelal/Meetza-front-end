@@ -232,21 +232,11 @@ const MessageItem = ({
       {!isOwnMessage && (
         <div className="message-header">
           <span className="message-sender">{message.sender}</span>
-          {!preview && onReply && !message.is_deleted && !String(message.id || '').startsWith('temp-') && (
-            <button type="button" className="message-reply-btn" onClick={handleReply}>
-              Reply
-            </button>
-          )}
           <span className="message-time">{message.time}</span>
         </div>
       )}
       {isOwnMessage && (
         <div className="message-header message-header-own">
-          {!preview && onReply && !message.is_deleted && !String(message.id || '').startsWith('temp-') && (
-            <button type="button" className="message-reply-btn message-reply-btn-own" onClick={handleReply}>
-              Reply
-            </button>
-          )}
           <span className="message-time">{message.time}</span>
         </div>
       )}

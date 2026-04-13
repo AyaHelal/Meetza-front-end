@@ -47,6 +47,9 @@ function GroupChatLayout({
   onLoadMoreMessages,
   onVideoSessionsClick,
   onRefreshGroupInfo,
+  showLeaveGroupInInfo = false,
+  onLeaveGroupClick,
+  leaveGroupLoading = false,
 }) {
   const emptyMessages = useMemo(() => [], []);
 
@@ -123,6 +126,9 @@ function GroupChatLayout({
           onOpenNotifications={onOpenNotifications}
           unreadNotificationCount={unreadNotificationCount}
           onVideoSessionsClick={onVideoSessionsClick}
+          showLeaveGroupInInfo={showLeaveGroupInInfo}
+          onLeaveGroupClick={onLeaveGroupClick}
+          leaveGroupLoading={leaveGroupLoading}
         />
       )}
     </div>

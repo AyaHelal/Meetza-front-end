@@ -108,6 +108,15 @@ export function joinGroup(groupId, memberId) {
   return api.post('/group-membership/', { group_id: groupId, member_id: memberId });
 }
 
+/**
+ * Leave group (member or group admin).
+ * POST /group/:id/leave — body `{}` or `{ new_admin_id, new_admin_role?: 'OWNER'|'ADMIN' }` for last admin.
+ */
+export function leaveGroup(groupId, body = {}) {
+  const id = encodeURIComponent(String(groupId));
+  return api.post(`/group/${id}/leave`, body);
+}
+
 export function deleteMembership(membershipId) {
   return api.delete(`/group-membership/${membershipId}`);
 }

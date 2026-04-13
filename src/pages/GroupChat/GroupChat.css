@@ -755,25 +755,8 @@ body.group-chat-active {
   color: #999;
 }
 
-.message-reply-btn {
+.message-header:not(.message-header-own) .message-time {
   margin-left: auto;
-  padding: 0 8px;
-  border: none;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 600;
-  color: #1976d2;
-  cursor: pointer;
-  border-radius: 8px;
-}
-
-.message-reply-btn:hover {
-  background: rgba(25, 118, 210, 0.08);
-}
-
-.message-header-own .message-reply-btn-own {
-  margin-left: 0;
-  margin-right: auto;
 }
 
 .message-reply-quote {
@@ -1618,6 +1601,131 @@ body.group-chat-active {
   flex-shrink: 0;
 }
 
+.group-info .group-info-header .group-info-title {
+  margin-bottom: 0;
+}
+
+.group-info-header {
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.group-info-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.group-info-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-info-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.group-info-scroll::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.group-info-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+.group-info-leave-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.group-info-leave-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.group-info-leave-row-icon svg {
+  color: inherit;
+}
+
+.group-info-leave-row-label {
+  font-size: inherit;
+  font-weight: 500;
+  color: inherit;
+}
+
+.group-info-leave-row:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+.group-info-leave-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.leave-group-last-admin-modal-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 2000;
+}
+
+.leave-group-last-admin-modal-dialog {
+  width: min(680px, 100%);
+  margin: 0 auto;
+}
+
+.leave-group-last-admin-modal-content {
+  max-height: min(85vh, 760px);
+  overflow: hidden;
+}
+
+.leave-group-candidate-avatar {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leave-group-candidate-photo {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  display: block;
+}
+
+.leave-group-candidate-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #e5e7eb;
+  color: #374151;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .calendar-section-empty-state {
   display: flex;
   flex-direction: column;
@@ -1908,6 +2016,12 @@ body.group-chat-active {
 .group-info {
   flex-shrink: 0;
   background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  /* Same visual height as ~ header + 3 rows; scroll inside for Members row + Leave */
+  max-height: 260px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .info-item {
@@ -2847,6 +2961,11 @@ body.group-chat-active {
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    max-height: 260px;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .group-info h4 {
@@ -4240,8 +4359,7 @@ body.group-chat-active {
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
 }
 
-.message-context-float-host .message-media,
-.message-context-float-host .message-reply-btn {
+.message-context-float-host .message-media {
   pointer-events: none;
 }
 

@@ -1,9 +1,14 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { ArrowRight } from "@phosphor-icons/react";
 
 export default function HomeStatCard({ item }) {
   const Icon = item.icon;
+  const to = item.to;
+  const arrowClass =
+    "home-stat-card-arrow flex-shrink-0 d-flex align-items-center justify-content-center p-0 border-0";
+
   return (
     <div className="home-stat-card d-flex flex-column h-100">
       <div className="home-stat-card-head d-flex flex-column min-w-0 flex-grow-1">
@@ -20,14 +25,21 @@ export default function HomeStatCard({ item }) {
         </div>
       </div>
       <div className="home-stat-card-arrow-row d-flex justify-content-end">
-        <Button
-          type="button"
-          variant="primary"
-          className="home-stat-card-arrow flex-shrink-0 d-flex align-items-center justify-content-center p-0 border-0"
-          aria-label={`Open ${item.title}`}
-        >
-          <ArrowRight size={20} weight="bold" />
-        </Button>
+        {to ? (
+          <Button
+            as={Link}
+            to={to}
+            variant="primary"
+            className={arrowClass}
+            aria-label={`Go to ${item.title}`}
+          >
+            <ArrowRight size={20} weight="bold" />
+          </Button>
+        ) : (
+          <Button type="button" variant="primary" className={arrowClass} disabled aria-label={item.title}>
+            <ArrowRight size={20} weight="bold" />
+          </Button>
+        )}
       </div>
     </div>
   );

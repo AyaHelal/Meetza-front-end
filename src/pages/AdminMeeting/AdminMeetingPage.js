@@ -823,6 +823,13 @@ const AdminMeetingPage = () => {
         return new Date() > new Date(endTime);
     };
 
+    /** True if start_time is still in the future — Join is hidden until the meeting begins. */
+    const isMeetingNotStartedYet = (meeting) => {
+        const startTime = meeting?.start_time;
+        if (!startTime) return false;
+        return Date.now() < new Date(startTime).getTime();
+    };
+
     return (
         <div className="admin-meeting-page">
             {/* ── LEFT CONTENT ── */}
@@ -960,17 +967,19 @@ const AdminMeetingPage = () => {
                                         {getTimeRange(meeting.start_time, meeting.end_time)}
                                     </p>
 
-                                    <button
-                                        type="button"
-                                        className={`join-meeting-btn ${isMeetingEnded(meeting) ? "join-meeting-btn--ended" : ""}`}
-                                        onClick={() =>
-                                            !isMeetingEnded(meeting) && handleJoinMeeting(meeting.id || meeting.meeting_id)
-                                        }
-                                        disabled={isMeetingEnded(meeting)}
-                                        title={isMeetingEnded(meeting) ? "Meeting has ended" : "Join meeting"}
-                                    >
-                                        {isMeetingEnded(meeting) ? "Ended" : "Join"}
-                                    </button>
+                                    {!isMeetingNotStartedYet(meeting) && (
+                                        <button
+                                            type="button"
+                                            className={`join-meeting-btn ${isMeetingEnded(meeting) ? "join-meeting-btn--ended" : ""}`}
+                                            onClick={() =>
+                                                !isMeetingEnded(meeting) && handleJoinMeeting(meeting.id || meeting.meeting_id)
+                                            }
+                                            disabled={isMeetingEnded(meeting)}
+                                            title={isMeetingEnded(meeting) ? "Meeting has ended" : "Join meeting"}
+                                        >
+                                            {isMeetingEnded(meeting) ? "Ended" : "Join"}
+                                        </button>
+                                    )}
 
                                     <div className="meeting-card-actions">
                                         <button

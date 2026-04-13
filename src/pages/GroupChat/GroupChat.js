@@ -19,6 +19,9 @@ import {
 import { useMainChatMeeting } from "./hooks/useMainChatMeeting";
 import { getMeetingsByGroupId } from "./services/mainChatService";
 import { getGroupInfo } from "./services/groupChatService";
+import { leaveGroup as leaveGroupHttp } from "../Groups/services/groupsService";
+import LeaveGroupLastAdminModal from "../Groups/components/LeaveGroupLastAdminModal";
+import { smartToast } from "../../API/toastManager";
 import { meetingToCalendarEvent, getMeetingId } from "./utils/mainChatMeetingUtils";
 import { extractLinksFromMessages } from "./utils/groupChatFormatters";
 
@@ -43,6 +46,9 @@ export default function GroupChat() {
   const [activeInfoSection, setActiveInfoSection] = useState(null);
   const [showRightSidebarMobile, setShowRightSidebarMobile] = useState(false);
   const [groupMeetings, setGroupMeetings] = useState([]);
+  const [leaveGroupLoading, setLeaveGroupLoading] = useState(false);
+  const [lastAdminLeaveModal, setLastAdminLeaveModal] = useState(null);
+  const [lastAdminLeaveSubmitting, setLastAdminLeaveSubmitting] = useState(false);
 
   const userRef = useRef(user);
   const markAllMessagesReadRef = useRef(markAllMessagesRead);
@@ -329,6 +335,89 @@ export default function GroupChat() {
   const selectedChatData =
     selectedChat !== null ? groupChats[selectedChat] : null;
 
+  const showLeaveGroupInInfo = useMemo(() => {
+    if (selectedChat === null || !currentGroupId || !user?.id) return false;
+    const r = String(user?.role || "").toLowerCase();
+    if (r.includes("super_admin") || r.includes("super-admin")) return false;
+    return true;
+  }, [selectedChat, currentGroupId, user?.id, user?.role]);
+
+  const handleLeaveGroupClick = useCallback(async () => {
+    if (!currentGroupId || leaveGroupLoading) return;
+    const gid = currentGroupId;
+    const sel = selectedChat;
+    const chatsSnapshot = [...groupChats];
+    const groupName =
+      selectedChat !== null ? groupChats[selectedChat]?.name ?? "" : "";
+    setLeaveGroupLoading(true);
+    try {
+      await leaveGroupHttp(gid, {});
+      smartToast.success("You left the group");
+      setLastAdminLeaveModal(null);
+      await refreshGroupsList(false, sel, chatsSnapshot, setSelectedChat);
+      setGroupInfo(null);
+    } catch (error) {
+      const status = error.response?.status;
+      const data = error.response?.data;
+      if (status === 409 && data?.code === "LAST_ADMIN_ASSIGN_REQUIRED") {
+        const payload = data?.data || {};
+        setLastAdminLeaveModal({
+          groupId: gid,
+          groupName,
+          candidates: Array.isArray(payload.candidates) ? payload.candidates : [],
+          currentAdminRole: payload.current_admin_role ?? null,
+        });
+      } else {
+        smartToast.error(data?.message || error.message || "Failed to leave group");
+      }
+    } finally {
+      setLeaveGroupLoading(false);
+    }
+  }, [
+    currentGroupId,
+    leaveGroupLoading,
+    selectedChat,
+    groupChats,
+    refreshGroupsList,
+    setSelectedChat,
+    setGroupInfo,
+  ]);
+
+  const handleLastAdminLeaveConfirm = useCallback(
+    async (body) => {
+      if (!lastAdminLeaveModal?.groupId) return;
+      const gid = lastAdminLeaveModal.groupId;
+      const sel = selectedChat;
+      const chatsSnapshot = [...groupChats];
+      setLastAdminLeaveSubmitting(true);
+      try {
+        await leaveGroupHttp(gid, body);
+        smartToast.success("You left the group");
+        setLastAdminLeaveModal(null);
+        await refreshGroupsList(false, sel, chatsSnapshot, setSelectedChat);
+        setGroupInfo(null);
+      } catch (error) {
+        const data = error.response?.data;
+        smartToast.error(data?.message || error.message || "Failed to leave group");
+      } finally {
+        setLastAdminLeaveSubmitting(false);
+      }
+    },
+    [
+      lastAdminLeaveModal,
+      selectedChat,
+      groupChats,
+      refreshGroupsList,
+      setSelectedChat,
+      setGroupInfo,
+    ],
+  );
+
+  const closeLastAdminLeaveModal = useCallback(() => {
+    if (lastAdminLeaveSubmitting) return;
+    setLastAdminLeaveModal(null);
+  }, [lastAdminLeaveSubmitting]);
+
   const rawContentResources = useMemo(
     () => groupInfo?.content?.resources || [],
     [groupInfo]
@@ -592,6 +681,18 @@ export default function GroupChat() {
         onLoadMoreMessages={loadMoreMessages}
         onVideoSessionsClick={handleVideoSessionsClick}
         onRefreshGroupInfo={refreshGroupInfo}
+        showLeaveGroupInInfo={showLeaveGroupInInfo}
+        onLeaveGroupClick={handleLeaveGroupClick}
+        leaveGroupLoading={leaveGroupLoading}
+      />
+      <LeaveGroupLastAdminModal
+        show={Boolean(lastAdminLeaveModal)}
+        groupName={lastAdminLeaveModal?.groupName}
+        candidates={lastAdminLeaveModal?.candidates ?? []}
+        currentAdminRole={lastAdminLeaveModal?.currentAdminRole}
+        onClose={closeLastAdminLeaveModal}
+        onConfirm={handleLastAdminLeaveConfirm}
+        submitting={lastAdminLeaveSubmitting}
       />
       <div ref={videoSectionRef} id="video-sessions-section" className="video-sessions-section-wrap">
         <VideoSessionsProvider>

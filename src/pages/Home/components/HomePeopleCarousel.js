@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { Button } from "react-bootstrap";
 import { useHomeLeaders, useHorizontalCardSlider } from "../hooks";
 import { DEFAULT_HOME_PEOPLE } from "../services";
 import HomePeopleCard from "./HomePeopleCard";
@@ -75,12 +74,6 @@ export default function HomePeopleCarousel({ people = null }) {
         >
           <span className="carousel-control-next-icon" aria-hidden />
         </button>
-      </div>
-
-      <div className="home-section-footer">
-        <Button variant="link" className="home-see-more text-decoration-none p-0">
-          See more
-        </Button>
       </div>
     </section>
   );

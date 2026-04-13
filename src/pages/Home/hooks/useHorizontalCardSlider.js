@@ -14,6 +14,8 @@ export function useHorizontalCardSlider(slideSelector, list = []) {
   const trackRef = useRef(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
+  /** True when row content is wider than the visible track (horizontal scroll needed). */
+  const [hasOverflow, setHasOverflow] = useState(false);
 
   const boundsKey = listBoundsKey(list);
 
@@ -23,6 +25,7 @@ export function useHorizontalCardSlider(slideSelector, list = []) {
     const { scrollLeft, scrollWidth, clientWidth } = el;
     const max = scrollWidth - clientWidth;
     const eps = 4;
+    setHasOverflow(scrollWidth > clientWidth + eps);
     setCanPrev(scrollLeft > eps);
     setCanNext(scrollLeft < max - eps);
   }, []);
@@ -33,7 +36,17 @@ export function useHorizontalCardSlider(slideSelector, list = []) {
     updateScrollState();
     const ro = new ResizeObserver(() => updateScrollState());
     ro.observe(el);
-    return () => ro.disconnect();
+    const onWinResize = () => updateScrollState();
+    window.addEventListener("resize", onWinResize);
+    const mo = new MutationObserver(() => {
+      requestAnimationFrame(updateScrollState);
+    });
+    mo.observe(el, { childList: true, subtree: true });
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+      window.removeEventListener("resize", onWinResize);
+    };
   }, [updateScrollState, slideSelector, boundsKey]);
 
   const scrollByDirection = useCallback(
@@ -52,5 +65,5 @@ export function useHorizontalCardSlider(slideSelector, list = []) {
     [slideSelector, updateScrollState]
   );
 
-  return { trackRef, canPrev, canNext, updateScrollState, scrollByDirection };
+  return { trackRef, canPrev, canNext, hasOverflow, updateScrollState, scrollByDirection };
 }
