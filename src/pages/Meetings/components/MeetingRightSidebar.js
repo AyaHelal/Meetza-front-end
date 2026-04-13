@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, Trash, UserCircle } from '@phosphor-icons/react';
+import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, Trash, UserCircle, Info } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
 import api from '../../../API/axiosInstance';
 import { smartToast } from '../../../API/toastManager';
@@ -372,7 +372,12 @@ const MeetingRightSidebar = () => {
             {/* Meeting Description + Resources */}
             <div className="video-description-card">
                 <div className="video-description-header">
-                    <h3 className="video-description-title fw-semibold">Video Description</h3>
+                    <h3 className="video-description-title fw-semibold">
+                        Video description
+                        <span className="video-description-title-info" aria-hidden>
+                            <Info size={16} weight="regular" />
+                        </span>
+                    </h3>
                     {showAddResourceBtn && (
                         <>
                             <input
@@ -466,7 +471,7 @@ const MeetingRightSidebar = () => {
 
             {/* Participate Card */}
             <div className="participate-card">
-                <h3 className="participate-title fw-semibold">Participate</h3>
+                <h3 className="participate-title fw-semibold">Participants</h3>
                 <div className="participants-list ">
                     {!meetingId ? (
                         <div className="participant-item">

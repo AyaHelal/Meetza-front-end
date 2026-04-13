@@ -7,7 +7,6 @@
   --profile-card-radius: 20px;
   --profile-card-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
   --profile-meetings-card-max-height: 340px;
-  /* ارتفاع غلاف Ongoing الداكن (ثابت = القيمة دي؛ min + max بنفس المتغير) */
   --profile-ongoing-shell-max-height: 175px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -149,6 +148,30 @@
   background: rgba(13, 110, 253, 0.08) !important;
 }
 
+.profile-field-delete-btn {
+  color: #b91c1c !important;
+}
+
+.profile-field-delete-btn:hover:not(:disabled) {
+  color: #991b1b !important;
+  background: rgba(185, 28, 28, 0.08) !important;
+}
+
+.profile-field-delete-btn:disabled {
+  color: #94a3b8 !important;
+}
+
+/* Inline name edit — avoid global `* { max-width: 100% }` (Login.css) constraining the field oddly */
+.profile-name-edit {
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-name-edit-input.form-control {
+  width: 100%;
+  max-width: 100%;
+}
+
 /* Notification card — reference: bold title, hairline dividers, blue pill highlight */
 .profile-notif-card .card-body {
   border-radius: inherit;
@@ -278,6 +301,32 @@
   pointer-events: none;
 }
 
+.profile-saved-video-card--live {
+  cursor: pointer;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.profile-saved-video-card--live:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.profile-saved-videos-view-all:hover,
+.profile-saved-videos-view-all:focus-visible {
+  text-decoration: underline !important;
+}
+
+.profile-saved-videos-status {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+}
+
+.profile-saved-videos-status--error {
+  color: #fecaca;
+}
+
 /* Must stay position:absolute to fill .ratio (never add position-relative on this node — it breaks Ratio) */
 .profile-saved-video-card .ratio > .profile-saved-video-frame {
   position: absolute;
@@ -347,10 +396,29 @@
   min-height: 0;
 }
 
+.profile-meetings-card__head {
+  flex-shrink: 0;
+  padding: 1rem 1.1rem 0.65rem;
+}
+
+.profile-meetings-view-calendar {
+  color: #0d6efd !important;
+  font-weight: 600;
+}
+
+.profile-meetings-view-calendar:hover,
+.profile-meetings-view-calendar:focus-visible {
+  color: #0a58ca !important;
+}
+
+.profile-meetings-status {
+  padding: 0.5rem 1rem 0.75rem;
+}
+
 .profile-meetings-card__title {
   flex-shrink: 0;
   margin: 0;
-  padding: 1rem 1.1rem 0.65rem;
+  padding: 0;
   font-size: 1rem;
   font-weight: 700;
   color: #0a0a0a;
@@ -428,6 +496,10 @@
   height: 8px;
   border-radius: 50%;
   background: #ef4444;
+}
+
+.profile-meeting-live-dot--idle {
+  background: #cbd5e1;
 }
 
 .profile-meeting-group-name {

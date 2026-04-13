@@ -3,7 +3,7 @@ import { jwtDecode } from "jwt-decode";
 /**
  * Reads the JWT token from localStorage (then sessionStorage) and decodes it.
  * Returns { id, email, role, name, photo } from the token payload. No verification logic.
- * @returns {{ id, email, role, name?, photo? } | null}
+ * @returns {{ id, email, role, name?, photo?, position_id? } | null}
  */
 export function extractUserFromToken() {
     try {
@@ -27,6 +27,12 @@ export function extractUserFromToken() {
             name: payload.name ?? payload.full_name ?? payload.user_name ?? payload.username ?? null,
             photo,
             user_photo: payload.user_photo ?? photo ?? null,
+            position_id:
+                payload.position_id ??
+                payload.positionId ??
+                payload.PositionId ??
+                payload.user_position_id ??
+                null,
         };
     } catch {
         return null;

@@ -16,7 +16,9 @@ const UserPhoto = ({
   showName = false, 
   className = '',
   onClick,
-  variant = 'default' // 'default', 'sidebar', 'status'
+  variant = 'default', // 'default', 'sidebar', 'status'
+  /** When set, the hidden file input gets this `id` so a parent can call `document.getElementById(id)?.click()`. */
+  fileInputId,
 }) => {
   const { user: authUser, loginUser, initializing } = useContext(AuthContext);
   const [isUploading, setIsUploading] = useState(false);
@@ -225,6 +227,7 @@ const UserPhoto = ({
     <div className={containerClass}>
       <input
         ref={fileInputRef}
+        id={fileInputId || undefined}
         type="file"
         accept="image/*"
         style={{ display: 'none' }}

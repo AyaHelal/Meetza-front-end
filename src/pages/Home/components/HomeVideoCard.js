@@ -12,6 +12,8 @@ export default function HomeVideoCard({ video }) {
   const progress = clamp01(video?.progress);
   const thumbnailUrl =
     video?.thumbnailUrl ||
+    video?.thumbnail_url ||
+    video?.poster_url ||
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60";
 
   const isWatching = status === "watching";

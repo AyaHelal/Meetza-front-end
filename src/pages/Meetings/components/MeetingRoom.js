@@ -52,7 +52,19 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
-  const { participants, setParticipants, setMeetingId, setHasJoined, hasJoined, addChatMessage, localParticipantAudioMuted, setLocalParticipantAudioMuted, mediaStateMap, setMediaStateMap } = useMeetingContext();
+  const {
+    participants,
+    setParticipants,
+    setMeetingId,
+    setHasJoined,
+    hasJoined,
+    addChatMessage,
+    localParticipantAudioMuted,
+    setLocalParticipantAudioMuted,
+    mediaStateMap,
+    setMediaStateMap,
+    micLockedByAdmin,
+  } = useMeetingContext();
 
   // Get persistent media streams and state from MediaContext
   const {
@@ -739,6 +751,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
         setCommentText={chat.setCommentText}
         audioMuted={audioMuted}
         videoMuted={videoMuted}
+        micLockedByAdmin={micLockedByAdmin}
         handRaised={hand.handRaised}
         screenSharing={screenSharing}
         meetingId={meetingId}

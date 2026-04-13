@@ -125,7 +125,7 @@ export function useGroupChatSocket(
                 if (isFromCurrentUser && msg.text === messageData.message) {
                   const timeDiff = Math.abs(
                     new Date(msg.created_at).getTime() -
-                      new Date(messageData.created_at).getTime()
+                    new Date(messageData.created_at).getTime()
                   );
                   if (timeDiff < 10000) return true;
                 }
