@@ -26,7 +26,7 @@ function mapHomeSavedVideo(v) {
     thumbnailUrl: v?.thumbnail_url || v?.thumbnailUrl || v?.poster_url || v?.posterUrl || "",
     slug: v?.slug,
     groupId: v?.group_id ?? v?.groupId,
-    groupName: v?.group_name ?? v?.groupName,
+    groupName: v?.group_name ?? v?.groupName ?? v?.group?.group_name ?? v?.group?.name,
     duration: v?.duration,
     raw: v,
   };

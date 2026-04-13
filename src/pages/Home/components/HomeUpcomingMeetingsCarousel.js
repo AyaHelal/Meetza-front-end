@@ -1,16 +1,29 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Button } from "react-bootstrap";
-import { useHorizontalCardSlider } from "../hooks";
-import { DEFAULT_UPCOMING_MEETINGS } from "../services";
+import { useNavigate } from "react-router-dom";
+import { useHorizontalCardSlider, useHomeUpcomingMeetings } from "../hooks";
 import HomeMeetingCard from "./HomeMeetingCard";
 
 const SLIDE_SELECTOR = ".home-meetings-slider-slide";
 
 /**
- * Upcoming meetings: horizontal row + scroll-by-nav (same pattern as stats slider)
+ * Upcoming meetings from GET /home/upcoming-meetings; horizontal row + scroll-by-nav.
  */
-function HomeUpcomingMeetingsCarousel({ meetings = DEFAULT_UPCOMING_MEETINGS }) {
-  const { trackRef, canPrev, canNext, updateScrollState, scrollByDirection } =
+function HomeUpcomingMeetingsCarousel({ meetings: meetingsProp = null, limit = 10 }) {
+  const navigate = useNavigate();
+  const shouldFetch = !Array.isArray(meetingsProp);
+  const { meetings: apiMeetings, loading, error } = useHomeUpcomingMeetings({
+    enabled: shouldFetch,
+    limit,
+    toastOnError: true,
+  });
+
+  const meetings = useMemo(() => {
+    if (Array.isArray(meetingsProp)) return meetingsProp;
+    return apiMeetings;
+  }, [meetingsProp, apiMeetings]);
+
+  const { trackRef, canPrev, canNext, hasOverflow, updateScrollState, scrollByDirection } =
     useHorizontalCardSlider(SLIDE_SELECTOR, meetings);
 
   return (
@@ -35,11 +48,31 @@ function HomeUpcomingMeetingsCarousel({ meetings = DEFAULT_UPCOMING_MEETINGS }) 
           aria-label="Upcoming meetings"
           onScroll={updateScrollState}
         >
-          {meetings.map((m) => (
-            <div key={m.id} className="home-meetings-slider-slide">
-              <HomeMeetingCard meeting={m} />
+          {shouldFetch && loading ? (
+            <div className="home-meetings-slider-slide">
+              <div className="home-meeting-card h-100 d-flex flex-column justify-content-center p-3">
+                <p className="text-muted small mb-0">Loading upcoming meetings…</p>
+              </div>
             </div>
-          ))}
+          ) : shouldFetch && error ? (
+            <div className="home-meetings-slider-slide w-100">
+              <div className="home-meeting-card border-0 shadow-none bg-transparent h-100 p-3">
+                <p className="text-danger small mb-0">{error}</p>
+              </div>
+            </div>
+          ) : meetings.length === 0 ? (
+            <div className="home-meetings-slider-slide w-100">
+              <div className="home-meeting-card border-0 shadow-none bg-transparent h-100 p-3">
+                <p className="text-muted small mb-0">No upcoming meetings</p>
+              </div>
+            </div>
+          ) : (
+            meetings.map((m, idx) => (
+              <div key={m.id || `upcoming-${idx}`} className="home-meetings-slider-slide">
+                <HomeMeetingCard meeting={m} />
+              </div>
+            ))
+          )}
         </div>
         <button
           type="button"
@@ -51,11 +84,17 @@ function HomeUpcomingMeetingsCarousel({ meetings = DEFAULT_UPCOMING_MEETINGS }) 
           <span className="carousel-control-next-icon" aria-hidden />
         </button>
       </div>
-      <div className="home-section-footer">
-        <Button variant="link" className="home-see-more text-decoration-none p-0">
-          See more
-        </Button>
-      </div>
+      {hasOverflow && (
+        <div className="home-section-footer">
+          <Button
+            variant="link"
+            className="home-see-more text-decoration-none p-0"
+            onClick={() => navigate("/calendar")}
+          >
+            See more
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

@@ -8,7 +8,7 @@ export default function HomeMeetingCard({ meeting }) {
         <div className="home-meeting-accent" aria-hidden="true" />
         <div className="home-meeting-header-text d-flex flex-column min-w-0">
           <p className="home-meeting-group-label">{meeting.groupLabel}</p>
-          <p className="home-meeting-course">{meeting.course}</p>
+          <p className="home-meeting-title">{meeting.course ?? meeting.title}</p>
         </div>
       </div>
       <div className="home-meeting-times d-flex flex-column gap-2 ">

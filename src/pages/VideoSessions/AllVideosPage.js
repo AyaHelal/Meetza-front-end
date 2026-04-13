@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Lottie from "lottie-react";
 import noDataFoundAnimation from "../../lottie/noDataFound.json";
 import { useAuth } from "../../context/AuthContext";
@@ -16,6 +16,7 @@ import "./VideoSessions.css";
 
 function AllVideosContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +104,36 @@ function AllVideosContent() {
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  /** Open the same detail + related grid as clicking a card (e.g. from Home). */
+  useEffect(() => {
+    const id = location.state?.openVideoId;
+    const slug = location.state?.openVideoSlug;
+    const hasIntent =
+      (id != null && String(id).trim() !== "") || (slug != null && String(slug).trim() !== "");
+    if (!hasIntent) return;
+    if (loading) return;
+
+    const idNorm = id != null && String(id).trim() !== "" ? String(id) : null;
+    const slugNorm = slug != null && String(slug).trim() !== "" ? String(slug) : null;
+
+    const found = sessions.find((s) => {
+      if (idNorm && String(s.id) === idNorm) return true;
+      if (slugNorm && s.slug != null && String(s.slug) === slugNorm) return true;
+      return false;
+    });
+
+    if (found) {
+      setSelectedSession(found);
+      navigate({ pathname: "/video", search: location.search }, { replace: true });
+      return;
+    }
+
+    const param = idNorm || slugNorm;
+    if (param) {
+      navigate(`/video/${encodeURIComponent(param)}`, { replace: true });
+    }
+  }, [loading, sessions, location.state, location.search, navigate]);
 
   const filteredSessions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();

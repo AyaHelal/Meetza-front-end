@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import VideoSessionDetail from "./components/VideoSessionDetail";
 import { getVideoBySlug, parseSession } from "./services";
@@ -54,7 +54,15 @@ export default function VideoBySlugPage() {
     };
   }, [slug]);
 
-  const relatedSessions = useMemo(() => [], []);
+  const handleSelectRelated = useCallback(
+    (next) => {
+      if (!next) return;
+      const param = next.slug ?? next.id;
+      if (param == null || String(param).trim() === "") return;
+      navigate(`/video/${encodeURIComponent(String(param))}`);
+    },
+    [navigate],
+  );
 
   if (loading) {
     return (
@@ -96,10 +104,10 @@ export default function VideoBySlugPage() {
     <div className="video-sessions-page all-videos-page">
       <VideoSessionDetail
         session={session}
-        relatedSessions={relatedSessions}
+        relatedSessions={[]}
         onBack={() => navigate(-1)}
-        onSelectSession={() => {}}
-        useGlobalRelated={false}
+        onSelectSession={handleSelectRelated}
+        useGlobalRelated
         isAdmin={false}
         autoScrollToComments
       />

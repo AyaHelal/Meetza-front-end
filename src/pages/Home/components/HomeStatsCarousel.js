@@ -1,15 +1,32 @@
-import React from "react";
-import { Button } from "react-bootstrap";
-import { useHorizontalCardSlider } from "../hooks";
-import { DEFAULT_HOME_STAT_ITEMS } from "../services";
+import React, { useContext, useMemo } from "react";
+import { AuthContext } from "../../../context/AuthContext";
+import { useHorizontalCardSlider, useHomeStats } from "../hooks";
+import { buildHomeStatItems, getMeetingsStatLinkForRole } from "../services";
 import HomeStatCard from "./HomeStatCard";
 
 const SLIDE_SELECTOR = ".home-stats-slider-slide";
 
 /**
  * Stats: horizontal row of cards + scroll-by-nav (not paged carousel slides)
+ * Counts from GET /home/stats; arrow navigates to the related app area.
  */
-function HomeStatsCarousel({ items = DEFAULT_HOME_STAT_ITEMS }) {
+function HomeStatsCarousel({ items: itemsProp = null }) {
+  const { user } = useContext(AuthContext);
+  const { data, loading, error } = useHomeStats({ enabled: itemsProp == null, toastOnError: true });
+
+  const items = useMemo(() => {
+    if (Array.isArray(itemsProp)) return itemsProp;
+
+    const meetingsTo = getMeetingsStatLinkForRole(user?.role);
+    const withMeetingsLink = (list) =>
+      list.map((it) => (it.key === "meetings" ? { ...it, to: meetingsTo } : it));
+
+    if (loading && data == null && !error) {
+      return withMeetingsLink(buildHomeStatItems({}).map((x) => ({ ...x, value: "—" })));
+    }
+    return withMeetingsLink(buildHomeStatItems(data ?? {}));
+  }, [itemsProp, data, loading, error, user?.role]);
+
   const { trackRef, canPrev, canNext, updateScrollState, scrollByDirection } =
     useHorizontalCardSlider(SLIDE_SELECTOR, items);
 
@@ -50,11 +67,6 @@ function HomeStatsCarousel({ items = DEFAULT_HOME_STAT_ITEMS }) {
         >
           <span className="carousel-control-next-icon" aria-hidden />
         </button>
-      </div>
-      <div className="home-section-footer">
-        <Button variant="link" className="home-see-more text-decoration-none p-0">
-          See more
-        </Button>
       </div>
     </section>
   );

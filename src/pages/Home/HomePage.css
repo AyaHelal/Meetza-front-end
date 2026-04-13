@@ -551,6 +551,23 @@
   overflow: hidden;
 }
 
+a.home-video-card.home-video-card--link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+a.home-video-card.home-video-card--link:hover {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+}
+
+a.home-video-card.home-video-card--link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .home-video-card-thumb {
   position: relative;
   width: 100%;
@@ -574,8 +591,23 @@
   font-size: 0.9rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.4rem 0;
+  margin: 0 0 0.2rem 0;
   line-height: 1.25;
+}
+
+.home-video-card-title.home-video-card-title--solo {
+  margin-bottom: 0.4rem;
+}
+
+.home-video-card-group {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0 0 0.4rem 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-video-card-status {
@@ -736,7 +768,8 @@
   line-height: 1.25;
 }
 
-.home-meeting-header-text .home-meeting-course {
+.home-meeting-header-text .home-meeting-course,
+.home-meeting-header-text .home-meeting-title {
   font-size: 0.85rem;
   font-weight: 400;
   color: #6b7280;

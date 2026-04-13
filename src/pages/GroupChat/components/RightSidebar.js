@@ -26,6 +26,9 @@ const RightSidebar = ({
     memberCount,
     selectedChat,
     onVideoSessionsClick,
+    showLeaveGroupInInfo = false,
+    onLeaveGroupClick,
+    leaveGroupLoading = false,
 }) => {
     const sidebarRef = useRef(null);
     const touchStartX = useRef(0);
@@ -120,6 +123,9 @@ const RightSidebar = ({
                         memberCount={memberCount}
                         isMobile={isMobile}
                         onCloseMobile={onCloseMobile}
+                        showLeaveGroup={showLeaveGroupInInfo}
+                        onLeaveGroup={onLeaveGroupClick}
+                        leaveLoading={leaveGroupLoading}
                     />
                 )}
                 {/* UserStatus is now in AppLayout as fixed component */}

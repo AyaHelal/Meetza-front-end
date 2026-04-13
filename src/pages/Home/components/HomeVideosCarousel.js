@@ -17,6 +17,8 @@ export default function HomeVideosCarousel({
   error: errorOverride,
   /** When `videos` is an empty array and not loading/error, show this message (e.g. saved videos row). */
   emptyMessage = null,
+  /** `session` → /video/:slug; `saved` → /saved-videos with sidebar/detail layout */
+  videoCardLinkTarget = "session",
 }) {
   const navigate = useNavigate();
   const shouldFetchMostInterested = fetchMostInterested && !Array.isArray(videos);
@@ -33,7 +35,7 @@ export default function HomeVideosCarousel({
     return DEFAULT_HOME_VIDEOS;
   }, [videos, apiVideos]);
 
-  const { trackRef, canPrev, canNext, updateScrollState, scrollByDirection } =
+  const { trackRef, canPrev, canNext, hasOverflow, updateScrollState, scrollByDirection } =
     useHorizontalCardSlider(SLIDE_SELECTOR, effectiveVideos);
 
   return (
@@ -87,7 +89,7 @@ export default function HomeVideosCarousel({
           ) : (
             effectiveVideos.map((v) => (
               <div key={v.id} className="home-videos-slider-slide">
-                <HomeVideoCard video={v} />
+                <HomeVideoCard video={v} linkTarget={videoCardLinkTarget} />
               </div>
             ))
           )}
@@ -104,15 +106,17 @@ export default function HomeVideosCarousel({
         </button>
       </div>
 
-      <div className="home-section-footer">
-        <Button
-          variant="link"
-          className="home-see-more text-decoration-none p-0"
-          onClick={() => navigate(seeMoreTo)}
-        >
-          See more
-        </Button>
-      </div>
+      {hasOverflow && (
+        <div className="home-section-footer">
+          <Button
+            variant="link"
+            className="home-see-more text-decoration-none p-0"
+            onClick={() => navigate(seeMoreTo)}
+          >
+            See more
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

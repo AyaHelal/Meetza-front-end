@@ -25,7 +25,7 @@ function mapMostInterestedVideo(v) {
     thumbnailUrl: v?.thumbnail_url || v?.poster_url || "",
     slug: v?.slug,
     groupId: v?.group_id,
-    groupName: v?.group_name,
+    groupName: v?.group_name ?? v?.groupName ?? v?.group?.group_name ?? v?.group?.name,
     duration: v?.duration,
     raw: v,
   };
