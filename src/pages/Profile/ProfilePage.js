@@ -1,9 +1,11 @@
-import React, { useContext, useMemo } from "react";
+import React, { useCallback, useContext, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
+import Form from "react-bootstrap/Form";
 import ListGroup from "react-bootstrap/ListGroup";
 import Ratio from "react-bootstrap/Ratio";
 import Stack from "react-bootstrap/Stack";
@@ -15,9 +17,15 @@ import {
 } from "@phosphor-icons/react";
 import { AuthContext } from "../../context/AuthContext";
 import UserPhoto from "../../components/UserPhoto/UserPhoto";
-import { DEFAULT_UPCOMING_MEETINGS } from "../Home/services/homeDashboardService";
+import useSavedVideos from "../SavedVideos/hooks/useSavedVideos";
+import useProfileMeetings from "./hooks/useProfileMeetings";
+import { DEFAULT_THUMB } from "../SavedVideos/components/constants";
 import { smartToast } from "../../API/toastManager";
+import { extractUserFromToken } from "../../utils/token";
+import { patchUser } from "./services/profileUserService";
 import "./ProfilePage.css";
+
+const PROFILE_PHOTO_FILE_INPUT_ID = "profile-user-photo-input";
 
 const PLACEHOLDER_NOTIFICATIONS = [
   { id: "1", text: "Dr Dawlat replied to your comment", highlight: false },
@@ -27,41 +35,47 @@ const PLACEHOLDER_NOTIFICATIONS = [
 
 const FILE_GRID_LABELS = ["PDF", "PHOTO", "", "PDF", "", "PHOTO", "", "PDF", "PHOTO"];
 
-const MEETING_DATE_BADGES = [
-  { month: "Sep", day: "25" },
-  { month: "Sep", day: "26" },
-  { month: "Oct", day: "02" },
-  { month: "Oct", day: "08" },
-];
+function formatSavedVideoDuration(value) {
+  if (value == null || value === "") return "—";
+  if (typeof value === "string" && value.trim() !== "" && !/^\d+$/.test(value.trim())) {
+    return value.trim();
+  }
+  const sec = typeof value === "number" ? Math.floor(value) : parseInt(String(value).trim(), 10);
+  if (Number.isNaN(sec) || sec < 0) return "—";
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
 
-/** Decorative cards only — profile Saved Videos section (not linked, not from API) */
-const STATIC_SAVED_VIDEO_THUMB =
-  "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=640&auto=format&fit=crop&q=60";
+function ProfileSavedVideoCard({ video, onOpen }) {
+  const title = video?.title || "Video";
+  const thumb = video?.thumbnailUrl || DEFAULT_THUMB;
+  const durationLabel = formatSavedVideoDuration(video?.duration);
 
-const STATIC_SAVED_VIDEO_DESIGN_IDS = ["d1", "d2", "d3", "d4", "d5", "d6"];
-
-/** Static copy for Saved Videos design mock only (not real data) */
-const STATIC_SAVED_VIDEO_TITLE_LABEL = "Video Title";
-const STATIC_SAVED_VIDEO_DURATION_LABEL = "3:22";
-
-function ProfileSavedVideoStaticCard() {
   return (
-    <div className="profile-saved-videos-tile profile-saved-videos-tile--static">
-      <div className="profile-saved-video-card profile-saved-video-card--static" aria-hidden="true">
+    <div className="profile-saved-videos-tile">
+      <button
+        type="button"
+        className="profile-saved-video-card profile-saved-video-card--live w-100 text-start border-0 p-0 bg-transparent"
+        aria-label={`Open saved video: ${title}`}
+        onClick={() => onOpen?.(video)}
+      >
         <Ratio aspectRatio="16x9">
           <div className="profile-saved-video-frame overflow-hidden">
             <img
-              src={STATIC_SAVED_VIDEO_THUMB}
+              src={thumb}
               alt=""
               className="profile-saved-video-thumb position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
             />
             <div className="profile-saved-pills" dir="ltr">
-              <span className="profile-saved-pill profile-saved-pill--title text-truncate">{STATIC_SAVED_VIDEO_TITLE_LABEL}</span>
-              <span className="profile-saved-pill profile-saved-pill--dur">{STATIC_SAVED_VIDEO_DURATION_LABEL}</span>
+              <span className="profile-saved-pill profile-saved-pill--title text-truncate">{title}</span>
+              <span className="profile-saved-pill profile-saved-pill--dur">{durationLabel}</span>
             </div>
           </div>
         </Ratio>
-      </div>
+      </button>
     </div>
   );
 }
@@ -72,14 +86,22 @@ function firstName(displayName) {
   return t.split(/\s+/)[0] || "there";
 }
 
-/** "Nov 28 2026, 3:30 pm" → { clock: "3:30", meridiem: "PM" } for Frame-style time row */
-function parseMeetingTimeParts(meetingField) {
-  const fallback = { clock: "8:25", meridiem: "AM" };
-  if (!meetingField || typeof meetingField !== "string") return fallback;
-  const tail = meetingField.split(",").map((s) => s.trim()).pop() || meetingField;
-  const m = tail.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
-  if (!m) return fallback;
-  return { clock: `${parseInt(m[1], 10)}:${m[2]}`, meridiem: (m[3] || "AM").toUpperCase() };
+function dateBadgeFromDate(d) {
+  if (!d || Number.isNaN(d.getTime())) return { month: "—", day: "—" };
+  return {
+    month: d.toLocaleString(undefined, { month: "short" }),
+    day: String(d.getDate()),
+  };
+}
+
+function formatClockPartsFromDate(d) {
+  if (!d || Number.isNaN(d.getTime())) return { clock: "—", meridiem: "" };
+  const hours24 = d.getHours();
+  const minutes = d.getMinutes();
+  const meridiem = hours24 >= 12 ? "PM" : "AM";
+  let hours12 = hours24 % 12;
+  if (hours12 === 0) hours12 = 12;
+  return { clock: `${hours12}:${String(minutes).padStart(2, "0")}`, meridiem };
 }
 
 /** Position row: only real position fields from API — not role. */
@@ -95,21 +117,80 @@ function positionDisplayFromUser(user) {
 }
 
 export default function ProfilePage() {
-  const { user } = useContext(AuthContext);
+  const { user, loginUser } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const { savedVideos, loading: savedVideosLoading, error: savedVideosError } = useSavedVideos(null);
+  const { meetings: profileMeetings, loading: meetingsLoading, error: meetingsError } = useProfileMeetings();
+
+  const [nameEditing, setNameEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
 
   const displayName = user?.name || user?.full_name || user?.username || user?.email || "Member";
   const email = user?.email || "—";
   const username = user?.username || user?.name || displayName;
   const positionLabel = positionDisplayFromUser(user);
 
-  const meetingsPreview = useMemo(
-    () =>
-      Array.from({ length: 8 }, (_, i) => {
-        const m = DEFAULT_UPCOMING_MEETINGS[i % DEFAULT_UPCOMING_MEETINGS.length];
-        return { ...m, id: `${m.id}-${i}` };
-      }),
-    []
+  const userId = useMemo(() => {
+    const fromUser = user?.id ?? user?.user_id ?? user?._id ?? user?.uuid;
+    if (fromUser != null && String(fromUser).trim() !== "") return String(fromUser).trim();
+    const fromToken = extractUserFromToken()?.id;
+    if (fromToken != null && String(fromToken).trim() !== "") return String(fromToken).trim();
+    return null;
+  }, [user]);
+
+  const startNameEdit = useCallback(() => {
+    const initial = (user?.name || user?.full_name || user?.username || "").trim();
+    setNameDraft(initial);
+    setNameEditing(true);
+  }, [user?.name, user?.full_name, user?.username]);
+
+  const cancelNameEdit = useCallback(() => {
+    if (nameSaving) return;
+    setNameEditing(false);
+  }, [nameSaving]);
+
+  const persistUser = useCallback(
+    (patch) => {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const rememberMe = localStorage.getItem("remember") === "true";
+      loginUser({ ...user, ...patch }, token, rememberMe);
+    },
+    [user, loginUser]
   );
+
+  const handleSaveName = useCallback(async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      smartToast.error("Please enter a name.");
+      return;
+    }
+    if (!userId) {
+      smartToast.error("User ID not found.");
+      return;
+    }
+    setNameSaving(true);
+    try {
+      const { patchPayload } = await patchUser(userId, { name: trimmed });
+      persistUser({
+        ...(patchPayload && typeof patchPayload === "object" ? patchPayload : {}),
+        name: patchPayload?.name ?? trimmed,
+        full_name: patchPayload?.full_name ?? patchPayload?.name ?? trimmed,
+      });
+      setNameEditing(false);
+      smartToast.success("Name updated");
+    } catch (err) {
+      smartToast.error(err?.response?.data?.message || err?.message || "Failed to update name");
+    } finally {
+      setNameSaving(false);
+    }
+  }, [nameDraft, userId, persistUser]);
+
+  const triggerPhotoPicker = useCallback(() => {
+    const el = document.getElementById(PROFILE_PHOTO_FILE_INPUT_ID);
+    if (el && typeof el.click === "function") el.click();
+    else smartToast.error("Could not open file picker.");
+  }, []);
 
   const onEditField = (label) => {
     smartToast.info(`${label} editing will be available soon.`);
@@ -139,33 +220,59 @@ export default function ProfilePage() {
               <Card className="border-0 profile-design-card">
                 <Card.Body className="text-center pt-4 pb-4 px-3">
                   <div className="profile-avatar-block mx-auto mb-4">
-                    <UserPhoto user={user} size="large" variant="default" />
+                    <UserPhoto user={user} size="large" variant="default" fileInputId={PROFILE_PHOTO_FILE_INPUT_ID} />
                     <Button
                       type="button"
                       variant="primary"
                       size="sm"
                       className="profile-avatar-edit rounded-circle p-0 d-inline-flex align-items-center justify-content-center border border-2 border-white shadow-sm"
                       aria-label="Change profile photo"
-                      onClick={() => onEditField("Photo")}
+                      onClick={triggerPhotoPicker}
                     >
                       <PencilSimple size={16} weight="bold" />
                     </Button>
                   </div>
                   <div className="text-start px-1">
-                    <div className="profile-field-row">
+                    <div className="profile-field-row align-items-start">
                       <div className="profile-field-main">
-                        <span className="profile-field-label">Username</span>
-                        <div className="profile-field-value">{username}</div>
+                        <span className="profile-field-label">Name</span>
+                        {nameEditing ? (
+                          <div className="profile-name-edit mt-1">
+                            <Form.Control
+                              id="profile-edit-name"
+                              type="text"
+                              value={nameDraft}
+                              onChange={(e) => setNameDraft(e.target.value)}
+                              placeholder="Your name"
+                              autoComplete="name"
+                              disabled={nameSaving}
+                              className="profile-name-edit-input"
+                              autoFocus
+                            />
+                            <div className="d-flex flex-wrap gap-2 mt-2">
+                              <Button type="button" size="sm" variant="primary" onClick={handleSaveName} disabled={nameSaving}>
+                                {nameSaving ? "Saving…" : "Save"}
+                              </Button>
+                              <Button type="button" size="sm" variant="outline-secondary" onClick={cancelNameEdit} disabled={nameSaving}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="profile-field-value">{username}</div>
+                        )}
                       </div>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="profile-field-edit-btn flex-shrink-0"
-                        aria-label="Edit username"
-                        onClick={() => onEditField("Username")}
-                      >
-                        <PencilSimple size={20} />
-                      </Button>
+                      {!nameEditing ? (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="profile-field-edit-btn flex-shrink-0"
+                          aria-label="Edit name"
+                          onClick={startNameEdit}
+                        >
+                          <PencilSimple size={20} />
+                        </Button>
+                      ) : null}
                     </div>
                     <div className="profile-field-row">
                       <div className="profile-field-main">
@@ -217,60 +324,110 @@ export default function ProfilePage() {
                   <Card.Title as="h2" className="h6 mb-0 text-white flex-grow-1 profile-saved-videos-card__title">
                     Saved Videos
                   </Card.Title>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="profile-saved-videos-view-all p-0 text-white text-decoration-none small flex-shrink-0"
+                    onClick={() => navigate("/saved-videos")}
+                  >
+                    View all
+                  </Button>
                 </Card.Header>
                 <Card.Body className="profile-saved-videos-card__body">
-                  <div className="profile-saved-videos-list profile-saved-videos-list--static d-flex flex-column">
-                    {STATIC_SAVED_VIDEO_DESIGN_IDS.map((id) => (
-                      <ProfileSavedVideoStaticCard key={id} />
-                    ))}
-                  </div>
+                  {savedVideosLoading ? (
+                    <p className="profile-saved-videos-status mb-0">Loading saved videos…</p>
+                  ) : savedVideosError ? (
+                    <p className="profile-saved-videos-status profile-saved-videos-status--error mb-0">{savedVideosError}</p>
+                  ) : savedVideos.length === 0 ? (
+                    <p className="profile-saved-videos-status mb-0">No saved videos yet.</p>
+                  ) : (
+                    <div className="profile-saved-videos-list d-flex flex-column">
+                      {savedVideos.map((v) => (
+                        <ProfileSavedVideoCard
+                          key={v.id}
+                          video={v}
+                          onOpen={(video) => {
+                            const id = video?.id;
+                            if (id == null) {
+                              navigate("/saved-videos");
+                              return;
+                            }
+                            navigate("/saved-videos", { state: { selectVideoId: id } });
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
 
               <Card className="border-0 profile-design-card profile-meetings-card d-flex flex-column min-h-0">
                 <Card.Body className="profile-meetings-card__body d-flex flex-column flex-grow-1 min-h-0 p-0">
-                  <Card.Title as="h2" className="profile-meetings-card__title h6 mb-0">
-                    Meetings
-                  </Card.Title>
+                  <div className="profile-meetings-card__head d-flex align-items-center gap-2">
+                    <Card.Title as="h2" className="profile-meetings-card__title h6 mb-0 flex-grow-1">
+                      Meetings
+                    </Card.Title>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="profile-meetings-view-calendar p-0 text-decoration-none small flex-shrink-0"
+                      onClick={() => navigate("/calendar")}
+                    >
+                      Calendar
+                    </Button>
+                  </div>
                   <div className="profile-meetings-card__scroll flex-grow-1 min-h-0">
-                    <ListGroup variant="flush" className="profile-meetings-list">
-                      {meetingsPreview.map((m, i) => {
-                        const badge = MEETING_DATE_BADGES[i % MEETING_DATE_BADGES.length];
-                        const startParts = parseMeetingTimeParts(m.start);
-                        const endParts = parseMeetingTimeParts(m.end);
-                        return (
-                          <ListGroup.Item
-                            key={m.id || i}
-                            className="profile-meetings-row d-flex gap-3 border-0 bg-transparent rounded-0"
-                          >
-                            <div className="profile-meeting-date text-center flex-shrink-0">
-                              <span className="profile-meeting-month">{badge.month}</span>
-                              <span className="profile-meeting-day">{badge.day}</span>
-                            </div>
-                            <div className="d-flex flex-column gap-2 min-w-0 flex-grow-1 py-0">
-                              <span className="profile-meeting-online">Online</span>
-                              <span className="profile-meeting-group-line d-flex align-items-center gap-2 min-w-0">
-                                <span className="profile-meeting-live-dot flex-shrink-0" aria-hidden />
-                                <span className="profile-meeting-group-name text-truncate">
-                                  {m.groupLabel || "Group Meeting"}
+                    {meetingsLoading ? (
+                      <p className="profile-meetings-status text-muted small mb-0">Loading meetings…</p>
+                    ) : meetingsError ? (
+                      <p className="profile-meetings-status profile-meetings-status--error text-danger small mb-0">
+                        {meetingsError}
+                      </p>
+                    ) : profileMeetings.length === 0 ? (
+                      <p className="profile-meetings-status text-muted small mb-0">No upcoming meetings.</p>
+                    ) : (
+                      <ListGroup variant="flush" className="profile-meetings-list">
+                        {profileMeetings.map((m) => {
+                          const badge = dateBadgeFromDate(m.startAt);
+                          const startParts = formatClockPartsFromDate(m.startAt);
+                          const endParts = formatClockPartsFromDate(m.endAt);
+                          return (
+                            <ListGroup.Item
+                              key={m.id}
+                              className="profile-meetings-row d-flex gap-3 border-0 bg-transparent rounded-0"
+                            >
+                              <div className="profile-meeting-date text-center flex-shrink-0">
+                                <span className="profile-meeting-month">{badge.month}</span>
+                                <span className="profile-meeting-day">{badge.day}</span>
+                              </div>
+                              <div className="d-flex flex-column gap-2 min-w-0 flex-grow-1 py-0">
+                                <span className="profile-meeting-online">Online</span>
+                                <span className="profile-meeting-group-line d-flex align-items-center gap-2 min-w-0">
+                                  <span
+                                    className={`profile-meeting-live-dot flex-shrink-0${m.isLive ? "" : " profile-meeting-live-dot--idle"}`}
+                                    aria-hidden
+                                  />
+                                  <span className="profile-meeting-group-name text-truncate">
+                                    {m.meetingTitle || "Meeting"}
+                                  </span>
                                 </span>
-                              </span>
-                              <div className="profile-meeting-times" dir="ltr">
-                                <div className="profile-meeting-time-block">
-                                  <span className="profile-meeting-time-clock">{startParts.clock}</span>
-                                  <span className="profile-meeting-time-meridian">{startParts.meridiem}</span>
-                                </div>
-                                <CaretRight size={14} weight="bold" className="profile-meeting-times__chev flex-shrink-0" aria-hidden />
-                                <div className="profile-meeting-time-block">
-                                  <span className="profile-meeting-time-clock">{endParts.clock}</span>
-                                  <span className="profile-meeting-time-meridian">{endParts.meridiem}</span>
+                                <div className="profile-meeting-times" dir="ltr">
+                                  <div className="profile-meeting-time-block">
+                                    <span className="profile-meeting-time-clock">{startParts.clock}</span>
+                                    <span className="profile-meeting-time-meridian">{startParts.meridiem}</span>
+                                  </div>
+                                  <CaretRight size={14} weight="bold" className="profile-meeting-times__chev flex-shrink-0" aria-hidden />
+                                  <div className="profile-meeting-time-block">
+                                    <span className="profile-meeting-time-clock">{endParts.clock}</span>
+                                    <span className="profile-meeting-time-meridian">{endParts.meridiem}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </ListGroup.Item>
-                        );
-                      })}
-                    </ListGroup>
+                            </ListGroup.Item>
+                          );
+                        })}
+                      </ListGroup>
+                    )}
                   </div>
                 </Card.Body>
               </Card>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./SavedVideosPage.css";
 import SavedVideosHeader from "./SavedVideosHeader";
 import SavedVideosSidebar from "./SavedVideosSidebar";
@@ -11,12 +11,25 @@ import { dedupeById } from "../../../utils/dedupeById";
 
 export default function SavedVideosPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [selectedId, setSelectedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [groupsList, setGroupsList] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+
+  const pendingSelectFromProfile =
+    location.state?.selectVideoId ?? location.state?.videoId ?? null;
+
+  useEffect(() => {
+    if (pendingSelectFromProfile == null || pendingSelectFromProfile === "") return;
+    setSelectedId(String(pendingSelectFromProfile));
+    navigate(
+      { pathname: location.pathname, search: location.search },
+      { replace: true }
+    );
+  }, [pendingSelectFromProfile, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     let cancelled = false;
