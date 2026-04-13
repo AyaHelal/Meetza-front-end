@@ -1,7 +1,5 @@
-export {
-  DEFAULT_HOME_STAT_ITEMS,
-  DEFAULT_UPCOMING_MEETINGS,
-  DEFAULT_HOME_VIDEOS,
-  DEFAULT_HOME_SAVED_VIDEOS,
-  DEFAULT_HOME_PEOPLE,
-} from "./homeDashboardService";
+export { DEFAULT_HOME_STAT_ITEMS } from "./homeStatsService";
+export { DEFAULT_UPCOMING_MEETINGS } from "./homeUpcomingMeetingsService";
+export { DEFAULT_HOME_VIDEOS, getMostInterestedVideos } from "./homeVideosService";
+export { DEFAULT_HOME_SAVED_VIDEOS, getHomeSavedVideos } from "./homeSavedVideosService";
+export { DEFAULT_HOME_PEOPLE, getHomeLeaders } from "./homePeopleService";

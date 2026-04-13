@@ -1,14 +1,25 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Button } from "react-bootstrap";
-import { useHorizontalCardSlider } from "../hooks";
+import { useHomeLeaders, useHorizontalCardSlider } from "../hooks";
 import { DEFAULT_HOME_PEOPLE } from "../services";
 import HomePeopleCard from "./HomePeopleCard";
 
 const SLIDE_SELECTOR = ".home-people-slider-slide";
 
-export default function HomePeopleCarousel({ people = DEFAULT_HOME_PEOPLE }) {
+export default function HomePeopleCarousel({ people = null }) {
+  const { people: apiPeople, loading, error } = useHomeLeaders({
+    enabled: !Array.isArray(people),
+    toastOnError: true,
+  });
+
+  const effectivePeople = useMemo(() => {
+    if (Array.isArray(people)) return people;
+    if (apiPeople.length > 0) return apiPeople;
+    return DEFAULT_HOME_PEOPLE;
+  }, [people, apiPeople]);
+
   const { trackRef, canPrev, canNext, updateScrollState, scrollByDirection } =
-    useHorizontalCardSlider(SLIDE_SELECTOR, people);
+    useHorizontalCardSlider(SLIDE_SELECTOR, effectivePeople);
 
   return (
     <section className="home-section home-people-section">
@@ -34,11 +45,25 @@ export default function HomePeopleCarousel({ people = DEFAULT_HOME_PEOPLE }) {
           aria-label="People"
           onScroll={updateScrollState}
         >
-          {people.map((p) => (
-            <div key={p.id} className="home-people-slider-slide">
-              <HomePeopleCard person={p} />
+          {loading ? (
+            <div className="home-people-slider-slide">
+              <div className="home-people-card" aria-label="Loading people">
+                <div className="text-muted small">Loading people…</div>
+              </div>
             </div>
-          ))}
+          ) : error ? (
+            <div className="home-people-slider-slide">
+              <div className="home-people-card" aria-label="People error">
+                <div className="text-danger small">{error}</div>
+              </div>
+            </div>
+          ) : (
+            effectivePeople.map((p) => (
+              <div key={p.id} className="home-people-slider-slide">
+                <HomePeopleCard person={p} />
+              </div>
+            ))
+          )}
         </div>
 
         <button
