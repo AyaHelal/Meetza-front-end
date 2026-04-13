@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
@@ -12,17 +12,21 @@ import Stack from "react-bootstrap/Stack";
 import {
   HandWavingIcon,
   PencilSimple,
+  TrashIcon,
   YoutubeLogo as YoutubeLogoIcon,
   CaretRight,
 } from "@phosphor-icons/react";
 import { AuthContext } from "../../context/AuthContext";
 import UserPhoto from "../../components/UserPhoto/UserPhoto";
+import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
 import useSavedVideos from "../SavedVideos/hooks/useSavedVideos";
 import useProfileMeetings from "./hooks/useProfileMeetings";
+import useProfilePosition from "./hooks/useProfilePosition";
+import { isAdminForPositions } from "../Groups/hooks/usePositions";
 import { DEFAULT_THUMB } from "../SavedVideos/components/constants";
 import { smartToast } from "../../API/toastManager";
 import { extractUserFromToken } from "../../utils/token";
-import { patchUser } from "./services/profileUserService";
+import { getUser, patchUser } from "./services/profileUserService";
 import "./ProfilePage.css";
 
 const PROFILE_PHOTO_FILE_INPUT_ID = "profile-user-photo-input";
@@ -104,18 +108,6 @@ function formatClockPartsFromDate(d) {
   return { clock: `${hours12}:${String(minutes).padStart(2, "0")}`, meridiem };
 }
 
-/** Position row: only real position fields from API — not role. */
-function positionDisplayFromUser(user) {
-  if (!user) return "No positions available";
-  const raw = user.position ?? user.position_title ?? user.positionTitle;
-  if (raw != null && typeof raw === "object" && raw.title != null) {
-    const t = String(raw.title).trim();
-    if (t) return t;
-  }
-  if (raw != null && String(raw).trim() !== "") return String(raw).trim();
-  return "No positions available";
-}
-
 export default function ProfilePage() {
   const { user, loginUser } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -125,11 +117,28 @@ export default function ProfilePage() {
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
+  /** Merged GET /user/:id — often carries position_id when session user is minimal. */
+  const [enrichedUser, setEnrichedUser] = useState(null);
 
   const displayName = user?.name || user?.full_name || user?.username || user?.email || "Member";
   const email = user?.email || "—";
   const username = user?.username || user?.name || displayName;
-  const positionLabel = positionDisplayFromUser(user);
+
+  const effectiveUser = useMemo(() => {
+    if (!user && !enrichedUser) return null;
+    const base = user && typeof user === "object" ? { ...user } : {};
+    if (!enrichedUser || typeof enrichedUser !== "object") return base;
+    Object.keys(enrichedUser).forEach((k) => {
+      const v = enrichedUser[k];
+      if (v !== undefined) base[k] = v;
+    });
+    return base;
+  }, [user, enrichedUser]);
+
+  const showPositionProfileSection = useMemo(
+    () => isAdminForPositions(effectiveUser || user),
+    [effectiveUser, user]
+  );
 
   const userId = useMemo(() => {
     const fromUser = user?.id ?? user?.user_id ?? user?._id ?? user?.uuid;
@@ -138,6 +147,25 @@ export default function ProfilePage() {
     if (fromToken != null && String(fromToken).trim() !== "") return String(fromToken).trim();
     return null;
   }, [user]);
+
+  useEffect(() => {
+    if (!userId) {
+      setEnrichedUser(null);
+      return undefined;
+    }
+    let cancelled = false;
+    getUser(userId)
+      .then((u) => {
+        if (cancelled || !u || typeof u !== "object") return;
+        setEnrichedUser(u);
+      })
+      .catch(() => {
+        if (!cancelled) setEnrichedUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const startNameEdit = useCallback(() => {
     const initial = (user?.name || user?.full_name || user?.username || "").trim();
@@ -186,15 +214,36 @@ export default function ProfilePage() {
     }
   }, [nameDraft, userId, persistUser]);
 
+  const {
+    positionPutId,
+    positionLabel,
+    positionFetchLoading,
+    positionFetchError,
+    positionEditing,
+    positionDraft,
+    setPositionDraft,
+    positionSaving,
+    startPositionEdit,
+    cancelPositionEdit,
+    handleSavePosition,
+    positionDeleting,
+    showDeletePositionModal,
+    openDeletePositionModal,
+    closeDeletePositionModal,
+    confirmDeletePosition,
+  } = useProfilePosition({
+    effectiveUser,
+    userId,
+    showPositionProfileSection,
+    persistUser,
+    setEnrichedUser,
+  });
+
   const triggerPhotoPicker = useCallback(() => {
     const el = document.getElementById(PROFILE_PHOTO_FILE_INPUT_ID);
     if (el && typeof el.click === "function") el.click();
     else smartToast.error("Could not open file picker.");
   }, []);
-
-  const onEditField = (label) => {
-    smartToast.info(`${label} editing will be available soon.`);
-  };
 
   return (
     <div className="profile-page d-flex flex-column flex-grow-1 min-vh-0">
@@ -280,21 +329,94 @@ export default function ProfilePage() {
                         <div className="profile-field-value text-break">{email}</div>
                       </div>
                     </div>
-                    <div className="profile-field-row">
-                      <div className="profile-field-main">
-                        <span className="profile-field-label">Position</span>
-                        <div className="profile-field-value">{positionLabel}</div>
+                    {showPositionProfileSection ? (
+                      <div className="profile-field-row align-items-start">
+                        <div className="profile-field-main">
+                          <span className="profile-field-label">Position</span>
+                          {positionEditing ? (
+                            <div className="profile-name-edit mt-1">
+                              <Form.Control
+                                id="profile-edit-position"
+                                type="text"
+                                value={positionDraft}
+                                onChange={(e) => setPositionDraft(e.target.value)}
+                                placeholder="Position title"
+                                autoComplete="organization-title"
+                                disabled={positionSaving}
+                                className="profile-name-edit-input"
+                                autoFocus
+                              />
+                              <div className="d-flex flex-wrap gap-2 mt-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={handleSavePosition}
+                                  disabled={positionSaving}
+                                >
+                                  {positionSaving ? "Saving…" : "Save"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline-secondary"
+                                  onClick={cancelPositionEdit}
+                                  disabled={positionSaving}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : positionFetchLoading ? (
+                            <div className="profile-field-value text-muted">Loading positions…</div>
+                          ) : positionFetchError ? (
+                            <div className="profile-field-value text-danger small">{positionFetchError}</div>
+                          ) : (
+                            <div className="profile-field-value">{positionLabel}</div>
+                          )}
+                        </div>
+                        {!positionEditing ? (
+                          <div className="d-flex align-items-start gap-0 flex-shrink-0">
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="profile-field-edit-btn"
+                              aria-label={positionPutId ? "Edit position" : "Create position"}
+                              onClick={startPositionEdit}
+                              disabled={positionFetchLoading || positionDeleting}
+                              title={
+                                positionFetchLoading
+                                  ? "Loading positions…"
+                                  : !positionPutId
+                                    ? "Create position"
+                                    : undefined
+                              }
+                            >
+                              <PencilSimple size={20} />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="profile-field-edit-btn profile-field-delete-btn"
+                              aria-label="Delete position"
+                              onClick={() => {
+                                openDeletePositionModal();
+                              }}
+                              disabled={!positionPutId || positionFetchLoading || positionDeleting}
+                              title={
+                                !positionPutId
+                                  ? "No position available to delete"
+                                  : positionDeleting
+                                    ? "Deleting…"
+                                    : "Delete position"
+                              }
+                            >
+                              <TrashIcon size={20} />
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="profile-field-edit-btn flex-shrink-0"
-                        aria-label="Edit position"
-                        onClick={() => onEditField("Position")}
-                      >
-                        <PencilSimple size={20} />
-                      </Button>
-                    </div>
+                    ) : null}
                   </div>
                 </Card.Body>
               </Card>
@@ -486,6 +608,16 @@ export default function ProfilePage() {
           </Col>
         </Row>
       </Container>
+
+      <ConfirmDeleteModal
+        show={showDeletePositionModal}
+        onClose={closeDeletePositionModal}
+        onConfirm={confirmDeletePosition}
+        title="Delete position"
+        message="Are you sure you want to delete this position? This cannot be undone."
+        confirming={positionDeleting}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

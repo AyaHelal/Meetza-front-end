@@ -148,6 +148,19 @@
   background: rgba(13, 110, 253, 0.08) !important;
 }
 
+.profile-field-delete-btn {
+  color: #b91c1c !important;
+}
+
+.profile-field-delete-btn:hover:not(:disabled) {
+  color: #991b1b !important;
+  background: rgba(185, 28, 28, 0.08) !important;
+}
+
+.profile-field-delete-btn:disabled {
+  color: #94a3b8 !important;
+}
+
 /* Inline name edit — avoid global `* { max-width: 100% }` (Login.css) constraining the field oddly */
 .profile-name-edit {
   width: 100%;
