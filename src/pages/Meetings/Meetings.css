@@ -68,18 +68,67 @@
 }
 
 
+/* Mobile: single column matching design — video area, participants, comments, video description */
 @media (max-width: 768px) {
+  .meetings-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    height: auto;
+    min-height: 0;
+    /* app-layout-content is a row flex with align-items: stretch — without this the block
+       stretches to full viewport height, .meeting-room flex:1 on the slider eats space and
+       overflow:hidden clips the control bar off-screen */
+    align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px 100px;
+    box-sizing: border-box;
+    align-content: start;
+  }
+
+  .meetings-container .meetings-center {
+    display: contents;
+  }
+
+  .meetings-container .meeting-right-sidebar {
+    display: contents;
+  }
+
   .meetings-center {
-    margin: 12px;
+    margin: 12px 0 0;
     height: auto;
     min-height: 0;
   }
 
+  .meeting-room {
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    border-radius: 18px;
+  }
+
+  .participate-card {
+    grid-row: 2;
+  }
+
+  .meeting-chat {
+    grid-row: 3;
+  }
+
+  .video-description-card {
+    grid-row: 4;
+  }
+
   .meeting-right-sidebar {
-        width: 100%;
-        margin: 0;
-        height: 50vh;
-        min-height: 200px;
-        border-radius: 0;
-    }
+    width: 100%;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    padding-bottom: 0;
+    border-radius: 0;
+  }
 }

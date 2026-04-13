@@ -32,6 +32,8 @@ const MeetingRoomParticipantTile = ({
   meetingSpeakerMuted,
   onToggleFullscreenScreenShare,
   onToggleFullscreenMember,
+  /** Only the first self tile in the grid shows the green "You" badge (e.g. not a second tile for screen share). */
+  isFirstSelfTile = false,
 }) => {
   const key = tile?.tileId || tile?.socketId || tile?.member_id || tile?.label;
   const refKey = tile?.tileId || tile?.socketId;
@@ -216,8 +218,14 @@ const MeetingRoomParticipantTile = ({
           <ArrowsOut size={16} weight="bold" />
         </button>
       )}
-      <span className={`meeting-room-tile-badge ${tile?.isSelf ? "you" : "admin"}`}>
-        {tile?.isScreenOnlyTile ? (tile.label || "Screen") : (tile?.isSelf ? "You" : tile.label)}
+      <span
+        className={`meeting-room-tile-badge ${tile?.isSelf && isFirstSelfTile ? "you" : "admin"}`}
+      >
+        {tile?.isScreenOnlyTile
+          ? (tile.label || "Screen")
+          : tile?.isSelf && isFirstSelfTile
+            ? "You"
+            : tile.label}
       </span>
     </div>
   );

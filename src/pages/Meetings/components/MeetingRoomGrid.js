@@ -13,17 +13,21 @@ const MeetingRoomGrid = ({
   toggleFullscreenForScreenShare,
   toggleFullscreenForMember,
 }) => {
+  const firstSelfIndex = unifiedTiles.findIndex((t) => t?.isSelf);
+
   return (
     <div className="meeting-room-grid">
-      {unifiedTiles.map((tile) => {
+      {unifiedTiles.map((tile, index) => {
         const key = tile?.tileId || tile?.socketId || tile?.member_id || tile?.label;
         const isRemoteScreenShare = tile?.isScreenOnlyTile && !tile?.isSelf && !!tile?.stream;
         const handRaisedForTile = tile?.isSelf ? handRaised : handRaisedMap[tile?.socketId];
+        const isFirstSelfTile = tile?.isSelf && index === firstSelfIndex;
 
         return (
           <MeetingRoomParticipantTile
             key={key}
             tile={tile}
+            isFirstSelfTile={isFirstSelfTile}
             handRaisedForTile={handRaisedForTile}
             isRemoteScreenShare={isRemoteScreenShare}
             localVideoRef={localVideoRef}

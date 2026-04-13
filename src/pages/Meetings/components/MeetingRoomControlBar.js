@@ -211,7 +211,6 @@ const MeetingRoomControlBar = ({
           </button>
         </div>
       )}
-      {/* Emoji picker popup */}
       {showEmojiPicker && (
         <div className="meeting-room-emoji-picker" ref={emojiPickerRef}>
           {emojiList.map((e) => (

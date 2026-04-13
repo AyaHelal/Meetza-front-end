@@ -103,6 +103,16 @@
     font-weight: 700;
     margin: 0;
     color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.video-description-title-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(191, 219, 254, 0.95);
 }
 
 .video-description-subtitle {
@@ -325,6 +335,64 @@
 
 .participant-status.offline {
     color: #999999;
+}
+
+@media (max-width: 768px) {
+    .meeting-right-sidebar {
+        width: 100%;
+        margin: 0;
+        height: auto;
+        min-height: 0;
+        padding-bottom: 12px;
+    }
+
+    .participate-card {
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+        border: 1px solid rgba(148, 197, 246, 0.35);
+    }
+
+    .participate-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f2744;
+    }
+
+    .participant-name {
+        color: #0f2744;
+        font-weight: 700;
+    }
+
+    .participant-status.online {
+        color: #00dc85;
+        font-weight: 600;
+    }
+
+    .video-description-card {
+        border-radius: 18px;
+        height: auto;
+        min-height: 160px;
+        max-height: 280px;
+        background: #0f2744;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2);
+    }
+
+    .video-description-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #93c5fd;
+    }
+
+    .video-description-subtitle {
+        color: #cbd5e1;
+        opacity: 1;
+    }
+
+    .description-item {
+        color: #cbd5e1;
+        font-size: 13px;
+    }
 }
 
 /* Responsive adjustments for larger screens */

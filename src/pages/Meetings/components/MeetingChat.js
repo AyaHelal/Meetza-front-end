@@ -1,11 +1,14 @@
-import React, { useEffect, useRef, useContext } from "react";
+import React, { useEffect, useRef, useContext, useState, useCallback } from "react";
+import { PaperPlaneRight } from "@phosphor-icons/react";
 import { useSocket } from "../../../context/SocketContext";
 import { AuthContext } from "../../../context/AuthContext";
 import { useMeetingContext } from "../../../context/MeetingContext";
+import * as meetingSocketService from "../services/meetingSocketService";
 import "./MeetingChat.css";
 
 const MeetingChat = () => {
     const messagesEndRef = useRef(null);
+    const [draft, setDraft] = useState("");
     const { socket, isConnected } = useSocket();
     const { user } = useContext(AuthContext);
     const { meetingId, chatMessages, addChatMessage } = useMeetingContext();
@@ -18,6 +21,33 @@ const MeetingChat = () => {
     useEffect(() => {
         scrollToBottom();
     }, [chatMessages]);
+
+    const handleSend = useCallback(() => {
+        if (!socket || !isConnected || !meetingId) return;
+        const trimmed = (draft || "").trim();
+        if (!trimmed) return;
+        const senderId = user?.id ?? user?.member_id ?? null;
+        const optimisticMessage = {
+            id: `opt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            text: trimmed,
+            senderName: "You",
+            senderId,
+            senderPhoto: null,
+            timestamp: Date.now(),
+            isOwn: true,
+        };
+        addChatMessage(optimisticMessage);
+        setDraft("");
+        meetingSocketService.sendMeetingChatMessage(
+            socket,
+            { meetingId: String(meetingId), text: trimmed },
+            (ack) => {
+                if (ack && !ack.ok) {
+                    setDraft(trimmed);
+                }
+            }
+        );
+    }, [socket, isConnected, meetingId, draft, addChatMessage, user?.id, user?.member_id]);
 
     // Messages are loaded from localStorage in MeetingContext when meetingId is set
     // No need to fetch from API since backend doesn't store messages
@@ -146,6 +176,33 @@ const MeetingChat = () => {
                     ))
                 )}
                 <div ref={messagesEndRef} />
+            </div>
+
+            <div className="meeting-chat-input-row">
+                <input
+                    id="meeting-chat-input-field"
+                    type="text"
+                    className="meeting-chat-field"
+                    placeholder="Type a message..."
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                        }
+                    }}
+                    autoComplete="off"
+                />
+                <button
+                    type="button"
+                    className="meeting-chat-send"
+                    aria-label="Send message"
+                    onClick={handleSend}
+                    disabled={!draft.trim() || !socket || !isConnected || !meetingId}
+                >
+                    <PaperPlaneRight size={22} weight="fill" />
+                </button>
             </div>
         </div>
     );
