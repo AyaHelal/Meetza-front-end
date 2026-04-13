@@ -15,6 +15,8 @@ export default function HomeVideosCarousel({
   fetchMostInterested = true,
   loading: loadingOverride,
   error: errorOverride,
+  /** When `videos` is an empty array and not loading/error, show this message (e.g. saved videos row). */
+  emptyMessage = null,
 }) {
   const navigate = useNavigate();
   const shouldFetchMostInterested = fetchMostInterested && !Array.isArray(videos);
@@ -71,6 +73,14 @@ export default function HomeVideosCarousel({
               <div className="home-video-card" aria-label="Videos error">
                 <div className="home-video-card-body">
                   <div className="text-danger small">{error}</div>
+                </div>
+              </div>
+            </div>
+          ) : effectiveVideos.length === 0 && emptyMessage ? (
+            <div className="home-videos-slider-slide w-100">
+              <div className="home-video-card border-0 shadow-none bg-transparent" aria-label={emptyMessage}>
+                <div className="home-video-card-body py-3">
+                  <p className="text-muted mb-0 small">{emptyMessage}</p>
                 </div>
               </div>
             </div>
