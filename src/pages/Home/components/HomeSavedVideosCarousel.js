@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { DEFAULT_HOME_SAVED_VIDEOS } from "../services";
 import { useHomeSavedVideos } from "../hooks";
 import HomeVideosCarousel from "./HomeVideosCarousel";
 
@@ -13,7 +12,7 @@ export default function HomeSavedVideosCarousel({ videos = null, limit = 10 }) {
   const effectiveVideos = useMemo(() => {
     if (Array.isArray(videos)) return videos;
     if (apiVideos.length > 0) return apiVideos;
-    return DEFAULT_HOME_SAVED_VIDEOS;
+    return [];
   }, [videos, apiVideos]);
 
   return (
@@ -25,6 +24,7 @@ export default function HomeSavedVideosCarousel({ videos = null, limit = 10 }) {
       fetchMostInterested={false}
       loading={loading}
       error={error}
+      emptyMessage="No saved videos"
     />
   );
 }
