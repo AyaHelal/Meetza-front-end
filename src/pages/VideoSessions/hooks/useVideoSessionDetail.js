@@ -18,7 +18,6 @@ import {
   deleteVideo,
   putVideoWatchProgress,
   getVideoWatchProgress,
-  deleteVideoWatchProgress,
 } from "../services";
 import { useSocket } from "../../../context/SocketContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -81,7 +80,6 @@ export function useVideoSessionDetail(session, options = {}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const volumeControlRef = useRef(null);
-  const [resetWatchSubmitting, setResetWatchSubmitting] = useState(false);
 
   const sessionIdRef = useRef(session?.id);
   useEffect(() => {
@@ -149,38 +147,6 @@ export function useVideoSessionDetail(session, options = {}) {
     },
     [applyWatchNormToDetail]
   );
-
-  const handleResetWatchProgress = useCallback(async () => {
-    if (!session?.id) return;
-    setResetWatchSubmitting(true);
-    try {
-      await deleteVideoWatchProgress(session.id);
-      setDetail((prev) =>
-        prev && String(prev.detailVideoId) === String(session.id)
-          ? {
-              ...prev,
-              watchProgressSeconds: 0,
-              watchStatus: null,
-              progressPercentage: null,
-            }
-          : prev
-      );
-      const v = videoRef.current;
-      if (v) {
-        v.currentTime = 0;
-        setCurrentTimeSec(0);
-        setProgress(0);
-      }
-      resumeAppliedRef.current = false;
-      hasPlaybackStartedRef.current = false;
-      smartToast.success("Watch progress cleared");
-    } catch (err) {
-      console.error("delete watch progress failed", err);
-      smartToast.error(err?.response?.data?.message || err?.message || "Could not reset progress");
-    } finally {
-      setResetWatchSubmitting(false);
-    }
-  }, [session?.id]);
 
   /** Build nested comments: roots have .replies from flat list with parent_id */
   const nestComments = useCallback((flatList) => {
@@ -496,12 +462,12 @@ export function useVideoSessionDetail(session, options = {}) {
         const resumeSec = watchState.progressSeconds;
         resumeAppliedRef.current = false;
         const admin = data.admin ?? {};
-        
+
         // Use comments from specialized call if successful, otherwise fallback to detail data
-        const finalComments = (commentsData && Array.isArray(commentsData.comments)) 
-          ? commentsData.comments 
+        const finalComments = (commentsData && Array.isArray(commentsData.comments))
+          ? commentsData.comments
           : (Array.isArray(data.comments) ? data.comments : []);
-          
+
         const finalCommentCount = (commentsData && typeof commentsData.commentCount === 'number')
           ? commentsData.commentCount
           : (data.commentCount ?? finalComments.length);
@@ -902,8 +868,6 @@ export function useVideoSessionDetail(session, options = {}) {
   const savedCount = detail?.savedCount ?? 0;
   const commentCount = detail?.commentCount ?? comments.length;
   const watchProgressSeconds = detail?.watchProgressSeconds ?? 0;
-  const watchStatus = detail?.watchStatus ?? null;
-  const progressPercentage = detail?.progressPercentage ?? null;
   const groupName =
     detail?.groupName ?? session?.groupName ?? session?.group_name ?? null;
   const sourceRelated = (relatedVideos?.length > 0 ? relatedVideos : relatedSessions) || [];
@@ -928,10 +892,6 @@ export function useVideoSessionDetail(session, options = {}) {
     savedCount,
     commentCount,
     watchProgressSeconds,
-    watchStatus,
-    progressPercentage,
-    resetWatchSubmitting,
-    handleResetWatchProgress,
     comments,
     commentText,
     setCommentText,

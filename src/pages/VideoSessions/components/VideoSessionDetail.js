@@ -14,7 +14,6 @@ import {
   PaperPlaneRight as PaperPlaneRightIcon,
   Spinner,
   Download,
-  ArrowCounterClockwise,
 } from "@phosphor-icons/react";
 import Lottie from "lottie-react";
 import aiAnimation from "../../../lottie/AI.json";
@@ -147,10 +146,6 @@ export default function VideoSessionDetail({
     formatFullDate,
     toggleReplyInput,
     isRTL,
-    watchStatus,
-    progressPercentage,
-    resetWatchSubmitting,
-    handleResetWatchProgress,
   } = api;
 
 
@@ -270,13 +265,6 @@ export default function VideoSessionDetail({
                     {groupLabel}
                   </p>
                 )}
-                {(watchStatus || progressPercentage != null) && (
-                  <p className="video-session-detail-watch-meta" title="Watch progress from server">
-                    {watchStatus ? String(watchStatus) : ""}
-                    {watchStatus && progressPercentage != null ? " · " : ""}
-                    {progressPercentage != null ? `${Math.round(Number(progressPercentage))}%` : ""}
-                  </p>
-                )}
               </div>
               <div className="video-session-detail-actions">
                 <button
@@ -349,19 +337,6 @@ export default function VideoSessionDetail({
                 >
                   <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
                   <span className="video-session-detail-btn-label">Save {savedCount ? `(${savedCount})` : ""}</span>
-                </button>
-                <button
-                  type="button"
-                  className="video-session-detail-btn video-session-detail-btn-icon-only"
-                  onClick={handleResetWatchProgress}
-                  disabled={resetWatchSubmitting}
-                  title="Reset watch progress (start from beginning)"
-                  aria-label="Reset watch progress"
-                >
-                  <ArrowCounterClockwise size={16} weight="regular" />
-                  <span className="video-session-detail-btn-label">
-                    {resetWatchSubmitting ? "Resetting…" : "Reset progress"}
-                  </span>
                 </button>
 
                 <div className="video-session-detail-share-wrap">

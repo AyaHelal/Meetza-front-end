@@ -352,14 +352,6 @@
   white-space: nowrap;
 }
 
-.video-session-detail-watch-meta {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #4b5563;
-  text-transform: capitalize;
-}
-
 /* ── action buttons ── */
 .video-session-detail-actions {
   display: flex;
