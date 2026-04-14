@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeftIcon, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { getVideoSessions, parseSession } from "../services/videoSessionsService";
 import { useNavigate } from "react-router-dom";
@@ -112,11 +112,6 @@ export default function VideoSessionsHeader({
         </button>
         <div className="video-sessions-header-text">
           <h1 className="video-sessions-header-title">Video sessions</h1>
-          {groupName ? (
-            <p className="video-sessions-header-group-name" title={`Group: ${groupName}`}>
-              {groupName}
-            </p>
-          ) : null}
           {subtitle ? (
             <p className="video-sessions-header-subtitle">{subtitle}</p>
           ) : !groupName ? (
@@ -125,7 +120,7 @@ export default function VideoSessionsHeader({
             </p>
           ) : (
             <p className="video-sessions-header-subtitle video-sessions-header-subtitle--muted">
-              Videos for this group.
+              All of your {groupName} video sessions will appear here.
             </p>
           )}
         </div>

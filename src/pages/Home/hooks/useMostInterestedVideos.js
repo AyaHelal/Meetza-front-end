@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { smartToast } from "../../../API/toastManager";
 import { getMostInterestedVideos } from "../services";
+import { normalizeWatchProgressData } from "../../VideoSessions/services/videoSessionsService";
 
 function clamp01(n) {
   const x = Number.isFinite(Number(n)) ? Number(n) : 0;
@@ -16,11 +17,24 @@ function statusFromMostInterested(v) {
 }
 
 function mapMostInterestedVideo(v) {
-  const progress = v?.progress_percentage == null ? 0 : clamp01(v.progress_percentage);
+  const norm = normalizeWatchProgressData({
+    data: {
+      progress_seconds: v?.progress_seconds ?? v?.progressSeconds,
+      watch_status: v?.watch_status ?? v?.watchStatus,
+      progress_percentage: v?.progress_percentage ?? v?.progressPercentage,
+    },
+  });
+  const progress =
+    norm.progressPercentage != null ? clamp01(norm.progressPercentage) : clamp01(v?.progress_percentage);
+  const merged = {
+    ...v,
+    watch_status: norm.watchStatus ?? v?.watch_status,
+    progress_percentage: norm.progressPercentage ?? v?.progress_percentage,
+  };
   return {
     id: v?.id ?? v?._id ?? v?.uuid ?? v?.slug ?? Math.random().toString(36).slice(2),
     title: v?.title ?? "Video",
-    status: statusFromMostInterested(v),
+    status: statusFromMostInterested(merged),
     progress,
     thumbnailUrl: v?.thumbnail_url || v?.poster_url || "",
     slug: v?.slug,

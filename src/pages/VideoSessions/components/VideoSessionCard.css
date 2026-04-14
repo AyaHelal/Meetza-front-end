@@ -31,11 +31,37 @@
   border-radius: 24px 24px 0 0;
 }
 
+.video-session-card-thumb-wrap--progress {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .video-session-card-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  vertical-align: middle;
+}
+
+/* Thin bar: red = watched, dark track = remaining (matches reference) */
+.video-session-card-progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.video-session-card-progress-fill {
+  height: 100%;
+  background: #00dc85;
+  border-radius: 0 2px 0 0;
+  min-width: 0;
+  transition: width 0.25s ease;
 }
 
 .video-session-card-duration {
@@ -44,11 +70,15 @@
   right: 8px;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 600;
-  z-index: 2;
+  z-index: 3;
+}
+
+.video-session-card-thumb-wrap--progress .video-session-card-duration {
+  bottom: 12px;
 }
 
 .video-session-card-download-overlay {
@@ -270,6 +300,10 @@
     padding: 3px 6px;
     font-size: 0.7rem;
   }
+
+  .video-session-card-thumb-wrap--progress .video-session-card-duration {
+    bottom: 10px;
+  }
 }
 
 /* Mobile portrait */
@@ -295,6 +329,10 @@
     right: 6px;
     padding: 3px 6px;
     font-size: 0.65rem;
+  }
+
+  .video-session-card-thumb-wrap--progress .video-session-card-duration {
+    bottom: 10px;
   }
 }
 
