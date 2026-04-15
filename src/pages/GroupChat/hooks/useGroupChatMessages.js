@@ -37,7 +37,8 @@ export function useGroupChatMessages(
       setLoadingMoreMessages(true);
       const offset = messages.length;
       const raw = await getMessages(api, groupId, 50, offset);
-      const newMessages = raw.map((msg) => formatMessage(msg));
+      const memberOpts = { members: groupInfo?.members ?? [] };
+      const newMessages = raw.map((msg) => formatMessage(msg, memberOpts));
       setMessages((prev) => [...newMessages, ...prev]);
       setHasMoreMessages(newMessages.length === 50);
     } catch (error) {
@@ -45,7 +46,7 @@ export function useGroupChatMessages(
     } finally {
       setLoadingMoreMessages(false);
     }
-  }, [api, selectedChat, groupChats, messages.length, hasMoreMessages, loadingMoreMessages]);
+  }, [api, selectedChat, groupChats, messages.length, hasMoreMessages, loadingMoreMessages, groupInfo?.members]);
 
   // Fetch messages and group info when selected chat changes
   useEffect(() => {
@@ -97,12 +98,12 @@ export function useGroupChatMessages(
           );
         }
 
-        const rawMessages = await getMessages(api, groupId, 50, 0);
-        setMessages(rawMessages.map((msg) => formatMessage(msg)));
-        setHasMoreMessages(rawMessages.length === 50);
-
         const info = await getGroupInfo(api, groupId);
         setGroupInfo(info);
+        const members = info?.members ?? [];
+        const rawMessages = await getMessages(api, groupId, 50, 0);
+        setMessages(rawMessages.map((msg) => formatMessage(msg, { members })));
+        setHasMoreMessages(rawMessages.length === 50);
       } catch (error) {
         console.error("Error fetching messages/info:", error);
       } finally {

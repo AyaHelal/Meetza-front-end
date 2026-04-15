@@ -58,6 +58,7 @@ export default function GroupChat() {
   const currentGroupIdRef = useRef(null);
   const joinedGroupsRef = useRef(new Set());
   const openGroupIdFromStateRef = useRef(false);
+  const groupInfoRef = useRef(null);
 
   useEffect(() => {
     userRef.current = user;
@@ -109,6 +110,10 @@ export default function GroupChat() {
     currentGroupIdRef,
     joinedGroupsRef
   );
+
+  useEffect(() => {
+    groupInfoRef.current = groupInfo;
+  }, [groupInfo]);
 
   const mainChatMeeting = useMainChatMeeting(
     api,
@@ -192,7 +197,8 @@ export default function GroupChat() {
     (isInitial, sel, chats, setSel) =>
       refreshGroupsList(isInitial, sel, chats, setSel),
     selectedChat,
-    setSelectedChat
+    setSelectedChat,
+    groupInfoRef
   );
 
   const { handleSendMessage, isSendingMessage } = useGroupChatSend(
@@ -205,7 +211,8 @@ export default function GroupChat() {
     setGroupInfo,
     socket,
     isConnected,
-    socketSendMessage
+    socketSendMessage,
+    groupInfoRef
   );
 
   useEffect(() => {

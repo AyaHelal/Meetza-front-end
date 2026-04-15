@@ -10,6 +10,7 @@ export default function MainChatMessageList({
   messagesEndRef,
   onDeleteMessage,
   onEditMessage,
+  currentUser,
   currentUserEmail,
   onMediaClick,
   userRole,
@@ -83,6 +84,7 @@ export default function MainChatMessageList({
                 message={msg}
                 onDeleteMessage={onDeleteMessage}
                 onEditMessage={onEditMessage}
+                currentUser={currentUser}
                 currentUserEmail={currentUserEmail}
                 onMediaClick={onMediaClick}
                 userRole={userRole}

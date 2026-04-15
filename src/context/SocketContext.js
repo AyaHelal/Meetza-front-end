@@ -388,6 +388,33 @@ export const SocketProvider = ({ children }) => {
     });
   };
 
+  /** Toggle reaction on a group message (server ack + `messageReactionUpdated` broadcast). */
+  const socketReactToMessage = (groupId, messageId, emoji, callback) => {
+    if (!socket || !isConnected) {
+      if (callback) {
+        callback({ ok: false, message: "Socket not connected" });
+      }
+      return;
+    }
+    const cleanEmoji = String(emoji ?? "").trim().slice(0, 20);
+    if (!groupId || !messageId || !cleanEmoji) {
+      if (callback) {
+        callback({ ok: false, message: "groupId, messageId, and emoji are required" });
+      }
+      return;
+    }
+    socket.emit(
+      "reactToMessage",
+      { groupId, messageId, emoji: cleanEmoji },
+      (ack) => {
+        if (ack && !ack.ok) {
+          console.error("❌ reactToMessage:", ack?.message || "Unknown error");
+        }
+        if (callback) callback(ack);
+      }
+    );
+  };
+
   // Helper function to mark message as read
   const markMessageRead = (groupId, messageId, callback) => {
     if (!socket || !isConnected) {
@@ -513,6 +540,7 @@ export const SocketProvider = ({ children }) => {
     joinGroup,
     leaveGroup,
     sendMessage,
+    socketReactToMessage,
     markMessageRead,
     markAllMessagesRead,
     getUnreadCount,
