@@ -110,6 +110,135 @@ function formatDurationForDisplay(value) {
 /**
  * Parse /video API response into a consistent session shape for UI.
  */
+/**
+ * Seconds watched / resume position from API or embedded video fields (flexible shapes).
+ */
+export function extractWatchProgressSeconds(value) {
+  if (value == null) return null;
+  if (typeof value === "number" && !Number.isNaN(value)) return Math.max(0, value);
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = parseFloat(value);
+    if (!Number.isNaN(n)) return Math.max(0, n);
+    return null;
+  }
+  if (typeof value === "object") {
+    const o = value?.data != null && typeof value.data === "object" ? value.data : value;
+    const sec =
+      o.watched_seconds ??
+      o.watchedSeconds ??
+      o.position_seconds ??
+      o.positionSeconds ??
+      o.current_time ??
+      o.currentTime ??
+      o.seconds ??
+      o.progress_seconds ??
+      o.progressSeconds ??
+      o.last_position ??
+      o.lastPosition ??
+      o.current_position ??
+      o.currentPosition ??
+      o.time_watched ??
+      o.timeWatched ??
+      o.watched_duration ??
+      o.watchedDuration;
+    return extractWatchProgressSeconds(sec);
+  }
+  return null;
+}
+
+function watchProgressPath(videoId) {
+  return `/video/${encodeURIComponent(videoId)}/watch-progress`;
+}
+
+/**
+ * Normalize API `data` for watch progress (GET response or PUT response).
+ * `data === null` → start from 0, no status.
+ */
+export function normalizeWatchProgressData(root) {
+  if (root == null) {
+    return { progressSeconds: 0, watchStatus: null, progressPercentage: null };
+  }
+  const d = root?.data !== undefined ? root.data : root;
+  if (d == null) {
+    return { progressSeconds: 0, watchStatus: null, progressPercentage: null };
+  }
+  if (typeof d !== "object") {
+    return { progressSeconds: 0, watchStatus: null, progressPercentage: null };
+  }
+  const ps = d.progress_seconds ?? d.progressSeconds;
+  let progressSeconds = 0;
+  if (typeof ps === "number" && !Number.isNaN(ps)) progressSeconds = Math.max(0, Math.floor(ps));
+  else if (typeof ps === "string" && ps.trim() !== "") {
+    const n = parseInt(ps, 10);
+    if (!Number.isNaN(n)) progressSeconds = Math.max(0, n);
+  }
+  const ws = d.watch_status ?? d.watchStatus ?? null;
+  const watchStatus = ws != null && String(ws).trim() !== "" ? String(ws) : null;
+  const pp = d.progress_percentage ?? d.progressPercentage;
+  let progressPercentage = null;
+  if (typeof pp === "number" && !Number.isNaN(pp)) progressPercentage = Math.max(0, Math.min(100, pp));
+  else if (typeof pp === "string" && pp.trim() !== "") {
+    const n = parseFloat(pp);
+    if (!Number.isNaN(n)) progressPercentage = Math.max(0, Math.min(100, n));
+  }
+  return { progressSeconds, watchStatus, progressPercentage };
+}
+
+/**
+ * GET /video/:id/watch-progress — resume + UI fields (watch_status, progress_percentage).
+ */
+export async function getVideoWatchProgress(videoId) {
+  if (!videoId) return normalizeWatchProgressData(null);
+  try {
+    const res = await api.get(watchProgressPath(videoId));
+    return normalizeWatchProgressData(res?.data);
+  } catch (err) {
+    if (err?.response?.status === 404) return normalizeWatchProgressData(null);
+    console.warn("getVideoWatchProgress failed", err);
+    return normalizeWatchProgressData(null);
+  }
+}
+
+/**
+ * PUT /video/:id/watch-progress — send only fields you include.
+ * Examples: `{ progress_seconds: 120 }`, `{ completed: true }`, or both.
+ * Number shorthand → `{ progress_seconds: n }`.
+ */
+export async function putVideoWatchProgress(videoId, payload) {
+  if (!videoId) throw new Error("video id is required");
+  const body = {};
+  if (typeof payload === "number" && !Number.isNaN(payload)) {
+    body.progress_seconds = Math.max(0, Math.floor(payload));
+  } else if (payload != null && typeof payload === "object" && !Array.isArray(payload)) {
+    if ("progress_seconds" in payload && payload.progress_seconds != null && payload.progress_seconds !== "") {
+      const n = Number(payload.progress_seconds);
+      if (!Number.isNaN(n)) body.progress_seconds = Math.max(0, Math.floor(n));
+    }
+    if (!("progress_seconds" in body) && "progressSeconds" in payload && payload.progressSeconds != null) {
+      const n = Number(payload.progressSeconds);
+      if (!Number.isNaN(n)) body.progress_seconds = Math.max(0, Math.floor(n));
+    }
+    if ("completed" in payload && payload.completed !== undefined && payload.completed !== null) {
+      const c = payload.completed;
+      body.completed = Boolean(c === true || c === 1 || c === "1" || String(c).toLowerCase() === "true");
+    }
+  }
+  if (Object.keys(body).length === 0) {
+    throw new Error("PUT watch-progress: include progress_seconds and/or completed");
+  }
+  const res = await api.put(watchProgressPath(videoId), body);
+  return normalizeWatchProgressData(res?.data);
+}
+
+/**
+ * DELETE /video/:id/watch-progress — reset/remove progress for current user.
+ */
+export async function deleteVideoWatchProgress(videoId) {
+  if (!videoId) throw new Error("video id is required");
+  const res = await api.delete(watchProgressPath(videoId));
+  return res?.data?.data ?? res?.data ?? res;
+}
+
 export function parseSession(raw) {
   const durationRaw = raw.duration ?? raw.duration_seconds ?? null;
   const duration = formatDurationForDisplay(durationRaw) ?? durationRaw;
@@ -120,6 +249,28 @@ export function parseSession(raw) {
     raw.group?.name ??
     null;
   const groupId = raw.group_id ?? raw.groupId ?? raw.group?.id ?? null;
+
+  const nestedWp = raw.watch_progress ?? raw.watchProgress;
+  const embedSec = extractWatchProgressSeconds(
+    nestedWp ??
+      raw.watch_progress ??
+      raw.watchProgress ??
+      raw.watch_progress_seconds ??
+      raw.watchProgressSeconds
+  );
+  const normFromList =
+    nestedWp != null && typeof nestedWp === "object"
+      ? normalizeWatchProgressData({ data: nestedWp })
+      : normalizeWatchProgressData({
+          data: {
+            progress_seconds: raw.progress_seconds ?? raw.progressSeconds,
+            watch_status: raw.watch_status ?? raw.watchStatus,
+            progress_percentage: raw.progress_percentage ?? raw.progressPercentage,
+          },
+        });
+  const watchProgressSeconds = embedSec != null ? embedSec : normFromList.progressSeconds;
+  const watchStatus = normFromList.watchStatus;
+  const progressPercentage = normFromList.progressPercentage;
 
   return {
     ...raw,
@@ -134,6 +285,9 @@ export function parseSession(raw) {
     group_id: groupId,
     group_name: groupName,
     groupName,
+    watchProgressSeconds,
+    watchStatus,
+    progressPercentage,
   };
 }
 

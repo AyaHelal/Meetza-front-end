@@ -17,6 +17,60 @@ const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏',
 
 const LONG_PRESS_MS = 520;
 
+function viewerLabelForActor(actor, currentUser, currentUserEmail) {
+  const a = String(actor || '').trim();
+  if (!a) return a;
+  const emails = [currentUserEmail, currentUser?.email, currentUser?.user_email].filter(Boolean);
+  for (const em of emails) {
+    const norm = em.trim().toLowerCase();
+    if (!norm) continue;
+    const local = norm.split('@')[0] || '';
+    if (a.toLowerCase() === norm || (local && a.toLowerCase() === local)) return 'You';
+  }
+  const nm = currentUser?.name?.trim();
+  if (nm && a.toLowerCase() === nm.toLowerCase()) return 'You';
+  return a;
+}
+
+function totalReactionCount(reactions) {
+  if (!Array.isArray(reactions)) return 0;
+  return reactions.reduce((sum, r) => sum + Math.max(1, Number(r.count) || 1), 0);
+}
+
+/** @param {string} filterEmoji `'all'` or one emoji string */
+function reactionSheetRows(reactions, filterEmoji) {
+  const rows = [];
+  for (const r of reactions || []) {
+    if (filterEmoji !== 'all' && r.emoji !== filterEmoji) continue;
+    const reactors = Array.isArray(r.reactors) ? r.reactors : [];
+    const em = r.emoji;
+    if (reactors.length > 0) {
+      reactors.forEach((rec, idx) => {
+        rows.push({
+          key: `${em}-${rec.id}-${idx}`,
+          name: rec.name,
+          email: rec.email,
+          photo: rec.photo,
+          emoji: rec.emoji || em,
+        });
+      });
+    } else {
+      (r.actors || []).forEach((name, idx) => {
+        rows.push({
+          key: `${em}-a-${idx}`,
+          name,
+          email: '',
+          photo: null,
+          emoji: em,
+        });
+      });
+    }
+  }
+  return rows.sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+  );
+}
+
 const MessageItem = ({
   message,
   onDeleteMessage,
@@ -33,6 +87,8 @@ const MessageItem = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.message || message.text || '');
+  /** `{ filter: 'all' | emoji }` when open */
+  const [reactionSheet, setReactionSheet] = useState(null);
 
   const isLinkMessage = message.message && /^https?:\/\/\S+$/i.test(message.message.trim());
   const finalMedia =
@@ -51,6 +107,7 @@ const MessageItem = ({
   const messageRef = useRef(null);
   /** Bubble column only (max-width ~70%); used so the highlight matches real size, not full chat row. */
   const messageContentRef = useRef(null);
+  const reactionPillRef = useRef(null);
   const sheetRef = useRef(null);
   const longPressTimerRef = useRef(null);
   const touchStartRef = useRef({ x: 0, y: 0 });
@@ -88,6 +145,7 @@ const MessageItem = ({
     if (!canOpenSheet) return;
     const rect = readAnchorRect();
     if (!rect?.width) return;
+    setReactionSheet(null);
     setShowEmojiPicker(false);
     setAnchorRect(rect);
     setShowContextMenu(true);
@@ -195,11 +253,39 @@ const MessageItem = ({
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === 'Escape' && showContextMenu) closeContextSheet();
+      if (e.key !== 'Escape') return;
+      if (reactionSheet) setReactionSheet(null);
+      else if (showContextMenu) closeContextSheet();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showContextMenu, closeContextSheet]);
+  }, [showContextMenu, closeContextSheet, reactionSheet]);
+
+  useEffect(() => {
+    if (!reactionSheet) return;
+    const onPointerDown = (e) => {
+      const t = e.target;
+      if (typeof t.closest === 'function' && t.closest('.message-reaction-sheet-panel')) return;
+      if (typeof t.closest === 'function' && t.closest('.message-reaction-summary-pill')) return;
+      setReactionSheet(null);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [reactionSheet]);
+
+  useEffect(() => {
+    setReactionSheet(null);
+  }, [message.id]);
+
+  const readReactionPillRect = useCallback(() => {
+    const el = reactionPillRef.current;
+    if (!el) return null;
+    return el.getBoundingClientRect();
+  }, []);
 
   useEffect(() => {
     if (!showContextMenu) return;
@@ -272,17 +358,30 @@ const MessageItem = ({
         onMediaClick={preview ? undefined : onMediaClick}
       />
       {Array.isArray(message.reactions) && message.reactions.length > 0 && (
-        <div className="message-reactions" aria-label="Reactions">
-          {message.reactions.map((r, idx) => (
-            <span
-              key={`${r.emoji}-${idx}`}
-              className={`message-reaction-chip${r.reactedByMe ? ' message-reaction-chip-mine' : ''}`}
-            >
-              <span className="message-reaction-emoji">{r.emoji}</span>
-              {r.count > 1 ? <span className="message-reaction-count">{r.count}</span> : null}
-            </span>
-          ))}
-        </div>
+        <button
+          type="button"
+          className={`message-reaction-summary-pill${isOwnMessage ? ' message-reaction-summary-pill--own' : ''}${reactionSheet ? ' message-reaction-summary-pill--open' : ''}`}
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(reactionSheet)}
+          aria-label={`${totalReactionCount(message.reactions)} reactions. Show who reacted`}
+          ref={reactionPillRef}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setReactionSheet((prev) => (prev ? null : { filter: 'all', anchor: readReactionPillRect() }));
+          }}
+        >
+          <span className="message-reaction-summary-emojis" aria-hidden>
+            {message.reactions.map((r, i) => (
+              <span key={`${r.emoji}-${i}`} className="message-reaction-summary-emoji">
+                {r.emoji}
+              </span>
+            ))}
+          </span>
+          <span className="message-reaction-summary-total">{totalReactionCount(message.reactions)}</span>
+        </button>
       )}
     </>
   );
@@ -441,6 +540,143 @@ const MessageItem = ({
       document.body
     );
 
+  const reactionListRows = reactionSheet
+    ? reactionSheetRows(message.reactions, reactionSheet.filter)
+    : [];
+  const reactionSheetTotal = totalReactionCount(message.reactions);
+
+  const reactionPopoverLayout = (() => {
+    if (!reactionSheet?.anchor) return null;
+    const a = reactionSheet.anchor;
+    const gap = 10;
+    const pad = 12;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 360;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 640;
+    const maxW = Math.min(560, vw - pad * 2);
+    const maxH = Math.min(520, vh - pad * 2);
+
+    const preferLeft = isOwnMessage;
+    const leftCandidate = a.right + gap;
+
+    const placeOnLeft = preferLeft ? true : leftCandidate + maxW > vw - pad;
+    const left = placeOnLeft ? Math.max(pad, a.left - gap - maxW) : Math.min(vw - pad - maxW, leftCandidate);
+
+    const topIdeal = a.top - 8;
+    const top = Math.max(pad, Math.min(vh - pad - maxH, topIdeal));
+    return { left, top, maxW, maxH };
+  })();
+
+  useEffect(() => {
+    if (!reactionSheet) return;
+    const tick = () => {
+      const r = readReactionPillRect();
+      if (!r?.width) return;
+      setReactionSheet((prev) => (prev ? { ...prev, anchor: r } : prev));
+    };
+    tick();
+    const scrollOpts = { capture: true, passive: true };
+    const onScrollOrResize = () => requestAnimationFrame(tick);
+    window.addEventListener('scroll', onScrollOrResize, scrollOpts);
+    document.addEventListener('scroll', onScrollOrResize, scrollOpts);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, scrollOpts);
+      document.removeEventListener('scroll', onScrollOrResize, scrollOpts);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, [reactionSheet, readReactionPillRect]);
+
+  const reactionSheetOverlay =
+    reactionSheet &&
+    createPortal(
+      <div className="message-reaction-popover-scrim" role="presentation" onClick={() => setReactionSheet(null)}>
+        <div
+          className="message-reaction-popover-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${reactionSheetTotal} reactions`}
+          style={
+            reactionPopoverLayout
+              ? {
+                  position: 'fixed',
+                  left: reactionPopoverLayout.left,
+                  top: reactionPopoverLayout.top,
+                  width: reactionPopoverLayout.maxW,
+                  maxHeight: reactionPopoverLayout.maxH,
+                }
+              : undefined
+          }
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h3 className="message-reaction-sheet-title">
+            {reactionSheetTotal} {reactionSheetTotal === 1 ? 'Reaction' : 'Reactions'}
+          </h3>
+          <div className="message-reaction-sheet-tabs">
+            <button
+              type="button"
+              className={`message-reaction-sheet-tab message-reaction-sheet-tab--all${reactionSheet.filter === 'all' ? ' message-reaction-sheet-tab--active' : ''}`}
+              onClick={() => setReactionSheet((prev) => ({ ...(prev || {}), filter: 'all' }))}
+              aria-pressed={reactionSheet.filter === 'all'}
+              aria-label="All reactions"
+            >
+              <span className="message-reaction-sheet-tab-all-emoji" aria-hidden>
+                😊
+              </span>
+              <Plus size={14} weight="bold" className="message-reaction-sheet-tab-all-plus" aria-hidden />
+            </button>
+            {message.reactions.map((r) => (
+              <button
+                key={r.emoji}
+                type="button"
+                className={`message-reaction-sheet-tab${reactionSheet.filter === r.emoji ? ' message-reaction-sheet-tab--active' : ''}`}
+                onClick={() => setReactionSheet((prev) => ({ ...(prev || {}), filter: r.emoji }))}
+                aria-pressed={reactionSheet.filter === r.emoji}
+              >
+                <span className="message-reaction-sheet-tab-emoji">{r.emoji}</span>
+                <span className="message-reaction-sheet-tab-count">{Math.max(1, Number(r.count) || 1)}</span>
+              </button>
+            ))}
+          </div>
+          <ul className="message-reaction-sheet-list">
+            {reactionListRows.length === 0 ? (
+              <li className="message-reaction-sheet-empty">No reactor details for this view.</li>
+            ) : (
+              reactionListRows.map((row) => {
+                const displayName = viewerLabelForActor(row.name, currentUser, resolvedCurrentEmail);
+                const initials = String(displayName || 'U')
+                  .replace(/\s+/g, '')
+                  .slice(0, 2)
+                  .toUpperCase();
+                const nameLine = displayName === 'You' ? displayName : `~ ${displayName}`;
+                return (
+                  <li key={row.key} className="message-reaction-sheet-row">
+                    <div className="message-reaction-sheet-avatar" aria-hidden>
+                      {row.photo ? (
+                        <img src={row.photo} alt="" className="message-reaction-sheet-avatar-img" />
+                      ) : (
+                        <span className="message-reaction-sheet-avatar-fallback">{initials}</span>
+                      )}
+                    </div>
+                    <div className="message-reaction-sheet-row-text">
+                      <div className="message-reaction-sheet-row-name">{nameLine}</div>
+                      {row.email ? (
+                        <div className="message-reaction-sheet-row-sub">{row.email}</div>
+                      ) : null}
+                    </div>
+                    <span className="message-reaction-sheet-row-emoji" aria-hidden>
+                      {row.emoji}
+                    </span>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      </div>,
+      document.body
+    );
+
   return (
     <div
       className={`message ${isOwnMessage ? 'message-own' : 'message-other'}${showContextMenu ? ' message--context-open' : ''}`}
@@ -460,10 +696,14 @@ const MessageItem = ({
           )}
         </div>
       )}
-      <div ref={messageContentRef} className="message-content">
+      <div
+        ref={messageContentRef}
+        className={`message-content${Array.isArray(message.reactions) && message.reactions.length > 0 ? ' message-content--with-reaction-summary' : ''}`}
+      >
         {renderBubbleColumn(false)}
       </div>
       {contextOverlay}
+      {reactionSheetOverlay}
     </div>
   );
 };

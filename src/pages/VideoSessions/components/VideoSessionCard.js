@@ -1,18 +1,50 @@
 import React, { useState, useEffect, useRef } from "react";
 import { DotsThreeVertical, PencilSimple, Trash, Download, Spinner } from "@phosphor-icons/react";
 import { downloadVideo } from "../../../utils/videoUtils";
+import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import "./VideoSessionCard.css";
 
 const DEFAULT_THUMB =
   "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
+
+function parseDurationLabelToSeconds(label) {
+  if (label == null || typeof label !== "string") return 0;
+  const parts = label.trim().split(":").map((p) => parseInt(p, 10));
+  if (parts.some((n) => Number.isNaN(n))) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+/** 0–100 for progress bar, or null when nothing to show */
+function getCardWatchProgressPercent(session) {
+  const rawPct = session?.progressPercentage ?? session?.progress_percentage;
+  if (rawPct != null && rawPct !== "") {
+    const n = Number(rawPct);
+    if (!Number.isNaN(n)) return Math.max(0, Math.min(100, n));
+  }
+  const ws = (session?.watchStatus ?? session?.watch_status ?? "").toString().toLowerCase();
+  if (ws.includes("complete")) return 100;
+  const durSec =
+    typeof session?.duration_seconds === "number" && session.duration_seconds > 0
+      ? session.duration_seconds
+      : parseDurationLabelToSeconds(String(session?.duration ?? ""));
+  const watched = session?.watchProgressSeconds;
+  if (durSec > 0 && typeof watched === "number" && watched >= 0) {
+    return Math.min(100, (watched / durSec) * 100);
+  }
+  return null;
+}
 
 export default function VideoSessionCard({ session, onClick, isAdmin = false, onEdit, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const menuRef = useRef(null);
 
+  const rawVideoUrl = session?.videoUrl || session?.video_url;
   const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
   const duration = session?.duration ?? "24:22";
+  const watchProgressPercent = getCardWatchProgressPercent(session);
   const title = session?.title ?? "Video Title";
   const groupLabel = session?.groupName ?? session?.group_name ?? null;
   const description = session?.description;
@@ -79,12 +111,30 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
         }
       }}
     >
-      <div className="video-session-card-thumb-wrap">
-        <img
-          src={thumbnailUrl}
+      <div
+        className={`video-session-card-thumb-wrap${watchProgressPercent != null ? " video-session-card-thumb-wrap--progress" : ""}`}
+      >
+        <VideoHoverPreviewThumb
+          fill
+          posterSrc={thumbnailUrl}
+          rawVideoUrl={rawVideoUrl}
           alt=""
-          className="video-session-card-thumb"
         />
+        {watchProgressPercent != null && (
+          <div
+            className="video-session-card-progress-track"
+            role="progressbar"
+            aria-label="Watch progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(watchProgressPercent)}
+          >
+            <div
+              className="video-session-card-progress-fill"
+              style={{ width: `${watchProgressPercent}%` }}
+            />
+          </div>
+        )}
         <span className="video-session-card-duration">{duration}</span>
         <button
           className={`video-session-card-download-overlay ${downloading ? "downloading" : ""}`}

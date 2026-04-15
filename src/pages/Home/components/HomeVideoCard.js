@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, PlayCircle } from "@phosphor-icons/react";
+import { VideoHoverPreviewThumb } from "../../VideoSessions/components/VideoHoverPreviewThumb";
 
 function clamp01(n) {
   const x = Number.isFinite(Number(n)) ? Number(n) : 0;
@@ -36,6 +37,20 @@ function getSavedListVideoId(video) {
  *   session → full video page (related videos, etc.)
  *   saved → Saved Videos layout (sidebar list + detail)
  */
+/** Relative or absolute file path for muted hover preview (same fields as session cards). */
+function getHomeCardRawVideoUrlForPreview(video) {
+  const raw = video?.raw;
+  const nested = raw?.video ?? raw?.Video ?? raw?.video_data ?? raw?.videoData;
+  const from = (o) => {
+    if (!o || typeof o !== "object") return null;
+    const u = o.videoUrl ?? o.video_url ?? o.url;
+    if (u == null || typeof u !== "string") return null;
+    const t = u.trim();
+    return t !== "" ? t : null;
+  };
+  return from(video) ?? from(raw) ?? from(nested);
+}
+
 function getVideoGroupLabel(video) {
   const raw = video?.raw;
   const g =
@@ -60,6 +75,7 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
     video?.thumbnail_url ||
     video?.poster_url ||
     "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60";
+  const rawPreviewVideoUrl = getHomeCardRawVideoUrlForPreview(video);
 
   const isWatching = status === "watching";
   const statusLabel = isWatching ? "Watching" : "Completed";
@@ -95,7 +111,17 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
   return (
     <Root {...rootProps}>
       <div className="home-video-card-thumb">
-        <img className="home-video-card-thumb-img" src={thumbnailUrl} alt="" />
+        {rawPreviewVideoUrl ? (
+          <VideoHoverPreviewThumb
+            posterSrc={thumbnailUrl}
+            rawVideoUrl={rawPreviewVideoUrl}
+            alt=""
+            fill
+            className="home-video-card-thumb-preview"
+          />
+        ) : (
+          <img className="home-video-card-thumb-img" src={thumbnailUrl} alt="" />
+        )}
       </div>
 
       <div className="home-video-card-body">

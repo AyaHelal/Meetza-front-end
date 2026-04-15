@@ -1,5 +1,13 @@
 import { useEffect, useReducer } from "react";
-import { formatMessage, getMediaLabel } from "../utils/groupChatFormatters";
+import {
+  formatMessage,
+  getMediaLabel,
+  reactionsFromRawPayload,
+  buildMemberIdLookup,
+  buildMemberRecordLookup,
+  mergeUserIntoMemberLookup,
+  mergeUserIntoMemberRecordLookup,
+} from "../utils/groupChatFormatters";
 function isMessageFromUser(messageData, user) {
   if (!user || !messageData) return false;
   const email = (messageData.sender_email || "").toLowerCase();
@@ -49,7 +57,8 @@ export function useGroupChatSocket(
   leaveGroup,
   refreshGroupsList,
   selectedChat,
-  setSelectedChat
+  setSelectedChat,
+  groupInfoRef
 ) {
   const [rejoinGeneration, bumpRejoin] = useReducer((n) => n + 1, 0);
 
@@ -113,7 +122,8 @@ export function useGroupChatSocket(
           String(currentGroupIdRef.current) === messageGroupId;
 
         if (isForCurrentGroup) {
-          const formattedMessage = formatMessage(messageData);
+          const memberOpts = { members: groupInfoRef?.current?.members ?? [] };
+          const formattedMessage = formatMessage(messageData, memberOpts);
           setMessages((prev) => {
             const existingIndex = prev.findIndex((msg) => {
               if (msg.id === messageData.id) return true;
@@ -194,7 +204,55 @@ export function useGroupChatSocket(
     currentGroupIdRef,
     userRef,
     markAllMessagesReadRef,
+    groupInfoRef,
   ]);
+
+  // Reactions updated (toggle) — broadcast to `group:${groupId}` after `reactToMessage`
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleMessageReactionUpdated = (payload = {}) => {
+      try {
+        const { groupId, messageId, reactions, user: reactionUser } = payload;
+        if (groupId == null || messageId == null) return;
+        const messageGroupId = String(groupId);
+        if (!messageGroupId || messageGroupId === "undefined" || messageGroupId === "null") {
+          return;
+        }
+
+        const isForCurrentGroup =
+          currentGroupIdRef?.current &&
+          String(currentGroupIdRef.current) === messageGroupId;
+
+        if (!isForCurrentGroup) return;
+
+        const mid = String(messageId);
+        const members = groupInfoRef?.current?.members ?? [];
+        const memberLookup = mergeUserIntoMemberLookup(buildMemberIdLookup(members), reactionUser);
+        const memberRecordLookup = mergeUserIntoMemberRecordLookup(
+          buildMemberRecordLookup(members),
+          reactionUser
+        );
+        setMessages((prev) => {
+          let changed = false;
+          const next = prev.map((msg) => {
+            if (String(msg.id) !== mid) return msg;
+            changed = true;
+            return {
+              ...msg,
+              reactions: reactionsFromRawPayload({ reactions }, memberLookup, memberRecordLookup),
+            };
+          });
+          return changed ? next : prev;
+        });
+      } catch (e) {
+        console.error("handleMessageReactionUpdated:", e);
+      }
+    };
+
+    socket.on("messageReactionUpdated", handleMessageReactionUpdated);
+    return () => socket.off("messageReactionUpdated", handleMessageReactionUpdated);
+  }, [socket, isConnected, setMessages, currentGroupIdRef, groupInfoRef]);
 
   // Group events → refresh list
   useEffect(() => {

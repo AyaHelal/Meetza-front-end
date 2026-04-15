@@ -815,6 +815,7 @@ body.group-chat-active {
 }
 
 .message-text {
+  margin-bottom: 8px;
   font-size: 14px;
   color: #333333;
   line-height: 1.5;
@@ -1649,7 +1650,9 @@ body.group-chat-active {
   color: #dc2626;
   cursor: pointer;
   text-align: left;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .group-info-leave-row-icon {
@@ -4504,6 +4507,306 @@ body.group-chat-active {
   color: #ff453a;
 }
 
+.message-content--with-reaction-summary {
+  position: relative;
+  padding-bottom: 18px;
+  margin-bottom: 6px;
+  overflow: visible;
+}
+
+/* Own: keep a few px so the pill (anchored right) doesn’t sit under the scrollbar / edge */
+.message-own .message-content--with-reaction-summary {
+  padding-right: 6px;
+}
+
+.message-reaction-summary-pill {
+  position: absolute;
+  bottom: -10px;
+  bottom: -10px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 11px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  z-index: 2;
+  width: max-content;
+  max-width: calc(100% + 12px);
+  flex-wrap: nowrap;
+  box-sizing: border-box;
+}
+
+.message-reaction-summary-pill--own {
+  left: auto;
+  right: 0;
+  padding: 5px 11px 5px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1565c0;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  max-width: min(calc(129% + 20px), 100vw);
+}
+
+.message-reaction-summary-pill--open {
+  outline: 2px solid rgba(25, 118, 210, 0.55);
+  outline-offset: 1px;
+}
+
+.message-reaction-summary-pill:focus-visible {
+  outline: 2px solid rgba(25, 118, 210, 0.65);
+  outline-offset: 2px;
+}
+
+.message-reaction-summary-emojis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: min-content;
+  overflow: visible;
+}
+
+.message-reaction-summary-emoji {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  display: inline-block;
+  padding: 0 1px;
+}
+
+.message-reaction-summary-total {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #495057;
+  flex-shrink: 0;
+}
+
+.message-own .message-reaction-summary-total {
+  color: #1565c0;
+}
+
+.message-reaction-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 5600;
+  background: rgba(15, 23, 42, 0.22);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.message-reaction-popover-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 5600;
+  background: transparent;
+}
+
+.message-reaction-popover-panel {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 10px 0 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.message-reaction-popover-panel .message-reaction-sheet-title {
+  padding: 0 14px;
+  margin-bottom: 10px;
+}
+
+.message-reaction-popover-panel .message-reaction-sheet-tabs {
+  padding: 0 10px 10px;
+}
+
+.message-reaction-popover-panel .message-reaction-sheet-list {
+  padding-top: 6px;
+}
+
+.message-reaction-sheet-panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(78vh, 520px);
+  background: #ffffff;
+  color: #1a1a1a;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: none;
+  padding: 0 0 max(12px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.message-reaction-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 10px auto 6px;
+  flex-shrink: 0;
+}
+
+.message-reaction-sheet-title {
+  margin: 0 0 12px;
+  padding: 0 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  color: #212529;
+  flex-shrink: 0;
+}
+
+.message-reaction-sheet-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 0 16px 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.message-reaction-sheet-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f8f9fa;
+  color: #212529;
+  font: inherit;
+  cursor: pointer;
+}
+
+.message-reaction-sheet-tab--active {
+  background: #e7f1ff;
+  border-color: rgba(25, 118, 210, 0.35);
+  color: #1565c0;
+}
+
+.message-reaction-sheet-tab--active .message-reaction-sheet-tab-count {
+  color: #1565c0;
+  opacity: 1;
+}
+
+.message-reaction-sheet-tab-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.message-reaction-sheet-tab-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.message-reaction-sheet-tab--all {
+  position: relative;
+  padding: 6px 14px 6px 10px;
+}
+
+.message-reaction-sheet-tab-all-emoji {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.message-reaction-sheet-tab-all-plus {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  color: #495057;
+}
+
+.message-reaction-sheet-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.message-reaction-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+}
+
+.message-reaction-sheet-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e9ecef;
+}
+
+.message-reaction-sheet-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-reaction-sheet-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.message-reaction-sheet-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-reaction-sheet-row-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.message-reaction-sheet-row-sub {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.message-reaction-sheet-row-emoji {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.message-reaction-sheet-empty {
+  padding: 24px 20px;
+  text-align: center;
+  color: #868e96;
+  font-size: 0.9rem;
+}
+
 .message-reactions {
   display: flex;
   flex-wrap: wrap;
@@ -4520,6 +4823,83 @@ body.group-chat-active {
   background: rgba(0, 0, 0, 0.06);
   font-size: 0.9rem;
   line-height: 1.3;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  vertical-align: middle;
+}
+
+.message-reaction-chip:focus-visible {
+  outline: 2px solid rgba(25, 118, 210, 0.55);
+  outline-offset: 1px;
+}
+
+.message-reaction-chip--open {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.message-own .message-reaction-chip--open {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.message-reaction-detail-popover {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.message-reaction-detail-popover-own {
+  background: #1c1c1e;
+  color: #f2f2f7;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.message-reaction-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.message-reaction-detail-popover-own .message-reaction-detail-head {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.message-reaction-detail-emoji {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.message-reaction-detail-head-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.message-reaction-detail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.message-reaction-detail-li {
+  padding: 4px 0;
+  font-size: 0.875rem;
+}
+
+.message-reaction-detail-fallback {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  line-height: 1.4;
 }
 
 .message-own .message-reaction-chip {

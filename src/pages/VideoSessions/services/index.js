@@ -1,6 +1,11 @@
 export {
   getVideoSessions,
   parseSession,
+  extractWatchProgressSeconds,
+  normalizeWatchProgressData,
+  putVideoWatchProgress,
+  getVideoWatchProgress,
+  deleteVideoWatchProgress,
   getVideoDetail,
   getVideoBySlug,
   createVideo,

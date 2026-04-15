@@ -93,6 +93,7 @@ function GroupChatLayout({
         groupMembers={groupMembers}
         groupInfo={groupInfo}
         currentUserEmail={currentUserEmail}
+        currentUser={currentUser}
         groupId={selectedChatData?.id || null}
         onMessageEdited={onMessageEdited}
         onMessageDeleted={onMessageDeleted}

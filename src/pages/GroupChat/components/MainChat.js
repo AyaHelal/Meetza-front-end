@@ -9,8 +9,12 @@ import { deleteMessage, updateMessage } from "../../../API/auth";
 import { formatMessages } from "../utils/mainChatMessageUtils";
 import { reactToMessage } from "../services/groupChatService";
 import {
-  normalizeReactionsFromPayload,
   optimisticReplaceMyReaction,
+  reactionsFromRawPayload,
+  buildMemberIdLookup,
+  buildMemberRecordLookup,
+  mergeUserIntoMemberLookup,
+  mergeUserIntoMemberRecordLookup,
 } from "../utils/groupChatFormatters";
 import { getReplySnippetForMessage } from "../utils/messageItemUtils";
 import "./MainChat.css";
@@ -55,10 +59,11 @@ const MainChat = ({
   meetingId,
   onCreateMeeting,
   onRefreshGroupInfo,
+  currentUser,
 }) => {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const { socket } = useSocket();
+  const { socket, isConnected, socketReactToMessage } = useSocket();
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
   const isSuperAdmin = normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
   const isAdministrator = normalizedUserRole === "administrator";
@@ -186,19 +191,61 @@ const MainChat = ({
     async (messageId, emoji) => {
       if (!groupId || !messageId || !emoji?.trim()) return;
       const trimmedEmoji = emoji.trim();
+
+      const membersArr = Array.isArray(groupMembers) ? groupMembers : [];
+      const baseMemberLookup = buildMemberIdLookup(membersArr);
+      const baseMemberRecordLookup = buildMemberRecordLookup(membersArr);
+
+      if (socket && isConnected && socketReactToMessage) {
+        const socketOk = await new Promise((resolve) => {
+          socketReactToMessage(groupId, messageId, trimmedEmoji, (ack) => {
+            if (ack?.ok && ack.data?.reactions !== undefined) {
+              const lookup = mergeUserIntoMemberLookup(baseMemberLookup, ack.data?.user);
+              const recordLookup = mergeUserIntoMemberRecordLookup(
+                baseMemberRecordLookup,
+                ack.data?.user
+              );
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  String(msg.id) !== String(messageId)
+                    ? msg
+                    : {
+                        ...msg,
+                        reactions: reactionsFromRawPayload(
+                          { reactions: ack.data.reactions },
+                          lookup,
+                          recordLookup
+                        ),
+                      }
+                )
+              );
+            }
+            resolve(Boolean(ack?.ok));
+          });
+        });
+        if (socketOk) return;
+      }
+
       try {
         const raw = await reactToMessage(api, groupId, messageId, { emoji: trimmedEmoji });
         const data = raw?.data !== undefined ? raw.data : raw;
+        const lookupAfterRest = mergeUserIntoMemberLookup(baseMemberLookup, data?.user);
+        const recordLookupAfterRest = mergeUserIntoMemberRecordLookup(
+          baseMemberRecordLookup,
+          data?.user
+        );
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id !== messageId) return msg;
 
-            const nextReactions = normalizeReactionsFromPayload(
+            const nextReactions = reactionsFromRawPayload(
               data && typeof data === "object"
                 ? data.reactions != null
                   ? { reactions: data.reactions }
                   : data
-                : {}
+                : {},
+              lookupAfterRest,
+              recordLookupAfterRest
             );
 
             const reactionBaseForReplace = (mergedMsg) => {
@@ -246,7 +293,7 @@ const MainChat = ({
         console.error("reactToMessage:", error);
       }
     },
-    [groupId, setMessages]
+    [groupId, setMessages, socket, isConnected, socketReactToMessage, groupMembers]
   );
 
   const handleEditMessage = async (messageId, newText) => {
@@ -367,6 +414,7 @@ const MainChat = ({
           messagesEndRef={messagesEndRef}
           onDeleteMessage={handleDeleteMessage}
           onEditMessage={handleEditMessage}
+          currentUser={currentUser}
           currentUserEmail={currentUserEmail}
           onMediaClick={handlePhotoClick}
           userRole={userRole}

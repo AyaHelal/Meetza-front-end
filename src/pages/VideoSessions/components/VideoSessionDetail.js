@@ -18,6 +18,7 @@ import {
 import Lottie from "lottie-react";
 import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
+import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import { useVideoSessionDetail } from "../hooks/useVideoSessionDetail";
 import { downloadVideo } from "../../../utils/videoUtils";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
@@ -687,7 +688,12 @@ export default function VideoSessionDetail({
                   tabIndex={0}
                 >
                   <div className="video-session-detail-related-thumb">
-                    <img src={s.poster_url || s.thumbnailUrl || DEFAULT_THUMB} alt={s.title || "Related Video"} />
+                    <VideoHoverPreviewThumb
+                      fill
+                      posterSrc={s.poster_url || s.thumbnailUrl || DEFAULT_THUMB}
+                      rawVideoUrl={s.videoUrl || s.video_url}
+                      alt={s.title || "Related Video"}
+                    />
                     <span className="video-session-detail-related-duration">{s.duration ?? "00:00"}</span>
                   </div>
                   <div className="video-session-detail-related-info">

@@ -86,6 +86,277 @@ function stripReactionNormInternals(rows) {
   return rows.map(({ _ts, reactorKey, ...pub }) => pub);
 }
 
+function pickNameFromUserShape(u) {
+  if (!u || typeof u !== "object") return "";
+  const parts = [u.first_name, u.firstName, u.last_name, u.lastName].filter(
+    (x) => x != null && String(x).trim() !== ""
+  );
+  const joined = parts.map((x) => String(x).trim()).join(" ").trim();
+  if (joined) return joined;
+  const n = u.name ?? u.full_name ?? u.fullName ?? u.username ?? u.displayName;
+  if (typeof n === "string" && n.trim()) return n.trim();
+  const em = u.email ?? u.user_email ?? u.userEmail;
+  if (typeof em === "string" && em.includes("@")) {
+    const local = em.split("@")[0];
+    return local ? local.trim() : em.trim();
+  }
+  return "";
+}
+
+/**
+ * Add one user (e.g. from react ACK) into a label lookup clone so UUID lists resolve before members refresh.
+ * @param {Map<string, string>} lookup
+ * @param {object} user
+ */
+export function mergeUserIntoMemberLookup(lookup, user) {
+  if (!user?.id || !(lookup instanceof Map)) return lookup;
+  const id = String(user.id).trim();
+  const label =
+    (typeof user.name === "string" && user.name.trim()) ||
+    (typeof user.email === "string" && user.email.includes("@")
+      ? user.email.split("@")[0].trim()
+      : "");
+  if (!label) return lookup;
+  const next = new Map(lookup);
+  next.set(id, label);
+  return next;
+}
+
+export function buildMemberIdLookup(members) {
+  const map = new Map();
+  if (!Array.isArray(members)) return map;
+  for (const m of members) {
+    if (!m || typeof m !== "object") continue;
+    const id = m.id ?? m.user_id ?? m.userId ?? m.member_id ?? m.memberId;
+    if (id == null || String(id).trim() === "") continue;
+    const idStr = String(id).trim();
+    let label =
+      (typeof m.name === "string" && m.name.trim()) ||
+      (typeof m.full_name === "string" && m.full_name.trim()) ||
+      (typeof m.fullName === "string" && m.fullName.trim()) ||
+      "";
+    if (!label && typeof m.email === "string" && m.email.includes("@")) {
+      label = m.email.split("@")[0].trim();
+    }
+    if (!label) label = `${idStr.slice(0, 8)}…`;
+    map.set(idStr, label);
+  }
+  return map;
+}
+
+/**
+ * Map member id → { id, name, email, photo } for reaction detail sheets.
+ * @param {unknown} members
+ * @returns {Map<string, { id: string, name: string, email: string, photo: string | null }>}
+ */
+export function buildMemberRecordLookup(members) {
+  const map = new Map();
+  if (!Array.isArray(members)) return map;
+  for (const m of members) {
+    if (!m || typeof m !== "object") continue;
+    const id = m.id ?? m.user_id ?? m.userId ?? m.member_id ?? m.memberId;
+    if (id == null || String(id).trim() === "") continue;
+    const idStr = String(id).trim();
+    let name =
+      (typeof m.name === "string" && m.name.trim()) ||
+      (typeof m.full_name === "string" && m.full_name.trim()) ||
+      (typeof m.fullName === "string" && m.fullName.trim()) ||
+      "";
+    const email = typeof m.email === "string" ? m.email.trim() : "";
+    if (!name && email.includes("@")) name = email.split("@")[0].trim();
+    if (!name) name = `${idStr.slice(0, 8)}…`;
+    const photo = m.user_photo ?? m.photo ?? m.avatar ?? m.profile_photo ?? null;
+    map.set(idStr, { id: idStr, name, email, photo: photo ? String(photo) : null });
+  }
+  return map;
+}
+
+/** Merge react-ACK `user` into {@link buildMemberRecordLookup} result. */
+export function mergeUserIntoMemberRecordLookup(lookup, user) {
+  if (!user?.id || !(lookup instanceof Map)) return lookup;
+  const id = String(user.id).trim();
+  const next = new Map(lookup);
+  const name =
+    (typeof user.name === "string" && user.name.trim()) ||
+    (typeof user.email === "string" && user.email.includes("@")
+      ? user.email.split("@")[0].trim()
+      : id.slice(0, 8));
+  const email = typeof user.email === "string" ? user.email.trim() : "";
+  const photo = user.user_photo ?? user.photo ?? null;
+  next.set(id, { id, name, email, photo: photo ? String(photo) : null });
+  return next;
+}
+
+/**
+ * Per-emoji reactor rows for UI sheets (from raw `users` ids or embedded user objects).
+ * @param {unknown} raw
+ * @param {Map<string, { id: string, name: string, email: string, photo: string | null }>} [memberRecordLookup]
+ * @returns {Map<string, Array<{ id: string, name: string, email: string, photo: string | null, emoji: string }>>}
+ */
+function collectReactionReactorsFromRaw(raw, memberRecordLookup) {
+  /** @type {Map<string, Array<{ id: string, name: string, email: string, photo: string | null, emoji: string }>>} */
+  const byEmoji = new Map();
+  const add = (emoji, entry) => {
+    const e = String(emoji || "").trim();
+    if (!e || !entry?.id) return;
+    if (!byEmoji.has(e)) byEmoji.set(e, []);
+    byEmoji.get(e).push({ ...entry, emoji: e });
+  };
+
+  if (!Array.isArray(raw)) return byEmoji;
+
+  for (const r of raw) {
+    if (typeof r === "string") continue;
+    if (!r || typeof r !== "object") continue;
+    const emoji = r.emoji ?? r.reaction ?? r.unicode ?? r.symbol;
+    if (!emoji) continue;
+    if (!Array.isArray(r.users)) continue;
+
+    r.users.forEach((u) => {
+      if (u != null && typeof u === "object") {
+        const idRaw = u.id ?? u.user_id ?? u.userId ?? "";
+        const name = pickNameFromUserShape(u) || (String(idRaw).trim() ? String(idRaw).slice(0, 8) : "User");
+        const id = String(idRaw || name).trim() || name;
+        const email = typeof u.email === "string" ? u.email.trim() : "";
+        const photo = u.user_photo ?? u.photo ?? null;
+        add(emoji, {
+          id,
+          name,
+          email,
+          photo: photo ? String(photo) : null,
+        });
+        return;
+      }
+      if (typeof u === "string" && u.trim()) {
+        const idStr = u.trim();
+        const rec =
+          memberRecordLookup instanceof Map ? memberRecordLookup.get(idStr) : null;
+        if (rec) {
+          add(emoji, { ...rec });
+        } else {
+          add(emoji, {
+            id: idStr,
+            name: `Unknown (${idStr.slice(0, 8)}…)`,
+            email: "",
+            photo: null,
+          });
+        }
+      }
+    });
+  }
+  return byEmoji;
+}
+
+function pickActorLabelFromRow(r) {
+  if (!r || typeof r !== "object") return "";
+  const direct =
+    r.user_name ??
+    r.userName ??
+    r.name ??
+    r.full_name ??
+    r.fullName ??
+    r.display_name ??
+    r.displayName ??
+    r.sender_name ??
+    r.username;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  const nested = r.user ?? r.reactor ?? r.member ?? r.profile;
+  const fromNested = pickNameFromUserShape(nested);
+  if (fromNested) return fromNested;
+  const em = r.user_email ?? r.userEmail ?? r.email;
+  if (typeof em === "string" && em.trim()) {
+    if (em.includes("@")) return (em.split("@")[0] || em).trim();
+    return em.trim();
+  }
+  return "";
+}
+
+/**
+ * Build display names per emoji from raw API/socket reaction rows (before aggregation).
+ * @param {unknown} raw
+ * @param {Map<string, string>} [memberLookup] — from {@link buildMemberIdLookup}
+ * @returns {Map<string, string[]>}
+ */
+function collectReactionActorsByEmoji(raw, memberLookup) {
+  /** @type {Map<string, string[]>} */
+  const map = new Map();
+  const add = (emoji, label) => {
+    const e = String(emoji || "").trim();
+    const L = String(label || "").trim();
+    if (!e || !L) return;
+    if (!map.has(e)) map.set(e, []);
+    const list = map.get(e);
+    if (!list.some((x) => x.toLowerCase() === L.toLowerCase())) list.push(L);
+  };
+
+  if (!Array.isArray(raw)) return map;
+
+  for (const r of raw) {
+    if (typeof r === "string") continue;
+    if (!r || typeof r !== "object") continue;
+    const emoji = r.emoji ?? r.reaction ?? r.unicode ?? r.symbol;
+    if (!emoji) continue;
+    if (Array.isArray(r.users)) {
+      r.users.forEach((u) => {
+        if (u != null && typeof u === "object") {
+          const lbl = pickNameFromUserShape(u);
+          if (lbl) add(emoji, lbl);
+          return;
+        }
+        if (typeof u === "string" && u.trim()) {
+          const idStr = u.trim();
+          const resolved =
+            memberLookup instanceof Map ? memberLookup.get(idStr) || memberLookup.get(idStr.toLowerCase()) : "";
+          if (resolved) add(emoji, resolved);
+          else add(emoji, `Unknown (${idStr.slice(0, 8)}…)`);
+        }
+      });
+      continue;
+    }
+    const lbl = pickActorLabelFromRow(r);
+    if (lbl) add(emoji, lbl);
+  }
+  return map;
+}
+
+/**
+ * Attach `actors` (display names) to normalized reaction chips when the raw payload includes them.
+ * @param {object} sourceMsg — shape with `reactions` / `message_reactions` / etc.
+ * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>} normalizedRows
+ * @param {Map<string, string>} [memberLookup]
+ * @param {Map<string, { id: string, name: string, email: string, photo: string | null }>} [memberRecordLookup]
+ * @returns {Array<{ emoji: string, count: number, reactedByMe?: boolean, actors?: string[], reactors?: object[] }>}
+ */
+export function attachReactionActorsToRows(sourceMsg, normalizedRows, memberLookup, memberRecordLookup) {
+  if (!Array.isArray(normalizedRows) || normalizedRows.length === 0) return normalizedRows || [];
+  const raw =
+    sourceMsg?.reactions ??
+    sourceMsg?.message_reactions ??
+    sourceMsg?.emoji_reactions ??
+    sourceMsg?.reaction_summary;
+  const byEmoji = collectReactionActorsByEmoji(raw, memberLookup);
+  const reactorsByEmoji =
+    memberRecordLookup instanceof Map
+      ? collectReactionReactorsFromRaw(raw, memberRecordLookup)
+      : new Map();
+  return normalizedRows.map((row) => ({
+    ...row,
+    actors: byEmoji.has(row.emoji) ? [...byEmoji.get(row.emoji)] : [],
+    reactors: reactorsByEmoji.has(row.emoji) ? [...reactorsByEmoji.get(row.emoji)] : [],
+  }));
+}
+
+/** Normalize reactions and attach `actors` / `reactors` when raw payload and lookups allow. */
+export function reactionsFromRawPayload(sourceMsg, memberLookup, memberRecordLookup) {
+  if (!sourceMsg || typeof sourceMsg !== "object") return [];
+  return attachReactionActorsToRows(
+    sourceMsg,
+    normalizeReactionsFromPayload(sourceMsg),
+    memberLookup,
+    memberRecordLookup
+  );
+}
+
 /**
  * Client-side: switching emoji removes the previous `reactedByMe` row (or decrements if others share), then sets the new one.
  * @param {Array<{ emoji: string, count: number, reactedByMe?: boolean }>|undefined} reactions
@@ -198,10 +469,16 @@ export function normalizeReactionsFromPayload(msg) {
   return [];
 }
 
-export function formatMessage(msg) {
+/**
+ * @param {object} msg
+ * @param {{ members?: unknown[] }} [options] — pass `members` from group info to resolve reaction `users: [id,…]`
+ */
+export function formatMessage(msg, options) {
   const parentMessageId = msg.parent_message_id ?? msg.parentMessageId ?? null;
   const parentRaw = msg.parent_message;
-  const reactions = normalizeReactionsFromPayload(msg);
+  const memberLookup = buildMemberIdLookup(options?.members);
+  const memberRecordLookup = buildMemberRecordLookup(options?.members);
+  const reactions = reactionsFromRawPayload(msg, memberLookup, memberRecordLookup);
   return {
     id: msg.id,
     sender: msg.sender_name,

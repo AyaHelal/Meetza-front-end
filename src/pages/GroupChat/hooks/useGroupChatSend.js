@@ -17,7 +17,8 @@ export function useGroupChatSend(
   setGroupInfo,
   socket,
   isConnected,
-  socketSendMessage
+  socketSendMessage,
+  groupInfoRef
 ) {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
@@ -122,7 +123,11 @@ export function useGroupChatSend(
           const data = await sendMessageRest(api, groupId, formData);
           if (data) {
             setMessages((prev) =>
-              prev.map((msg) => (msg.id === tempId ? formatMessage(data) : msg))
+              prev.map((msg) =>
+                msg.id === tempId
+                  ? formatMessage(data, { members: groupInfoRef?.current?.members ?? [] })
+                  : msg
+              )
             );
             playChatSendSound();
             if ((file && finalMediaType !== "voice_note") || containsLink) {
@@ -153,15 +158,16 @@ export function useGroupChatSend(
                 : {};
             socketSendMessage(groupId, trimmedText, async (ack) => {
               if (ack?.ok && ack.data) {
+                const ackFormatOpts = { members: groupInfoRef?.current?.members ?? [] };
                 setMessages((prev) => {
                   const idx = prev.findIndex((msg) => msg.id === ack.data.id);
                   if (idx !== -1) {
                     const updated = [...prev];
-                    updated[idx] = formatMessage(ack.data);
+                    updated[idx] = formatMessage(ack.data, ackFormatOpts);
                     return updated;
                   }
                   return prev.map((msg) =>
-                    msg.id === tempId ? formatMessage(ack.data) : msg
+                    msg.id === tempId ? formatMessage(ack.data, ackFormatOpts) : msg
                   );
                 });
                 playChatSendSound();
@@ -196,6 +202,7 @@ export function useGroupChatSend(
       socket,
       isConnected,
       socketSendMessage,
+      groupInfoRef,
     ]
   );
 

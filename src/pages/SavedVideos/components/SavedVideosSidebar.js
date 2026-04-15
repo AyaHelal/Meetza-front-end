@@ -3,6 +3,7 @@ import { Trash } from "@phosphor-icons/react";
 import { DEFAULT_THUMB } from "./constants";
 import { formatSavedVideoCardDate } from "../utils/formatSavedVideoCardDate";
 import "../../VideoSessions/components/VideoSessionDetail.css";
+import { VideoHoverPreviewThumb } from "../../VideoSessions/components/VideoHoverPreviewThumb";
 import "./SavedVideosSidebar.css";
 
 export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRemove, removingId }) {
@@ -28,10 +29,11 @@ export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRem
                 onKeyDown={(e) => e.key === "Enter" && onSelect?.(v)}
               >
                 <div className="video-session-detail-related-thumb saved-videos-card-thumb">
-                  <img
-                    src={v.thumbnailUrl || DEFAULT_THUMB}
+                  <VideoHoverPreviewThumb
+                    fill
+                    posterSrc={v.thumbnailUrl || DEFAULT_THUMB}
+                    rawVideoUrl={v.videoUrl || v.video_url}
                     alt={v.title || "Video"}
-                    className="img-fluid"
                   />
                   <span className="video-session-detail-related-duration">
                     {v.duration ?? "00:00"}
