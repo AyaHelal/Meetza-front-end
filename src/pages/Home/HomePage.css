@@ -178,7 +178,7 @@
   margin: 1.5rem 0 1.5rem 0;
   padding: 0;
   border-radius: 10px;
-  background-color: #D7D7D7;
+  background-color: #d7d7d7;
   flex-shrink: 0;
 }
 
@@ -514,7 +514,12 @@
   font-size: 2rem;
   font-weight: 800;
   color: #0f172a;
-  background: radial-gradient(120% 120% at 20% 10%, #ffffff 0%, #e5e7eb 40%, #cbd5e1 100%);
+  background: radial-gradient(
+    120% 120% at 20% 10%,
+    #ffffff 0%,
+    #e5e7eb 40%,
+    #cbd5e1 100%
+  );
   letter-spacing: 0.02em;
   user-select: none;
 }
@@ -556,7 +561,9 @@ a.home-video-card.home-video-card--link {
   color: inherit;
   text-decoration: none;
   cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 a.home-video-card.home-video-card--link:hover {
@@ -685,7 +692,6 @@ a.home-video-card.home-video-card--link:focus-visible {
 
 .home-stat-card-icon {
   color: #00e087;
-
 }
 
 .home-stat-card-title {

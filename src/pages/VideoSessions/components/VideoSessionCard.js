@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { DotsThreeVertical, PencilSimple, Trash, Download, Spinner } from "@phosphor-icons/react";
 import { downloadVideo } from "../../../utils/videoUtils";
+import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import "./VideoSessionCard.css";
 
 const DEFAULT_THUMB =
@@ -40,6 +41,7 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
   const [downloading, setDownloading] = useState(false);
   const menuRef = useRef(null);
 
+  const rawVideoUrl = session?.videoUrl || session?.video_url;
   const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
   const duration = session?.duration ?? "24:22";
   const watchProgressPercent = getCardWatchProgressPercent(session);
@@ -112,10 +114,11 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
       <div
         className={`video-session-card-thumb-wrap${watchProgressPercent != null ? " video-session-card-thumb-wrap--progress" : ""}`}
       >
-        <img
-          src={thumbnailUrl}
+        <VideoHoverPreviewThumb
+          fill
+          posterSrc={thumbnailUrl}
+          rawVideoUrl={rawVideoUrl}
           alt=""
-          className="video-session-card-thumb"
         />
         {watchProgressPercent != null && (
           <div
