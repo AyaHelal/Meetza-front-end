@@ -8,32 +8,28 @@ export const DEFAULT_HOME_VIDEOS = [
     title: "How to live",
     status: "completed",
     progress: 100,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60",
+    thumbnailUrl: null,
   },
   {
     id: "v2",
     title: "How to live",
     status: "watching",
     progress: 38,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60",
+    thumbnailUrl: null,
   },
   {
     id: "v3",
     title: "How to live",
     status: "completed",
     progress: 100,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60",
+    thumbnailUrl: null,
   },
   {
     id: "v4",
     title: "How to live",
     status: "watching",
     progress: 62,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60",
+    thumbnailUrl: null,
   },
 ];
 

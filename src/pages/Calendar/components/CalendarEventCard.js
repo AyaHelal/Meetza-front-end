@@ -37,7 +37,7 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
     >
       <div
         className="calendar-event-card-bg"
-        style={{ backgroundImage: `url(${event.imageUrl})` }}
+        style={event?.imageUrl ? { backgroundImage: `url(${event.imageUrl})` } : undefined}
       >
         <span className="calendar-event-card-label">VERY BEAUTIFUL</span>
         <div className="calendar-event-card-on-image">

@@ -74,7 +74,7 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
     video?.thumbnailUrl ||
     video?.thumbnail_url ||
     video?.poster_url ||
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&auto=format&fit=crop&q=60";
+    null;
   const rawPreviewVideoUrl = getHomeCardRawVideoUrlForPreview(video);
 
   const isWatching = status === "watching";
@@ -119,8 +119,12 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
             fill
             className="home-video-card-thumb-preview"
           />
-        ) : (
+        ) : thumbnailUrl ? (
           <img className="home-video-card-thumb-img" src={thumbnailUrl} alt="" />
+        ) : (
+          <div className="v-hover-preview-thumb__placeholder" aria-label="video">
+            video
+          </div>
         )}
       </div>
 

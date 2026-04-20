@@ -25,8 +25,6 @@ import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModa
 
 const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} weight="regular" {...props} />;
 
-const DEFAULT_THUMB =
-  "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Ccircle cx='18' cy='18' r='18' fill='%23e5e7eb'/%3E%3C/svg%3E";
 
@@ -188,7 +186,12 @@ export default function VideoSessionDetail({
     }
   };
 
-  const thumbUrl = thumbnailUrl || DEFAULT_THUMB;
+  const thumbUrl =
+    thumbnailUrl ||
+    session?.thumbnailUrl ||
+    session?.thumbnail_url ||
+    session?.poster_url ||
+    null;
   const groupLabel = groupNameFromHook ?? session?.groupName ?? session?.group_name ?? null;
 
   return (
@@ -203,12 +206,18 @@ export default function VideoSessionDetail({
                 ref={videoRef}
                 className="video-session-detail-player"
                 src={videoUrl}
-                poster={thumbUrl}
+                poster={thumbUrl || undefined}
                 controls={false}
               />
             ) : (
               <div className="video-session-detail-player-placeholder">
-                <img src={thumbUrl} alt="" />
+                {thumbUrl ? (
+                  <img src={thumbUrl} alt="" />
+                ) : (
+                  <div className="v-hover-preview-thumb__placeholder" aria-label="video">
+                    video
+                  </div>
+                )}
               </div>
             )}
             <div className="video-session-detail-controls">
@@ -690,7 +699,7 @@ export default function VideoSessionDetail({
                   <div className="video-session-detail-related-thumb">
                     <VideoHoverPreviewThumb
                       fill
-                      posterSrc={s.poster_url || s.thumbnailUrl || DEFAULT_THUMB}
+                      posterSrc={s.poster_url || s.thumbnailUrl || s.thumbnail_url || null}
                       rawVideoUrl={s.videoUrl || s.video_url}
                       alt={s.title || "Related Video"}
                     />

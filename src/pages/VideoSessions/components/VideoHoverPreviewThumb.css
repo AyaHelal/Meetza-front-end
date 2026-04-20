@@ -30,6 +30,25 @@
   vertical-align: middle;
 }
 
+.v-hover-preview-thumb__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.v-hover-preview-thumb--fill .v-hover-preview-thumb__placeholder {
+  position: absolute;
+  inset: 0;
+}
+
 .v-hover-preview-thumb--fill .v-hover-preview-thumb__img {
   position: absolute;
   inset: 0;

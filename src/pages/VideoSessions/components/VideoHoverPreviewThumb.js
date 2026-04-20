@@ -12,12 +12,20 @@ import "./VideoHoverPreviewThumb.css";
  */
 export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill = false, className = "" }) {
   const [hoverPreview, setHoverPreview] = useState(false);
+  const [imgOk, setImgOk] = useState(true);
   const videoRef = useRef(null);
 
   const previewSrc = useMemo(
     () => (rawVideoUrl ? buildFileUrl(rawVideoUrl) : null),
     [rawVideoUrl]
   );
+
+  const poster = useMemo(() => {
+    if (posterSrc == null) return null;
+    if (typeof posterSrc !== "string") return null;
+    const t = posterSrc.trim();
+    return t ? t : null;
+  }, [posterSrc]);
 
   const handleEnter = () => {
     if (!previewSrc) return;
@@ -58,7 +66,7 @@ export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill 
           ref={videoRef}
           className="v-hover-preview-thumb__video"
           src={previewSrc}
-          poster={posterSrc}
+          poster={poster || undefined}
           muted
           playsInline
           loop
@@ -66,11 +74,18 @@ export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill 
           aria-hidden="true"
         />
       ) : null}
-      <img
-        src={posterSrc}
-        alt={alt}
-        className={`v-hover-preview-thumb__img${previewSrc ? " v-hover-preview-thumb__img--preview" : ""}`}
-      />
+      {poster && imgOk ? (
+        <img
+          src={poster}
+          alt={alt}
+          onError={() => setImgOk(false)}
+          className={`v-hover-preview-thumb__img${previewSrc ? " v-hover-preview-thumb__img--preview" : ""}`}
+        />
+      ) : (
+        <div className="v-hover-preview-thumb__placeholder" aria-label="video">
+          video
+        </div>
+      )}
     </div>
   );
 }

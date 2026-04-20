@@ -181,8 +181,7 @@ function getMeetingGroupName(m, groupsMap) {
  */
 export function buildWeekEvents(meetings, weekDates, groupsMap = null) {
   if (!Array.isArray(meetings) || !Array.isArray(weekDates) || weekDates.length === 0) return [];
-
-  const baseImage = "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
+  const baseImage = null;
 
   const isSameCalendarDay = (a, b) =>
     a.getFullYear() === b.getFullYear() &&

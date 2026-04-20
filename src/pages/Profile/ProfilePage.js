@@ -23,7 +23,6 @@ import useSavedVideos from "../SavedVideos/hooks/useSavedVideos";
 import useProfileMeetings from "./hooks/useProfileMeetings";
 import useProfilePosition from "./hooks/useProfilePosition";
 import { isAdminForPositions } from "../Groups/hooks/usePositions";
-import { DEFAULT_THUMB } from "../SavedVideos/components/constants";
 import { smartToast } from "../../API/toastManager";
 import { extractUserFromToken } from "../../utils/token";
 import { getUser, patchUser } from "./services/profileUserService";
@@ -55,7 +54,7 @@ function formatSavedVideoDuration(value) {
 
 function ProfileSavedVideoCard({ video, onOpen }) {
   const title = video?.title || "Video";
-  const thumb = video?.thumbnailUrl || DEFAULT_THUMB;
+  const thumb = video?.thumbnailUrl || video?.thumbnail_url || video?.poster_url || null;
   const durationLabel = formatSavedVideoDuration(video?.duration);
 
   return (
@@ -68,11 +67,17 @@ function ProfileSavedVideoCard({ video, onOpen }) {
       >
         <Ratio aspectRatio="16x9">
           <div className="profile-saved-video-frame overflow-hidden">
-            <img
-              src={thumb}
-              alt=""
-              className="profile-saved-video-thumb position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
-            />
+            {thumb ? (
+              <img
+                src={thumb}
+                alt=""
+                className="profile-saved-video-thumb position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+              />
+            ) : (
+              <div className="v-hover-preview-thumb__placeholder position-absolute top-0 start-0 w-100 h-100" aria-label="video">
+                video
+              </div>
+            )}
             <div className="profile-saved-pills" dir="ltr">
               <span className="profile-saved-pill profile-saved-pill--title text-truncate">{title}</span>
               <span className="profile-saved-pill profile-saved-pill--dur">{durationLabel}</span>
@@ -586,11 +591,9 @@ export default function ProfilePage() {
                   </Card.Title>
                   <div className="profile-ongoing-shell">
                     <div className="profile-ongoing-preview">
-                      <img
-                        src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&auto=format&fit=crop&q=60"
-                        alt=""
-                        className="profile-ongoing-preview__img"
-                      />
+                      <div className="v-hover-preview-thumb__placeholder position-absolute top-0 start-0 w-100 h-100" aria-label="video">
+                        video
+                      </div>
                     </div>
                     <Button
                       type="button"
