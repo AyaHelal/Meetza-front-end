@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, LockOpen, Trash } from "@phosphor-icons/react";
+import { Lock, LockOpen, Trash, VideoCamera } from "@phosphor-icons/react";
 import { formatDateForOverlay, formatCompactTimeRange, isMeetingLive } from "../utils/calendarUtils";
 
 const MOBILE_COMPACT_CARD_QUERY = "(max-width: 768px)";
@@ -19,7 +19,9 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
   const timeLabel = compactCard
     ? formatCompactTimeRange(event.start, event.end)
     : `${formatDateForOverlay(event.start)} to ${event.end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`;
-  const noDescription = !event.description?.trim();
+  const descriptionText = String(event.description || "").trim();
+  const noDescription = !descriptionText;
+  const hasPoster = Boolean(String(event?.imageUrl || "").trim());
 
   const isLive = isMeetingLive(event?._meeting);
   /** Same opacity for live (blue) vs not live (red) — translucent badge */
@@ -37,9 +39,22 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
     >
       <div
         className="calendar-event-card-bg"
-        style={{ backgroundImage: `url(${event.imageUrl})` }}
+        style={
+          hasPoster
+            ? { backgroundImage: `url(${String(event.imageUrl).trim()})` }
+            : { backgroundImage: "linear-gradient(135deg, rgba(33,74,184,0.55), rgba(0,220,133,0.25))" }
+        }
       >
-        <span className="calendar-event-card-label">VERY BEAUTIFUL</span>
+        {!hasPoster ? (
+          <div className="calendar-event-card-bg-placeholder" aria-hidden="true">
+            <VideoCamera size={28} weight="fill" />
+          </div>
+        ) : null}
+
+        <div className="calendar-event-card-time" style={{ backgroundColor: "rgb(22 144 185)" }}>
+          {timeLabel}
+        </div>
+
         <div className="calendar-event-card-on-image">
           <div className="calendar-event-card-group">
             <span>
@@ -55,9 +70,6 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
             {isLive ? <LockOpen size={16} weight="regular" /> : <Lock size={16} weight="regular" />}
           </span>
         </div>
-      </div>
-      <div className="calendar-event-card-time" style={{ backgroundColor: "hsla(204, 82.30%, 46.50%, 0.70)" }}>
-        {timeLabel}
       </div>
       <div className="calendar-event-card-body">
         <div className="calendar-event-card-body-header">
@@ -76,9 +88,12 @@ export default function CalendarEventCard({ event, style = {}, onJoinMeeting, on
             </button>
           )}
         </div>
-        {event.description?.trim() ? (
-          <p className="calendar-event-card-desc">{event.description}</p>
-        ) : null}
+        <p
+          className={`calendar-event-card-desc${noDescription ? " calendar-event-card-desc--empty" : ""}`}
+          aria-hidden={noDescription ? "true" : undefined}
+        >
+          {noDescription ? "description" : descriptionText}
+        </p>
       </div>
     </div>
   );

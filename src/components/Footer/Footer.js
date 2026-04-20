@@ -1,4 +1,5 @@
 import "./Footer.css";
+import React from "react";
 import {
     FaInstagram,
     FaFacebookF,
@@ -14,6 +15,29 @@ function Footer() {
         e.preventDefault();
         navigate(to);
     };
+
+    const footerSections = [
+      {
+        title: "About",
+        items: [{ label: "Jobs / Careers", to: "/landing#landing-careers" }],
+      },
+      {
+        title: "Resources",
+        items: [
+          { label: "Support", to: "/landing#landing-support" },
+          { label: "Blog", to: "/blog" },
+          { label: "Feedback", to: "/landing#contact-section" },
+        ],
+      },
+      {
+        title: "Policies",
+        items: [
+          { label: "Terms", to: "/terms" },
+          { label: "Privacy", to: "/privacy" },
+          { label: "Guidelines", to: "/guidelines" },
+        ],
+      },
+    ];
 
     return (
         <footer className="footer-section text-white">
@@ -50,63 +74,20 @@ function Footer() {
 
                     <div className="footer-right">
                         <div className="footer-links">
-                            <div>
-                                <h6 className="fw-bold mb-4">About</h6>
+                            {footerSections.map((sec) => (
+                              <div key={sec.title}>
+                                <h6 className="fw-bold mb-4">{sec.title}</h6>
                                 <ul className="list-unstyled">
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/landing#landing-careers")}>
-                                            Jobs / Careers
-                                        </button>
+                                  {sec.items.map((it) => (
+                                    <li key={it.to}>
+                                      <button type="button" className="footer-link-btn" onClick={go(it.to)}>
+                                        {it.label}
+                                      </button>
                                     </li>
+                                  ))}
                                 </ul>
-                            </div>
-
-                            <div>
-                                <h6 className="fw-bold mb-4">Resources</h6>
-                                <ul className="list-unstyled">
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/landing#landing-support")}>
-                                            Support
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/blog")}>
-                                            Blog
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/landing#contact-section")}>
-                                            Feedback
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h6 className="fw-bold mb-4">Policies</h6>
-                                <ul className="list-unstyled">
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/terms")}>
-                                            Terms
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/privacy")}>
-                                            Privacy
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/guidelines")}>
-                                            Guidelines
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" className="footer-link-btn" onClick={go("/licenses")}>
-                                            Licenses
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
+                              </div>
+                            ))}
                         </div>
                     </div>
                 </div>

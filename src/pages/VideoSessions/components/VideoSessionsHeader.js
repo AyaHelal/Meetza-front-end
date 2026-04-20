@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeftIcon, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { getVideoSessions, parseSession } from "../services/videoSessionsService";
 import { useNavigate } from "react-router-dom";
+import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import "./VideoSessionsHeader.css";
-
-const DEFAULT_THUMB = "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
 
 export default function VideoSessionsHeader({
   onBack,
@@ -165,9 +164,10 @@ export default function VideoSessionsHeader({
                   onClick={() => handleSuggestionClick(s)}
                   type="button"
                 >
-                  <img
-                    src={s.poster_url || s.thumbnailUrl || DEFAULT_THUMB}
-                    alt={s.title}
+                  <VideoHoverPreviewThumb
+                    posterSrc={s.poster_url || s.thumbnailUrl || s.thumbnail_url || null}
+                    alt={s.title || "Video"}
+                    fill
                     className="video-sessions-header-suggestion-thumb"
                   />
                   <div className="video-sessions-header-suggestion-text">

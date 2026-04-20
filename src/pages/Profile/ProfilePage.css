@@ -7,10 +7,22 @@
   --profile-card-radius: 20px;
   --profile-card-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
   --profile-meetings-card-max-height: 340px;
+  --profile-live-meetings-card-max-height: 208px;
+  --profile-notif-card-max-height: 157px;
+  --profile-files-card-max-height: 425px;
   --profile-ongoing-shell-max-height: 175px;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+}
+
+.profile-page.profile-page--member {
+  --profile-notif-card-max-height: 220px;
+}
+
+.profile-page.profile-page--no-saved-videos {
+  /* When Saved Videos section is empty, let Meetings occupy more vertical space. */
+  --profile-meetings-card-max-height: 420px;
 }
 
 .profile-dashboard-inner {
@@ -36,7 +48,7 @@
 
 /* Reliable vertical rhythm between cards inside each column */
 .profile-page .profile-dashboard-stack {
-  gap: clamp(1rem, 2.5vw, 1.5rem) !important;
+  gap: 0.7rem !important;
 }
 
 /* Cards: large radius + soft shadow (reference) */
@@ -102,8 +114,46 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.85rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #eef1f5;
+}
+
+.profile-field-row--clickable {
+  cursor: pointer;
+  border-radius: 12px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.profile-field-row--clickable:hover {
+  background: rgba(13, 110, 253, 0.06);
+}
+
+.profile-contact-row:hover {
+  background: transparent;
+}
+
+.profile-field-row--clickable:focus-visible {
+  outline: 2px solid rgba(13, 110, 253, 0.35);
+  outline-offset: 3px;
+}
+
+.profile-contact-row {
+  align-items: center;
+}
+
+.profile-contact-row__left {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #334155;
+  min-width: 0;
+}
+
+.profile-contact-row__right {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0f172a;
+  flex-shrink: 0;
 }
 
 .profile-field-row:last-of-type {
@@ -175,6 +225,10 @@
 /* Notification card — reference: bold title, hairline dividers, blue pill highlight */
 .profile-notif-card .card-body {
   border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: var(--profile-notif-card-max-height);
 }
 
 .profile-notif-card__title {
@@ -190,6 +244,14 @@
   list-style: none;
   margin: 0;
   padding: 0 0.75rem 0.85rem;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.profile-notif-card__list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .profile-notif-card__item {
@@ -238,7 +300,7 @@
 
 .profile-saved-videos-card__head {
   background: transparent !important;
-  padding: 1rem 1rem 0.5rem;
+  padding: 0.75rem 0.9rem 0.35rem;
 }
 
 .profile-saved-videos-card__title {
@@ -265,8 +327,8 @@
 
 .profile-saved-videos-card__body {
   background: transparent !important;
-  padding: 0 1rem 1rem;
-  max-height: 300px;
+  padding: 0 0.9rem 0.85rem;
+  max-height: 235px;
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
@@ -398,7 +460,7 @@
 
 .profile-meetings-card__head {
   flex-shrink: 0;
-  padding: 1rem 1.1rem 0.65rem;
+  padding: 0.75rem 0.9rem 0.45rem;
 }
 
 .profile-meetings-view-calendar {
@@ -547,6 +609,36 @@
 }
 
 /* Uploaded files — CSS Grid so vertical gap between rows is reliable (not Bootstrap row gutters) */
+.profile-files-card {
+  min-height: 0;
+  max-height: var(--profile-files-card-max-height);
+  overflow: hidden;
+}
+
+.profile-files-card__body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-files-stack {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.profile-files-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.profile-files-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 .profile-files-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -638,6 +730,123 @@
   cursor: pointer;
 }
 
+/* Live meeting alerts (Profile right column) */
+.profile-live-meetings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-live-meetings-card {
+  min-height: 0;
+  max-height: var(--profile-live-meetings-card-max-height);
+  overflow: hidden;
+}
+
+.profile-live-meetings-card__body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-live-meetings-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.profile-live-meetings-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.profile-live-meeting-alert {
+  margin: 0;
+  cursor: pointer;
+  border-left-width: 6px;
+  animation: profileLivePulse 1.6s ease-in-out infinite;
+}
+
+.profile-live-meeting-alert:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.profile-live-meeting-alert:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.profile-live-meeting-alert:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+.profile-live-meeting-alert:focus-visible {
+  outline: 2px solid rgba(34, 197, 94, 0.6);
+  outline-offset: 3px;
+}
+
+/* Contact modal (Profile) */
+.profile-contact-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1050;
+}
+
+.profile-contact-modal {
+  width: min(560px, 96vw);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  padding: 1rem;
+}
+
+.profile-contact-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.profile-contact-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.profile-contact-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.profile-contact-modal__close:hover {
+  color: #0f172a;
+}
+
+@keyframes profileLivePulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.25);
+  }
+}
+
 /* ===== Profile: responsive (all breakpoints) ===== */
 @media (max-width: 1199.98px) {
   .profile-dashboard-mid-stack {
@@ -645,11 +854,14 @@
   }
 
   .profile-page {
-    --profile-meetings-card-max-height: min(42vh, 320px);
+    --profile-meetings-card-max-height: min(32vh, 230px);
+    --profile-live-meetings-card-max-height: min(30vh, 210px);
+    --profile-notif-card-max-height: min(26vh, 220px);
+    --profile-files-card-max-height: min(28vh, 220px);
   }
 
   .profile-saved-videos-card__body {
-    max-height: min(38vh, 280px);
+    max-height: min(30vh, 190px);
   }
 
   .profile-meeting-time-clock {
@@ -676,11 +888,14 @@
   }
 
   .profile-page {
-    --profile-meetings-card-max-height: min(44vh, 300px);
+    --profile-meetings-card-max-height: min(34vh, 210px);
+    --profile-live-meetings-card-max-height: min(32vh, 190px);
+    --profile-notif-card-max-height: min(26vh, 210px);
+    --profile-files-card-max-height: min(28vh, 210px);
   }
 
   .profile-page .profile-dashboard-stack {
-    gap: 1rem !important;
+    gap: 0.65rem !important;
   }
 
   .profile-notif-card__title {
@@ -716,11 +931,14 @@
   }
 
   .profile-page {
-    --profile-meetings-card-max-height: min(46vh, 280px);
+    --profile-meetings-card-max-height: min(36vh, 190px);
+    --profile-live-meetings-card-max-height: min(34vh, 175px);
+    --profile-notif-card-max-height: min(26vh, 200px);
+    --profile-files-card-max-height: min(28vh, 200px);
   }
 
   .profile-saved-videos-card__body {
-    max-height: min(40vh, 260px);
+    max-height: min(32vh, 180px);
   }
 
   .profile-meeting-times {

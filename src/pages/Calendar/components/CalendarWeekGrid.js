@@ -5,11 +5,12 @@ import { formatDayShort, formatDayNum } from "../utils/calendarUtils";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-const ROW_HEIGHT_PX = 200;
+// Design target: card height = 309px, and the hour cell is bigger so the card is centered with equal space.
+const ROW_HEIGHT_PX = 380;
 /** Margin inside the time row (gap above/below the card within the slot) */
-const ROW_INSET_PX = 6;
-/** Card height when there is no description (image + title only). Uses most of the hour row so the photo can be tall. */
-const CARD_HEIGHT_NO_DESC_PX = 176;
+const ROW_INSET_PX = 14;
+/** Baseline card height (even with no description). */
+const CARD_HEIGHT_NO_DESC_PX = 309;
 /** Mobile: cap height when description exists so the card doesn’t fill the whole hour slot with empty space */
 const MOBILE_CARD_MAX_WITH_DESC_PX = 142;
 const HEADER_DAY_MIN_WIDTH_DESKTOP = 120;
@@ -175,17 +176,17 @@ export default function CalendarWeekGrid({ events, weekDates, onPrev, onNext, on
                   .map((ev) => {
                     const startH = ev.start.getHours();
                     const topPx = startH * ROW_HEIGHT_PX;
-                    const slotTop = topPx + ROW_INSET_PX;
-                    const fullSlotHeight = ROW_HEIGHT_PX - 2 * ROW_INSET_PX;
-                    const hasDescription = !!ev.description?.trim();
-                    const cardHeight = hasDescription
-                      ? isMobile
-                        ? Math.min(fullSlotHeight, MOBILE_CARD_MAX_WITH_DESC_PX)
-                        : fullSlotHeight
-                      : CARD_HEIGHT_NO_DESC_PX;
-                    const cardTop = isMobile
-                      ? slotTop + (fullSlotHeight - cardHeight) / 2
-                      : slotTop;
+                    // Center within the FULL hour cell height to guarantee equal spacing above/below.
+                    const slotTop = topPx;
+                    const fullSlotHeight = ROW_HEIGHT_PX;
+                    // Keep the card height stable whether description exists or not,
+                    // so toggling description doesn't visually "push" the card.
+                    const cardHeight = isMobile
+                      ? Math.min(fullSlotHeight, CARD_HEIGHT_NO_DESC_PX)
+                      : Math.min(fullSlotHeight, CARD_HEIGHT_NO_DESC_PX);
+
+                    // Always center in the slot (equal top/bottom spacing).
+                    const cardTop = slotTop + Math.round((fullSlotHeight - cardHeight) / 2);
                     return (
                       <CalendarEventCard
                         key={ev.id}

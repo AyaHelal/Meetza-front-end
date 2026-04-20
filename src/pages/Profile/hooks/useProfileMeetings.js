@@ -38,6 +38,7 @@ function mapToProfileRows(meetings) {
       const endAt = getMeetingEnd(m, startAt);
       const id = m.id ?? m.meeting_id ?? m.meetingId;
       if (id == null || id === "") return null;
+      const groupId = m.group_id ?? m.groupId ?? m.group?.id ?? null;
       const titleRaw = m.title ?? m.meeting_title ?? m.name ?? m.subject ?? null;
       const title = titleRaw != null && String(titleRaw).trim() !== "" ? String(titleRaw).trim() : null;
       const fromGroup =
@@ -47,11 +48,15 @@ function mapToProfileRows(meetings) {
         m.group?.name ??
         m.group_title ??
         (typeof m.group === "string" ? m.group : null);
-      const meetingTitle = title || (fromGroup != null && String(fromGroup).trim() !== "" ? String(fromGroup).trim() : null) || "Meeting";
+      const groupName = fromGroup != null && String(fromGroup).trim() !== "" ? String(fromGroup).trim() : null;
+      const meetingTitle = title || groupName || "Meeting";
       if (!startAt || Number.isNaN(startAt.getTime())) return null;
       return {
         id: String(id),
+        groupId: groupId != null && String(groupId).trim() !== "" ? String(groupId) : null,
         meetingTitle,
+        title,
+        groupName,
         startAt,
         endAt: endAt && !Number.isNaN(endAt.getTime()) ? endAt : new Date(startAt.getTime() + 60 * 60 * 1000),
         isLive: isMeetingLive(m),

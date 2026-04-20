@@ -1,14 +1,21 @@
 import React from 'react';
 import { PencilSimpleLine as PencilSimpleLineIcon, Trash as TrashIcon } from '@phosphor-icons/react';
 
-const DEFAULT_POSTER = '/assets/grp-poster.png';
+function normalizePhotoSrc(v) {
+  if (v == null) return null;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t : null;
+}
 
 function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin, onEdit, onDelete }) {
   const [hoverEdit, setHoverEdit] = React.useState(false);
   const [hoverDelete, setHoverDelete] = React.useState(false);
+  const [imgOk, setImgOk] = React.useState(true);
   const groupId = group.group_id || group.id;
   const name = group.name || group.title || group.group_name || group.content_name;
-  const photo = group.group_photo || group.photo || DEFAULT_POSTER;
+  const photo = normalizePhotoSrc(group.group_photo || group.photo);
+  const fallbackPhoto = "/assets/group-standard.png";
   const instructor = group.admin?.name || group.admin_name || 'Unknown';
   const isJoined = groupId && joinedGroups.includes(groupId);
   const isMemberView = userRole === 'Member';
@@ -20,14 +27,19 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
       className={`group-card ${isMemberView ? 'group-card--member' : 'group-card--admin'}`}
     >
       <div className="group-card-image">
-        <img
-          src={photo}
-          alt={name || 'Group'}
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = DEFAULT_POSTER;
-          }}
-        />
+        {photo && imgOk ? (
+          <img
+            src={photo}
+            alt={name || 'Group'}
+            onError={() => setImgOk(false)}
+          />
+        ) : (
+          <img
+            src={fallbackPhoto}
+            alt={name || "Group"}
+            className="group-card-image-fallback"
+          />
+        )}
       </div>
       <div className="group-card-body">
         {isMemberView ? (

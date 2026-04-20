@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlass, Funnel, Check } from "@phosphor-icons/react";
 import { getSavedVideos } from "../services/savedVideosService";
 import "./SavedVideosHeader.css";
-import { DEFAULT_THUMB } from "./constants";
+import { VideoHoverPreviewThumb } from "../../VideoSessions/components/VideoHoverPreviewThumb";
 
 export default function SavedVideosHeader({
   title,
@@ -179,9 +179,10 @@ export default function SavedVideosHeader({
                     onClick={() => handleSuggestionClick(v)}
                     type="button"
                   >
-                    <img
-                      src={v.thumbnailUrl || v.poster_url || DEFAULT_THUMB}
-                      alt={v.title}
+                    <VideoHoverPreviewThumb
+                      posterSrc={v.thumbnailUrl || v.thumbnail_url || v.poster_url || null}
+                      alt={v.title || "Video"}
+                      fill
                       className="saved-videos-header-suggestion-thumb"
                     />
                     <div className="saved-videos-header-suggestion-text">

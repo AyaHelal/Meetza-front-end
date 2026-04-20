@@ -622,10 +622,123 @@ body.group-chat-active {
   cursor: pointer;
   color: #666666;
   transition: all 0.3s ease;
+  border: none;
+  padding: 0;
 }
 
 .search-icon-header:hover {
   background: #e0e0e0;
+}
+
+.search-icon-header--active {
+  background: rgba(0, 220, 133, 0.18);
+  color: #00b86d;
+  box-shadow: 0 0 0 2px rgba(0, 220, 133, 0.22);
+}
+
+.search-icon-header--active:hover {
+  background: rgba(0, 220, 133, 0.24);
+}
+
+.chat-header-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chat-header-search svg {
+  flex-shrink: 0;
+  color: #6b7280;
+}
+
+.chat-header-search input {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #111827;
+}
+
+@media (max-width: 768px) {
+  /* Keep header actions inside width; when search is open show it under Join/Create */
+  .chat-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .chat-header-search {
+    order: 99;
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .chat-header-search input {
+    flex: 1 1 auto;
+    width: 0;
+    font-size: 12px;
+  }
+}
+
+.chat-header-search-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.chat-header-search-nav {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.chat-header-search-nav:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.chat-header-search-nav:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chat-header-search-close {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.chat-header-search-close:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .chat-messages {
@@ -826,6 +939,34 @@ body.group-chat-active {
   max-width: 100%;
   word-wrap: break-word;
   word-break: break-word;
+}
+
+.chat-search-highlight {
+  background: rgba(255, 235, 59, 0.85);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 4px;
+}
+
+.message-own .chat-search-highlight {
+  background: rgba(255, 235, 59, 0.92);
+  color: #0b1220;
+}
+
+.message--search-active .message-content {
+  animation: chatSearchFocusPulse 1.1s ease-in-out 1;
+}
+
+@keyframes chatSearchFocusPulse {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(255, 235, 59, 0));
+  }
+  45% {
+    filter: drop-shadow(0 0 10px rgba(255, 235, 59, 0.55));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 235, 59, 0));
+  }
 }
 
 /* Own messages have different background color */

@@ -22,6 +22,7 @@ import "../GroupChat.css";
 import { smartToast } from "../../../API/toastManager";
 import api from "../../../API/axiosInstance";
 import { useSocket } from "../../../context/SocketContext";
+import { searchMessageIds } from "../services/groupChatService";
 import {
   useMainChatMeeting,
   useMainChatMessagesLocal,
@@ -74,6 +75,15 @@ const MainChat = ({
   const [mediaTab, setMediaTab] = useState("media");
   const [replyTo, setReplyTo] = useState(null);
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResultIds, setSearchResultIds] = useState([]); // ordered by message position in current list when possible
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+  const [activeSearchMessageId, setActiveSearchMessageId] = useState(null);
+  const messageElsRef = useRef(new Map());
+  const messagesRef = useRef([]);
+
   const { hasMeeting, isInMeeting, handleJoinMeeting: handleJoinMeetingFromHook } = useMainChatMeeting(
     api,
     groupId,
@@ -88,6 +98,10 @@ const MainChat = ({
 
   const [messages, setMessages] = useMainChatMessagesLocal(initialMessages);
   const { messagesContainerRef, messagesEndRef } = useMainChatScroll(messages, groupId, showMainChat, isMobile);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useMainChatSwipeBack({
     mainChatRef,
@@ -108,6 +122,222 @@ const MainChat = ({
   useEffect(() => {
     setReplyTo(null);
   }, [groupId]);
+
+  useEffect(() => {
+    // Reset search when switching group
+    setSearchOpen(false);
+    setSearchValue("");
+    setSearchResultIds([]);
+    setActiveSearchIndex(0);
+    setActiveSearchMessageId(null);
+    messageElsRef.current = new Map();
+  }, [groupId]);
+
+  const searchResultIdSet = React.useMemo(() => {
+    return new Set((searchResultIds || []).map((x) => String(x)));
+  }, [searchResultIds]);
+
+  const registerMessageEl = useCallback((id, el) => {
+    if (id == null || !el) return;
+    messageElsRef.current.set(String(id), el);
+  }, []);
+
+  const getMatchIdsByDomOrder = useCallback(() => {
+    // Order by actual position in the rendered message list (top -> bottom)
+    const container = messagesContainerRef?.current;
+    const set = searchResultIdSet;
+    if (!container || !set?.size) return [];
+    const rows = [];
+    for (const [id, el] of messageElsRef.current.entries()) {
+      if (!set.has(String(id))) continue;
+      if (!el || !el.isConnected) continue;
+      const r = el.getBoundingClientRect();
+      rows.push({ id: String(id), top: r.top, el });
+    }
+    rows.sort((a, b) => a.top - b.top);
+    return rows.map((x) => x.id);
+  }, [messagesContainerRef, searchResultIdSet]);
+
+  const scrollToMessageId = useCallback((id) => {
+    if (id == null) return false;
+    const el = messageElsRef.current.get(String(id));
+    if (!el) return false;
+    try {
+      el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      return true;
+    } catch {
+      // fallback
+      try {
+        el.scrollIntoView();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  }, []);
+
+  const ensureMessageLoaded = useCallback(
+    async (targetId) => {
+      if (targetId == null) return false;
+      const idStr = String(targetId);
+      const already = (messagesRef.current || []).some((m) => String(m?.id) === idStr);
+      if (already) return true;
+      if (!onLoadMoreMessages) return false;
+
+      // Try a few pages (older messages) until we find the id.
+      for (let i = 0; i < 8; i += 1) {
+        if (!hasMoreMessages) return false;
+        await onLoadMoreMessages();
+        await new Promise((r) => setTimeout(r, 0));
+        const found = (messagesRef.current || []).some((m) => String(m?.id) === idStr);
+        if (found) return true;
+      }
+      return false;
+    },
+    [onLoadMoreMessages, hasMoreMessages]
+  );
+
+  const applyActiveSearchMessageId = useCallback(
+    async (msgId) => {
+      if (msgId == null) return;
+      setActiveSearchMessageId(msgId);
+      await ensureMessageLoaded(msgId);
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      scrollToMessageId(msgId);
+
+      // sync index for the counter when possible
+      const ordered = getMatchIdsByDomOrder();
+      const idx = ordered.findIndex((id) => id === String(msgId));
+      if (idx >= 0) setActiveSearchIndex(idx);
+    },
+    [ensureMessageLoaded, scrollToMessageId, getMatchIdsByDomOrder]
+  );
+
+  const applyActiveSearchIndex = useCallback(
+    async (idx) => {
+      const ids = Array.isArray(searchResultIds) ? searchResultIds : [];
+      if (!ids.length) return;
+      const nextIndex = Math.max(0, Math.min(ids.length - 1, idx));
+      const msgId = ids[nextIndex];
+      setActiveSearchIndex(nextIndex);
+      setActiveSearchMessageId(msgId);
+      await ensureMessageLoaded(msgId);
+      // wait one frame so ref registration happens after list render
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      scrollToMessageId(msgId);
+    },
+    [searchResultIds, ensureMessageLoaded, scrollToMessageId]
+  );
+
+  const goToNextSearchResult = useCallback(() => {
+    const ordered = getMatchIdsByDomOrder();
+    if (ordered.length) {
+      const cur = activeSearchMessageId != null ? String(activeSearchMessageId) : null;
+      const curIdx = cur ? ordered.findIndex((id) => id === cur) : -1;
+      const nextId = ordered[(curIdx + 1 + ordered.length) % ordered.length];
+      applyActiveSearchMessageId(nextId);
+      return;
+    }
+    const n = searchResultIds.length;
+    if (!n) return;
+    const next = (activeSearchIndex + 1) % n;
+    applyActiveSearchIndex(next);
+  }, [
+    getMatchIdsByDomOrder,
+    activeSearchMessageId,
+    applyActiveSearchMessageId,
+    searchResultIds.length,
+    activeSearchIndex,
+    applyActiveSearchIndex,
+  ]);
+
+  const goToPrevSearchResult = useCallback(() => {
+    const ordered = getMatchIdsByDomOrder();
+    if (ordered.length) {
+      const cur = activeSearchMessageId != null ? String(activeSearchMessageId) : null;
+      const curIdx = cur ? ordered.findIndex((id) => id === cur) : -1;
+      const prevId = ordered[(curIdx - 1 + ordered.length) % ordered.length];
+      applyActiveSearchMessageId(prevId);
+      return;
+    }
+    const n = searchResultIds.length;
+    if (!n) return;
+    const prev = (activeSearchIndex - 1 + n) % n;
+    applyActiveSearchIndex(prev);
+  }, [
+    getMatchIdsByDomOrder,
+    activeSearchMessageId,
+    applyActiveSearchMessageId,
+    searchResultIds.length,
+    activeSearchIndex,
+    applyActiveSearchIndex,
+  ]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchValue("");
+    setSearchLoading(false);
+    setSearchResultIds([]);
+    setActiveSearchIndex(0);
+    setActiveSearchMessageId(null);
+  }, []);
+
+  const submitSearch = useCallback(async () => {
+    if (!groupId) return;
+    const word = String(searchValue || "").trim();
+    if (!word) {
+      closeSearch();
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const ids = await searchMessageIds(api, groupId, word);
+      const normalizedIds = Array.from(new Set((ids || []).map((x) => String(x))));
+
+      // Prefer ordering by current in-memory message order (so Up = older/above, Down = newer/below).
+      const normalizedSet = new Set(normalizedIds);
+      const orderedByMessages = (messagesRef.current || [])
+        .map((m) => String(m?.id))
+        .filter((id) => normalizedSet.has(id));
+      const effectiveIds = orderedByMessages.length ? orderedByMessages : normalizedIds;
+
+      setSearchResultIds(effectiveIds);
+      if (effectiveIds.length === 0) {
+        setActiveSearchIndex(0);
+        setActiveSearchMessageId(null);
+        smartToast.info("No matches");
+        return;
+      }
+
+      // Start at the most recent match (near bottom), so Up moves to older/above like WhatsApp.
+      await applyActiveSearchIndex(effectiveIds.length - 1);
+    } catch (e) {
+      smartToast.error(e?.response?.data?.message || "Search failed");
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [groupId, searchValue, closeSearch, applyActiveSearchIndex]);
+
+  // If more messages load later, re-order results based on new message list order.
+  useEffect(() => {
+    if (!searchResultIds.length) return;
+    const set = new Set((searchResultIds || []).map((x) => String(x)));
+    const ordered = (messagesRef.current || [])
+      .map((m) => String(m?.id))
+      .filter((id) => set.has(id));
+    if (!ordered.length) return;
+    const same =
+      ordered.length === searchResultIds.length &&
+      ordered.every((id, i) => String(searchResultIds[i]) === id);
+    if (same) return;
+    setSearchResultIds(ordered);
+    // keep active message id if still present
+    if (activeSearchMessageId != null) {
+      const nextIdx = ordered.findIndex((id) => id === String(activeSearchMessageId));
+      if (nextIdx >= 0) setActiveSearchIndex(nextIdx);
+    }
+  }, [messages, searchResultIds, activeSearchMessageId]);
 
   const handleReplyToMessage = useCallback((message) => {
     if (!message?.id || String(message.id).startsWith("temp-") || message.is_deleted) return;
@@ -403,6 +633,21 @@ const MainChat = ({
         handleJoinMeeting={handleJoinMeeting}
         onCreateMeeting={onCreateMeeting}
         onUpdateContentName={handleUpdateContentName}
+        searchOpen={searchOpen}
+        searchValue={searchValue}
+        searchLoading={searchLoading}
+        searchHasResults={searchResultIds.length > 0}
+        searchActiveIndex={activeSearchIndex}
+        searchTotalResults={searchResultIds.length}
+        onSearchPrev={goToPrevSearchResult}
+        onSearchNext={goToNextSearchResult}
+        onToggleSearch={() => {
+          if (searchOpen) closeSearch();
+          else setSearchOpen(true);
+        }}
+        onSearchValueChange={(v) => setSearchValue(v)}
+        onSubmitSearch={submitSearch}
+        onCloseSearch={closeSearch}
       />
       <div className="chat-messages" ref={messagesContainerRef}>
         <MainChatMessageList
@@ -420,6 +665,10 @@ const MainChat = ({
           userRole={userRole}
           onReply={handleReplyToMessage}
           onReact={handleReactToMessage}
+          searchWord={searchOpen ? searchValue : ""}
+          searchResultIdSet={searchResultIdSet}
+          activeSearchMessageId={activeSearchMessageId}
+          onRegisterMessageEl={registerMessageEl}
         />
       </div>
       {!activeSection && !expandedSection && groupId && !isSuperAdmin && (

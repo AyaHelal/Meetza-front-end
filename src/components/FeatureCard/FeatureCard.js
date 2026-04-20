@@ -7,6 +7,7 @@ export default function FeatureCard({
   leftImage,
   rightImage,
   centerImage,
+  media = null,
   content,
   reverse,
   variant = 'primary',
@@ -61,7 +62,11 @@ export default function FeatureCard({
                     </div>
                     <div className="feature-col feature-col-right">
                       <div className="media-surface">
-                        <img className="feature-center-img" src={centerImage} alt="center" />
+                        {media ? (
+                          media
+                        ) : (
+                          <img className="feature-center-img" src={centerImage} alt="center" />
+                        )}
                       </div>
                     </div>
                   </>

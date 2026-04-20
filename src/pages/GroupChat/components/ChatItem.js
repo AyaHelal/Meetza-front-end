@@ -2,16 +2,27 @@ import React from 'react';
 import './ChatItem.css';
 
 const ChatItem = ({ chat, isActive, onClick }) => {
+    const [imgOk, setImgOk] = React.useState(true);
+    const fallbackGroup = "/assets/group-standard.png";
     return (
         <div
             className={`chat-item ${isActive ? 'active' : ''}`}
             onClick={onClick}
         >
             <div className="chat-avatar">
-                {chat.avatarImage ? (
-                    <img src={chat.avatarImage || undefined} alt={chat.name} className="chat-avatar-img" />
+                {chat.avatarImage && imgOk ? (
+                    <img
+                        src={chat.avatarImage || undefined}
+                        alt={chat.name}
+                        className="chat-avatar-img"
+                        onError={() => setImgOk(false)}
+                    />
                 ) : (
-                    <span>{chat.avatar}</span>
+                    <img
+                        src={fallbackGroup}
+                        alt={chat.name || "Group"}
+                        className="chat-avatar-img"
+                    />
                 )}
             </div>
             <div className="chat-info">

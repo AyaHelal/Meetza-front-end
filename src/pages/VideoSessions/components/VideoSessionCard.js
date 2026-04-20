@@ -4,9 +4,6 @@ import { downloadVideo } from "../../../utils/videoUtils";
 import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import "./VideoSessionCard.css";
 
-const DEFAULT_THUMB =
-  "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400";
-
 function parseDurationLabelToSeconds(label) {
   if (label == null || typeof label !== "string") return 0;
   const parts = label.trim().split(":").map((p) => parseInt(p, 10));
@@ -42,7 +39,7 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
   const menuRef = useRef(null);
 
   const rawVideoUrl = session?.videoUrl || session?.video_url;
-  const thumbnailUrl = session?.thumbnailUrl || DEFAULT_THUMB;
+  const thumbnailUrl = session?.thumbnailUrl || session?.thumbnail_url || session?.poster_url || null;
   const duration = session?.duration ?? "24:22";
   const watchProgressPercent = getCardWatchProgressPercent(session);
   const title = session?.title ?? "Video Title";

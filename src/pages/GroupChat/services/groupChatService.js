@@ -97,6 +97,46 @@ export async function getMessages(api, groupId, limit = 50, offset = 0) {
 }
 
 /**
+ * Search group messages by word.
+ * Backend route: `GET /chat/groups/:id/messages?searchMessage=:word`
+ *
+ * @param {import("axios").AxiosInstance} api
+ * @param {string|number} groupId
+ * @param {string} word
+ * @returns {Promise<Array<string|number>>} message ids (best-effort parse)
+ */
+export async function searchMessageIds(api, groupId, word) {
+  if (!groupId || !String(word || "").trim()) return [];
+  const q = encodeURIComponent(String(word).trim());
+  const res = await api.get(`/chat/groups/${groupId}/messages?searchMessage=${q}`);
+  const payload = res?.data?.data ?? res?.data ?? null;
+
+  if (Array.isArray(payload)) {
+    // array of messages or ids
+    return payload
+      .map((x) => (x && typeof x === "object" ? x.id ?? x.message_id ?? x.messageId : x))
+      .filter((id) => id != null && String(id).trim() !== "");
+  }
+
+  if (payload && typeof payload === "object") {
+    const list =
+      payload.data ??
+      payload.messages ??
+      payload.results ??
+      payload.items ??
+      payload.matches ??
+      [];
+    if (Array.isArray(list)) {
+      return list
+        .map((x) => (x && typeof x === "object" ? x.id ?? x.message_id ?? x.messageId : x))
+        .filter((id) => id != null && String(id).trim() !== "");
+    }
+  }
+
+  return [];
+}
+
+/**
  * Mark all messages in a group as read (REST).
  * @param {import("axios").AxiosInstance} api
  * @param {string} groupId

@@ -1,6 +1,5 @@
 import React from "react";
 import { Trash } from "@phosphor-icons/react";
-import { DEFAULT_THUMB } from "./constants";
 import { formatSavedVideoCardDate } from "../utils/formatSavedVideoCardDate";
 import "../../VideoSessions/components/VideoSessionDetail.css";
 import { VideoHoverPreviewThumb } from "../../VideoSessions/components/VideoHoverPreviewThumb";
@@ -31,7 +30,7 @@ export default function SavedVideosSidebar({ videos, selectedId, onSelect, onRem
                 <div className="video-session-detail-related-thumb saved-videos-card-thumb">
                   <VideoHoverPreviewThumb
                     fill
-                    posterSrc={v.thumbnailUrl || DEFAULT_THUMB}
+                    posterSrc={v.thumbnailUrl || v.thumbnail_url || v.poster_url || null}
                     rawVideoUrl={v.videoUrl || v.video_url}
                     alt={v.title || "Video"}
                   />

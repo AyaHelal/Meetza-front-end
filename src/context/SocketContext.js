@@ -48,6 +48,8 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const unreadNotificationCountRef = useRef(0);
+  const [unreadGroupChatCount, setUnreadGroupChatCount] = useState(0);
+  const unreadGroupChatCountRef = useRef(0);
   const hasLoggedSocketErrorRef = useRef(false);
   const lastTokenRef = useRef(null);
   const connectionTimeoutRef = useRef(null);
@@ -227,6 +229,29 @@ export const SocketProvider = ({ children }) => {
     unreadNotificationCountRef.current = unreadNotificationCount;
   }, [unreadNotificationCount]);
 
+  useEffect(() => {
+    unreadGroupChatCountRef.current = unreadGroupChatCount;
+  }, [unreadGroupChatCount]);
+
+  const refreshUnreadGroupChatCount = useCallback(async () => {
+    try {
+      let res;
+      try {
+        res = await api.get("/home/stats");
+      } catch (err) {
+        if (err?.response?.status !== 404) throw err;
+        res = await api.get("/home/stats/");
+      }
+      const root = res?.data?.data ?? res?.data ?? {};
+      const raw = root?.group_chat_unread ?? root?.groupChatUnread ?? root?.unread_chat ?? 0;
+      const n = Number(raw) || 0;
+      unreadGroupChatCountRef.current = n;
+      setUnreadGroupChatCount(n);
+    } catch {
+      // keep previous
+    }
+  }, []);
+
   // Bind notification listeners to the current socket instance (survives reconnect / state updates reliably).
   useEffect(() => {
     if (!socket) return;
@@ -300,6 +325,15 @@ export const SocketProvider = ({ children }) => {
         const viewingThisThread =
           Boolean(activeId) && String(activeId) === messageGroupId;
 
+        // Maintain a lightweight global unread badge count for the chat icon.
+        // If user isn't viewing the incoming thread, increment and let a refresh sync exact server count later.
+        if (!viewingThisThread) {
+          const prev = Number(unreadGroupChatCountRef.current) || 0;
+          const next = Math.min(prev + 1, 999);
+          unreadGroupChatCountRef.current = next;
+          setUnreadGroupChatCount(next);
+        }
+
         setTimeout(() => {
           if (!shouldSuppressChatIncomingSound()) {
             playChatIncomingSound(viewingThisThread);
@@ -313,6 +347,28 @@ export const SocketProvider = ({ children }) => {
     socket.on("message", onIncomingMessageSound);
     return () => socket.off("message", onIncomingMessageSound);
   }, [socket, isConnected]);
+
+  // On connect and when tab becomes active, refresh unread chat count from server.
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    const t = setTimeout(() => {
+      refreshUnreadGroupChatCount();
+    }, 700);
+    return () => clearTimeout(t);
+  }, [socket, isConnected, refreshUnreadGroupChatCount]);
+
+  useEffect(() => {
+    const onFocus = () => refreshUnreadGroupChatCount();
+    const onVis = () => {
+      if (document.visibilityState === "visible") refreshUnreadGroupChatCount();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [refreshUnreadGroupChatCount]);
 
   // Helper function to emit events with error handling
   const emit = (event, data, callback) => {
@@ -550,6 +606,8 @@ export const SocketProvider = ({ children }) => {
     getUnreadNotificationCount,
     unreadNotificationCount,
     setUnreadNotificationCount,
+    unreadGroupChatCount,
+    refreshUnreadGroupChatCount,
   };
 
   return (

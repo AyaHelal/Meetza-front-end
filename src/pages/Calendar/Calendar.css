@@ -741,7 +741,7 @@
 .calendar-week-time-col {
   flex-shrink: 0;
   width: 60px;
-  min-height: 4800px; /* 24 × 200px so lines extend to bottom */
+  min-height: 9120px; /* 24 × 380px (ROW_HEIGHT_PX in CalendarWeekGrid) */
   background: #fafafa;
   border-right: 2px solid #e5e7eb;
 }
@@ -762,7 +762,7 @@
   display: flex;
   flex: 1;
   min-width: 0;
-  min-height: 4800px; /* 24 × 200px, match time column so lines go to bottom */
+  min-height: 9120px; /* 24 × 380px, match time column so lines go to bottom */
 }
 
 .calendar-week-day-col {
@@ -787,7 +787,7 @@
   display: grid;
   flex: 1;
   min-width: 0;
-  min-height: 4800px;
+  min-height: 9120px;
 }
 
 .calendar-week-days--grid .calendar-week-day-col {
@@ -821,19 +821,21 @@
   top: 0;
   left: 6px;
   right: 6px;
-  bottom: 6px;
+  bottom: 0;
   pointer-events: auto;
 }
 
 .calendar-event-card {
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 50%;
+  right: auto;
+  width: 194px;
+  max-width: calc(100% - 12px);
+  transform: translateX(-50%);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   background: #fff;
-  border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -842,27 +844,34 @@
 
 /* Day view: single column – card is smaller and centered */
 .calendar-week-day-col:only-child .calendar-event-card {
-  left: 50%;
-  right: auto;
-  width: 320px;
-  max-width: calc(100% - 12px);
-  transform: translateX(-50%);
+  width: 194px;
 }
 
 .calendar-event-card-bg {
-  height: 130px;
+  /* Let the image area take most of the card height */
+  flex: 1 1 auto;
+  min-height: 140px;
+  height: auto;
   background-size: cover;
   background-position: center;
   position: relative;
 }
 
-/* No description: photo fills the card except the title row (no short 70px strip + empty white gap) */
-.calendar-event-card--no-desc .calendar-event-card-bg {
-  flex: 1 1 auto;
-  min-height: 0;
-  height: auto;
+.calendar-event-card-bg-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.92);
+  background: transparent;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.95;
 }
-.calendar-event-card--no-desc .calendar-event-card-body {
+
+/* Keep the white content area compact; image gets remaining height */
+.calendar-event-card-body {
   flex: 0 0 auto;
 }
 .calendar-event-card--no-desc .calendar-event-card-title {
@@ -891,6 +900,7 @@
   font-size: 0.7rem;
   font-weight: 600;
   color: #fff;
+  z-index: 2;
 }
 
 .calendar-event-card-on-image {
@@ -901,6 +911,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  z-index: 2;
 }
 
 .calendar-event-card-group {
@@ -969,14 +980,17 @@
   font-size: 0.8rem;
   color: #6b7280;
   line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  max-height: 40px;
+  overflow: auto;
   flex: 0 1 auto;
   min-height: 0;
+}
+
+.calendar-event-card-desc--empty {
+  max-height: none;
+  overflow: hidden;
+  color: transparent; /* keep space, hide text */
+  height: 1.15em; /* about one line: “description” */
 }
 
 .calendar-event-card-go-to-meeting {
@@ -1066,8 +1080,11 @@
   }
 
   .calendar-event-card {
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
+    width: min(194px, calc(100% - 8px));
+    max-width: calc(100% - 8px);
+    transform: translateX(-50%);
   }
 
   .calendar-event-card--compact .calendar-event-card-label {

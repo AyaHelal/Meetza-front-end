@@ -187,9 +187,9 @@
   width: 48px;
   height: 32px;
   border-radius: 6px;
-  object-fit: cover;
   flex-shrink: 0;
   background: #e0e0e0;
+  overflow: hidden;
 }
 
 .saved-videos-header-suggestion-text {

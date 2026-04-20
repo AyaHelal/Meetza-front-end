@@ -16,6 +16,10 @@ export default function MainChatMessageList({
   userRole,
   onReply,
   onReact,
+  searchWord,
+  searchResultIdSet,
+  activeSearchMessageId,
+  onRegisterMessageEl,
 }) {
   if (loading) {
     return (
@@ -90,6 +94,10 @@ export default function MainChatMessageList({
                 userRole={userRole}
                 onReply={onReply}
                 onReact={onReact}
+                searchWord={searchWord}
+                isSearchMatch={Boolean(searchResultIdSet?.has?.(String(msg.id)))}
+                isActiveSearchResult={activeSearchMessageId != null && String(activeSearchMessageId) === String(msg.id)}
+                onRegisterMessageEl={onRegisterMessageEl}
               />
             </React.Fragment>
           );
