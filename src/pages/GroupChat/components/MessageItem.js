@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import {
@@ -81,6 +81,10 @@ const MessageItem = ({
   userRole,
   onReply,
   onReact,
+  searchWord,
+  isSearchMatch,
+  isActiveSearchResult,
+  onRegisterMessageEl,
 }) => {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [anchorRect, setAnchorRect] = useState(null);
@@ -99,6 +103,31 @@ const MessageItem = ({
         : [];
 
   const displayText = getDisplayText(message, finalMedia);
+
+  const highlightNeedle = useMemo(() => String(searchWord || '').trim(), [searchWord]);
+  const shouldHighlight = Boolean(highlightNeedle) && Boolean(isSearchMatch);
+
+  const renderHighlighted = useCallback(
+    (text) => {
+      const raw = String(text || '');
+      if (!shouldHighlight || !raw) return raw;
+      const needle = highlightNeedle;
+      if (!needle) return raw;
+      const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(${escaped})`, 'ig');
+      const parts = raw.split(re);
+      return parts.map((part, i) => {
+        const isHit = i % 2 === 1 && part;
+        if (!isHit) return <React.Fragment key={i}>{part}</React.Fragment>;
+        return (
+          <mark key={i} className="chat-search-highlight">
+            {part}
+          </mark>
+        );
+      });
+    },
+    [shouldHighlight, highlightNeedle]
+  );
 
   useEffect(() => {
     setEditText(message.message || message.text || '');
@@ -251,6 +280,15 @@ const MessageItem = ({
     else if (e.key === 'Escape') handleEditCancel();
   };
 
+  const setOuterRef = useCallback(
+    (el) => {
+      messageRef.current = el;
+      const id = message?.id;
+      if (el && id != null) onRegisterMessageEl?.(id, el);
+    },
+    [message?.id, onRegisterMessageEl]
+  );
+
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key !== 'Escape') return;
@@ -348,7 +386,7 @@ const MessageItem = ({
               className="edit-input"
             />
           ) : (
-            displayText
+            renderHighlighted(displayText)
           )}
         </div>
       )}
@@ -679,8 +717,8 @@ const MessageItem = ({
 
   return (
     <div
-      className={`message ${isOwnMessage ? 'message-own' : 'message-other'}${showContextMenu ? ' message--context-open' : ''}`}
-      ref={messageRef}
+      className={`message ${isOwnMessage ? 'message-own' : 'message-other'}${showContextMenu ? ' message--context-open' : ''}${isActiveSearchResult ? ' message--search-active' : ''}`}
+      ref={setOuterRef}
       onContextMenu={handleRightClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

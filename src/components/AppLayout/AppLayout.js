@@ -38,6 +38,7 @@ const AppLayout = () => {
     isConnected,
     joinGroup,
     unreadNotificationCount,
+    refreshUnreadGroupChatCount,
     setUnreadNotificationCount,
     markAllNotificationsRead,
     getUnreadNotificationCount,
@@ -155,6 +156,11 @@ const AppLayout = () => {
       setActiveNav("saved-videos");
     }
   }, [location]);
+
+  // Keep chat unread badge in sync when navigating around.
+  useEffect(() => {
+    refreshUnreadGroupChatCount?.();
+  }, [location.pathname, location.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle window resize for mobile detection
   useEffect(() => {

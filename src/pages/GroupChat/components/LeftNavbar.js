@@ -38,6 +38,8 @@ const LeftNavbar = ({
     socket,
     isConnected,
     unreadNotificationCount,
+    unreadGroupChatCount,
+    refreshUnreadGroupChatCount,
     setUnreadNotificationCount,
     markAllNotificationsRead,
     getUnreadNotificationCount,
@@ -201,10 +203,22 @@ const LeftNavbar = ({
               onClick={() => {
                 navigate("/messages");
                 setActiveNav("messages");
+                // Sync badge with server when user opens chat page.
+                refreshUnreadGroupChatCount?.();
               }}
               title="Messages"
             >
               <Envelope size={32} />
+              {activeNav !== "messages" && unreadGroupChatCount > 0 && (
+                <span
+                  className="nav-badge"
+                  title={`${unreadGroupChatCount} unread message${
+                    unreadGroupChatCount !== 1 ? "s" : ""
+                  }`}
+                >
+                  {unreadGroupChatCount > 99 ? "99+" : unreadGroupChatCount}
+                </span>
+              )}
             </div>
             <div
               className={`nav-icon ${activeNav === "users" ? "active" : ""}`}

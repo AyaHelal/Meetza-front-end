@@ -19,6 +19,8 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import UserPhoto from "../../components/UserPhoto/UserPhoto";
 import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
+import ContactForm from "../../components/Contact/ContactForm";
+import api from "../../API/axiosInstance";
 import useSavedVideos from "../SavedVideos/hooks/useSavedVideos";
 import useProfileMeetings from "./hooks/useProfileMeetings";
 import useProfilePosition from "./hooks/useProfilePosition";
@@ -34,9 +36,15 @@ const PLACEHOLDER_NOTIFICATIONS = [
   { id: "1", text: "Dr Dawlat replied to your comment", highlight: false },
   { id: "2", text: "Dr Dawlat uploaded a new video", highlight: true },
   { id: "3", text: "Meeting reminder in 30 minutes", highlight: false },
+  { id: "4", text: "New announcement posted in your group", highlight: false },
 ];
 
 const FILE_GRID_LABELS = ["PDF", "PHOTO", "", "PDF", "", "PHOTO", "", "PDF", "PHOTO"];
+
+const PROFILE_MAX_SAVED_VIDEOS = 2;
+const PROFILE_MAX_MEETINGS = 3;
+const PROFILE_MAX_LIVE_MEETINGS = 2;
+const PROFILE_MAX_NOTIFICATIONS = 4;
 
 function formatSavedVideoDuration(value) {
   if (value == null || value === "") return "—";
@@ -122,15 +130,81 @@ export default function ProfilePage() {
   const { savedVideos, loading: savedVideosLoading, error: savedVideosError } = useSavedVideos(null);
   const { meetings: profileMeetings, loading: meetingsLoading, error: meetingsError } = useProfileMeetings();
 
+  const isMemberProfile = useMemo(() => {
+    const role = (user?.role || "").toString().trim().toLowerCase();
+    if (!role) return true; // default to member UX when role missing
+    return !(role === "administrator" || role.includes("super_admin") || role.includes("super-admin"));
+  }, [user?.role]);
+
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   /** Merged GET /user/:id — often carries position_id when session user is minimal. */
   const [enrichedUser, setEnrichedUser] = useState(null);
 
   const displayName = user?.name || user?.full_name || user?.username || user?.email || "Member";
   const email = user?.email || "—";
   const username = user?.username || user?.name || displayName;
+  const contactPrefillName = user?.name || user?.full_name || user?.username || "";
+  const contactPrefillEmail = user?.email || "";
+  const liveMeetings = useMemo(() => (profileMeetings || []).filter((m) => m?.isLive), [profileMeetings]);
+  const limitedMeetings = useMemo(() => (profileMeetings || []).slice(0, PROFILE_MAX_MEETINGS), [profileMeetings]);
+  const limitedSavedVideos = useMemo(() => (savedVideos || []).slice(0, PROFILE_MAX_SAVED_VIDEOS), [savedVideos]);
+  const limitedLiveMeetings = useMemo(() => liveMeetings.slice(0, PROFILE_MAX_LIVE_MEETINGS), [liveMeetings]);
+  const limitedNotifications = useMemo(() => PLACEHOLDER_NOTIFICATIONS.slice(0, PROFILE_MAX_NOTIFICATIONS), []);
+  const hasSavedVideos = (savedVideos || []).length > 0;
+  const [groupsMap, setGroupsMap] = useState(() => ({}));
+
+  useEffect(() => {
+    let cancelled = false;
+    const userRole = (user?.role || "").toString().trim().toLowerCase();
+    const isAdminRole = userRole === "administrator" || userRole.includes("super_admin") || userRole.includes("super-admin");
+    const endpoint = isAdminRole ? "/group" : "/chat/groups";
+
+    api
+      .get(endpoint)
+      .then((response) => {
+        if (cancelled) return;
+        const raw = response?.data?.data ?? response?.data;
+        const payload = Array.isArray(raw) ? raw : [];
+        const map = {};
+        payload.forEach((g) => {
+          const id = g.id ?? g.group_id ?? g._id;
+          const name = g.name ?? g.group_name ?? g.title ?? g.content_name ?? g.group_content_name ?? "";
+          if (id != null && String(id).trim() !== "") {
+            const idStr = String(id);
+            if (map[idStr] !== undefined) return;
+            const nameStr = name && String(name).trim() ? String(name).trim() : "—";
+            map[idStr] = nameStr;
+          }
+        });
+        setGroupsMap(map);
+      })
+      .catch(() => {
+        if (!cancelled) setGroupsMap({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role]);
+
+  const handleJoinLiveMeeting = useCallback(async (meetingId) => {
+    const id = meetingId != null ? String(meetingId) : null;
+    if (!id) return;
+    try {
+      await api.post(`/meeting/${id}/join`);
+      try {
+        sessionStorage.setItem("activeMeetingId", String(id));
+      } catch {
+        /* ignore */
+      }
+      navigate("/meetings", { state: { meetingId: id } });
+    } catch (err) {
+      smartToast.error(err?.response?.data?.message || "Failed to join meeting");
+    }
+  }, [navigate]);
 
   const effectiveUser = useMemo(() => {
     if (!user && !enrichedUser) return null;
@@ -254,7 +328,15 @@ export default function ProfilePage() {
   }, []);
 
   return (
-    <div className="profile-page d-flex flex-column flex-grow-1 min-vh-0">
+    <div
+      className={[
+        "profile-page d-flex flex-column flex-grow-1 min-vh-0",
+        isMemberProfile && "profile-page--member",
+        !hasSavedVideos && "profile-page--no-saved-videos",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <Container fluid="xl" className="profile-dashboard-inner py-4 px-3 flex-grow-1">
         <Row className="g-3 g-md-4 align-items-start align-items-xl-stretch">
           <Col xl={4} md={12} xs={12} className="d-flex flex-column min-h-0">
@@ -275,7 +357,7 @@ export default function ProfilePage() {
               </Card>
 
               <Card className="border-0 profile-design-card">
-                <Card.Body className="text-center pt-4 pb-4 px-3">
+                <Card.Body className="text-center pt-3 pb-3 px-3">
                   <div className="profile-avatar-block mx-auto mb-4">
                     <UserPhoto user={user} size="large" variant="default" fileInputId={PROFILE_PHOTO_FILE_INPUT_ID} />
                     <Button
@@ -425,6 +507,22 @@ export default function ProfilePage() {
                         ) : null}
                       </div>
                     ) : null}
+                    <div
+                      className="profile-field-row profile-field-row--clickable profile-contact-row"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setContactModalOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setContactModalOpen(true);
+                        }
+                      }}
+                      aria-label="Contact us"
+                    >
+                      <div className="profile-contact-row__left">Send us a message</div>
+                      <div className="profile-contact-row__right">Contact</div>
+                    </div>
                   </div>
                 </Card.Body>
               </Card>
@@ -433,7 +531,7 @@ export default function ProfilePage() {
                 <Card.Body className="p-0">
                   <h2 className="profile-notif-card__title">Notification</h2>
                   <ul className="profile-notif-card__list">
-                    {PLACEHOLDER_NOTIFICATIONS.map((n) => (
+                    {limitedNotifications.map((n) => (
                       <li key={n.id} className={n.highlight ? "profile-notif-card__item is-highlight" : "profile-notif-card__item"}>
                         {n.text}
                       </li>
@@ -472,7 +570,7 @@ export default function ProfilePage() {
                     <p className="profile-saved-videos-status mb-0">No saved videos yet.</p>
                   ) : (
                     <div className="profile-saved-videos-list d-flex flex-column">
-                      {savedVideos.map((v) => (
+                      {limitedSavedVideos.map((v) => (
                         <ProfileSavedVideoCard
                           key={v.id}
                           video={v}
@@ -517,7 +615,7 @@ export default function ProfilePage() {
                       <p className="profile-meetings-status text-muted small mb-0">No upcoming meetings.</p>
                     ) : (
                       <ListGroup variant="flush" className="profile-meetings-list">
-                        {profileMeetings.map((m) => {
+                        {limitedMeetings.map((m) => {
                           const badge = dateBadgeFromDate(m.startAt);
                           const startParts = formatClockPartsFromDate(m.startAt);
                           const endParts = formatClockPartsFromDate(m.endAt);
@@ -565,53 +663,79 @@ export default function ProfilePage() {
           </Col>
 
           <Col xl={4} md={12} xs={12} className="d-flex flex-column min-h-0">
-            <Stack gap={4} className="profile-dashboard-stack profile-right-col-stack">
-              <Card className="border-0 profile-design-card">
-                <Card.Body className="p-4">
-                  <Stack gap={4}>
+            <Stack gap={4} className="profile-dashboard-stack profile-right-col-stack flex-grow-1 min-h-0">
+              <Card className="border-0 profile-design-card flex-shrink-0 profile-files-card">
+                <Card.Body className="p-3 profile-files-card__body">
+                  <Stack gap={3} className="profile-files-stack">
                     <Card.Title as="h2" className="h6 fw-bold text-dark mb-0">
                       Uploaded Files from chats
                     </Card.Title>
-                    <div className="profile-files-grid">
-                      {FILE_GRID_LABELS.map((label, idx) => (
-                        <div key={idx} className="profile-files-grid__cell">
-                          <Ratio aspectRatio="1x1">
-                            <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4">
-                              {label ? <span className="profile-file-label">{label}</span> : null}
-                            </div>
-                          </Ratio>
-                        </div>
-                      ))}
+                    <div className="profile-files-scroll">
+                      <div className="profile-files-grid">
+                        {FILE_GRID_LABELS.map((label, idx) => (
+                          <div key={idx} className="profile-files-grid__cell">
+                            <Ratio aspectRatio="1x1">
+                              <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4">
+                                {label ? <span className="profile-file-label">{label}</span> : null}
+                              </div>
+                            </Ratio>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </Stack>
                 </Card.Body>
               </Card>
 
-              <Card className="border-0 profile-design-card profile-ongoing-card">
-                <Card.Body className="p-4">
-                  <Card.Title as="h2" className="profile-ongoing-card__title h6 text-dark mb-3">
-                    Ongoing meeting
-                  </Card.Title>
-                  <div className="profile-ongoing-shell">
-                    <div className="profile-ongoing-preview">
-                      <img
-                        src="/assets/video-standard.png"
-                        alt=""
-                        className="profile-ongoing-preview__img"
-                      />
+              {limitedLiveMeetings.length > 0 ? (
+                <Card className="border-0 profile-design-card profile-live-meetings-card flex-grow-1 min-h-0">
+                  <Card.Body className="p-3 profile-live-meetings-card__body">
+                    <div className="profile-live-meetings-scroll">
+                      <div className="profile-live-meetings">
+                        {limitedLiveMeetings.map((m, idx) => (
+                          <div
+                            key={m.id ?? idx}
+                            className="alert alert-success profile-live-meeting-alert"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleJoinLiveMeeting(m.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleJoinLiveMeeting(m.id);
+                              }
+                            }}
+                          >
+                            <div className="d-flex align-items-start justify-content-between gap-3">
+                              <div className="min-w-0">
+                                <div className="fw-bold">Live meeting now</div>
+                                <div className="small text-muted text-truncate">
+                                  Meeting: {m.title || m.meetingTitle || "Meeting"}
+                                </div>
+                                <div className="small text-muted text-truncate">
+                                  Group: {m.groupName || (m.groupId ? (groupsMap[String(m.groupId)] || "—") : "—")}
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="success"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleJoinLiveMeeting(m.id);
+                                }}
+                                className="flex-shrink-0"
+                              >
+                                Join
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <Button
-                      type="button"
-                      className="w-100 profile-ongoing-cta profile-ongoing-cta--static"
-                      onClick={(e) => {
-                        e.preventDefault();
-                      }}
-                    >
-                      Click to open full video
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
+                  </Card.Body>
+                </Card>
+              ) : null}
             </Stack>
           </Col>
         </Row>
@@ -626,6 +750,36 @@ export default function ProfilePage() {
         confirming={positionDeleting}
         confirmLabel="Delete"
       />
+
+      {contactModalOpen ? (
+        <div
+          className="profile-contact-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Contact us"
+          onClick={() => setContactModalOpen(false)}
+        >
+          <div className="profile-contact-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-contact-modal__head">
+              <h2 className="profile-contact-modal__title">Contact us</h2>
+              <button
+                type="button"
+                className="profile-contact-modal__close"
+                onClick={() => setContactModalOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <ContactForm
+              mode="profile"
+              initialFullName={contactPrefillName}
+              initialEmail={contactPrefillEmail}
+              onSuccess={() => setContactModalOpen(false)}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
