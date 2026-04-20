@@ -11,7 +11,6 @@ import BlogPost from './pages/Blog/BlogPost';
 import TermsPage from './pages/Legal/TermsPage';
 import PrivacyPage from './pages/Legal/PrivacyPage';
 import GuidelinesPage from './pages/Legal/GuidelinesPage';
-import LicensesPage from './pages/Legal/LicensesPage';
 import GroupChat from './pages/GroupChat/GroupChat';
 import HomePage from './pages/Home/HomePage';
 import ProfilePage from './pages/Profile/ProfilePage';
@@ -224,7 +223,6 @@ const AppRoutes = () => {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/guidelines" element={<GuidelinesPage />} />
-      <Route path="/licenses" element={<LicensesPage />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />

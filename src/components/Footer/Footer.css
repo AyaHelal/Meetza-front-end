@@ -89,6 +89,127 @@
   color: #fff;
 }
 
+.footer-edit-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.footer-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 5000;
+}
+
+.footer-edit-modal {
+  width: min(900px, 100%);
+  max-height: min(85vh, 760px);
+  overflow: auto;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+}
+
+.footer-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.footer-edit-section {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fafb;
+}
+
+.footer-edit-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.footer-edit-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.footer-edit-item-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.footer-edit-input {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+.footer-edit-input:focus {
+  border-color: rgba(0, 118, 234, 0.55);
+  box-shadow: 0 0 0 3px rgba(0, 118, 234, 0.12);
+}
+
+.footer-edit-cancel,
+.footer-edit-save {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.footer-edit-cancel {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.footer-edit-save {
+  background: #0076ea;
+  color: #ffffff;
+}
+
+@media (max-width: 780px) {
+  .footer-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .footer-line {
   border: solid 1.5px #ffffff;
   margin-top: 2rem;

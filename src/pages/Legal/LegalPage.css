@@ -67,6 +67,11 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
+.legal-body-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .legal-body h2 {
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;

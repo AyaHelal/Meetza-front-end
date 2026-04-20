@@ -1,8 +1,25 @@
 import "./LegalPage.css";
 import { useNavigate } from "react-router-dom";
+import React, { useMemo } from "react";
 
 export default function TermsPage() {
   const navigate = useNavigate();
+
+  const DEFAULT_TEXT = useMemo(
+    () =>
+      [
+        "These Terms describe how you can use Meetza. This is a placeholder page that can be expanded later with your official terms.",
+        "",
+        "Use of the service",
+        "- Use the app responsibly and follow applicable rules.",
+        "- Do not abuse, disrupt, or attempt to harm the service.",
+        "",
+        "Account registration (roles)",
+        "- Admins and Leaders are registered by the system team. An admin/leader should provide a seed file that contains the list of admin accounts to the system supervisor so those accounts can be created.",
+        "- Only members can create accounts via the Sign Up flow.",
+      ].join("\n"),
+    []
+  );
 
   return (
     <div
@@ -24,27 +41,7 @@ export default function TermsPage() {
           <h1 className="legal-title">Terms of Service</h1>
           <p className="legal-subtitle">Last updated: April 2026</p>
           <div className="legal-body">
-            <p>
-              These Terms describe how you can use Meetza. This is a placeholder page that can be
-              expanded later with your official terms.
-            </p>
-            <h2>Use of the service</h2>
-            <ul>
-              <li>Use the app responsibly and follow applicable rules.</li>
-              <li>Do not abuse, disrupt, or attempt to harm the service.</li>
-            </ul>
-
-            <h2>Account registration (roles)</h2>
-            <ul>
-              <li>
-                Admins and Leaders are registered by the system team. An admin/leader should provide
-                a seed file that contains the list of admin accounts to the system supervisor so
-                those accounts can be created.
-              </li>
-              <li>
-                Only members can create accounts via the Sign Up flow.
-              </li>
-            </ul>
+            <div className="legal-body-pre">{DEFAULT_TEXT}</div>
           </div>
         </div>
       </div>

@@ -1,8 +1,21 @@
 import "./LegalPage.css";
 import { useNavigate } from "react-router-dom";
+import React, { useMemo } from "react";
 
 export default function GuidelinesPage() {
   const navigate = useNavigate();
+
+  const DEFAULT_TEXT = useMemo(
+    () =>
+      [
+        "These guidelines help keep Meetza respectful and productive. This is a placeholder page.",
+        "",
+        "Be respectful",
+        "- No harassment, hate speech, or bullying.",
+        "- Respect privacy and consent when sharing content.",
+      ].join("\n"),
+    []
+  );
 
   return (
     <div
@@ -24,14 +37,7 @@ export default function GuidelinesPage() {
           <h1 className="legal-title">Community Guidelines</h1>
           <p className="legal-subtitle">Last updated: April 2026</p>
           <div className="legal-body">
-            <p>
-              These guidelines help keep Meetza respectful and productive. This is a placeholder page.
-            </p>
-            <h2>Be respectful</h2>
-            <ul>
-              <li>No harassment, hate speech, or bullying.</li>
-              <li>Respect privacy and consent when sharing content.</li>
-            </ul>
+            <div className="legal-body-pre">{DEFAULT_TEXT}</div>
           </div>
         </div>
       </div>

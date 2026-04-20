@@ -1,8 +1,21 @@
 import "./LegalPage.css";
 import { useNavigate } from "react-router-dom";
+import React, { useMemo } from "react";
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
+
+  const DEFAULT_TEXT = useMemo(
+    () =>
+      [
+        "This page explains how Meetza handles personal data. This is a placeholder policy that can be replaced with your final privacy text.",
+        "",
+        "What we collect",
+        "- Account information you provide.",
+        "- Usage data needed to operate the service.",
+      ].join("\n"),
+    []
+  );
 
   return (
     <div
@@ -24,15 +37,7 @@ export default function PrivacyPage() {
           <h1 className="legal-title">Privacy Policy</h1>
           <p className="legal-subtitle">Last updated: April 2026</p>
           <div className="legal-body">
-            <p>
-              This page explains how Meetza handles personal data. This is a placeholder policy that
-              can be replaced with your final privacy text.
-            </p>
-            <h2>What we collect</h2>
-            <ul>
-              <li>Account information you provide.</li>
-              <li>Usage data needed to operate the service.</li>
-            </ul>
+            <div className="legal-body-pre">{DEFAULT_TEXT}</div>
           </div>
         </div>
       </div>
