@@ -15,6 +15,7 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
   const groupId = group.group_id || group.id;
   const name = group.name || group.title || group.group_name || group.content_name;
   const photo = normalizePhotoSrc(group.group_photo || group.photo);
+  const fallbackPhoto = "/assets/group-standard.png";
   const instructor = group.admin?.name || group.admin_name || 'Unknown';
   const isJoined = groupId && joinedGroups.includes(groupId);
   const isMemberView = userRole === 'Member';
@@ -33,9 +34,11 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
             onError={() => setImgOk(false)}
           />
         ) : (
-          <div className="group-card-image-placeholder" aria-label="group">
-            group
-          </div>
+          <img
+            src={fallbackPhoto}
+            alt={name || "Group"}
+            className="group-card-image-fallback"
+          />
         )}
       </div>
       <div className="group-card-body">

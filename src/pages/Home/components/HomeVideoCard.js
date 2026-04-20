@@ -119,12 +119,13 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
             fill
             className="home-video-card-thumb-preview"
           />
-        ) : thumbnailUrl ? (
-          <img className="home-video-card-thumb-img" src={thumbnailUrl} alt="" />
         ) : (
-          <div className="v-hover-preview-thumb__placeholder" aria-label="video">
-            video
-          </div>
+          <VideoHoverPreviewThumb
+            posterSrc={thumbnailUrl}
+            alt=""
+            fill
+            className="home-video-card-thumb-preview"
+          />
         )}
       </div>
 

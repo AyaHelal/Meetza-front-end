@@ -2,6 +2,8 @@ import React, { useState, useRef, useMemo } from "react";
 import { buildFileUrl } from "../services";
 import "./VideoHoverPreviewThumb.css";
 
+const DEFAULT_VIDEO_POSTER = "/assets/video-standard.png";
+
 /**
  * Thumbnail with optional muted hover preview (same pattern as session cards).
  * @param {string} posterSrc
@@ -26,6 +28,8 @@ export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill 
     const t = posterSrc.trim();
     return t ? t : null;
   }, [posterSrc]);
+
+  const effectivePoster = poster || DEFAULT_VIDEO_POSTER;
 
   const handleEnter = () => {
     if (!previewSrc) return;
@@ -66,7 +70,7 @@ export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill 
           ref={videoRef}
           className="v-hover-preview-thumb__video"
           src={previewSrc}
-          poster={poster || undefined}
+          poster={effectivePoster || undefined}
           muted
           playsInline
           loop
@@ -74,9 +78,9 @@ export function VideoHoverPreviewThumb({ posterSrc, rawVideoUrl, alt = "", fill 
           aria-hidden="true"
         />
       ) : null}
-      {poster && imgOk ? (
+      {effectivePoster && imgOk ? (
         <img
-          src={poster}
+          src={effectivePoster}
           alt={alt}
           onError={() => setImgOk(false)}
           className={`v-hover-preview-thumb__img${previewSrc ? " v-hover-preview-thumb__img--preview" : ""}`}

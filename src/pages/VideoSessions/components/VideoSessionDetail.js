@@ -214,9 +214,7 @@ export default function VideoSessionDetail({
                 {thumbUrl ? (
                   <img src={thumbUrl} alt="" />
                 ) : (
-                  <div className="v-hover-preview-thumb__placeholder" aria-label="video">
-                    video
-                  </div>
+                  <img src="/assets/video-standard.png" alt="" />
                 )}
               </div>
             )}

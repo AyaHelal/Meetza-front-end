@@ -56,6 +56,7 @@ function ProfileSavedVideoCard({ video, onOpen }) {
   const title = video?.title || "Video";
   const thumb = video?.thumbnailUrl || video?.thumbnail_url || video?.poster_url || null;
   const durationLabel = formatSavedVideoDuration(video?.duration);
+  const fallbackThumb = "/assets/video-standard.png";
 
   return (
     <div className="profile-saved-videos-tile">
@@ -74,9 +75,11 @@ function ProfileSavedVideoCard({ video, onOpen }) {
                 className="profile-saved-video-thumb position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
               />
             ) : (
-              <div className="v-hover-preview-thumb__placeholder position-absolute top-0 start-0 w-100 h-100" aria-label="video">
-                video
-              </div>
+              <img
+                src={fallbackThumb}
+                alt=""
+                className="profile-saved-video-thumb position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+              />
             )}
             <div className="profile-saved-pills" dir="ltr">
               <span className="profile-saved-pill profile-saved-pill--title text-truncate">{title}</span>
@@ -591,9 +594,11 @@ export default function ProfilePage() {
                   </Card.Title>
                   <div className="profile-ongoing-shell">
                     <div className="profile-ongoing-preview">
-                      <div className="v-hover-preview-thumb__placeholder position-absolute top-0 start-0 w-100 h-100" aria-label="video">
-                        video
-                      </div>
+                      <img
+                        src="/assets/video-standard.png"
+                        alt=""
+                        className="profile-ongoing-preview__img"
+                      />
                     </div>
                     <Button
                       type="button"
