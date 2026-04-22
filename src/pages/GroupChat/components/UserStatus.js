@@ -32,6 +32,7 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                 variant="status" 
                 size="medium"
                 className="status-user-photo"
+                allowUpload={false}
             />
             <div className="status-info">
                 <div className="status-name">{userName}</div>

@@ -271,11 +271,12 @@ const AppLayout = () => {
   // Calendar: only Member and Super_Admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
+  const isSuperAdmin = userRole.includes("super_admin") || userRole.includes("super-admin");
   const canSeeCalendar = userRole === "member" || userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
 
   const menuItems = [
     { icon: House, label: "Home", nav: "home" },
-    { icon: User, label: "Profile", nav: "profile" },
+    ...(!isSuperAdmin ? [{ icon: User, label: "Profile", nav: "profile" }] : []),
     { icon: Envelope, label: "Message", nav: "messages" },
     { icon: UsersThree, label: "Groups", nav: "users" },
     ...(canSeeCalendar ? [{ icon: CalendarBlank, label: "Calendar", nav: "calendar" }] : []),
@@ -331,13 +332,14 @@ const AppLayout = () => {
                   <X size={20} weight="bold" />
                 </button>
                 <div className="profile-info">
-                  <UserPhoto
-                    user={user}
-                    variant="sidebar"
-                    size="large"
-                    showName={true}
-                    className="sidebar-user-photo"
-                  />
+                    <UserPhoto
+                      user={user}
+                      variant="sidebar"
+                      size="large"
+                      showName={true}
+                      className="sidebar-user-photo"
+                      allowUpload={false}
+                    />
                   {activeMeetingId && location.pathname !== "/meetings" && (
                     <button
                       type="button"
