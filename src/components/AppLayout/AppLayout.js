@@ -282,7 +282,7 @@ const AppLayout = () => {
     ...(canSeeCalendar ? [{ icon: CalendarBlank, label: "Calendar", nav: "calendar" }] : []),
     { icon: YoutubeLogo, label: "Videos", nav: "videos" },
     { icon: BookmarkSimple, label: "Saved Videos", nav: "saved-videos" },
-    ...(isAdmin ? [{ icon: VideoCamera, label: "Admin Meetings", nav: "admin-meetings" }] : []),
+    ...(isAdmin ? [{ icon: VideoCamera, label: "Leader Meetings", nav: "admin-meetings" }] : []),
     { icon: GearSix, label: "Settings", nav: "settings" },
   ];
 

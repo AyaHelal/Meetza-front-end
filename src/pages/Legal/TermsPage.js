@@ -15,7 +15,7 @@ export default function TermsPage() {
         "- Do not abuse, disrupt, or attempt to harm the service.",
         "",
         "Account registration (roles)",
-        "- Admins and Leaders are registered by the system team. An admin/leader should provide a seed file that contains the list of admin accounts to the system supervisor so those accounts can be created.",
+        "- Leaders are registered by the system team. An leader should provide a seed file that contains the list of leaders accounts to the system supervisor so those accounts can be created.",
         "- Only members can create accounts via the Sign Up flow.",
       ].join("\n"),
     []

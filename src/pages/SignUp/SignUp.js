@@ -281,7 +281,7 @@ const SignUp = () => {
                                     onChange={handleInputChange}
                                 />
                                 <label className="form-check-label ms-2" htmlFor="adminRole">
-                                    Administrator
+                                    Leader
                                 </label>
                             </div>
                         </div>

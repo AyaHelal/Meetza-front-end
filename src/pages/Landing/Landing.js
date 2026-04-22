@@ -118,7 +118,7 @@ const Landing = () => {
                     <>
                       <h2>Real-Time Group Chat</h2>
                       <p>
-                        Collaborate in real-time with doctors and members. Create group discussions, send files, and stay updated instantly.
+                        Collaborate in real-time with leaders and members. Create group discussions, send files, and stay updated instantly.
                       </p>
                       <ul>
                         <li>Private & Group Chats</li>

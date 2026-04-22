@@ -42,19 +42,19 @@ export function AssignGroupAdminMeetzaModal({
       <div style={panelStyle} onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="assign-admin-title">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <h4 id="assign-admin-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
-            Assign admin
+            Assign leader
           </h4>
           <button type="button" onClick={onClose} aria-label="Close" style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
             <X size={22} />
           </button>
         </div>
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#6b7280" }}>
-          User must already have the <strong>Administrator</strong> role in the system.
+          User must already have the <strong>Leader</strong> role in the system.
         </p>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>Group</label>
         <input type="text" value={groupLabel} disabled style={{ width: "100%", padding: "10px 12px", marginBottom: "1rem", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb" }} />
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>
-          Administrator email(s) <span style={{ color: "#dc2626" }}>*</span>
+          Leader email(s) <span style={{ color: "#dc2626" }}>*</span>
         </label>
         <textarea
           name="emailsText"
@@ -73,7 +73,7 @@ export function AssignGroupAdminMeetzaModal({
           }}
         />
         <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", color: "#6b7280" }}>
-          You can assign several administrators at once.
+          You can assign several leaders at once.
         </p>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>Role (optional)</label>
         <select
@@ -125,7 +125,7 @@ export function RemoveGroupAdminMeetzaModal({
       <div style={panelStyle} onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="remove-admin-title">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <h4 id="remove-admin-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
-            Remove assigned admin
+            Remove assigned leader
           </h4>
           <button type="button" onClick={onClose} aria-label="Close" style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
             <X size={22} />
@@ -134,7 +134,7 @@ export function RemoveGroupAdminMeetzaModal({
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>Group</label>
         <input type="text" value={groupLabel} disabled style={{ width: "100%", padding: "10px 12px", marginBottom: "1rem", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb" }} />
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6, fontSize: "0.9rem" }}>
-          Admin email <span style={{ color: "#dc2626" }}>*</span>
+          Leader email <span style={{ color: "#dc2626" }}>*</span>
         </label>
         <input
           type="email"
