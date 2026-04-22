@@ -257,7 +257,7 @@ export function ProfilePageContent(props) {
                       </div>
                     ) : null}
                     <div
-                      className="profile-field-row profile-field-row--clickable profile-contact-row"
+                      className="profile-field-row profile-field-row--clickable profile-contact-row align-items-start"
                       role="button"
                       tabIndex={0}
                       onClick={() => setContactModalOpen(true)}
@@ -269,8 +269,10 @@ export function ProfilePageContent(props) {
                       }}
                       aria-label="Contact us"
                     >
-                      <div className="profile-contact-row__left">Send us a message</div>
-                      <div className="profile-contact-row__right">Contact</div>
+                      <div className="profile-field-main w-100">
+                        <span className="profile-field-label">Contact</span>
+                        <div className="profile-field-value mt-1">Send us a message</div>
+                      </div>
                     </div>
                   </div>
                 </Card.Body>
