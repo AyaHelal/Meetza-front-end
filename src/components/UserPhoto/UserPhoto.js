@@ -19,6 +19,7 @@ const UserPhoto = ({
   variant = 'default', // 'default', 'sidebar', 'status'
   /** When set, the hidden file input gets this `id` so a parent can call `document.getElementById(id)?.click()`. */
   fileInputId,
+  allowUpload = true,
 }) => {
   const { user: authUser, loginUser, initializing } = useContext(AuthContext);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,6 +69,7 @@ const UserPhoto = ({
   }, [photoUpdatedAt, basePhotoUrl, user?.photoUpdatedAt, authUser?.photoUpdatedAt, userId, initializing, localPhotoUrl]);
 
   const handlePhotoClick = () => {
+    if (!allowUpload) return;
     if (onClick) {
       onClick();
     } else {
@@ -237,8 +239,8 @@ const UserPhoto = ({
       <div
         className="user-photo-avatar-container"
         onClick={handlePhotoClick}
-        style={{ cursor: isUploading ? 'wait' : 'pointer' }}
-        title={isUploading ? 'Uploading...' : 'Click to change photo'}
+        style={{ cursor: isUploading ? 'wait' : (allowUpload ? 'pointer' : 'default') }}
+        title={isUploading ? 'Uploading...' : (allowUpload ? 'Click to change photo' : '')}
       >
         <div className="user-photo-avatar">
           {userPhoto ? (
@@ -265,9 +267,11 @@ const UserPhoto = ({
             {isUploading ? '...' : userInitials}
           </span>
         </div>
-        <div className="user-photo-overlay">
-          <Plus size={variant === 'sidebar' ? 18 : variant === 'status' ? 24 : 16} weight="bold" />
-        </div>
+        {allowUpload && (
+          <div className="user-photo-overlay">
+            <Plus size={variant === 'sidebar' ? 18 : variant === 'status' ? 24 : 16} weight="bold" />
+          </div>
+        )}
         {isUploading && (
           <div className="user-photo-loading">
             <div className="spinner"></div>
