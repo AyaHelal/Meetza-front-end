@@ -55,7 +55,7 @@ export function AdminMeetingPageContent(props) {
         {/* Header */}
         <div className="admin-meeting-header">
           <div className="admin-meeting-header-row">
-            <h1>Admin Meeting page</h1>
+            <h1> Meeting Mangement page</h1>
             <button type="button" className="admin-meeting-header-create-btn" onClick={openCreateMeetingModal}>
               Create meeting
             </button>
