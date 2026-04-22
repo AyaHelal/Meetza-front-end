@@ -25,10 +25,36 @@ export function useAdminMeetingPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [meetings, setMeetings] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [meetings, setMeetings] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`admin_meetings_${user?.id || 'guest'}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [groups, setGroups] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`admin_groups_${user?.id || 'guest'}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem(`admin_meetings_${user?.id || 'guest'}`);
+    } catch {
+      return true;
+    }
+  });
+  const [groupsLoading, setGroupsLoading] = useState(() => {
+    try {
+      return !localStorage.getItem(`admin_groups_${user?.id || 'guest'}`);
+    } catch {
+      return true;
+    }
+  });
   const [editingMeetingId, setEditingMeetingId] = useState(null);
   const [showDeleteMeetingModal, setShowDeleteMeetingModal] = useState(false);
   const [showWeeklyDeleteModal, setShowWeeklyDeleteModal] = useState(false);
@@ -52,8 +78,10 @@ export function useAdminMeetingPage() {
 
   // Same visibility as Groups page: GET /group + groupIsManagedByUser (includes group_admin / admins[])
   const fetchGroups = useCallback(async () => {
+    const cacheKey = `admin_groups_${user?.id || 'guest'}`;
+    const hasCache = !!localStorage.getItem(cacheKey);
     try {
-      setGroupsLoading(true);
+      if (!hasCache) setGroupsLoading(true);
       const res = await api.get("/group");
       const payload = Array.isArray(res.data) ? res.data : res.data?.data || [];
       const currentUser = user || JSON.parse(localStorage.getItem("user") || "{}");
@@ -64,19 +92,23 @@ export function useAdminMeetingPage() {
       if (isAdministrator && !isSuperAdmin && currentUser?.id != null) {
         list = list.filter((g) => groupIsManagedByUser(g, currentUser.id));
       }
-      setGroups(list.map((g) => ({ id: g.id, name: g.name || g.group_name })));
+      const mapped = list.map((g) => ({ id: g.id, name: g.name || g.group_name }));
+      setGroups(mapped);
+      localStorage.setItem(cacheKey, JSON.stringify(mapped));
     } catch (error) {
       console.error("Error fetching groups:", error);
-      smartToast.error("Failed to load groups");
+      if (!hasCache) smartToast.error("Failed to load groups");
     } finally {
-      setGroupsLoading(false);
+      if (!hasCache) setGroupsLoading(false);
     }
   }, [user]);
 
   // GET /meeting with token – backend returns only this admin's meetings for Administrator role
   const fetchMeetings = async (options) => {
+    const cacheKey = `admin_meetings_${user?.id || 'guest'}`;
+    const hasCache = !!localStorage.getItem(cacheKey);
     try {
-      setLoading(true);
+      if (!hasCache) setLoading(true);
       const response = await api.get("/meeting");
       const data = response?.data;
       let meetingsList = [];
@@ -111,11 +143,12 @@ export function useAdminMeetingPage() {
         return { ...m, record_meeting: recordMeeting };
       });
       setMeetings(meetingsList);
+      localStorage.setItem(cacheKey, JSON.stringify(meetingsList));
     } catch (error) {
       console.error("Error fetching meetings:", error);
-      smartToast.error("Failed to load meetings");
+      if (!hasCache) smartToast.error("Failed to load meetings");
     } finally {
-      setLoading(false);
+      if (!hasCache) setLoading(false);
     }
   };
 

@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useContext } from "react";
 import { getMessages, getGroupInfo, markAllMessagesRead } from "../services/groupChatService";
 import { formatMessage } from "../utils/groupChatFormatters";
+import { AuthContext } from "../../../context/AuthContext";
 
 /**
  * Messages and group info for the selected chat. Fetches when selectedChat/currentGroupId changes.
@@ -23,6 +24,7 @@ export function useGroupChatMessages(
   currentGroupIdRef,
   joinedGroupsRef
 ) {
+  const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
   const [groupInfo, setGroupInfo] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
@@ -52,15 +54,41 @@ export function useGroupChatMessages(
   useEffect(() => {
     if (selectedChat === null || !currentGroupId) {
       setChatLoading(false);
+      setMessages([]);
+      setGroupInfo(null);
       return;
     }
 
     const groupId = currentGroupId;
     const groupIdStr = String(groupId);
 
+    let hasCache = false;
+    const cachedInfo = localStorage.getItem(`chat_info_${groupId}_${user?.id || 'guest'}`);
+    const cachedMessages = localStorage.getItem(`chat_messages_${groupId}_${user?.id || 'guest'}`);
+
+    if (cachedInfo && cachedMessages) {
+      try {
+        const parsedInfo = JSON.parse(cachedInfo);
+        const parsedMessages = JSON.parse(cachedMessages);
+        setGroupInfo(parsedInfo);
+        setMessages(parsedMessages);
+        setHasMoreMessages(parsedMessages.length >= 50);
+        hasCache = true;
+      } catch (e) {
+        console.error("Failed to parse chat cache", e);
+      }
+    }
+
+    if (!hasCache) {
+      setMessages([]);
+      setGroupInfo(null);
+      setChatLoading(true);
+    } else {
+      setChatLoading(false);
+    }
+
     const fetchMessagesAndInfo = async () => {
       try {
-        setChatLoading(true);
         readGroupsRef?.current?.add(groupIdStr);
         setGroupChats((prev) =>
           prev.map((g) => (String(g.id) === groupIdStr ? { ...g, unread: 0 } : g))
@@ -98,16 +126,25 @@ export function useGroupChatMessages(
           );
         }
 
-        const info = await getGroupInfo(api, groupId);
+        const [info, rawMessages] = await Promise.all([
+          getGroupInfo(api, groupId),
+          getMessages(api, groupId, 50, 0)
+        ]);
+
         setGroupInfo(info);
         const members = info?.members ?? [];
-        const rawMessages = await getMessages(api, groupId, 50, 0);
-        setMessages(rawMessages.map((msg) => formatMessage(msg, { members })));
+        const formattedMessages = rawMessages.map((msg) => formatMessage(msg, { members }));
+        setMessages(formattedMessages);
         setHasMoreMessages(rawMessages.length === 50);
+
+        localStorage.setItem(`chat_info_${groupId}_${user?.id || 'guest'}`, JSON.stringify(info));
+        localStorage.setItem(`chat_messages_${groupId}_${user?.id || 'guest'}`, JSON.stringify(formattedMessages));
       } catch (error) {
         console.error("Error fetching messages/info:", error);
       } finally {
-        setChatLoading(false);
+        if (!hasCache) {
+          setChatLoading(false);
+        }
       }
     };
 
@@ -157,6 +194,7 @@ export function useGroupChatMessages(
     markedAsReadRef,
     currentGroupIdRef,
     joinedGroupsRef,
+    user?.id,
   ]);
 
   return {

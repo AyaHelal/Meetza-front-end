@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useContext } from "react";
 import { smartToast } from "../../../API/toastManager";
 import { getMostInterestedVideos } from "../services";
 import { normalizeWatchProgressData } from "../../VideoSessions/services/videoSessionsService";
+import { AuthContext } from "../../../context/AuthContext";
 
 function clamp01(n) {
   const x = Number.isFinite(Number(n)) ? Number(n) : 0;
@@ -46,35 +47,69 @@ function mapMostInterestedVideo(v) {
 }
 
 export default function useMostInterestedVideos({ enabled = true, toastOnError = true } = {}) {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useContext(AuthContext);
+  
+  const [videos, setVideos] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`home_most_interested_videos_${user?.id || 'guest'}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem(`home_most_interested_videos_${user?.id || 'guest'}`);
+    } catch {
+      return true;
+    }
+  });
+  
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!enabled) return undefined;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+
+    const cacheKey = `home_most_interested_videos_${user?.id || 'guest'}`;
+    let hasCache = false;
+    const cachedData = localStorage.getItem(cacheKey);
+    if (cachedData) {
+      try {
+        setVideos(JSON.parse(cachedData));
+        setLoading(false);
+        hasCache = true;
+      } catch (e) {}
+    }
+
+    if (!hasCache) {
+      setLoading(true);
+      setError(null);
+    }
+
     getMostInterestedVideos()
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapMostInterestedVideo) : [];
         setVideos(mapped);
+        localStorage.setItem(cacheKey, JSON.stringify(mapped));
+        if (!hasCache) setError(null);
       })
       .catch((err) => {
         if (cancelled) return;
-        setVideos([]);
+        if (!hasCache) setVideos([]);
         const msg = err?.response?.data?.message || err?.message || "Failed to load videos";
         setError(msg);
-        if (toastOnError) smartToast.error(msg);
+        if (toastOnError && !hasCache) smartToast.error(msg);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !hasCache) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [enabled, toastOnError]);
+  }, [enabled, toastOnError, user?.id]);
 
   return useMemo(() => ({ videos, loading, error }), [videos, loading, error]);
 }

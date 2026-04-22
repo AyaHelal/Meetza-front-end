@@ -17,6 +17,35 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
   const [joinedGroups, setJoinedGroups] = useState([]);
 
   const fetchGroupsAndMembership = async () => {
+    const cacheKey = `groups_cache_${selectedYears.join(',')}_${selectedSemesters.join(',')}_${user?.id || 'guest'}`;
+    const joinedCacheKey = `joined_groups_cache_${user?.id || 'guest'}`;
+    let hasCache = false;
+
+    const cachedGroups = localStorage.getItem(cacheKey);
+    const cachedJoined = localStorage.getItem(joinedCacheKey);
+
+    if (cachedGroups) {
+      try {
+        const parsedGroups = JSON.parse(cachedGroups);
+        setGroups(parsedGroups);
+        if (cachedJoined) setJoinedGroups(JSON.parse(cachedJoined));
+        
+        const { normalizedRole, isSuperAdminRole } = normalizeRole(user);
+        setUserRole(normalizedRole);
+        setIsSuperAdmin(isSuperAdminRole);
+        
+        setLoading(false);
+        hasCache = true;
+      } catch (e) {
+        console.error('Failed to parse groups cache', e);
+      }
+    }
+
+    if (!hasCache) {
+      setGroups([]);
+      setLoading(true);
+    }
+
     try {
       const response = await getGroups({
         years: selectedYears,
@@ -39,6 +68,8 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
       setGroups(visibleGroups);
       setUserRole(normalizedRole);
       setIsSuperAdmin(isSuperAdminRole);
+      
+      localStorage.setItem(cacheKey, JSON.stringify(visibleGroups));
 
       if (currentUserId) {
         const updatedJoined = await Promise.all(
@@ -54,13 +85,17 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
             }
           })
         );
-        setJoinedGroups(updatedJoined.filter(Boolean));
+        const filteredJoined = updatedJoined.filter(Boolean);
+        setJoinedGroups(filteredJoined);
+        localStorage.setItem(joinedCacheKey, JSON.stringify(filteredJoined));
       }
     } catch (error) {
       console.error('Error fetching groups:', error);
       smartToast.error('Failed to load groups. Please try again.');
     } finally {
-      setLoading(false);
+      if (!hasCache) {
+        setLoading(false);
+      }
     }
   };
 

@@ -72,6 +72,18 @@ export default function Calendar() {
 
     const userRole = (user?.role || "").toString().trim().toLowerCase();
     const endpoint = isAdminRole ? "/group" : "/chat/groups";
+    const cacheKey = `calendar_groups_${user?.id || 'guest'}`;
+
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { map, list } = JSON.parse(cached);
+        setGroupsMap(map);
+        setGroupsList(list);
+      } catch (e) {
+        console.error("Calendar groups cache parse error", e);
+      }
+    }
 
     api
       .get(endpoint)
@@ -94,9 +106,10 @@ export default function Calendar() {
         });
         setGroupsMap(map);
         setGroupsList(list);
+        localStorage.setItem(cacheKey, JSON.stringify({ map, list }));
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && !cached) {
           setGroupsMap({});
           setGroupsList([]);
         }
@@ -104,7 +117,7 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, [user?.role]);
+  }, [user?.role, isAdminRole, user?.id]);
 
 
   const getMeetingId = useCallback((m) => {
@@ -214,20 +227,15 @@ export default function Calendar() {
       return raw ? new Date(raw) : null;
     };
     const fetchMeetings = async () => {
-      setLoading(true);
-      setError(null);
       const hasSearch = !!searchQuery.trim();
       const hasGroupFilter = !!selectedGroupId;
       const isRange = viewMode === VIEW_MODE.RANGE && rangeStart && rangeEnd;
       const jumpToFirst = hasSearch || hasGroupFilter;
       const viewParams = buildMeetingsParams(viewMode, currentDate, rangeStart, rangeEnd);
-      const params = jumpToFirst
-        ? {
-            ...(hasSearch ? { title: searchQuery.trim() } : {}),
-            ...(hasGroupFilter ? { group_id: selectedGroupId } : {}),
-            ...(isRange ? { start_date: viewParams.start_date, end_date: viewParams.end_date } : {}),
-          }
-        : { ...viewParams };
+      
+      const cacheKey = `calendar_meetings_${viewMode}_${currentDate.toISOString().split('T')[0]}_${searchQuery.trim()}_${selectedGroupId || ''}_${rangeStart?.toISOString().split('T')[0] || ''}_${rangeEnd?.toISOString().split('T')[0] || ''}_${user?.id || 'guest'}`;
+      let hasCache = false;
+
       const applyMeetings = (meetings, dateToShow) => {
         if (cancelled) return;
         const list = Array.isArray(meetings) ? meetings : [];
@@ -269,6 +277,40 @@ export default function Calendar() {
           if (!sameDay) setCurrentDate(firstStart);
         }
       };
+
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        try {
+          const raw = JSON.parse(cachedData);
+          const meetings = jumpToFirst && raw.length > 0
+            ? [...raw].sort((a, b) => {
+              const sa = getMeetingStartDate(a)?.getTime() ?? 0;
+              const sb = getMeetingStartDate(b)?.getTime() ?? 0;
+              return sa - sb;
+            })
+            : raw;
+          const firstStart = meetings.length > 0 ? getMeetingStartDate(meetings[0]) : null;
+          applyMeetings(meetings, firstStart || undefined);
+          setLoading(false);
+          hasCache = true;
+        } catch (e) {
+          console.error("Calendar cache parse error", e);
+        }
+      }
+
+      if (!hasCache) {
+        setLoading(true);
+        setError(null);
+      }
+
+      const params = jumpToFirst
+        ? {
+            ...(hasSearch ? { title: searchQuery.trim() } : {}),
+            ...(hasGroupFilter ? { group_id: selectedGroupId } : {}),
+            ...(isRange ? { start_date: viewParams.start_date, end_date: viewParams.end_date } : {}),
+          }
+        : { ...viewParams };
+
       try {
         const res = await api.get(`/${CALENDAR_MEETINGS_PATH}`, { params });
         const root = res?.data;
@@ -282,6 +324,7 @@ export default function Calendar() {
           : raw;
         const firstStart = meetings.length > 0 ? getMeetingStartDate(meetings[0]) : null;
         applyMeetings(meetings, firstStart || undefined);
+        localStorage.setItem(cacheKey, JSON.stringify(raw));
       } catch (err) {
         if (cancelled) return;
         if (err?.response?.status === 404 && (params.title || Object.keys(params).length > 0)) {
@@ -317,6 +360,7 @@ export default function Calendar() {
             }
             applyMeetings(forView, firstStart || undefined);
             setError(null);
+            localStorage.setItem(cacheKey, JSON.stringify(all));
           } catch (e) {
             setError("Calendar: meetings endpoint not available. Add GET /meeting with ?day, ?week, or ?month.");
             setWeekEvents([]);
@@ -328,7 +372,7 @@ export default function Calendar() {
           setMonthMeetings([]);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !hasCache) setLoading(false);
       }
     };
     fetchMeetings();
