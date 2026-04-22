@@ -250,7 +250,7 @@ const NotificationPanel = ({
                         {notification.administrator_photo ? (
                           <img
                             src={notification.administrator_photo || undefined}
-                            alt={notification.administrator_name || "Admin"}
+                            alt={notification.administrator_name || "Leader"}
                             className="notification-avatar"
                           />
                         ) : (
@@ -267,7 +267,7 @@ const NotificationPanel = ({
                       <div className="notification-info">
                         <div className="notification-sender-row">
                           <span className="notification-sender">
-                            {notification.administrator_name || "Administrator"}
+                            {notification.administrator_name || "Leader"}
                           </span>
                           <span className="notification-time">
                             {formatDate(

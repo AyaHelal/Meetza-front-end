@@ -6,10 +6,10 @@
   --profile-page-bg: #e8ecf1;
   --profile-card-radius: 20px;
   --profile-card-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
-  --profile-meetings-card-max-height: 340px;
-  --profile-live-meetings-card-max-height: 208px;
-  --profile-notif-card-max-height: 157px;
-  --profile-files-card-max-height: 425px;
+  --profile-meetings-card-max-height: 343px;
+  --profile-live-meetings-card-max-height: 285px;
+  --profile-notif-card-max-height: 134px;
+  --profile-files-card-max-height: 350px;
   --profile-ongoing-shell-max-height: 175px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -17,7 +17,7 @@
 }
 
 .profile-page.profile-page--member {
-  --profile-notif-card-max-height: 220px;
+  --profile-notif-card-max-height: 197px;
 }
 
 .profile-page.profile-page--no-saved-videos {
@@ -1028,4 +1028,34 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem 0.55rem;
   }
+}
+
+/* Outgoing meetings section */
+.profile-outgoing-card {
+  min-height: 0;
+  max-height: var(--profile-live-meetings-card-max-height);
+  overflow: hidden;
+}
+
+.profile-outgoing-card__body {
+  min-height: 0;
+}
+
+.profile-outgoing-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.profile-outgoing-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-outgoing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-outgoing-list .outgoing-meeting-card:last-child {
+  margin-bottom: 0;
 }

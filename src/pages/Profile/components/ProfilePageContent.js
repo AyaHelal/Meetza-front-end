@@ -22,6 +22,7 @@ import ContactForm from "../../../components/Contact/ContactForm";
 import { FILE_GRID_LABELS } from "../services/profilePageConstants";
 import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../services/profilePageUtils";
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
+import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
 
 export function ProfilePageContent(props) {
   const navigate = useNavigate();
@@ -438,55 +439,26 @@ export function ProfilePageContent(props) {
                 </Card.Body>
               </Card>
 
-              {limitedLiveMeetings.length > 0 ? (
-                <Card className="border-0 profile-design-card profile-live-meetings-card flex-grow-1 min-h-0">
-                  <Card.Body className="p-3 profile-live-meetings-card__body">
-                    <div className="profile-live-meetings-scroll">
-                      <div className="profile-live-meetings">
-                        {limitedLiveMeetings.map((m, idx) => (
-                          <div
-                            key={m.id ?? idx}
-                            className="alert alert-success profile-live-meeting-alert"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => handleJoinLiveMeeting(m.id)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                handleJoinLiveMeeting(m.id);
-                              }
-                            }}
-                          >
-                            <div className="d-flex align-items-start justify-content-between gap-3">
-                              <div className="min-w-0">
-                                <div className="fw-bold">Live meeting now</div>
-                                <div className="small text-muted text-truncate">
-                                  Meeting: {m.title || m.meetingTitle || "Meeting"}
-                                </div>
-                                <div className="small text-muted text-truncate">
-                                  Group: {m.groupName || (m.groupId ? (groupsMap[String(m.groupId)] || "—") : "—")}
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="success"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleJoinLiveMeeting(m.id);
-                                }}
-                                className="flex-shrink-0"
-                              >
-                                Join
-                              </Button>
-                            </div>
-                          </div>
+              <Card className="border-0 profile-design-card profile-outgoing-card flex-grow-1 min-h-0">
+                <Card.Body className="p-3 profile-outgoing-card__body d-flex flex-column">
+                  <h2 className="h6 fw-bold text-dark mb-3">Outgoing meeting</h2>
+                  <div className="profile-outgoing-scroll flex-grow-1 overflow-auto">
+                    {limitedLiveMeetings.length > 0 ? (
+                      <div className="profile-outgoing-list">
+                        {limitedLiveMeetings.map((m) => (
+                          <OutgoingMeetingCard
+                            key={m.id}
+                            meeting={m}
+                            onJoin={handleJoinLiveMeeting}
+                          />
                         ))}
                       </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              ) : null}
+                    ) : (
+                      <p className="text-muted small">No ongoing meetings.</p>
+                    )}
+                  </div>
+                </Card.Body>
+              </Card>
             </Stack>
           </Col>
         </Row>

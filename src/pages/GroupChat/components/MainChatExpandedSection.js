@@ -771,7 +771,7 @@ export default function MainChatExpandedSection({
                   <p>{member.email}</p>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={`member-role ${member.role === "Administrator" ? "admin-role" : ""}`}>{member.role}</span>
+                  <span className={`member-role ${member.role === "Administrator" ? "admin-role" : ""}`}>{member.role === "Administrator" ? "Leader" : member.role}</span>
                   {isAdmin &&
                     member.role === "Administrator" &&
                     member.email &&

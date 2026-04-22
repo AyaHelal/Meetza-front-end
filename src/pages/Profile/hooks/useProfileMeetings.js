@@ -60,6 +60,7 @@ function mapToProfileRows(meetings) {
         startAt,
         endAt: endAt && !Number.isNaN(endAt.getTime()) ? endAt : new Date(startAt.getTime() + 60 * 60 * 1000),
         isLive: isMeetingLive(m),
+        posterUrl: m.poster_url ?? m.posterUrl ?? m.poster ?? null,
       };
     })
     .filter(Boolean);
