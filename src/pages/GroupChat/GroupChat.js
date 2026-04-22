@@ -510,9 +510,14 @@ export default function GroupChat() {
   const userRole = useMemo(() => {
     if (!user?.id || !groupInfo) return "Member";
     if (user?.role === "Super_Admin") return "Super_Admin";
+
+    // Check if user is in members list with a specific role
+    const members = groupInfo?.members || [];
+    const me = members.find((m) => String(m.id || m.member_id) === String(user.id));
+    if (me && me.role) return me.role;
+
     if (user?.role === "Administrator") return "Administrator";
-    const adminId =
-      groupInfo.group?.administrator_id || groupInfo.administrator_id;
+    const adminId = groupInfo.group?.administrator_id || groupInfo.administrator_id;
     if (adminId && String(adminId) === String(user.id)) return "Administrator";
     return "Member";
   }, [user?.id, user?.role, groupInfo]);

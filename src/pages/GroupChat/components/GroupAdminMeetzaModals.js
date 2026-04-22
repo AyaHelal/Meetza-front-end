@@ -82,9 +82,9 @@ export function AssignGroupAdminMeetzaModal({
           onChange={handleChange}
           style={{ width: "100%", padding: "10px 12px", marginBottom: "1.25rem", borderRadius: 8, border: "1px solid #e5e7eb" }}
         >
-          <option value="">ADMIN (default)</option>
-          <option value="ADMIN">ADMIN</option>
-          <option value="OWNER">OWNER</option>
+          <option value="">Leader (default)</option>
+          <option value="ADMIN">Leader</option>
+          <option value="OWNER">Owner</option>
         </select>
         <button
           type="button"

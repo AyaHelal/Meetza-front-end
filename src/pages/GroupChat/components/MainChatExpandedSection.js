@@ -376,9 +376,13 @@ export default function MainChatExpandedSection({
       setEditVal(contentName || "");
     }
   };
-
+  const meInMembers = (groupMembers || []).find(m => m.email === currentUserEmail);
+  const isPrimaryAdmin = (meInMembers && String(meInMembers.id || meInMembers.member_id) === String(groupInfo?.group?.administrator_id || groupInfo?.administrator_id)) ||
+                         (groupInfo?.group?.administrator_email && String(currentUserEmail).toLowerCase() === String(groupInfo.group.administrator_email).toLowerCase());
+  
   const normalizedUserRole = (userRole || "").toString().trim().toLowerCase();
-  const isAdmin = normalizedUserRole === "administrator" || normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin";
+  const isAdmin = normalizedUserRole === "administrator" || normalizedUserRole === "admin" || normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin" || normalizedUserRole === "owner" || isPrimaryAdmin;
+  const isOwner = normalizedUserRole === "owner" || normalizedUserRole === "super_admin" || normalizedUserRole === "super-admin" || isPrimaryAdmin;
 
   const groupLabelForModals =
     groupInfo?.group?.group_name ||
@@ -707,33 +711,35 @@ export default function MainChatExpandedSection({
         <div className="expanded-section1">
           <div className="members-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: 8, flexWrap: 'wrap' }}>
             <h4 style={{ margin: 0 }}>Members ({members.length})</h4>
-            {isAdmin && (
+            {(isOwner || isAdmin) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  className="add-member-btn-plus group-admin-action-btn"
-                  onClick={() => {
-                    setAssignAdminForm({ emailsText: "", role: "" });
-                    setShowAssignAdminModal(true);
-                  }}
-                  style={{
-                    background: '#059669',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                  }}
-                  title="Assign group admin"
-                  aria-label="Assign group admin"
-                >
-                  <UserPlus size={20} weight="bold" />
-                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    className="add-member-btn-plus group-admin-action-btn"
+                    onClick={() => {
+                      setAssignAdminForm({ emailsText: "", role: "" });
+                      setShowAssignAdminModal(true);
+                    }}
+                    style={{
+                      background: '#059669',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                    }}
+                    title="Assign group admin"
+                    aria-label="Assign group admin"
+                  >
+                    <UserPlus size={20} weight="bold" />
+                  </button>
+                )}
                 <button
                   className="add-member-btn-plus"
                   onClick={() => setShowAddMemberModal(true)}
@@ -771,9 +777,23 @@ export default function MainChatExpandedSection({
                   <p>{member.email}</p>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={`member-role ${member.role === "Administrator" ? "admin-role" : ""}`}>{member.role === "Administrator" ? "Leader" : member.role}</span>
-                  {isAdmin &&
-                    member.role === "Administrator" &&
+                  {(() => {
+                    const roleVal = String(member.role || "").trim().toLowerCase();
+                    const isPrimaryMember = String(member.id || member.member_id) === String(groupInfo?.group?.administrator_id || groupInfo?.administrator_id);
+                    
+                    const isOwn = roleVal === "owner" || isPrimaryMember;
+                    const isAdm = (roleVal === "administrator" || roleVal === "admin") && !isOwn;
+                    
+                    const label = isOwn ? "Owner" : isAdm ? "Leader" : (member.role || "Member");
+                    
+                    return (
+                      <span className={`member-role ${isAdm || isOwn ? "admin-role" : ""}`}>
+                        {label}
+                      </span>
+                    );
+                  })()}
+                  {isOwner &&
+                    String(member.role || "").toLowerCase() === "administrator" &&
                     member.email &&
                     String(member.email).trim().toLowerCase() !== String(currentUserEmail || "").trim().toLowerCase() && (
                       <button
@@ -804,7 +824,7 @@ export default function MainChatExpandedSection({
                         <UserMinus size={20} weight="bold" />
                       </button>
                     )}
-                  {isAdmin && member.email !== currentUserEmail && member.role !== "Administrator" && (
+                  {isOwner && member.email !== currentUserEmail && String(member.role || "").toLowerCase() !== "administrator" && (
                     <button
                       className="delete-member-btn"
                       onClick={() => {
