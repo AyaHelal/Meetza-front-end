@@ -32,6 +32,7 @@ const LeftNavbar = ({
   // Check if user is admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
+  const isSuperAdmin = userRole.includes("super_admin") || userRole.includes("super-admin");
   // Calendar page: only Member and Super_Admin
   const canSeeCalendar = userRole === "member" || userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
   const {
@@ -188,16 +189,18 @@ const LeftNavbar = ({
             >
               <House size={32} />
             </div>
-            <div
-              className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
-              onClick={() => {
-                navigate("/profile");
-                setActiveNav("profile");
-              }}
-              title="Profile"
-            >
-              <User size={32} />
-            </div>
+            {!isSuperAdmin && (
+              <div
+                className={`nav-icon ${activeNav === "profile" ? "active" : ""}`}
+                onClick={() => {
+                  navigate("/profile");
+                  setActiveNav("profile");
+                }}
+                title="Profile"
+              >
+                <User size={32} />
+              </div>
+            )}
             <div
               className={`nav-icon ${activeNav === "messages" ? "active" : ""}`}
               onClick={() => {

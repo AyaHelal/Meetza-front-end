@@ -28,6 +28,7 @@ import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
 import AdminRoute from './components/AdminRoute';
 import CalendarRoute from './components/CalendarRoute';
+import ProfileRoute from './components/ProfileRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import { useEffect, useContext, useRef, useState } from "react";
@@ -234,7 +235,14 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
-        <Route path="profile" element={<ProfilePage />} />
+        <Route
+          path="profile"
+          element={
+            <ProfileRoute>
+              <ProfilePage />
+            </ProfileRoute>
+          }
+        />
         <Route path="messages" element={<GroupChat />} />
         <Route path="video" element={<AllVideosPage />} />
         <Route path="video/:slug" element={<VideoBySlugPage />} />
