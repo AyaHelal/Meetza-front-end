@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useContext } from "react";
 import { smartToast } from "../../../API/toastManager";
 import { getHomeLeaders } from "../services";
+import { AuthContext } from "../../../context/AuthContext";
 
 function toLabel(v) {
   if (v == null) return "";
@@ -42,35 +43,69 @@ function mapLeader(row) {
 }
 
 export default function useHomeLeaders({ enabled = true, toastOnError = true } = {}) {
-  const [people, setPeople] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useContext(AuthContext);
+  
+  const [people, setPeople] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`home_leaders_${user?.id || 'guest'}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem(`home_leaders_${user?.id || 'guest'}`);
+    } catch {
+      return true;
+    }
+  });
+  
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!enabled) return undefined;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+
+    const cacheKey = `home_leaders_${user?.id || 'guest'}`;
+    let hasCache = false;
+    const cachedData = localStorage.getItem(cacheKey);
+    if (cachedData) {
+      try {
+        setPeople(JSON.parse(cachedData));
+        setLoading(false);
+        hasCache = true;
+      } catch (e) {}
+    }
+
+    if (!hasCache) {
+      setLoading(true);
+      setError(null);
+    }
+
     getHomeLeaders()
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapLeader) : [];
         setPeople(mapped);
+        localStorage.setItem(cacheKey, JSON.stringify(mapped));
+        if (!hasCache) setError(null);
       })
       .catch((err) => {
         if (cancelled) return;
-        setPeople([]);
+        if (!hasCache) setPeople([]);
         const msg = err?.response?.data?.message || err?.message || "Failed to load people";
         setError(msg);
-        if (toastOnError) smartToast.error(msg);
+        if (toastOnError && !hasCache) smartToast.error(msg);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !hasCache) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [enabled, toastOnError]);
+  }, [enabled, toastOnError, user?.id]);
 
   return useMemo(() => ({ people, loading, error }), [people, loading, error]);
 }
