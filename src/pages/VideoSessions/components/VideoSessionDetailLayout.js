@@ -366,11 +366,21 @@ export function VideoSessionDetailLayout(props) {
             </div>
 
             <section className="video-session-detail-description">
-              <h3>Video Description</h3>
-              <p>{description ? description : "No description available."}</p>
-              {instructor && <p className="video-session-detail-instructor">Instructor: {instructor}</p>}
-            </section>
 
+              {description && (
+                <>
+                  <h3>Video Description</h3>
+                  <p>{description}</p>
+                </>
+              )}
+
+              {instructor && (
+                <p className="video-session-detail-instructor">
+                  Instructor: {instructor}
+                </p>
+              )}
+
+            </section>
             {topicList.length > 0 && (
               <section className="vsd-topics-section">
                 <h3>Topics</h3>

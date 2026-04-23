@@ -22,7 +22,6 @@ function AllVideosContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSession, setSelectedSession] = useState(null);
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState(null);
@@ -90,7 +89,6 @@ function AllVideosContent() {
     try {
       await deleteVideo(videoToDelete.id);
       smartToast.success("Video deleted");
-      if (selectedSession?.id === videoToDelete.id) setSelectedSession(null);
       setVideoToDelete(null);
       refetch();
     } catch (err) {
@@ -99,11 +97,18 @@ function AllVideosContent() {
     } finally {
       setIsDeleting(false);
     }
-  }, [videoToDelete, selectedSession, refetch]);
+  }, [videoToDelete, refetch]);
 
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  const handleSelectSession = useCallback((session) => {
+    const param = session?.slug ?? session?.id;
+    if (param) {
+      navigate(`/video/${encodeURIComponent(String(param))}`);
+    }
+  }, [navigate]);
 
   /** Open the same detail + related grid as clicking a card (e.g. from Home). */
   useEffect(() => {
@@ -117,23 +122,11 @@ function AllVideosContent() {
     const idNorm = id != null && String(id).trim() !== "" ? String(id) : null;
     const slugNorm = slug != null && String(slug).trim() !== "" ? String(slug) : null;
 
-    const found = sessions.find((s) => {
-      if (idNorm && String(s.id) === idNorm) return true;
-      if (slugNorm && s.slug != null && String(s.slug) === slugNorm) return true;
-      return false;
-    });
-
-    if (found) {
-      setSelectedSession(found);
-      navigate({ pathname: "/video", search: location.search }, { replace: true });
-      return;
-    }
-
-    const param = idNorm || slugNorm;
+    const param = slugNorm || idNorm;
     if (param) {
       navigate(`/video/${encodeURIComponent(param)}`, { replace: true });
     }
-  }, [loading, sessions, location.state, location.search, navigate]);
+  }, [loading, location.state, location.search, navigate]);
 
   const filteredSessions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -149,7 +142,7 @@ function AllVideosContent() {
     navigate("/home", { replace: true });
   };
 
-  const handleHeaderBack = selectedSession ? () => setSelectedSession(null) : handleBack;
+  const handleHeaderBack = handleBack;
 
   return (
     <div className="video-sessions-page all-videos-page">
@@ -159,7 +152,7 @@ function AllVideosContent() {
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search videos"
         sessions={sessions}
-        onSubmitSearch={() => setSelectedSession(null)}
+        onSubmitSearch={() => {}}
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
         groupId={null}
@@ -177,20 +170,7 @@ function AllVideosContent() {
         </div>
       )}
 
-      {selectedSession ? (
-        <VideoSessionDetail
-          session={selectedSession}
-          relatedSessions={filteredSessions}
-          onBack={() => setSelectedSession(null)}
-          onSelectSession={setSelectedSession}
-          useGlobalRelated
-          isAdmin={isAdmin}
-          onVideoDeleted={() => {
-            setSelectedSession(null);
-            refetch();
-          }}
-        />
-      ) : loading ? (
+      {loading ? (
         <div className="video-sessions-loading">Loading videos…</div>
       ) : (
         <div className="video-sessions-grid">
@@ -206,7 +186,7 @@ function AllVideosContent() {
               <VideoSessionCard
                 key={session.id ?? session.title}
                 session={session}
-                onClick={() => setSelectedSession(session)}
+                onClick={() => handleSelectSession(session)}
                 isAdmin={isAdmin}
                 onEdit={handleEditFromCard}
                 onDelete={handleDeleteFromCard}
