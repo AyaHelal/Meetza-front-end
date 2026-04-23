@@ -167,6 +167,7 @@
 }
 
 @media (max-width: 768px) {
+
   /* Let search shrink so “All Scheduled” stays on one line */
   .calendar-toolbar-search {
     min-width: 0;
@@ -238,7 +239,7 @@
   color: #1d4ed8;
 }
 
-.calendar-toolbar-filter-item > span:first-of-type {
+.calendar-toolbar-filter-item>span:first-of-type {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -535,7 +536,7 @@
 .calendar-month-grid-cell {
   display: flex;
   flex-direction: column;
-  min-height: 90px;
+  min-height: 70px;
   background: #fff;
   padding: 0.35rem;
   overflow: hidden;
@@ -741,7 +742,8 @@
 .calendar-week-time-col {
   flex-shrink: 0;
   width: 60px;
-  min-height: 9120px; /* 24 × 380px (ROW_HEIGHT_PX in CalendarWeekGrid) */
+  min-height: 7800px;
+  /* 24 × 325px (ROW_HEIGHT_PX in CalendarWeekGrid) */
   background: #fafafa;
   border-right: 2px solid #e5e7eb;
 }
@@ -762,7 +764,8 @@
   display: flex;
   flex: 1;
   min-width: 0;
-  min-height: 9120px; /* 24 × 380px, match time column so lines go to bottom */
+  min-height: 7800px;
+  /* 24 × 325px, match time column so lines go to bottom */
 }
 
 .calendar-week-day-col {
@@ -787,7 +790,7 @@
   display: grid;
   flex: 1;
   min-width: 0;
-  min-height: 9120px;
+  min-height: 7800px;
 }
 
 .calendar-week-days--grid .calendar-week-day-col {
@@ -874,6 +877,7 @@
 .calendar-event-card-body {
   flex: 0 0 auto;
 }
+
 .calendar-event-card--no-desc .calendar-event-card-title {
   padding: 6px 10px 6px;
 }
@@ -989,8 +993,10 @@
 .calendar-event-card-desc--empty {
   max-height: none;
   overflow: hidden;
-  color: transparent; /* keep space, hide text */
-  height: 1.15em; /* about one line: “description” */
+  color: transparent;
+  /* keep space, hide text */
+  height: 1.15em;
+  /* about one line: “description” */
 }
 
 .calendar-event-card-go-to-meeting {
@@ -1014,6 +1020,7 @@
 }
 
 @media (max-width: 768px) {
+
   /* Horizontal inset comes from .calendar-page (≤1024px); keep inner padding symmetric */
   .calendar-header {
     padding-left: 1rem;
@@ -1053,18 +1060,13 @@
   }
 
   /* Legacy flex fallback only if grid class is not used */
-  .calendar-week-days:not(.calendar-week-days--grid):has(
-      .calendar-week-day-col:nth-child(2)
-    ) {
+  .calendar-week-days:not(.calendar-week-days--grid):has(.calendar-week-day-col:nth-child(2)) {
     flex: 0 0 auto;
     width: max-content;
     min-width: 100%;
   }
 
-  .calendar-week-days:not(.calendar-week-days--grid):has(
-      .calendar-week-day-col:nth-child(2)
-    )
-    .calendar-week-day-col {
+  .calendar-week-days:not(.calendar-week-days--grid):has(.calendar-week-day-col:nth-child(2)) .calendar-week-day-col {
     flex: 0 0 118px;
     width: 118px;
     min-width: 118px;
