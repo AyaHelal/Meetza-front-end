@@ -1,15 +1,26 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import VideoSessionDetail from "./components/VideoSessionDetail";
+import VideoSessionsHeader from "./components/VideoSessionsHeader";
+import PostVideoModal from "./components/PostVideoModal";
 import { getVideoBySlug, parseSession } from "./services";
+import { getAllVideos, mapVideoToSession } from "./services/allVideosService";
+import { useAuth } from "../../context/AuthContext";
 import "./VideoSessions.css";
 
 export default function VideoBySlugPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
+  const [relatedSessions, setRelatedSessions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+
+  const userRole = (user?.role || "").toString().trim().toLowerCase();
+  const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
 
   useEffect(() => {
     let cancelled = false;
@@ -18,7 +29,10 @@ export default function VideoBySlugPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getVideoBySlug(slug);
+        const [data, allVideosRaw] = await Promise.all([
+          getVideoBySlug(slug),
+          getAllVideos().catch(() => [])
+        ]);
         if (cancelled) return;
         const v = data?.video ?? data?.data?.video ?? data?.data ?? data;
         const parsed = parseSession(v || {});
@@ -42,6 +56,9 @@ export default function VideoBySlugPage() {
           group_name: groupLabel,
           groupName: groupLabel,
         });
+
+        const parsedRelated = (allVideosRaw || []).map(mapVideoToSession);
+        setRelatedSessions(parsedRelated);
       } catch (err) {
         if (!cancelled) setError(err?.response?.data?.message || err?.message || "Failed to load video");
       } finally {
@@ -102,13 +119,27 @@ export default function VideoBySlugPage() {
 
   return (
     <div className="video-sessions-page all-videos-page">
+      <VideoSessionsHeader
+        onBack={() => navigate(-1)}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search videos"
+        onSubmitSearch={() => {}}
+        isAdmin={isAdmin}
+        onPostVideoClick={() => setPostVideoModalOpen(true)}
+      />
+      <PostVideoModal
+        isOpen={postVideoModalOpen}
+        onClose={() => setPostVideoModalOpen(false)}
+        onSuccess={() => window.location.reload()}
+      />
       <VideoSessionDetail
         session={session}
-        relatedSessions={[]}
+        relatedSessions={relatedSessions}
         onBack={() => navigate(-1)}
         onSelectSession={handleSelectRelated}
         useGlobalRelated
-        isAdmin={false}
+        isAdmin={isAdmin}
         autoScrollToComments
       />
     </div>

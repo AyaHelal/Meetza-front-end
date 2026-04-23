@@ -8,15 +8,13 @@ function clamp01(n) {
   return Math.max(0, Math.min(100, x));
 }
 
-/** Open All Videos page with selection (same UX as clicking a card on /video). */
-function getOpenVideoStateFromHome(video) {
+function getOpenVideoParamFromHome(video) {
   const raw = video?.raw;
   const id = video?.id ?? raw?.id ?? raw?._id ?? raw?.video_id ?? raw?.videoId;
   const slug = video?.slug ?? raw?.slug;
   const idStr = id != null && String(id).trim() !== "" ? String(id) : undefined;
   const slugStr = slug != null && String(slug).trim() !== "" ? String(slug) : undefined;
-  if (!idStr && !slugStr) return null;
-  return { openVideoId: idStr, openVideoSlug: slugStr };
+  return slugStr || idStr || null;
 }
 
 /** Id used by SavedVideosPage to match `savedVideos` list (see location.state.selectVideoId). */
@@ -96,12 +94,11 @@ export default function HomeVideoCard({ video, linkTarget = "session" }) {
       };
     }
   } else {
-    const openState = getOpenVideoStateFromHome(video);
-    if (openState) {
+    const param = getOpenVideoParamFromHome(video);
+    if (param) {
       Root = Link;
       rootProps = {
-        to: "/video",
-        state: openState,
+        to: `/video/${encodeURIComponent(param)}`,
         className: "home-video-card home-video-card--link",
         "aria-label": title,
       };
