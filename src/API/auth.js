@@ -66,7 +66,7 @@ export const resetPassword = async (email, newPassword, isVerified = "true") => 
         const response = await axiosInstance.post("/auth/reset_password", {
             email,
             new_password: newPassword,
-            is_verifyed: isVerified
+            is_verified: isVerified
         });
         return response.data;
     } catch (error) {
@@ -103,7 +103,7 @@ export const getGroups = async (year, semester) => {
         let url = "/group";
 
         if (year && semester) {
-        url += `?year=${year}&semester=${semester}`;
+            url += `?year=${year}&semester=${semester}`;
         }
 
         const response = await axiosInstance.get(url);
