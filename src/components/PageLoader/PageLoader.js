@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import Lottie from "lottie-react";
-import "./PageLoader.css";
 import animationData from "../../lottie/loading.json";
+import "./PageLoader.css";
 
 const PageLoader = () => {
   return (

@@ -32,31 +32,31 @@ export default function MessagingCardSlider() {
             title: "Start Your Own Meeting",
             description: "Host a meeting for your team in just a few clicks and share the link instantly.",
             image: "/assets/card2_image.png",
-            lottie: videoConferencingGIF
+            lottie: null // Temporarily disabled due to corrupted animation data
         },
         {
             title: "Record & Save",
             description: "Record your meetings and keep them safely in your Videos library",
             image: "/assets/card3_image.png",
-            lottie: animatedPlayButton
+            lottie: null // Temporarily disabled due to corrupted animation data
         },
         {
             title: "Real-time Chat",
             description: "Stay connected with team members through instant group chat.",
             image: "/assets/card_image.png",
-            lottie: chatAnimation
+            lottie: null // Temporarily disabled due to corrupted animation data
         },
         {
             title: "Plan Ahead",
             description: "Schedule upcoming sessions and get reminders before they start.",
             image: "/assets/card4_image.png",
-            lottie: bookAppointmentAnimation
+            lottie: null // Temporarily disabled due to corrupted animation data
         },
         {
             title: "Work Together",
             description: "Share ideas, documents, and build progress with your team.",
             image: "/assets/card5_image.png",
-            lottie: contentManager
+            lottie: null // Temporarily disabled due to corrupted animation data
         }
     ];
 
