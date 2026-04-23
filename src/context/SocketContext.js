@@ -234,6 +234,11 @@ export const SocketProvider = ({ children }) => {
   }, [unreadGroupChatCount]);
 
   const refreshUnreadGroupChatCount = useCallback(async () => {
+    // Only make the request if user is authenticated
+    if (!token || !user) {
+      return;
+    }
+
     try {
       let res;
       try {
@@ -250,7 +255,7 @@ export const SocketProvider = ({ children }) => {
     } catch {
       // keep previous
     }
-  }, []);
+  }, [token, user]);
 
   // Bind notification listeners to the current socket instance (survives reconnect / state updates reliably).
   useEffect(() => {
