@@ -6,11 +6,11 @@ import { formatDayShort, formatDayNum } from "../utils/calendarUtils";
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 // Design target: card height = 309px, and the hour cell is bigger so the card is centered with equal space.
-const ROW_HEIGHT_PX = 320;
+const ROW_HEIGHT_PX = 300;
 /** Margin inside the time row (gap above/below the card within the slot) */
 const ROW_INSET_PX = 14;
 /** Baseline card height (even with no description). */
-const CARD_HEIGHT_NO_DESC_PX = 290;
+const CARD_HEIGHT_NO_DESC_PX = 280;
 /** Mobile: cap height when description exists so the card doesn’t fill the whole hour slot with empty space */
 const MOBILE_CARD_MAX_WITH_DESC_PX = 142;
 const HEADER_DAY_MIN_WIDTH_DESKTOP = 120;
