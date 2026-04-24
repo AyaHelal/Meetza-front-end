@@ -37,10 +37,13 @@ export const DEFAULT_HOME_VIDEOS = [
  * GET /home/most-interested-videos — returns dashboard videos.
  * Response shape: { success: true, data: [ ... ] }
  */
-export async function getMostInterestedVideos() {
+export async function getMostInterestedVideos({ limit = 10, search = "" } = {}) {
   let res;
+  const params = {};
+  if (limit != null) params.limit = limit;
+  if (search) params.search = search;
   try {
-    res = await api.get("/home/most-interested-videos");
+    res = await api.get("/home/most-interested-videos", { params });
   } catch (err) {
     if (err?.response?.status !== 404) throw err;
     res = await api.get("/home/most-interested-videos/");

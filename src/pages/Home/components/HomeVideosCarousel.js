@@ -18,11 +18,13 @@ export default function HomeVideosCarousel({
   emptyMessage = "No videos",
   /** `session` → /video/:slug; `saved` → /saved-videos with sidebar/detail layout */
   videoCardLinkTarget = "session",
+  searchTerm = "",
 }) {
   const navigate = useNavigate();
   const shouldFetchMostInterested = fetchMostInterested && !Array.isArray(videos);
   const { videos: apiVideos, loading: hookLoading, error: hookError } = useMostInterestedVideos({
     enabled: shouldFetchMostInterested,
+    search: searchTerm,
     toastOnError: true,
   });
   const loading = loadingOverride ?? hookLoading;
