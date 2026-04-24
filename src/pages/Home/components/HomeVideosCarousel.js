@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useHorizontalCardSlider, useMostInterestedVideos } from "../hooks";
-import { DEFAULT_HOME_VIDEOS } from "../services";
 import HomeVideoCard from "./HomeVideoCard";
 
 const SLIDE_SELECTOR = ".home-videos-slider-slide";
@@ -16,7 +15,7 @@ export default function HomeVideosCarousel({
   loading: loadingOverride,
   error: errorOverride,
   /** When `videos` is an empty array and not loading/error, show this message (e.g. saved videos row). */
-  emptyMessage = null,
+  emptyMessage = "No videos",
   /** `session` → /video/:slug; `saved` → /saved-videos with sidebar/detail layout */
   videoCardLinkTarget = "session",
 }) {
@@ -32,7 +31,7 @@ export default function HomeVideosCarousel({
   const effectiveVideos = useMemo(() => {
     if (Array.isArray(videos)) return videos;
     if (apiVideos.length > 0) return apiVideos;
-    return DEFAULT_HOME_VIDEOS;
+    return [];
   }, [videos, apiVideos]);
 
   const { trackRef, canPrev, canNext, hasOverflow, updateScrollState, scrollByDirection } =

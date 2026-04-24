@@ -152,11 +152,6 @@ export function removeGroupAdminByEmail(groupId, email) {
   return api.delete(`/group/${id}/admins`, { data: { email: em } });
 }
 
-export async function getGroupMembership(groupId) {
-  const res = await api.get(`/chat/groups/${groupId}/info`);
-  return res.data?.data?.members || [];
-}
-
 /**
  * API may return group admins as `admins: [{ user_id, role, name, email, ... }]`.
  * Pick OWNER first, then ADMIN, else first entry — for display + legacy `administrator_id` filter.

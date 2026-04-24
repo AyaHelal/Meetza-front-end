@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { useHomeLeaders, useHorizontalCardSlider } from "../hooks";
-import { DEFAULT_HOME_PEOPLE } from "../services";
 import HomePeopleCard from "./HomePeopleCard";
 
 const SLIDE_SELECTOR = ".home-people-slider-slide";
@@ -14,7 +13,7 @@ export default function HomePeopleCarousel({ people = null }) {
   const effectivePeople = useMemo(() => {
     if (Array.isArray(people)) return people;
     if (apiPeople.length > 0) return apiPeople;
-    return DEFAULT_HOME_PEOPLE;
+    return [];
   }, [people, apiPeople]);
 
   const { trackRef, canPrev, canNext, updateScrollState, scrollByDirection } =
@@ -54,6 +53,12 @@ export default function HomePeopleCarousel({ people = null }) {
             <div className="home-people-slider-slide">
               <div className="home-people-card" aria-label="People error">
                 <div className="text-danger small">{error}</div>
+              </div>
+            </div>
+          ) : effectivePeople.length === 0 ? (
+            <div className="home-people-slider-slide w-100">
+              <div className="home-people-card border-0 shadow-none bg-transparent" aria-label="No people">
+                <p className="text-muted mb-0 small">No people</p>
               </div>
             </div>
           ) : (
