@@ -49,11 +49,16 @@ export function useGroupChatGroups(api, readGroupsRef) {
         setGroupChats((prev) => {
           let updatedGroups;
           if (isInitial) {
+            // If we have a cache but the fresh list is empty, or if cache looks totally different,
+            // we should trust the fresh list and update the cache.
             updatedGroups = formattedGroups;
           } else {
+            // Merge logic to preserve local unread=0 for the current session
             updatedGroups = formattedGroups.map((newGroup) => {
               const groupIdStr = String(newGroup.id);
               const apiUnreadCount = newGroup.unread;
+              
+              // If we already marked this as read in the current session
               if (readGroupsRef?.current?.has(groupIdStr)) {
                 if (apiUnreadCount > 0) {
                   readGroupsRef.current.delete(groupIdStr);
@@ -61,16 +66,26 @@ export function useGroupChatGroups(api, readGroupsRef) {
                 }
                 return { ...newGroup, unread: 0 };
               }
+              
+              // Try to preserve unread=0 from previous state if it hasn't changed in API
               const oldGroup = prev.find((g) => String(g.id) === groupIdStr);
               if (oldGroup) {
                 const preservedUnread =
-                  oldGroup.unread === 0 ? 0 : newGroup.unread || oldGroup.unread || 0;
+                  oldGroup.unread === 0 && apiUnreadCount === 0 ? 0 : apiUnreadCount;
                 return { ...newGroup, unread: preservedUnread };
               }
               return newGroup;
             });
           }
-          localStorage.setItem(cacheKey, JSON.stringify(updatedGroups));
+          
+          // Update persistent cache
+          if (updatedGroups.length > 0) {
+            localStorage.setItem(cacheKey, JSON.stringify(updatedGroups));
+          } else if (isInitial) {
+            // If initial load returned empty, clear the stale cache
+            localStorage.removeItem(cacheKey);
+          }
+          
           return updatedGroups;
         });
 

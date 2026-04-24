@@ -41,16 +41,18 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Suppress noisy 404 for calendar meetings (app falls back to GET /meeting without params)
+    // Suppress noisy 404 for calendar meetings or chat background fetches
     const isMeetingsList = (url === "/meetings" || url === "/meeting") && error.config?.params && Object.keys(error.config.params).length > 0;
-    if (status === 404 && isMeetingsList) {
+    const isChatBackgroundFetch = url.includes("/chat/groups/") && (url.includes("/messages") || url.includes("/unread-count"));
+
+    if (status === 404 && (isMeetingsList || isChatBackgroundFetch)) {
       return Promise.reject(error);
     }
 
     console.error("❌ API Error:", {
       url: error.config?.url,
       baseURL: error.config?.baseURL,
-      fullURL: error.config?.baseURL + error.config?.url,
+      fullURL: (error.config?.baseURL || "") + (error.config?.url || ""),
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,

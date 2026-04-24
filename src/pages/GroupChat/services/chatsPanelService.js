@@ -51,6 +51,9 @@ export async function fetchLastMessagePreview(axiosInstance, chat) {
     const preview = getLastMessagePreview(lastMsg);
     return { id: chat.id, preview };
   } catch (err) {
+    if (err?.response?.status === 404) {
+      return { id: chat.id, preview: null, stale: true };
+    }
     return { id: chat.id, preview: null };
   }
 }
