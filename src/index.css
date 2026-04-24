@@ -1,18 +1,71 @@
+:root {
+  /* Brand Colors */
+  --primary-color: #0076ea;
+  --primary-hover: #1565c0;
+  --secondary-color: #00dc85;
+  --secondary-hover: #00b86d;
+
+  /* Background & Surface */
+  --bg-color: #f4f6f8;
+  --bg-alt: #f4f4f4;
+  --bg-light: #f5f5f5;
+  --surface-color: #ffffff;
+  --card-bg: #ffffff;
+
+  /* Text Colors */
+  --text-primary: #1a1a1a;
+  --text-dark: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-on-primary: #ffffff;
+
+  /* Status Colors */
+  --success: var(--secondary-color);
+  --error: #FF0000;
+  --warning: #ff9800;
+  --info: var(--primary-color);
+
+  /* Borders & Dividers */
+  --border-color: #e0e0e0;
+  --divider-color: #f0f0f0;
+
+  /* Gradients */
+  --primary-gradient: linear-gradient(135deg, #0076ea 0%, #00dc85 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
 body {
   margin: 0;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family:
+    "Poppins",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
-body, html {
+body,
+html {
   height: 100%;
   margin: 0;
 }
@@ -41,4 +94,3 @@ body:has(.app-layout) {
 footer.footer-section {
   margin-top: auto;
 }
-

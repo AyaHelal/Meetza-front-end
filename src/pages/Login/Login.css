@@ -132,7 +132,7 @@
 /* Google Login Button Styles */
 .social-login-button {
   transition: all 0.3s ease;
-  border: 2px solid #e0e0e0 !important;
+  border: 2px solid var(--border-color) !important;
 }
 
 .social-login-button:hover {
@@ -778,3 +778,6 @@
     }
   }
 }
+
+
+

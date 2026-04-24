@@ -3,7 +3,7 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
-  background: #1976d2;
+  background: var(--primary-color);
   border-radius: 24px;
   flex-wrap: wrap;
 }
@@ -18,7 +18,7 @@
   padding: 0;
   border: none;
   border-radius: 8px;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffff;
   cursor: pointer;
   transition: background 0.2s;
@@ -59,7 +59,7 @@
   display: block;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #666666;
+  color: var(--text-secondary);
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -136,7 +136,7 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   max-height: 300px;
@@ -171,7 +171,7 @@
   height: 32px;
   border-radius: 6px;
   flex-shrink: 0;
-  background: #e0e0e0;
+  background: var(--border-color);
   overflow: hidden;
 }
 
@@ -183,7 +183,7 @@
 .video-sessions-header-suggestion-title {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-dark);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -192,7 +192,7 @@
 
 .video-sessions-header-suggestion-empty {
   padding: 12px 16px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   text-align: center;
   margin: 0;
@@ -293,3 +293,6 @@
     font-size: 1rem;
   }
 }
+
+
+

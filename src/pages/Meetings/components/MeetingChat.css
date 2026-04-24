@@ -3,7 +3,7 @@
   position: relative;
   margin-top: -36px;
   padding: 36px 16px 0 10px;
-  background: #ffffff;
+  background: var(--surface-color);
   z-index: 1;
   height: 174px;
   display: flex;
@@ -57,7 +57,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
   text-align: center;
 }
@@ -127,7 +127,7 @@
 .meeting-chat-message-text {
   font-size: 14px;
   line-height: 1.5;
-  color: #333;
+  color: var(--text-dark);
 }
 
 
@@ -182,7 +182,7 @@
     height: 44px;
     border-radius: 50%;
     border: none;
-    background: #00dc85;
+    background: var(--secondary-color);
     color: #fff;
     display: flex;
     align-items: center;
@@ -229,4 +229,7 @@
     padding: 0 4px;
   }
 }
+
+
+
 

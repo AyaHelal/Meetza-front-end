@@ -5,7 +5,7 @@
   flex: 1;
   min-height: 0;
   border-radius: 22px;
-  background: #f4f4f4;
+  background: var(--bg-alt);
   background-image: linear-gradient(
     to bottom,
     #ffffff 0%,
@@ -42,7 +42,7 @@
 .meeting-room-title {
   font-size: 24px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -103,7 +103,7 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #fff;
   display: flex;
   align-items: center;
@@ -328,7 +328,7 @@
   font-weight: 600;
   color: #fff;
   z-index: 20;
-  background: #00dc85;
+  background: var(--secondary-color);
   box-shadow: 0 1px 4px rgba(0, 220, 133, 0.35);
 }
 
@@ -476,7 +476,7 @@
   border-radius: 33px;
   font-size: 14px;
   color: #fff;
-  background: #00dc85;
+  background: var(--secondary-color);
   box-shadow: 0 1px 4px rgba(0, 220, 133, 0.35);
   z-index: 40;
 }
@@ -629,7 +629,7 @@
   bottom: 74px; /* above control bar */
   left: 50%;
   transform: translateX(-50%);
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 12px;
   padding: 8px;
   display: grid;
@@ -696,7 +696,7 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background-color: #ffffff;
+  background-color: var(--surface-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   outline: none;
   transition: all 0.3s ease;
@@ -713,11 +713,11 @@
   visibility: visible;
   pointer-events: auto;
   max-width: 320px;
-  background-color: #ffffff;
+  background-color: var(--surface-color);
 }
 
 .meeting-room-comment-input:focus {
-  border-color: #00dc85;
+  border-color: var(--secondary-color);
   box-shadow: 0 6px 16px rgba(0, 220, 133, 0.2);
 }
 
@@ -762,17 +762,17 @@
 
 .meeting-room-control-btn:hover {
   background: #e2e8f0;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .meeting-room-control-btn.active {
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #fff;
 }
 
 .meeting-room-control-btn.muted-all {
   background: #fff;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .meeting-room-control-btn:disabled {
@@ -861,7 +861,7 @@
   .meeting-room-expand-btn {
     width: 44px;
     height: 44px;
-    background: #00dc85;
+    background: var(--secondary-color);
   }
 
   .meeting-room-slider-viewport {
@@ -933,7 +933,7 @@
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  background: #00dc85;
+  background: var(--secondary-color);
   padding: 6px 12px;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -944,7 +944,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--surface-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -985,7 +985,7 @@
   margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .meeting-room-prejoin-subtitle {
@@ -1032,7 +1032,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16/10;
-  background: #1a1a1a;
+  background: var(--text-primary);
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -1072,8 +1072,8 @@
 }
 
 .meeting-room-prejoin-toggle.muted {
-  background: #f0f0f0;
-  color: #666;
+  background: var(--divider-color);
+  color: var(--text-secondary);
 }
 
 .meeting-room-prejoin-toggle:hover {
@@ -1096,7 +1096,7 @@
 }
 
 .meeting-room-prejoin-cancel:hover {
-  background: #f0f0f0;
+  background: var(--divider-color);
 }
 
 .meeting-room-prejoin-enter {
@@ -1113,3 +1113,6 @@
 .meeting-room-prejoin-enter:hover {
   background: #0b5ed7;
 }
+
+
+

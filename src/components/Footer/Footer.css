@@ -7,7 +7,7 @@
 }
 
 .footer-section {
-  background: linear-gradient(to bottom, #0076ea, #004384);
+  background: linear-gradient(to bottom, var(--primary-color), #004384);
   margin: 3rem 2rem 0 2rem;
   border-radius: 32px;
   padding-top: 5rem;
@@ -127,7 +127,7 @@
   width: min(900px, 100%);
   max-height: min(85vh, 760px);
   overflow: auto;
-  background: #ffffff;
+  background: var(--surface-color);
   color: #111827;
   border-radius: 16px;
   padding: 16px;
@@ -200,7 +200,7 @@
 }
 
 .footer-edit-save {
-  background: #0076ea;
+  background: var(--primary-color);
   color: #ffffff;
 }
 
@@ -434,3 +434,6 @@
     margin-right: auto;
   }
 }
+
+
+

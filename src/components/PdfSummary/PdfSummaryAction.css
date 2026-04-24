@@ -13,7 +13,7 @@
   z-index: 10000;
   max-width: 380px;
   width: calc(100vw - 48px);
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 14px;
   animation:
     pdfAiSummaryPopupIn 0.3s ease-out,
@@ -201,7 +201,7 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  color: #1976d2;
+  color: var(--primary-color);
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   transition:
@@ -222,7 +222,7 @@
 
 .pdf-summary-trigger__spinner {
   animation: pdf-summary-trigger-spin 1s linear infinite;
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 @keyframes pdf-summary-trigger-spin {
@@ -279,7 +279,7 @@
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 .pdf-summary-trigger.pdf-summary-trigger--meeting-resource:hover:not(:disabled) {
@@ -289,5 +289,8 @@
 }
 
 .pdf-summary-trigger.pdf-summary-trigger--meeting-resource .pdf-summary-trigger__spinner {
-  color: #1976d2;
+  color: var(--primary-color);
 }
+
+
+

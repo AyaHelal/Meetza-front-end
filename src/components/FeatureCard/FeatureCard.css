@@ -28,13 +28,13 @@
 
 /* Gradient variants */
 .feature-outer.primary {
-  background: linear-gradient(135deg, #00dc85 6%, #214ab8 58%);
+  background: linear-gradient(135deg, var(--secondary-color) 6%, #214ab8 58%);
 }
 .feature-outer.secondary {
-  background: linear-gradient(142deg, #214ab8 27%, #00dc85 100%);
+  background: linear-gradient(142deg, #214ab8 27%, var(--secondary-color) 100%);
 }
 .feature-outer.tertiary {
-  background: linear-gradient(135deg, #214ab8 30%, #00dc85 70%);
+  background: linear-gradient(135deg, #214ab8 30%, var(--secondary-color) 70%);
 }
 
 .feature-header {
@@ -712,3 +712,6 @@
     width: 293px;
   }
 }
+
+
+

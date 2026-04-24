@@ -37,7 +37,7 @@
   position: relative;
   margin-top: -36px;
   padding: 36px 16px 0 10px;
-  background: #ffffff;
+  background: var(--surface-color);
   z-index: 1;
   height: 174px;
   overflow-y: auto;
@@ -62,7 +62,7 @@
 .meetings-comments-title {
   font-size: 15px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-dark);
   margin: 0 0 10px 0;
   padding: 16px 16px 0 10px;
 }
@@ -132,3 +132,6 @@
     border-radius: 0;
   }
 }
+
+
+

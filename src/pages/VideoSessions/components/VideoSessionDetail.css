@@ -42,7 +42,7 @@
 .video-session-detail-player-wrap {
   width: 100%;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--surface-color);
   aspect-ratio: 16 / 9;
   position: relative;
 }
@@ -85,14 +85,14 @@
   border-radius: 0 0 14px 14px;
 }
 
-/* progress bar – green played (#00DC85), light grey remaining */
+/* progress bar – green played (var(--secondary-color)), light grey remaining */
 .video-session-detail-progress {
   width: 100%;
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
   background: linear-gradient(to right,
-      #00dc85 var(--progress, 0%),
+      var(--secondary-color) var(--progress, 0%),
       rgba(255, 255, 255, 0.35) var(--progress, 0%));
   border-radius: 2px;
   outline: none;
@@ -103,7 +103,7 @@
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(to right,
-      #00dc85 var(--progress, 0%),
+      var(--secondary-color) var(--progress, 0%),
       rgba(255, 255, 255, 0.35) var(--progress, 0%));
 }
 
@@ -111,7 +111,7 @@
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
-  background: #00dc85;
+  background: var(--secondary-color);
   border-radius: 50%;
   margin-top: -4px;
   cursor: pointer;
@@ -128,7 +128,7 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 50;
-  background: #ffffff;
+  background: var(--surface-color);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   padding: 10px;
@@ -172,14 +172,14 @@
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(to right,
-      #00dc85 var(--progress, 0%),
+      var(--secondary-color) var(--progress, 0%),
       rgba(255, 255, 255, 0.35) var(--progress, 0%));
 }
 
 .video-session-detail-progress::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  background: #00dc85;
+  background: var(--secondary-color);
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -206,7 +206,7 @@
 
 /* play button only (direct first child of row), not the volume button inside .video-ctrl-volume */
 .video-session-detail-controls-row>.video-ctrl-btn:first-child {
-  background: #0076ea;
+  background: var(--primary-color);
   border: none;
   color: #fff !important;
 }
@@ -345,7 +345,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #666666;
+  color: var(--text-secondary);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -386,8 +386,8 @@
 }
 
 .video-session-detail-btn.active {
-  background: #00dc85;
-  border-color: #00dc85;
+  background: var(--secondary-color);
+  border-color: var(--secondary-color);
   color: #fff;
 }
 
@@ -398,8 +398,8 @@
 
 .vsd-download-btn:hover {
   background: #fff;
-  border-color: #0076ea;
-  color: #0076ea;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .spinning {
@@ -521,7 +521,7 @@
 .video-session-detail-comment-btn {
   background: none;
   border: none;
-  color: #0076ea;
+  color: var(--primary-color);
   cursor: pointer;
   padding: 2px;
   display: flex;
@@ -536,8 +536,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #666666;
+  background: var(--border-color);
+  color: var(--text-secondary);
   font-size: 0.85rem;
   font-weight: 700;
   margin-top: 1px;
@@ -555,7 +555,7 @@
 }
 
 .video-session-detail-comment-field::placeholder {
-  color: #000000 !important;
+  color: var(--text-dark) !important;
   font-weight: 600 !important;
 }
 
@@ -599,8 +599,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #666666;
+  background: var(--border-color);
+  color: var(--text-secondary);
   font-size: 0.85rem;
   font-weight: 700;
   margin-top: 1px;
@@ -888,7 +888,7 @@
 .video-session-detail-related-group {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #666666;
+  color: var(--text-secondary);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1090,7 +1090,7 @@
   z-index: 10000;
   max-width: 380px;
   width: calc(100vw - 48px);
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 14px;
   animation:
     aiSummaryPopupIn 0.3s ease-out,
@@ -1527,3 +1527,5 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+

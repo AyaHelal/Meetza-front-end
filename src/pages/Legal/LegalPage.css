@@ -22,7 +22,7 @@
   max-width: 900px;
   margin: 0 auto;
   border-radius: 60px;
-  background: linear-gradient(135deg, #214ab8 30%, #00dc85 70%);
+  background: linear-gradient(135deg, #214ab8 30%, var(--secondary-color) 70%);
   border: 1.5px solid rgba(255, 255, 255, 0.35);
   padding: clamp(18px, 3vw, 34px);
   box-shadow:
@@ -82,4 +82,7 @@
 .legal-body ul {
   padding-left: 1.2rem;
 }
+
+
+
 

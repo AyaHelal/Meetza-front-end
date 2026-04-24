@@ -87,7 +87,7 @@
 }
 
 .hero-button-primary {
-  background-color: #00dc85;
+  background-color: var(--secondary-color);
   border: none;
   color: white;
 }
@@ -106,7 +106,7 @@
 }
 
 .hero-button-secondary {
-  background-color: #0076ea;
+  background-color: var(--primary-color);
   border: none;
   color: white;
 }
@@ -670,3 +670,6 @@
     max-width: 75px;
   }
 }
+
+
+
