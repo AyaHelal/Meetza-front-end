@@ -88,8 +88,17 @@ export default function useHomeLeaders({ enabled = true, toastOnError = true } =
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapLeader) : [];
-        setPeople(mapped);
-        localStorage.setItem(cacheKey, JSON.stringify(mapped));
+        
+        // De-duplicate by ID to ensure React keys are unique even if API/Cache has duplicates
+        const seen = new Set();
+        const unique = mapped.filter((p) => {
+          if (!p.id || seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
+
+        setPeople(unique);
+        localStorage.setItem(cacheKey, JSON.stringify(unique));
         if (!hasCache) setError(null);
       })
       .catch((err) => {

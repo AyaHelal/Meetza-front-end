@@ -399,10 +399,12 @@ export const SocketProvider = ({ children }) => {
     socket.emit("joinGroup", { groupId: groupId }, (ack) => {
       if (ack && ack.ok) {
       } else {
-        console.error(
-          `❌ Failed to join group ${groupId}:`,
-          ack?.message || "Unknown error"
-        );
+        const msg = ack?.message || "Unknown error";
+        if (msg.includes("Group not found")) {
+          console.warn(`⚠️ Group ${groupId} not found (likely stale cache)`);
+        } else {
+          console.error(`❌ Failed to join group ${groupId}:`, msg);
+        }
       }
       if (callback) callback(ack);
     });
