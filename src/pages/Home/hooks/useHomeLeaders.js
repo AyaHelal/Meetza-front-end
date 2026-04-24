@@ -42,12 +42,14 @@ function mapLeader(row) {
   };
 }
 
-export default function useHomeLeaders({ enabled = true, toastOnError = true } = {}) {
+export default function useHomeLeaders({ search = "", enabled = true, toastOnError = true } = {}) {
   const { user } = useContext(AuthContext);
   
+  const cacheKey = `home_leaders_${search}_${user?.id || 'guest'}`;
+
   const [people, setPeople] = useState(() => {
     try {
-      const cached = localStorage.getItem(`home_leaders_${user?.id || 'guest'}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -56,7 +58,7 @@ export default function useHomeLeaders({ enabled = true, toastOnError = true } =
   
   const [loading, setLoading] = useState(() => {
     try {
-      return !localStorage.getItem(`home_leaders_${user?.id || 'guest'}`);
+      return !localStorage.getItem(cacheKey);
     } catch {
       return true;
     }
@@ -68,7 +70,6 @@ export default function useHomeLeaders({ enabled = true, toastOnError = true } =
     if (!enabled) return undefined;
     let cancelled = false;
 
-    const cacheKey = `home_leaders_${user?.id || 'guest'}`;
     let hasCache = false;
     const cachedData = localStorage.getItem(cacheKey);
     if (cachedData) {
@@ -84,7 +85,7 @@ export default function useHomeLeaders({ enabled = true, toastOnError = true } =
       setError(null);
     }
 
-    getHomeLeaders()
+    getHomeLeaders({ search })
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapLeader) : [];
@@ -114,7 +115,7 @@ export default function useHomeLeaders({ enabled = true, toastOnError = true } =
     return () => {
       cancelled = true;
     };
-  }, [enabled, toastOnError, user?.id]);
+  }, [enabled, search, toastOnError, user?.id]);
 
   return useMemo(() => ({ people, loading, error }), [people, loading, error]);
 }

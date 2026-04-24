@@ -5,14 +5,17 @@ import { AuthContext } from "../../../context/AuthContext";
 
 export default function useHomeUpcomingMeetings({
   limit = 10,
+  search = "",
   enabled = true,
   toastOnError = true,
 } = {}) {
   const { user } = useContext(AuthContext);
   
+  const cacheKey = `home_upcoming_meetings_${limit}_${search}_${user?.id || 'guest'}`;
+
   const [meetings, setMeetings] = useState(() => {
     try {
-      const cached = localStorage.getItem(`home_upcoming_meetings_${limit}_${user?.id || 'guest'}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -21,7 +24,7 @@ export default function useHomeUpcomingMeetings({
   
   const [loading, setLoading] = useState(() => {
     try {
-      return !localStorage.getItem(`home_upcoming_meetings_${limit}_${user?.id || 'guest'}`);
+      return !localStorage.getItem(cacheKey);
     } catch {
       return true;
     }
@@ -36,7 +39,6 @@ export default function useHomeUpcomingMeetings({
     }
     let cancelled = false;
 
-    const cacheKey = `home_upcoming_meetings_${limit}_${user?.id || 'guest'}`;
     let hasCache = false;
     const cachedData = localStorage.getItem(cacheKey);
     if (cachedData) {
@@ -52,7 +54,7 @@ export default function useHomeUpcomingMeetings({
       setError(null);
     }
 
-    getHomeUpcomingMeetings({ limit })
+    getHomeUpcomingMeetings({ limit, search })
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapUpcomingMeetingRow) : [];
@@ -73,7 +75,7 @@ export default function useHomeUpcomingMeetings({
     return () => {
       cancelled = true;
     };
-  }, [enabled, limit, toastOnError, user?.id]);
+  }, [enabled, limit, search, toastOnError, user?.id]);
 
   return useMemo(() => ({ meetings, loading, error }), [meetings, loading, error]);
 }

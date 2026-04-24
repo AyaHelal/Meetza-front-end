@@ -7,14 +7,14 @@ import heroAnimation from "../../../lottie/SeoIsometric.json";
 /**
  * Hero: Bootstrap Card + image + overlay; look kept via home-hero-* classes + CSS
  */
-function HomeHeroBanner() {
+function HomeHeroBanner({ searchTerm, onSearchChange }) {
   return (
     <Card className="home-hero-banner border-0 shadow rounded-4 overflow-hidden">
       <div className="home-hero-banner-media position-relative">
         <div className="home-hero-lottie home-hero-lottie--right" aria-hidden="true">
           <Lottie animationData={heroAnimation} loop={true} className="home-hero-lottie-player" />
         </div>
-
+ 
         <Card.ImgOverlay className="home-hero-inner text-white">
           <div className="home-hero-content text-center">
             <h1 className="home-hero-title mb-2">Hello, again Welcome back</h1>
@@ -28,6 +28,8 @@ function HomeHeroBanner() {
                 className="home-hero-search border-0 shadow-none"
                 placeholder="Search"
                 aria-label="Search"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
               />
             </InputGroup>
           </div>

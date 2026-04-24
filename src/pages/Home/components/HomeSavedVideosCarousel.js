@@ -2,10 +2,11 @@ import React, { useMemo } from "react";
 import { useHomeSavedVideos } from "../hooks";
 import HomeVideosCarousel from "./HomeVideosCarousel";
 
-export default function HomeSavedVideosCarousel({ videos = null, limit = 10 }) {
+export default function HomeSavedVideosCarousel({ videos = null, limit = 10, searchTerm = "" }) {
   const { videos: apiVideos, loading, error } = useHomeSavedVideos({
     enabled: !Array.isArray(videos),
     limit,
+    search: searchTerm,
     toastOnError: true,
   });
 

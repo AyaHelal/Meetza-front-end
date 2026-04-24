@@ -33,13 +33,16 @@ export const DEFAULT_HOME_PEOPLE = [
  * GET /home/leaders — returns leaders/people for dashboard.
  * Response shape usually { success: true, data: [ ... ] }.
  */
-export async function getHomeLeaders() {
+export async function getHomeLeaders({ limit = 10, search = "" } = {}) {
   let res;
+  const params = {};
+  if (limit != null) params.limit = limit;
+  if (search) params.search = search;
   try {
-    res = await api.get("/home/leaders");
+    res = await api.get("/home/leaders", { params });
   } catch (err) {
     if (err?.response?.status !== 404) throw err;
-    res = await api.get("/home/leaders/");
+    res = await api.get("/home/leaders/", { params });
   }
   const list = pickArrayPayload(res?.data?.data ?? res?.data);
   return Array.isArray(list) ? list.filter((x) => x && typeof x === "object") : [];
