@@ -35,9 +35,10 @@ export function mapUpcomingMeetingRow(row) {
  * GET /home/upcoming-meetings?limit=
  * @returns {Promise<Array>} raw API rows
  */
-export async function getHomeUpcomingMeetings({ limit = 10 } = {}) {
+export async function getHomeUpcomingMeetings({ limit = 10, search = "" } = {}) {
   const params = {};
   if (limit != null) params.limit = limit;
+  if (search) params.search = search;
   let res;
   try {
     res = await api.get("/home/upcoming-meetings", { params });

@@ -4,9 +4,10 @@ import HomePeopleCard from "./HomePeopleCard";
 
 const SLIDE_SELECTOR = ".home-people-slider-slide";
 
-export default function HomePeopleCarousel({ people = null }) {
+export default function HomePeopleCarousel({ people = null, searchTerm = "" }) {
   const { people: apiPeople, loading, error } = useHomeLeaders({
     enabled: !Array.isArray(people),
+    search: searchTerm,
     toastOnError: true,
   });
 

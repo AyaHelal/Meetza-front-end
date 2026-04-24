@@ -37,8 +37,9 @@ export const DEFAULT_HOME_SAVED_VIDEOS = [
  * GET /home/saved-videos?limit=10 — returns saved videos for dashboard.
  * Response shape is usually { success: true, data: [ ... ] }.
  */
-export async function getHomeSavedVideos({ limit = 10 } = {}) {
+export async function getHomeSavedVideos({ limit = 10, search = "" } = {}) {
   const params = { limit };
+  if (search) params.search = search;
   let res;
   try {
     res = await api.get("/home/saved-videos", { params });

@@ -9,12 +9,13 @@ const SLIDE_SELECTOR = ".home-meetings-slider-slide";
 /**
  * Upcoming meetings from GET /home/upcoming-meetings; horizontal row + scroll-by-nav.
  */
-function HomeUpcomingMeetingsCarousel({ meetings: meetingsProp = null, limit = 10 }) {
+function HomeUpcomingMeetingsCarousel({ meetings: meetingsProp = null, limit = 10, searchTerm = "" }) {
   const navigate = useNavigate();
   const shouldFetch = !Array.isArray(meetingsProp);
   const { meetings: apiMeetings, loading, error } = useHomeUpcomingMeetings({
     enabled: shouldFetch,
     limit,
+    search: searchTerm,
     toastOnError: true,
   });
 

@@ -46,12 +46,14 @@ function mapMostInterestedVideo(v) {
   };
 }
 
-export default function useMostInterestedVideos({ enabled = true, toastOnError = true } = {}) {
+export default function useMostInterestedVideos({ search = "", enabled = true, toastOnError = true } = {}) {
   const { user } = useContext(AuthContext);
   
+  const cacheKey = `home_most_interested_videos_${search}_${user?.id || 'guest'}`;
+
   const [videos, setVideos] = useState(() => {
     try {
-      const cached = localStorage.getItem(`home_most_interested_videos_${user?.id || 'guest'}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -60,7 +62,7 @@ export default function useMostInterestedVideos({ enabled = true, toastOnError =
   
   const [loading, setLoading] = useState(() => {
     try {
-      return !localStorage.getItem(`home_most_interested_videos_${user?.id || 'guest'}`);
+      return !localStorage.getItem(cacheKey);
     } catch {
       return true;
     }
@@ -72,7 +74,6 @@ export default function useMostInterestedVideos({ enabled = true, toastOnError =
     if (!enabled) return undefined;
     let cancelled = false;
 
-    const cacheKey = `home_most_interested_videos_${user?.id || 'guest'}`;
     let hasCache = false;
     const cachedData = localStorage.getItem(cacheKey);
     if (cachedData) {
@@ -88,7 +89,7 @@ export default function useMostInterestedVideos({ enabled = true, toastOnError =
       setError(null);
     }
 
-    getMostInterestedVideos()
+    getMostInterestedVideos({ search })
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapMostInterestedVideo) : [];
@@ -109,7 +110,7 @@ export default function useMostInterestedVideos({ enabled = true, toastOnError =
     return () => {
       cancelled = true;
     };
-  }, [enabled, toastOnError, user?.id]);
+  }, [enabled, search, toastOnError, user?.id]);
 
   return useMemo(() => ({ videos, loading, error }), [videos, loading, error]);
 }

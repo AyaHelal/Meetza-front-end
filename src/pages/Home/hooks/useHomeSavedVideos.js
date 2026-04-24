@@ -33,12 +33,14 @@ function mapHomeSavedVideo(v) {
   };
 }
 
-export default function useHomeSavedVideos({ limit = 10, enabled = true, toastOnError = true } = {}) {
+export default function useHomeSavedVideos({ limit = 10, search = "", enabled = true, toastOnError = true } = {}) {
   const { user } = useContext(AuthContext);
   
+  const cacheKey = `home_saved_videos_${limit}_${search}_${user?.id || 'guest'}`;
+
   const [videos, setVideos] = useState(() => {
     try {
-      const cached = localStorage.getItem(`home_saved_videos_${limit}_${user?.id || 'guest'}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -47,7 +49,7 @@ export default function useHomeSavedVideos({ limit = 10, enabled = true, toastOn
   
   const [loading, setLoading] = useState(() => {
     try {
-      return !localStorage.getItem(`home_saved_videos_${limit}_${user?.id || 'guest'}`);
+      return !localStorage.getItem(cacheKey);
     } catch {
       return true;
     }
@@ -59,7 +61,6 @@ export default function useHomeSavedVideos({ limit = 10, enabled = true, toastOn
     if (!enabled) return undefined;
     let cancelled = false;
 
-    const cacheKey = `home_saved_videos_${limit}_${user?.id || 'guest'}`;
     let hasCache = false;
     const cachedData = localStorage.getItem(cacheKey);
     if (cachedData) {
@@ -75,7 +76,7 @@ export default function useHomeSavedVideos({ limit = 10, enabled = true, toastOn
       setError(null);
     }
 
-    getHomeSavedVideos({ limit })
+    getHomeSavedVideos({ limit, search })
       .then((list) => {
         if (cancelled) return;
         const mapped = Array.isArray(list) ? list.map(mapHomeSavedVideo) : [];
@@ -96,7 +97,7 @@ export default function useHomeSavedVideos({ limit = 10, enabled = true, toastOn
     return () => {
       cancelled = true;
     };
-  }, [enabled, limit, toastOnError, user?.id]);
+  }, [enabled, limit, search, toastOnError, user?.id]);
 
   return useMemo(() => ({ videos, loading, error }), [videos, loading, error]);
 }
