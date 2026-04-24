@@ -9,6 +9,9 @@ const initialState = {
 };
 
 function videoSessionsReducer(state, action) {
+  if (!action || typeof action.type !== "string") {
+    return state;
+  }
   switch (action.type) {
     case "SET_SESSIONS":
       return { ...state, sessions: action.payload, loading: false, error: null };
