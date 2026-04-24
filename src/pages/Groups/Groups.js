@@ -15,7 +15,7 @@ import {
 } from './hooks';
 import './Groups.css';
 
-const SEARCH_MIN_LENGTH = 3;
+const SEARCH_MIN_LENGTH = 2;
 
 const Groups = () => {
   const { user } = useAuth();
