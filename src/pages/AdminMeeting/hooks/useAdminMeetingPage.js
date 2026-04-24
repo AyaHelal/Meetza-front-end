@@ -62,6 +62,7 @@ export function useAdminMeetingPage() {
   const [deletingMeeting, setDeletingMeeting] = useState(false);
   const [showCreateMeetingModal, setShowCreateMeetingModal] = useState(false);
   const [weeklyDropdownOpen, setWeeklyDropdownOpen] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const isMobileTablet = useMediaQuery("(max-width: 1024px)");
 
@@ -106,10 +107,13 @@ export function useAdminMeetingPage() {
   // GET /meeting with token – backend returns only this admin's meetings for Administrator role
   const fetchMeetings = async (options) => {
     const cacheKey = `admin_meetings_${user?.id || 'guest'}`;
-    const hasCache = !!localStorage.getItem(cacheKey);
+    const hasCache = !!localStorage.getItem(cacheKey) && !options?.query;
     try {
       if (!hasCache) setLoading(true);
-      const response = await api.get("/meeting");
+      const url = options?.query 
+        ? `/meeting?title=${encodeURIComponent(options.query)}` 
+        : "/meeting";
+      const response = await api.get(url);
       const data = response?.data;
       let meetingsList = [];
       if (data?.success && Array.isArray(data?.data)) {
@@ -155,6 +159,17 @@ export function useAdminMeetingPage() {
   useEffect(() => {
     fetchMeetings();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (searchTerm === "") {
+        // fetchMeetings(); // Already handled by initial load or clearing
+        // But if it was cleared, we need to refresh
+    }
+    const timer = setTimeout(() => {
+      fetchMeetings({ query: searchTerm });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchGroups();
@@ -482,5 +497,7 @@ export function useAdminMeetingPage() {
     getTimeRange,
     isMeetingEnded,
     isMeetingNotStartedYet,
+    searchTerm,
+    setSearchTerm,
   };
 }

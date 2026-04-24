@@ -9,6 +9,7 @@ import {
   CalendarPlusIcon,
   CalendarXIcon,
   CaretDown,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import { AdminCreateMeetingForm } from "./AdminCreateMeetingForm";
@@ -46,6 +47,8 @@ export function AdminMeetingPageContent(props) {
     getTimeRange,
     isMeetingEnded,
     isMeetingNotStartedYet,
+    searchTerm,
+    setSearchTerm,
   } = props;
 
   return (
@@ -55,7 +58,18 @@ export function AdminMeetingPageContent(props) {
         {/* Header */}
         <div className="admin-meeting-header">
           <div className="admin-meeting-header-row">
-            <h1> Meeting Mangement page</h1>
+            <h1>Meeting Management Page</h1>
+            <div className="admin-meeting-header-search">
+              <div className="search-bar">
+                <MagnifyingGlass size={20} color="#888888" />
+                <input
+                  type="text"
+                  placeholder="Search by meeting name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
             <button type="button" className="admin-meeting-header-create-btn" onClick={openCreateMeetingModal}>
               Create meeting
             </button>

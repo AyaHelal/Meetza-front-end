@@ -57,6 +57,51 @@
   min-width: 0;
 }
 
+.admin-meeting-header-search {
+  flex: 1;
+  max-width: 250px;
+  min-width: 200px;
+}
+
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-bar svg {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999999;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 15px 12px 45px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: #ffffff;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-bar input:focus {
+  border-color: #0076ea;
+  box-shadow: 0 0 0 4px rgba(0, 118, 234, 0.1);
+}
+
+.search-bar input::placeholder {
+  color: #999;
+}
+
 /* Shown only on mobile / tablet via media query below */
 .admin-meeting-header-create-btn {
   display: none;
@@ -489,10 +534,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px))
-    max(16px, env(safe-area-inset-right, 0px))
-    max(16px, env(safe-area-inset-bottom, 0px))
-    max(16px, env(safe-area-inset-left, 0px));
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   box-sizing: border-box;
 }
 
@@ -972,6 +1014,7 @@
 
 /* Tablet and below: stack main + sidebar, scrollable page */
 @media (max-width: 1024px) {
+
   /* Fill app-layout-content height and scroll inside so the last card isn’t clipped */
   .admin-meeting-page {
     flex-direction: column;
@@ -1117,6 +1160,7 @@
   .form-group input[type="datetime-local"],
   .form-group select,
   .form-group textarea {
-    font-size: 16px; /* reduces iOS zoom on focus */
+    font-size: 16px;
+    /* reduces iOS zoom on focus */
   }
 }
