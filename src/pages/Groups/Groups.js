@@ -277,7 +277,7 @@ const Groups = () => {
       <div className="groups-content">
         <div className="groups-header">
           <h1 className="groups-title">Groups</h1>
-          {userRole === 'Administrator' && (
+          {userRole === 'Administrator' && filteredGroups.length > 0 && (
             <button onClick={() => setShowCreateModal(true)} className="create-group-btn">
               <span>+</span> Create Group
             </button>
@@ -292,6 +292,7 @@ const Groups = () => {
           onJoinGroup={handleJoinGroup}
           onEditGroup={handleEditGroupClick}
           onDeleteGroup={handleDeleteGroupClick}
+          onCreateGroup={() => setShowCreateModal(true)}
         />
       </div>
       <CreateGroupModal

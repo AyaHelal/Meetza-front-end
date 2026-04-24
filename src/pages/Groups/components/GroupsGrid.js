@@ -123,6 +123,8 @@ export default function GroupsGrid({
   onJoinGroup,
   onEditGroup,
   onDeleteGroup,
+  onCreateGroup,
+  ...props
 }) {
   if (loading) {
     return (
@@ -131,6 +133,25 @@ export default function GroupsGrid({
       </div>
     );
   }
+  
+  if (!groups || groups.length === 0) {
+    return (
+      <div className="no-groups-container">
+        <img
+          src="/assets/GroupChat.png"
+          alt="No groups found"
+          className="no-groups-image"
+        />
+        <p className="no-groups-text">Ops! No groups Found</p>
+        {userRole === 'Administrator' && (
+          <button className="no-groups-create-btn" onClick={onCreateGroup}>
+            Create Group
+          </button>
+        )}
+      </div>
+    );
+  }
+
   const canManageGroups = userRole === 'Administrator';
   return (
     <div className="groups-grid">
