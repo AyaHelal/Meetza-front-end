@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getGroups, getGroupMembership, parseGroupsResponse, groupIsManagedByUser } from '../services/groupsService';
+import { getGroups, parseGroupsResponse, groupIsManagedByUser } from '../services/groupsService';
 import { smartToast } from '../../../API/toastManager';
 
 function normalizeRole(user) {
@@ -71,24 +71,12 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
       
       localStorage.setItem(cacheKey, JSON.stringify(visibleGroups));
 
-      if (currentUserId) {
-        const updatedJoined = await Promise.all(
-          visibleGroups.map(async (group) => {
-            const groupId = group.group_id || group.id;
-            if (!groupId) return null;
-            try {
-              const members = await getGroupMembership(groupId);
-              return members.some((m) => m.id === currentUserId) ? groupId : null;
-            } catch (err) {
-              if (err.response?.status !== 403) console.error('Membership check error:', err);
-              return null;
-            }
-          })
-        );
-        const filteredJoined = updatedJoined.filter(Boolean);
-        setJoinedGroups(filteredJoined);
-        localStorage.setItem(joinedCacheKey, JSON.stringify(filteredJoined));
-      }
+      const joinedFromGroups = visibleGroups
+        .filter((group) => Number(group?.is_joined) === 1)
+        .map((group) => String(group.group_id || group.id))
+        .filter(Boolean);
+      setJoinedGroups(joinedFromGroups);
+      localStorage.setItem(joinedCacheKey, JSON.stringify(joinedFromGroups));
     } catch (error) {
       console.error('Error fetching groups:', error);
       smartToast.error('Failed to load groups. Please try again.');
