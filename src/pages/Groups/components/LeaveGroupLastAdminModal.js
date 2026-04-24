@@ -25,18 +25,15 @@ export default function LeaveGroupLastAdminModal({
   submitting = false,
 }) {
   const [selectedId, setSelectedId] = useState("");
-  const [roleChoice, setRoleChoice] = useState("");
 
   const visibleCandidates = useMemo(() => filterOutSuperAdminCandidates(candidates), [candidates]);
 
   useEffect(() => {
     if (!show) {
       setSelectedId("");
-      setRoleChoice("");
       return;
     }
     setSelectedId("");
-    setRoleChoice("");
   }, [show, candidates]);
 
   useEffect(() => {
@@ -49,10 +46,7 @@ export default function LeaveGroupLastAdminModal({
 
   const handleConfirm = async () => {
     if (!selectedId) return;
-    const body = { new_admin_id: selectedId };
-    if (roleChoice === "OWNER" || roleChoice === "ADMIN") {
-      body.new_admin_role = roleChoice;
-    }
+    const body = { new_admin_id: selectedId, new_admin_role: "OWNER" };
     await onConfirm(body);
   };
 
@@ -69,27 +63,22 @@ export default function LeaveGroupLastAdminModal({
         <div className="modal-content rounded-4 border-0 shadow leave-group-last-admin-modal-content">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold" id="leave-last-admin-title" style={{ fontSize: "1.15rem" }}>
-              Assign admin before leaving
+              Assign leader before leaving
             </h5>
             <button type="button" className="btn-close" onClick={onClose} aria-label="Close" disabled={submitting} />
           </div>
           <div className="modal-body pt-2">
             <p className="text-secondary mb-3">
-              You are the last admin{groupName ? ` in “${groupName}”` : ""}. Choose another administrator to take
+              You are the last leader{groupName ? ` in “${groupName}”` : ""}. Choose another leader to take
               over before you leave.
             </p>
-            {currentAdminRole ? (
-              <p className="small text-muted mb-3">
-                Your role: <strong>{currentAdminRole}</strong>
-              </p>
-            ) : null}
 
             {visibleCandidates.length === 0 ? (
-              <p className="text-danger small mb-0">No eligible administrators were returned. Contact support.</p>
+              <p className="text-danger small mb-0">No eligible leader were returned. Contact support.</p>
             ) : (
               <>
                 <label className="form-label fw-semibold small mb-2" htmlFor="leave-new-admin-user">
-                  New administrator
+                  New leader
                 </label>
                 <select
                   id="leave-new-admin-user"
@@ -98,7 +87,7 @@ export default function LeaveGroupLastAdminModal({
                   onChange={(e) => setSelectedId(e.target.value)}
                   disabled={submitting}
                 >
-                  <option value="">Select an administrator…</option>
+                  <option value="">Select an leader…</option>
                   {visibleCandidates.map((c) => {
                     const id = String(c.id ?? c.user_id ?? "");
                     const name = String(c.name ?? c.username ?? "User").trim() || "User";
@@ -111,20 +100,9 @@ export default function LeaveGroupLastAdminModal({
                   })}
                 </select>
 
-                <label className="form-label fw-semibold small mb-1" htmlFor="leave-new-admin-role">
-                  Role for new admin (optional)
-                </label>
-                <select
-                  id="leave-new-admin-role"
-                  className="form-select form-select-sm mb-3"
-                  value={roleChoice}
-                  onChange={(e) => setRoleChoice(e.target.value)}
-                  disabled={submitting}
-                >
-                  <option value="">Default (server decides)</option>
-                  <option value="OWNER">OWNER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
+                <p className="small text-muted mb-3">
+                  The selected leader will be sent as <strong>OWNER</strong> by default.
+                </p>
               </>
             )}
           </div>
