@@ -11,7 +11,7 @@ body.group-chat-active {
 
 html.group-chat-active,
 body.group-chat-active {
-  background-color: #f4f4f4;
+  background-color: var(--bg-alt);
   margin: 0;
   padding: 0;
   height: 100%;
@@ -57,7 +57,7 @@ body.group-chat-active {
   height: 100%;
   min-height: 100%;
   overflow: auto;
-  background: #f5f5f5;
+  background: var(--bg-light);
 }
 
 .video-sessions-section-wrap {
@@ -65,7 +65,7 @@ body.group-chat-active {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  background: #f5f5f5;
+  background: var(--bg-light);
 }
 
 @media (max-width: 768px) {
@@ -105,7 +105,7 @@ body.group-chat-active {
 /* Left Navigation Bar */
 .left-navbar {
   width: 70px;
-  background: #ffffff;
+  background: var(--surface-color);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -173,15 +173,15 @@ body.group-chat-active {
   cursor: pointer;
   border-radius: 38px;
   transition: all 0.3s ease;
-  background-color: #f4f6f8;
+  background-color: var(--bg-color);
 }
 
 .nav-icon:hover {
-  background: #f0f0f0;
+  background: var(--divider-color);
 }
 
 .nav-icon.active {
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #ffffff;
 }
 
@@ -198,7 +198,7 @@ body.group-chat-active {
   position: absolute;
   top: -4px;
   right: -4px;
-  background-color: #ff4444;
+  background-color: var(--error);
   color: #ffffff;
   border-radius: 10px;
   min-width: 20px;
@@ -224,8 +224,8 @@ body.group-chat-active {
 /* Left-Central Panel - Group Chats */
 .chats-panel {
   width: 320px;
-  background: #ffffff;
-  border-right: 1px solid #e0e0e0;
+  background: var(--surface-color);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -243,7 +243,7 @@ body.group-chat-active {
 
 .chats-header h2 {
   font-size: 24px;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
 }
 
@@ -258,21 +258,21 @@ body.group-chat-active {
   margin-left: 0 !important;
   width: 100%;
   padding: 10px 15px 10px 40px !important;
-  border: 1px solid #e0e0e0 !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 10px !important;
   font-size: 14px !important;
   outline: none !important;
-  background: #ffffff !important;
+  background: var(--surface-color) !important;
 }
 
 .chats-search input:focus {
-  border-color: #1976d2;
+  border-color: var(--primary-color);
 }
 
 .chats-search .search-icon {
   position: absolute;
   left: 38px;
-  color: #999999;
+  color: var(--text-muted);
   font-weight: 700 !important;
   pointer-events: none;
   z-index: 1;
@@ -287,16 +287,16 @@ body.group-chat-active {
 .tab {
   padding: 8px 12px;
   border: none;
-  background: #f5f5f5;
+  background: var(--bg-light);
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
-  color: #000000;
+  color: var(--text-dark);
   transition: all 0.3s ease;
 }
 
 .tab.active {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
 }
 
@@ -338,7 +338,7 @@ body.group-chat-active {
 }
 
 .no-groups-icon {
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 8px;
   opacity: 0.7;
 }
@@ -346,14 +346,14 @@ body.group-chat-active {
 .no-groups-text {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
   margin: 0;
   font-family: "Poppins", sans-serif;
 }
 
 .no-groups-subtext {
   font-size: 15px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
   font-family: "Poppins", sans-serif;
@@ -361,7 +361,7 @@ body.group-chat-active {
 
 .go-to-groups-btn {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #1976d2 0%, #00dc85 100%);
+  background: var(--primary-gradient);
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -391,17 +391,17 @@ body.group-chat-active {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 20px;
-  background: #ffffff;
+  background: var(--surface-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .chat-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-light);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chat-item.active {
-  background: linear-gradient(135deg, #1976d2 0%, #00dc85 100%);
+  background: var(--primary-gradient);
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
 
@@ -409,7 +409,7 @@ body.group-chat-active {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -449,7 +449,7 @@ body.group-chat-active {
 
 .chat-date {
   font-size: 12px;
-  color: #999999;
+  color: var(--text-muted);
 }
 
 .chat-item.active .chat-date {
@@ -465,7 +465,7 @@ body.group-chat-active {
 
 .chat-subject {
   font-size: 13px;
-  color: #666666;
+  color: var(--text-secondary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -477,7 +477,7 @@ body.group-chat-active {
 }
 
 .unread-badge {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   border-radius: 50%;
   min-width: 20px;
@@ -496,7 +496,7 @@ body.group-chat-active {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--surface-color);
   background-image: radial-gradient(
     circle at top right,
     #80baf5 0%,
@@ -520,7 +520,7 @@ body.group-chat-active {
 .chat-header h3 {
   font-size: 24px;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   margin: 0;
   flex: 1;
   min-width: 0;
@@ -545,7 +545,7 @@ body.group-chat-active {
 
 .join-meetings-btn {
   padding: 8px 16px;
-  background: #0076ea;
+  background: var(--primary-color);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -562,7 +562,7 @@ body.group-chat-active {
 }
 
 .join-meetings-btn:hover {
-  background: #0076ea;
+  background: var(--primary-color);
 }
 
 .join-meetings-btn.in-meeting {
@@ -615,19 +615,19 @@ body.group-chat-active {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f5f5f5;
+  background: var(--bg-light);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #666666;
+  color: var(--text-secondary);
   transition: all 0.3s ease;
   border: none;
   padding: 0;
 }
 
 .search-icon-header:hover {
-  background: #e0e0e0;
+  background: var(--border-color);
 }
 
 .search-icon-header--active {
@@ -780,7 +780,7 @@ body.group-chat-active {
 
 .date-separator {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   font-size: 12px;
   padding: 8px 16px;
   background: #e8e8e8;
@@ -810,7 +810,7 @@ body.group-chat-active {
   width: 35px;
   height: 35px;
   border-radius: 50%;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -860,12 +860,12 @@ body.group-chat-active {
 .message-sender {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .message-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .message-header:not(.message-header-own) .message-time {
@@ -893,11 +893,11 @@ body.group-chat-active {
   width: 3px;
   flex-shrink: 0;
   border-radius: 2px;
-  background: #1976d2;
+  background: var(--primary-color);
 }
 
 .message-reply-quote-own .message-reply-quote-bar {
-  background: #1976d2;
+  background: var(--primary-color);
 }
 
 .message-reply-quote-body {
@@ -909,11 +909,11 @@ body.group-chat-active {
 
 .message-reply-quote-sender {
   font-weight: 600;
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 .message-reply-quote-own .message-reply-quote-sender {
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 .message-reply-quote-text {
@@ -930,7 +930,7 @@ body.group-chat-active {
 .message-text {
   margin-bottom: 8px;
   font-size: 14px;
-  color: #333333;
+  color: var(--text-dark);
   line-height: 1.5;
   background: #e8e8e8;
   padding: 10px 14px;
@@ -971,7 +971,7 @@ body.group-chat-active {
 
 /* Own messages have different background color */
 .message-own .message-text {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   text-align: left;
 }
@@ -990,7 +990,7 @@ body.group-chat-active {
   border-radius: 12px;
   max-width: 240px;
   width: 100%;
-  background: #f5f5f5;
+  background: var(--bg-light);
   padding: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -1005,7 +1005,7 @@ body.group-chat-active {
 }
 
 .message-own .message-media.message-media-audio-wrapper {
-  background: #1976d2;
+  background: var(--primary-color);
   align-self: flex-end;
 }
 
@@ -1043,7 +1043,7 @@ body.group-chat-active {
 }
 
 .voice-own {
-  background: #1976d2;
+  background: var(--primary-color);
 }
 
 .voice-other {
@@ -1335,7 +1335,7 @@ body.group-chat-active {
 
 .audio-loading {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
   padding: 4px 0;
 }
@@ -1433,7 +1433,7 @@ body.group-chat-active {
 
 /* For own messages - blend with blue bubble */
 .message-own .message-media-link {
-  background: #1976d2;
+  background: var(--primary-color);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -1494,7 +1494,7 @@ body.group-chat-active {
 
 .message-media-doc-badge {
   flex-shrink: 0;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #fff;
   padding: 6px 10px;
   border-radius: 8px;
@@ -1511,7 +1511,7 @@ body.group-chat-active {
 }
 
 .message-own .message-time {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .chat-input {
@@ -1522,7 +1522,7 @@ body.group-chat-active {
   position: relative;
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 24px;
   padding: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1543,7 +1543,7 @@ body.group-chat-active {
 }
 
 .input-wrapper:focus-within {
-  background: #ffffff;
+  background: var(--surface-color);
 }
 
 .input-icon {
@@ -1554,7 +1554,7 @@ body.group-chat-active {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #666666;
+  color: var(--text-secondary);
   flex-shrink: 0;
   z-index: 1;
 }
@@ -1568,7 +1568,7 @@ body.group-chat-active {
 }
 
 .input-icon.send {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   border: none;
   border-radius: 50%;
@@ -1587,7 +1587,7 @@ body.group-chat-active {
 }
 
 .input-icon.send:hover {
-  background: #0076ea;
+  background: var(--primary-color);
 }
 
 /* Emoji Picker */
@@ -1604,7 +1604,7 @@ body.group-chat-active {
   --rgb-accent: 25, 118, 210;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
 }
 
 /* Fix emoji picker search input styling */
@@ -1660,7 +1660,7 @@ body.group-chat-active {
 }
 
 .video-banner {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   padding: 15px;
   border-radius: 8px;
@@ -1687,7 +1687,7 @@ body.group-chat-active {
 
 .play-icon {
   background-color: white;
-  color: #000000;
+  color: var(--text-dark);
   border-radius: 50%;
   padding: 10px;
 }
@@ -1713,7 +1713,7 @@ body.group-chat-active {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--surface-color);
 }
 
 /* Custom scrollbar for calendar section */
@@ -1738,7 +1738,7 @@ body.group-chat-active {
 .group-info h4 {
   font-size: 18px;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   margin-bottom: 20px;
   flex-shrink: 0;
 }
@@ -1907,7 +1907,7 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 20px;
 }
 
@@ -1933,7 +1933,7 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 20px;
 }
 
@@ -1954,7 +1954,7 @@ body.group-chat-active {
 }
 
 .event-month {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   font-size: 12px;
   font-weight: 600;
@@ -1963,8 +1963,8 @@ body.group-chat-active {
 }
 
 .event-day {
-  background: #f4f6f8;
-  color: #000000;
+  background: var(--bg-color);
+  color: var(--text-dark);
   font-size: 24px;
   font-weight: 700;
   padding: 8px 10px;
@@ -1993,7 +1993,7 @@ body.group-chat-active {
 
 .event-online {
   font-size: 13px;
-  color: #999999;
+  color: var(--text-muted);
 }
 
 .event-type-row {
@@ -2012,7 +2012,7 @@ body.group-chat-active {
 
 .event-type {
   font-size: 14px;
-  color: #000000;
+  color: var(--text-dark);
   font-weight: 500;
 }
 
@@ -2030,19 +2030,19 @@ body.group-chat-active {
 
 .event-time-main {
   font-size: 32px;
-  color: #000000;
+  color: var(--text-dark);
   line-height: 1;
 }
 
 .event-time-period {
   font-size: 11px;
-  color: #999999;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .time-separator {
   font-size: 16px;
-  color: #999999;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -2069,7 +2069,7 @@ body.group-chat-active {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -2082,7 +2082,7 @@ body.group-chat-active {
 
 .go-to-meeting-btn {
   padding: 8px 16px;
-  background: #ffffff;
+  background: var(--surface-color);
   color: #888888;
   border-radius: 20px;
   font-size: 13px;
@@ -2097,7 +2097,7 @@ body.group-chat-active {
 }
 
 .go-to-meeting-btn:hover {
-  background: #f5f5f5;
+  background: var(--bg-light);
   border-color: #d0d0d0;
 }
 
@@ -2105,11 +2105,11 @@ body.group-chat-active {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid #00dc85;
+  border: 2px solid var(--secondary-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: var(--surface-color);
   flex-shrink: 0;
   position: relative;
 }
@@ -2129,7 +2129,7 @@ body.group-chat-active {
 }
 
 .go-to-meeting-btn--active .meeting-icon::before {
-  border-color: #00dc85;
+  border-color: var(--secondary-color);
   animation: heartbeat-pulse 1.5s ease-in-out infinite;
   opacity: 0.8;
 }
@@ -2159,7 +2159,7 @@ body.group-chat-active {
 
 .group-info {
   flex-shrink: 0;
-  background: #ffffff;
+  background: var(--surface-color);
   display: flex;
   flex-direction: column;
   /* Same visual height as ~ header + 3 rows; scroll inside for Members row + Leave */
@@ -2178,7 +2178,7 @@ body.group-chat-active {
 }
 
 .info-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-light);
   padding-left: 10px;
   border-radius: 6px;
 }
@@ -2286,7 +2286,7 @@ body.group-chat-active {
   margin-top: auto;
   margin: 0;
   padding: 6px 12px;
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -2325,7 +2325,7 @@ body.group-chat-active {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -2400,7 +2400,7 @@ body.group-chat-active {
 .status-name {
   font-size: 15px;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   margin-bottom: 4px;
   white-space: nowrap;
   transition:
@@ -2426,13 +2426,13 @@ body.group-chat-active {
 
 .status-online {
   font-size: 12px;
-  color: #999999;
+  color: var(--text-muted);
   transition: font-size 0.25s ease;
 }
 
 .user-status-expanded .status-online {
   font-size: 13px;
-  color: #999999;
+  color: var(--text-muted);
 }
 
 .status-icons {
@@ -2446,7 +2446,7 @@ body.group-chat-active {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #333333 !important;
+  color: var(--text-dark) !important;
   cursor: pointer;
   transition: all 0.3s ease;
   background: transparent !important;
@@ -2457,55 +2457,55 @@ body.group-chat-active {
 /* Mic and Camera icons - darker gray by default, black on hover */
 .status-icon.status-mic,
 .status-icon.status-camera {
-  color: #333333 !important;
+  color: var(--text-dark) !important;
 }
 
 .status-icon.status-mic:hover,
 .status-icon.status-camera:hover {
-  color: #000000 !important;
+  color: var(--text-dark) !important;
 }
 
 .status-icon svg {
   stroke: currentColor;
   fill: none;
-  color: #333333 !important;
+  color: var(--text-dark) !important;
   stroke-width: 1.5;
 }
 
 .status-icon.status-mic svg,
 .status-icon.status-camera svg {
-  color: #333333 !important;
+  color: var(--text-dark) !important;
   stroke-width: 1.5;
 }
 
 .status-icon.status-mic:hover svg,
 .status-icon.status-camera:hover svg {
-  color: #000000 !important;
+  color: var(--text-dark) !important;
   stroke-width: 1.5;
 }
 
 /* When mic/camera is enabled (active), show green color with thicker stroke */
 .status-icon.status-mic.active svg,
 .status-icon.status-camera.active svg {
-  color: #00dc85 !important;
+  color: var(--secondary-color) !important;
   stroke-width: 4;
 }
 
 /* Keep hover state even when active, but prefer active color with thick stroke */
 .status-icon.status-mic.active:hover svg,
 .status-icon.status-camera.active:hover svg {
-  color: #00dc85 !important;
+  color: var(--secondary-color) !important;
   stroke-width: 4;
 }
 
 .status-icon.status-speaker {
-  color: #00dc85 !important;
+  color: var(--secondary-color) !important;
   cursor: default;
   flex-shrink: 0;
 }
 
 .status-icon.status-speaker svg {
-  color: #00dc85 !important;
+  color: var(--secondary-color) !important;
   stroke: currentColor;
   fill: currentColor;
 }
@@ -2516,7 +2516,7 @@ body.group-chat-active {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: #00dc85 !important;
+  background: var(--secondary-color) !important;
   color: #fff !important;
   border: none;
   border-radius: 16px;
@@ -2546,7 +2546,7 @@ body.group-chat-active {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #fff !important;
   border: none;
   border-radius: 16px;
@@ -2601,11 +2601,11 @@ body.group-chat-active {
 
 @media (max-width: 768px) {
   body {
-    background-color: #f4f4f4 !important;
+    background-color: var(--bg-alt) !important;
   }
 
   html {
-    background-color: #f4f4f4 !important;
+    background-color: var(--bg-alt) !important;
   }
 
   .home-container {
@@ -2619,7 +2619,7 @@ body.group-chat-active {
     overflow-y: auto;
     padding-bottom: 100px;
     /* Space for fixed UserStatus component */
-    background-color: #f4f4f4;
+    background-color: var(--bg-alt);
   }
 
   .nav-logo {
@@ -2685,7 +2685,7 @@ body.group-chat-active {
 
   .chats-search input {
     background-color: transparent !important;
-    border: 2px solid #e0e0e0 !important;
+    border: 2px solid var(--border-color) !important;
     border-radius: 12px !important;
     padding-left: 50px !important;
   }
@@ -2695,7 +2695,7 @@ body.group-chat-active {
   }
 
   .tab.active {
-    background-color: #1976d2 !important;
+    background-color: var(--primary-color) !important;
     color: white !important;
   }
 
@@ -2724,21 +2724,21 @@ body.group-chat-active {
     margin-bottom: 0;
     margin-left: 10px !important;
     flex-shrink: 0;
-    background: #ffffff;
+    background: var(--surface-color);
     border-radius: 12px;
     padding: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .chat-item.active {
-    background: #ffffff;
+    background: var(--surface-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .chat-item.active .chat-name,
   .chat-item.active .chat-subject,
   .chat-item.active .chat-date {
-    color: #000000;
+    color: var(--text-dark);
   }
 
   .chat-avatar {
@@ -2761,12 +2761,12 @@ body.group-chat-active {
   .chat-name {
     font-size: 16px;
     font-weight: 600;
-    color: #000000;
+    color: var(--text-dark);
   }
 
   .chat-date {
     font-size: 12px;
-    color: #999999;
+    color: var(--text-muted);
     margin-left: auto;
   }
 
@@ -2779,7 +2779,7 @@ body.group-chat-active {
 
   .chat-subject {
     font-size: 14px;
-    color: #666666;
+    color: var(--text-secondary);
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2787,7 +2787,7 @@ body.group-chat-active {
   }
 
   .unread-badge {
-    background: #1976d2;
+    background: var(--primary-color);
     color: #ffffff;
     border-radius: 50%;
     min-width: 22px;
@@ -2830,7 +2830,7 @@ body.group-chat-active {
   }
 
   .chat-header.section-header {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
     background: white;
     position: sticky;
     top: 0;
@@ -2848,7 +2848,7 @@ body.group-chat-active {
     background: transparent;
     border: none;
     font-size: 24px;
-    color: #000000;
+    color: var(--text-dark);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -2894,7 +2894,7 @@ body.group-chat-active {
     width: 100vw;
     height: 100vh;
     z-index: 1001;
-    background: #f4f4f4;
+    background: var(--bg-alt);
     margin: 0;
     border-radius: 0;
     padding: 0;
@@ -2954,7 +2954,7 @@ body.group-chat-active {
   }
 
   .close-right-sidebar-btn:hover {
-    background-color: #f5f5f5;
+    background-color: var(--bg-light);
   }
 
   .video-sessions {
@@ -2971,7 +2971,7 @@ body.group-chat-active {
     min-height: 300px;
     overflow-y: auto;
     margin-top: 20px;
-    background: #ffffff;
+    background: var(--surface-color);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -2980,7 +2980,7 @@ body.group-chat-active {
   .calendar-section h4 {
     font-size: 18px;
     font-weight: 600;
-    color: #000000;
+    color: var(--text-dark);
     margin-bottom: 20px;
     margin-top: 0;
   }
@@ -2992,7 +2992,7 @@ body.group-chat-active {
     margin-bottom: 20px;
     box-shadow: none;
     border: none;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 20px;
     display: flex;
     flex-direction: column;
@@ -3051,15 +3051,15 @@ body.group-chat-active {
   }
 
   .event-month {
-    background: #1976d2;
+    background: var(--primary-color);
     color: #ffffff;
     font-size: 11px;
     padding: 4px 8px;
   }
 
   .event-day {
-    background: #e0e0e0;
-    color: #000000;
+    background: var(--border-color);
+    color: var(--text-dark);
     font-size: 20px;
     padding: 6px 8px;
   }
@@ -3091,8 +3091,8 @@ body.group-chat-active {
     width: auto;
     padding: 6px 12px;
     font-size: 12px;
-    border: 1px solid #00dc85;
-    background: #ffffff;
+    border: 1px solid var(--secondary-color);
+    background: var(--surface-color);
   }
 
   .group-info {
@@ -3101,7 +3101,7 @@ body.group-chat-active {
     margin-left: 16px;
     flex-shrink: 0;
     margin-top: 20px;
-    background: #ffffff;
+    background: var(--surface-color);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -3115,7 +3115,7 @@ body.group-chat-active {
   .group-info h4 {
     font-size: 18px;
     font-weight: 600;
-    color: #000000;
+    color: var(--text-dark);
     margin-bottom: 20px;
     margin-top: 0;
   }
@@ -3139,18 +3139,18 @@ body.group-chat-active {
   }
 
   .info-icon {
-    color: #666666;
+    color: var(--text-secondary);
     flex-shrink: 0;
   }
 
   .info-item span:not(.info-icon):not(.info-arrow) {
     flex: 1;
     font-size: 14px;
-    color: #000000;
+    color: var(--text-dark);
   }
 
   .info-arrow {
-    color: #999999;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
@@ -3179,13 +3179,13 @@ body.group-chat-active {
     border: none;
     padding: 8px;
     cursor: pointer;
-    color: #333;
+    color: var(--text-dark);
     border-radius: 8px;
     transition: background-color 0.2s;
   }
 
   .hamburger-menu:hover {
-    background-color: #f5f5f5;
+    background-color: var(--bg-light);
   }
 
   /* Sidebar Overlay */
@@ -3249,7 +3249,7 @@ body.group-chat-active {
     gap: 16px;
     margin-top: 32px;
     padding-bottom: 20px;
-    border-bottom: 3px solid #e0e0e0;
+    border-bottom: 3px solid var(--border-color);
   }
 
   .profile-avatar {
@@ -3285,7 +3285,7 @@ body.group-chat-active {
     padding: 16px 24px;
     background: none;
     border: none;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--border-color);
     cursor: pointer;
     transition: background-color 0.2s;
     text-align: left;
@@ -3296,7 +3296,7 @@ body.group-chat-active {
   }
 
   .sidebar-item.logout-item {
-    border-top: 2px solid #e0e0e0;
+    border-top: 2px solid var(--border-color);
     margin-top: auto;
   }
 
@@ -3310,14 +3310,14 @@ body.group-chat-active {
 
   .sidebar-item span {
     font-size: 20px;
-    color: #333;
+    color: var(--text-dark);
     font-weight: 500;
   }
 
   /* Footer */
   .sidebar-footer {
     padding: 16px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border-color);
     text-align: center;
     background: white;
   }
@@ -3325,7 +3325,7 @@ body.group-chat-active {
   .sidebar-footer p {
     margin: 0;
     font-size: 14px;
-    color: #666;
+    color: var(--text-secondary);
   }
 
   .nav-icon {
@@ -3654,7 +3654,7 @@ body.group-chat-active {
 .chats-list::-webkit-scrollbar-thumb:hover,
 .chat-messages::-webkit-scrollbar-thumb:hover,
 .right-sidebar::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: var(--text-muted);
 }
 
 /* Expanded section styles */
@@ -3677,14 +3677,14 @@ body.group-chat-active {
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
   font-weight: bold;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .expanded-section1 h4 {
   margin: 0 0 1.5rem 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
 }
 
 .members-list {
@@ -3698,7 +3698,7 @@ body.group-chat-active {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 12px;
   border: none;
   transition: all 0.3s ease;
@@ -3721,7 +3721,7 @@ body.group-chat-active {
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #f0f0f0;
+  border: 3px solid var(--divider-color);
   flex-shrink: 0;
 }
 
@@ -3732,11 +3732,11 @@ body.group-chat-active {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0076ea, #00dc85);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: #ffffff;
   font-weight: 600;
   font-size: 20px;
-  border: 3px solid #f0f0f0;
+  border: 3px solid var(--divider-color);
   flex-shrink: 0;
   flex-grow: 0;
   box-sizing: border-box;
@@ -3781,7 +3781,7 @@ body.group-chat-active {
   margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #000000;
+  color: var(--text-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3790,7 +3790,7 @@ body.group-chat-active {
 .member-item p {
   margin: 0;
   font-size: 14px;
-  color: #666666;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3803,17 +3803,17 @@ body.group-chat-active {
   font-weight: 600;
   text-transform: capitalize;
   flex-shrink: 0;
-  background: #f5f5f5;
-  color: #666666;
+  background: var(--bg-light);
+  color: var(--text-secondary);
 }
 
 .member-item .member-role {
   background: #e3f2fd;
-  color: #1976d2;
+  color: var(--primary-color);
 }
 
 .member-item .member-role.admin-role {
-  background: #1976d2;
+  background: var(--primary-color);
   color: #ffffff;
   font-weight: 600;
 }
@@ -3868,7 +3868,7 @@ body.group-chat-active {
   flex-direction: row;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
   overflow-x: auto;
   overflow-y: hidden;
@@ -3888,7 +3888,7 @@ body.group-chat-active {
   border: none;
   border-radius: 2rem;
   padding: 0.5rem 1rem;
-  background: #f0f0f0;
+  background: var(--divider-color);
   cursor: pointer;
   font-size: 0.9rem;
   white-space: nowrap;
@@ -3896,7 +3896,7 @@ body.group-chat-active {
 }
 
 .tab-item.active {
-  background: #1976d2;
+  background: var(--primary-color);
   color: white;
 }
 
@@ -4251,7 +4251,7 @@ body.group-chat-active {
 }
 
 .expanded-item a:hover {
-  background: #f0f0f0;
+  background: var(--divider-color);
 }
 
 .expanded-item a.link-item {
@@ -4264,22 +4264,22 @@ body.group-chat-active {
   flex-direction: column;
   padding: 0.75rem;
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   text-decoration: none;
-  color: #333;
+  color: var(--text-dark);
   margin-bottom: 0.5rem;
   transition: background-color 0.2s ease;
   width: 100%;
 }
 
 .link-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-light);
 }
 
 .link-title {
   font-weight: 600;
-  color: #1976d2;
+  color: var(--primary-color);
   margin-bottom: 0.25rem;
   font-size: 0.95rem;
   word-break: break-all;
@@ -4287,7 +4287,7 @@ body.group-chat-active {
 
 .link-url {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-secondary);
   word-break: break-all;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4298,10 +4298,10 @@ body.group-chat-active {
   align-items: center;
   padding: 0.75rem;
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   text-decoration: none;
-  color: #333;
+  color: var(--text-dark);
   margin-bottom: 0.5rem;
   transition: background-color 0.2s ease;
   width: 100%;
@@ -4309,7 +4309,7 @@ body.group-chat-active {
 }
 
 .document-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-light);
 }
 
 .document-item.document-square {
@@ -4328,7 +4328,7 @@ body.group-chat-active {
   width: 80px;
   height: 80px;
   background: #f0f4ff;
-  border: 2px solid #1976d2;
+  border: 2px solid var(--primary-color);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -4339,13 +4339,13 @@ body.group-chat-active {
 .document-square .document-extension {
   font-size: 14px;
   font-weight: 700;
-  color: #1976d2;
+  color: var(--primary-color);
   text-align: center;
 }
 
 .document-square .document-name {
   font-size: 12px;
-  color: #333;
+  color: var(--text-dark);
   word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4358,7 +4358,7 @@ body.group-chat-active {
 
 .document-square:hover {
   background: #f0f4ff;
-  border-color: #1976d2;
+  border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -4409,7 +4409,7 @@ body.group-chat-active {
 
 /* Back button (no border/outline) - applies across viewports */
 .back-to-chats-btn {
-  background: #0076ea !important;
+  background: var(--primary-color) !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -4433,7 +4433,7 @@ body.group-chat-active {
 
 /* Back to chat button (no border/outline) */
 .back-to-chat-btn {
-  background: #0076ea !important;
+  background: var(--primary-color) !important;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
@@ -4452,7 +4452,7 @@ body.group-chat-active {
 }
 
 .back-to-chat-btn:hover {
-  background: #0076ea !important;
+  background: var(--primary-color) !important;
   border-radius: 50%;
 }
 
@@ -4671,7 +4671,7 @@ body.group-chat-active {
   padding: 5px 12px 5px 11px;
   border-radius: 999px;
   background: #f1f3f5;
-  color: #1a1a1a;
+  color: var(--text-primary);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
@@ -4751,8 +4751,8 @@ body.group-chat-active {
 }
 
 .message-reaction-popover-panel {
-  background: #ffffff;
-  color: #1a1a1a;
+  background: var(--surface-color);
+  color: var(--text-primary);
   border-radius: 14px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -4780,8 +4780,8 @@ body.group-chat-active {
   width: 100%;
   max-width: 560px;
   max-height: min(78vh, 520px);
-  background: #ffffff;
-  color: #1a1a1a;
+  background: var(--surface-color);
+  color: var(--text-primary);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -4988,7 +4988,7 @@ body.group-chat-active {
   padding: 10px 12px;
   border-radius: 12px;
   background: #fff;
-  color: #1a1a1a;
+  color: var(--text-primary);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -5074,3 +5074,6 @@ body.group-chat-active {
 .edit-input:focus {
   border-color: #007bff;
 }
+
+
+

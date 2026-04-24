@@ -269,12 +269,12 @@
 }
 
 .attachment-menu button:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-light);
 }
 
 .attachment-menu button span {
   font-size: 14px;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .attachment-button {
@@ -295,7 +295,7 @@ input[type="text"] {
 
 /* Send button */
 .send {
-  background: #00dc85;
+  background: var(--secondary-color);
   color: white;
   border: none;
   border-radius: 50%;
@@ -316,3 +316,6 @@ input[type="text"] {
   background: #9edfc0;
   cursor: not-allowed;
 }
+
+
+

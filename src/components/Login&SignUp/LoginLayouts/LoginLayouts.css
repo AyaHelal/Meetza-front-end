@@ -16,7 +16,7 @@
 
 /* Form section styling */
 .bg-white {
-  background-color: #ffffff !important;
+  background-color: var(--surface-color) !important;
   border-radius: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
@@ -174,7 +174,7 @@
 /* Form elements */
 .form-control {
   border-radius: 8px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
@@ -413,3 +413,6 @@
     overflow-x: hidden !important;
   }
 }
+
+
+

@@ -132,7 +132,7 @@
 
 .filter-panel {
   width: 300px;
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -153,7 +153,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .search-bar {
@@ -167,7 +167,7 @@
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999999;
+  color: var(--text-muted);
   pointer-events: none;
   z-index: 1;
 }
@@ -175,20 +175,20 @@
 .search-bar input {
   width: 100%;
   padding: 10px 15px 10px 45px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   font-size: 14px;
   outline: none;
-  background: #ffffff;
-  color: #333;
+  background: var(--surface-color);
+  color: var(--text-dark);
 }
 
 .search-bar input:focus {
-  border-color: #1976d2;
+  border-color: var(--primary-color);
 }
 
 .search-bar input::placeholder {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .filter-section {
@@ -203,7 +203,7 @@
   justify-content: space-between;
   cursor: pointer;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
   font-size: 16px;
 }
 
@@ -228,14 +228,14 @@
   gap: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .filter-checkbox input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #0076ea;
+  accent-color: var(--primary-color);
   background: transparent;
   border: 2px solid #000000;
   border-radius: 4px;
@@ -246,7 +246,7 @@
 
 .filter-checkbox input[type="checkbox"]:checked {
   background: transparent;
-  border-color: #000000;
+  border-color: var(--text-dark);
 }
 
 .filter-checkbox input[type="checkbox"]:checked::after {
@@ -255,7 +255,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #0076ea;
+  color: var(--primary-color);
   font-size: 12px;
   font-weight: bold !important;
   line-height: 1;
@@ -274,7 +274,7 @@
 .groups-title {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
   margin-bottom: 24px;
 }
 
@@ -286,7 +286,7 @@
 }
 
 .create-group-btn {
-  background: #0076ea;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 8px;
@@ -402,7 +402,7 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #0076ea;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(0, 118, 234, 0.1);
 }
 
@@ -452,7 +452,7 @@ select.form-select {
 }
 
 .create-btn {
-  background: linear-gradient(90deg, #0076ea 0%, #00dc85 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   border: none;
 }
@@ -506,7 +506,7 @@ select.form-select {
 }
 
 .group-card {
-  background: #ffffff;
+  background: var(--surface-color);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -558,7 +558,7 @@ select.form-select {
 
 .group-name-banner {
   display: inline-block;
-  background: linear-gradient(135deg, #80baf5 0%, #0076ea 100%);
+  background: linear-gradient(135deg, #80baf5 0%, var(--primary-color) 100%);
   color: #ffffff;
   padding: 6px 16px;
   border-radius: 4px;
@@ -615,7 +615,7 @@ select.form-select {
 .group-card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .group-card-instructor {
@@ -625,7 +625,7 @@ select.form-select {
 }
 
 .group-join-btn {
-  background: #0076ea;
+  background: var(--primary-color);
   color: #ffffff;
   border: none;
   border-radius: 16px !important;
@@ -654,7 +654,7 @@ select.form-select {
     flex-direction: column;
     margin: 0 auto 10px auto;
     height: calc(100vh - 10px);
-    background-color: #f4f4f4;
+    background-color: var(--bg-alt);
     padding: 0 20px 20px 20px;
     max-width: 100%;
     box-sizing: border-box;
@@ -763,8 +763,8 @@ select.form-select {
 
 .no-groups-create-btn {
   background: transparent;
-  color: #0076ea;
-  border: 1px solid #0076ea;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   border-radius: 8px;
   padding: 8px 32px;
   font-size: 14px;
@@ -776,3 +776,6 @@ select.form-select {
 .no-groups-create-btn:hover {
   background: rgba(0, 118, 234, 0.05);
 }
+
+
+

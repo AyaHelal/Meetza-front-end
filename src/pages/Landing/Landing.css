@@ -85,7 +85,7 @@ html:not(.group-chat-active) {
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #fff;
   font-size: 20px;
   line-height: 44px;
@@ -203,3 +203,6 @@ html:not(.group-chat-active) {
     margin: 0 2rem 12rem 2rem;
   }
 }
+
+
+

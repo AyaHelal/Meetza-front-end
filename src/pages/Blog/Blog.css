@@ -117,7 +117,7 @@
 }
 
 .blog-btn--primary {
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #0b2a4f;
   border-color: rgba(0, 220, 133, 0.45);
 }
@@ -233,4 +233,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+
 

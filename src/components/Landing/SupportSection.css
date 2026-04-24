@@ -4,7 +4,7 @@
 
 .landing-support__inner {
   border-radius: 60px;
-  background: linear-gradient(135deg, #214ab8 30%, #00dc85 70%);
+  background: linear-gradient(135deg, #214ab8 30%, var(--secondary-color) 70%);
   border: 1.5px solid rgba(255, 255, 255, 0.35);
   padding: clamp(18px, 3vw, 34px);
   color: #fff;
@@ -55,7 +55,7 @@
 }
 
 .landing-support__card--primary {
-  background: linear-gradient(135deg, #00dc85 6%, #214ab8 58%);
+  background: linear-gradient(135deg, var(--secondary-color) 6%, #214ab8 58%);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
@@ -123,7 +123,7 @@
 
 .landing-support__btn--solid {
   color: #0b2a4f;
-  background: #00dc85;
+  background: var(--secondary-color);
   border-color: rgba(0, 220, 133, 0.35);
 }
 
@@ -152,4 +152,7 @@
     margin: 0 0.5rem 10rem 0.5rem;
   }
 }
+
+
+
 

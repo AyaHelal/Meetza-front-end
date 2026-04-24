@@ -40,7 +40,7 @@
 
 /* Video Description Card - fixed height with scrollable content */
 .video-description-card {
-    background: #1976d2;
+    background: var(--primary-color);
     color: #ffffff;
     border-radius: 8px;
     display: flex;
@@ -197,7 +197,7 @@
 
 /* Participate Card - scroll localized to participants list */
 .participate-card {
-    background: #ffffff;
+    background: var(--surface-color);
     padding: 1rem;
     border-radius: 12px;
     display: flex;
@@ -214,7 +214,7 @@
 .participate-title {
     font-size: 18px;
     margin: 0;
-    color: #000000;
+    color: var(--text-dark);
     flex-shrink: 0;
 }
 
@@ -271,7 +271,7 @@
 }
 .participant-mute-btn:hover {
     background: transparent;
-    color: #1976d2;
+    color: var(--primary-color);
 }
 .participant-mute-btn[title="Unmute"] {
     color: #d32f2f;
@@ -293,7 +293,7 @@
     width: 40px;
     height: 40px;
     flex-shrink: 0;
-    color: #1976d2;
+    color: var(--primary-color);
 }
 
 .participant-info {
@@ -306,7 +306,7 @@
 .participant-name {
     font-size: 14px;
     font-weight: 500;
-    color: #000000;
+    color: var(--text-dark);
 }
 
 .participant-status-row {
@@ -336,7 +336,7 @@
 }
 
 .participant-status.offline {
-    color: #999999;
+    color: var(--text-muted);
 }
 
 @media (max-width: 768px) {
@@ -367,7 +367,7 @@
     }
 
     .participant-status.online {
-        color: #00dc85;
+        color: var(--secondary-color);
         font-weight: 600;
     }
 
@@ -421,4 +421,7 @@
         font-size: 20px;
     }
 }
+
+
+
 
