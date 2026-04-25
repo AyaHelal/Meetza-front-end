@@ -58,7 +58,7 @@ export default function HomePeopleCarousel({ people = null, searchTerm = "" }) {
             </div>
           ) : effectivePeople.length === 0 ? (
             <div className="home-people-slider-slide w-100">
-              <div className="home-people-card border-0 shadow-none bg-transparent" aria-label="No people">
+              <div className="home-meeting-card border-0 shadow-none bg-transparent h-100 p-3" aria-label="No people">
                 <p className="text-muted mb-0 small">No people</p>
               </div>
             </div>

@@ -15,6 +15,10 @@ import {
   TrashIcon,
   YoutubeLogo as YoutubeLogoIcon,
   CaretRight,
+  BookmarkSimple,
+  FileText,
+  CalendarBlank,
+  Clock,
 } from "@phosphor-icons/react";
 import UserPhoto from "../../../components/UserPhoto/UserPhoto";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
@@ -22,6 +26,37 @@ import ContactForm from "../../../components/Contact/ContactForm";
 import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../services/profilePageUtils";
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
 import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
+
+function ProfileEmptyState({
+  icon: Icon,
+  title,
+  description,
+  buttonLabel,
+  onButtonClick,
+  variant = "default",
+  iconColor,
+  iconBg,
+}) {
+  return (
+    <div className={`profile-empty-state profile-empty-state--${variant} d-flex flex-column align-items-center text-center`}>
+      <div className="profile-empty-icon-wrapper" style={{ backgroundColor: iconBg }}>
+        <Icon size={28} weight="regular" color={iconColor} />
+      </div>
+      <h3 className="profile-empty-title mb-1">{title}</h3>
+      <p className="profile-empty-desc mb-3">{description}</p>
+      {buttonLabel && (
+        <Button
+          variant={variant === "inverted" ? "outline-light" : "outline-primary"}
+          size="sm"
+          className="profile-empty-btn rounded-pill"
+          onClick={onButtonClick}
+        >
+          {buttonLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export function ProfilePageContent(props) {
   const navigate = useNavigate();
@@ -326,7 +361,16 @@ export function ProfilePageContent(props) {
                   ) : savedVideosError ? (
                     <p className="profile-saved-videos-status profile-saved-videos-status--error mb-0">{savedVideosError}</p>
                   ) : savedVideos.length === 0 ? (
-                    <p className="profile-saved-videos-status mb-0">No saved videos yet.</p>
+                    <ProfileEmptyState
+                      icon={BookmarkSimple}
+                      title="No saved videos yet"
+                      description="Save videos from sessions to watch them later"
+                      buttonLabel="Browse videos"
+                      onButtonClick={() => navigate("/video")}
+                      variant="inverted"
+                      iconColor="var(--primary-color)"
+                      iconBg="rgba(255, 255, 255, 0.9)"
+                    />
                   ) : (
                     <div className="profile-saved-videos-list d-flex flex-column">
                       {limitedSavedVideos.map((v) => (
@@ -371,7 +415,13 @@ export function ProfilePageContent(props) {
                         {meetingsError}
                       </p>
                     ) : profileMeetings.length === 0 ? (
-                      <p className="profile-meetings-status text-muted small mb-0">No upcoming meetings.</p>
+                      <ProfileEmptyState
+                        icon={CalendarBlank}
+                        title="No upcoming meetings"
+                        description="Your schedule is clear. New meetings will appear here once scheduled."
+                        iconColor="#0d6efd"
+                        iconBg="#eef2ff"
+                      />
                     ) : (
                       <ListGroup variant="flush" className="profile-meetings-list">
                         {limitedMeetings.map((m) => {
@@ -434,29 +484,41 @@ export function ProfilePageContent(props) {
                         <p className="text-muted small px-1">Loading files…</p>
                       ) : (
                         <div className="profile-files-grid">
-                          {chatMedia.map((item, idx) => {
-                            const isImage = item?.media_type === "image";
-                            const ext = !isImage && item?.file_name ? item.file_name.split(".").pop().toUpperCase() : "";
+                          {chatMedia.length > 0 ? (
+                            chatMedia.map((item, idx) => {
+                              const isImage = item?.media_type === "image";
+                              const ext = !isImage && item?.file_name ? item.file_name.split(".").pop().toUpperCase() : "";
 
-                            return (
-                              <div key={item.id || idx} className="profile-files-grid__cell">
-                                <Ratio aspectRatio="1x1">
-                                  <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4 overflow-hidden border">
-                                    {isImage ? (
-                                      <img
-                                        src={item.media_url}
-                                        alt={item.file_name}
-                                        className="w-100 h-100 object-fit-cover"
-                                        loading="lazy"
-                                      />
-                                    ) : (
-                                      <span className="profile-file-label">{ext || "FILE"}</span>
-                                    )}
-                                  </div>
-                                </Ratio>
-                              </div>
-                            );
-                          })}
+                              return (
+                                <div key={item.id || idx} className="profile-files-grid__cell">
+                                  <Ratio aspectRatio="1x1">
+                                    <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4 overflow-hidden border">
+                                      {isImage ? (
+                                        <img
+                                          src={item.media_url}
+                                          alt={item.file_name}
+                                          className="w-100 h-100 object-fit-cover"
+                                          loading="lazy"
+                                        />
+                                      ) : (
+                                        <span className="profile-file-label">{ext || "FILE"}</span>
+                                      )}
+                                    </div>
+                                  </Ratio>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="w-100 py-3">
+                              <ProfileEmptyState
+                                icon={FileText}
+                                title="No files shared yet"
+                                description="Files shared in your chats will automatically appear here."
+                                iconColor="#8b5cf6"
+                                iconBg="#f5f3ff"
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -479,7 +541,13 @@ export function ProfilePageContent(props) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted small">No ongoing meetings.</p>
+                      <ProfileEmptyState
+                        icon={Clock}
+                        title="No ongoing meetings"
+                        description="Live meetings you join will show up here in real time."
+                        iconColor="#f59e0b"
+                        iconBg="#fffbeb"
+                      />
                     )}
                   </div>
                 </Card.Body>

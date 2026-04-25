@@ -616,6 +616,82 @@
   align-self: center;
 }
 
+/* Empty states — match reference cards */
+.profile-empty-state {
+  padding: 1.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.profile-empty-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.profile-empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.profile-empty-desc {
+  font-size: 0.825rem;
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+  max-width: 220px;
+}
+
+.profile-empty-btn {
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 999px !important;
+}
+
+/* Inverted (for Saved Videos blue card) */
+.profile-empty-state--inverted .profile-empty-title {
+  color: #fff;
+}
+.profile-empty-state--inverted .profile-empty-desc {
+  color: rgba(255, 255, 255, 0.9);
+}
+.profile-empty-state--inverted .btn-outline-light:hover {
+  background-color: #fff !important;
+  color: var(--primary-color) !important;
+}
+
+/* Default (for white cards) */
+.profile-empty-state--default .profile-empty-title {
+  color: #0f172a;
+}
+.profile-empty-state--default .profile-empty-desc {
+  color: #64748b;
+}
+
+/* Specific card body overrides to center empty state */
+.profile-saved-videos-card__body:has(.profile-empty-state),
+.profile-meetings-card__body:has(.profile-empty-state),
+.profile-files-card__body:has(.profile-empty-state),
+.profile-outgoing-card__body:has(.profile-empty-state) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.profile-files-grid:has(.profile-empty-state) {
+  display: block; /* allow centering the empty state div instead of grid */
+}
+
 /* Uploaded files — CSS Grid so vertical gap between rows is reliable (not Bootstrap row gutters) */
 .profile-files-card {
   min-height: 0;
