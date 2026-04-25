@@ -7,9 +7,11 @@ import {
     FaLinkedinIn,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useBranding } from "../../context/BrandingContext";
 
 function Footer() {
     const navigate = useNavigate();
+    const { systemName, logoUrl, showPoweredBy } = useBranding();
 
     const go = (to) => (e) => {
         e.preventDefault();
@@ -96,13 +98,22 @@ function Footer() {
                 <div className="fl d-flex justify-content-between align-items-center">
                     <div className="footer-logo-container">
                         <img
-                            src="/assets/meetza.png"
-                            alt="Meetza Logo"
+                            src={logoUrl || "/assets/meetza.png"}
+                            alt={systemName}
                             className="footer-logo"
+                            style={{ objectFit: 'contain' }}
                         />
                     </div>
-                    <div className="footer-copyright">
+                    <div className="footer-copyright d-flex flex-column align-items-end">
                         <p>© 2025Meetza — All rights reserved</p>
+                        {showPoweredBy && (
+                            <div className="d-flex align-items-center mt-1" style={{ opacity: 0.7 }}>
+                                <small style={{ fontSize: '12px', marginRight: '5px' }}>
+                                    Powered by
+                                </small>
+                                <img src="/assets/meetza.png" alt="Meetza" style={{ height: '14px', filter: 'brightness(1.5)' }} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
