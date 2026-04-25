@@ -779,3 +779,84 @@ select.form-select {
 
 
 
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .groups-page {
+  background-color: var(--bg-color);
+}
+
+[data-theme="dark"] .filter-panel {
+  background-color: var(--surface-color) !important;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .groups-content {
+  background: var(--bg-color) !important;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .group-card {
+  background-color: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .group-card-title--member,
+[data-theme="dark"] .group-card-title,
+[data-theme="dark"] .groups-title,
+[data-theme="dark"] .no-groups-text {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .group-card-instructor,
+[data-theme="dark"] .group-card--member .group-card-instructor {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .group-card-image-placeholder {
+  background-color: var(--bg-alt) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-header {
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .modal-header h3,
+[data-theme="dark"] .form-group label {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea {
+  background-color: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .cancel-btn {
+  background-color: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .filter-checkbox input[type="checkbox"] {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .filter-checkbox input[type="checkbox"]:checked {
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .groups-page * {
+  scrollbar-color: var(--border-color) transparent;
+}
+
+[data-theme="dark"] .filter-panel::-webkit-scrollbar-thumb,
+[data-theme="dark"] .groups-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-color) !important;
+}

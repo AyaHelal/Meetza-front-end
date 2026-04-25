@@ -43,7 +43,7 @@ export default function GroupsFilterPanel({
                   checked={selectedYears.includes(year.value)}
                   onChange={() => handleYearToggle(year.value)}
                 />
-                <span style={{ color: '#000000' }}>{year.label}</span>
+                <span>{year.label}</span>
               </label>
             ))}
           </div>
@@ -63,7 +63,7 @@ export default function GroupsFilterPanel({
                   checked={selectedSemesters.includes(semester.value)}
                   onChange={() => handleSemesterToggle(semester.value)}
                 />
-                <span style={{ color: '#000000' }}>{semester.label}</span>
+                <span>{semester.label}</span>
               </label>
             ))}
           </div>

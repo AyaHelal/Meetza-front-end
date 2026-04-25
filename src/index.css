@@ -33,9 +33,73 @@
   --primary-gradient: linear-gradient(135deg, #0076ea 0%, #00dc85 100%);
 
   /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 4px var(--shadow-color);
+  --shadow-md: 0 4px 12px var(--shadow-color);
+  --shadow-lg: 0 8px 24px var(--shadow-color);
+}
+
+:root[data-theme="dark"] {
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --secondary-color: #22c55e;
+  --secondary-hover: #16a34a;
+
+  --bg-color: #0f172a;
+  --bg-alt: #1e293b;
+  --bg-light: #1e293b;
+  --surface-color: #1e293b;
+  --card-bg: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-dark: #f8fafc;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --divider-color: #334155;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #22c55e 100%);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="purple"] {
+  --primary-color: #7c3aed;
+  --primary-hover: #6d28d9;
+  --secondary-color: #06b6d4;
+  --secondary-hover: #0891b2;
+
+  --bg-color: #f5f3ff;
+  --bg-alt: #ede9fe;
+  --bg-light: #f5f3ff;
+  --surface-color: #ffffff;
+  --card-bg: #ffffff;
+  --text-primary: #1e1b4b;
+  --text-secondary: #6b7280;
+  --text-dark: #1e1b4b;
+  --text-muted: #9ca3af;
+  --border-color: #e5e7eb;
+  --divider-color: #f3f4f6;
+  --primary-gradient: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  --shadow-color: rgba(124, 58, 237, 0.1);
+}
+
+:root[data-theme="warm"] {
+  --primary-color: #f97316;
+  --primary-hover: #ea580c;
+  --secondary-color: #22c55e;
+  --secondary-hover: #16a34a;
+
+  --bg-color: #fff7ed;
+  --bg-alt: #ffedd5;
+  --bg-light: #fff7ed;
+  --surface-color: #ffffff;
+  --card-bg: #ffffff;
+  --text-primary: #1c1917;
+  --text-secondary: #78716c;
+  --text-dark: #1c1917;
+  --text-muted: #a8a29e;
+  --border-color: #fed7aa;
+  --divider-color: #ffedd5;
+  --primary-gradient: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
+  --shadow-color: rgba(249, 115, 22, 0.1);
 }
 
 body {
@@ -57,6 +121,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
   color: var(--text-primary);
+}
+
+input, textarea {
+  color: inherit;
 }
 
 code {
