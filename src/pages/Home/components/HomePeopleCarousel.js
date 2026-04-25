@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
+import { User } from "@phosphor-icons/react";
 import { useHomeLeaders, useHorizontalCardSlider } from "../hooks";
+import { EmptyState } from "../../../components/shared/EmptyState";
 import HomePeopleCard from "./HomePeopleCard";
 
 const SLIDE_SELECTOR = ".home-people-slider-slide";
@@ -58,9 +60,13 @@ export default function HomePeopleCarousel({ people = null, searchTerm = "" }) {
             </div>
           ) : effectivePeople.length === 0 ? (
             <div className="home-people-slider-slide w-100">
-              <div className="home-meeting-card border-0 shadow-none bg-transparent h-100 p-3" aria-label="No people">
-                <p className="text-muted mb-0 small">No people</p>
-              </div>
+              <EmptyState
+                icon={User}
+                title="No people found"
+                description="Your community is still growing. New people will appear here."
+                iconColor="#8b5cf6"
+                iconBg="#f5f3ff"
+              />
             </div>
           ) : (
             effectivePeople.map((p) => (

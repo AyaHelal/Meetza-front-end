@@ -1,0 +1,80 @@
+.empty-state-container {
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.empty-state-lottie-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.empty-state-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+
+}
+
+.empty-state-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state-desc {
+  font-size: 0.825rem;
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+  max-width: 260px;
+}
+
+.empty-state-btn {
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1.75rem !important;
+  border-radius: 999px !important;
+}
+
+/* Inverted variant */
+.empty-state--inverted .empty-state-title {
+  color: #fff;
+}
+
+.empty-state--inverted .empty-state-desc {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.empty-state--inverted .btn-outline-light:hover {
+  background-color: #fff !important;
+  color: var(--primary-color) !important;
+}
+
+/* Default variant */
+.empty-state--default .empty-state-title {
+  color: #0f172a;
+}
+
+.empty-state--default .empty-state-desc {
+  color: #64748b;
+}
+
+/* Dark mode */
+[data-theme="dark"] .empty-state--default .empty-state-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .empty-state--default .empty-state-desc {
+  color: var(--text-secondary);
+}

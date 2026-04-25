@@ -151,5 +151,19 @@
   }
 }
 
+/* Dark mode adjustments */
+[data-theme="dark"] .video-sessions-page {
+  background: var(--bg-color);
+}
+
+[data-theme="dark"] .video-sessions-empty-text {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .video-sessions-empty-subtext,
+[data-theme="dark"] .video-sessions-empty {
+  color: var(--text-secondary);
+}
+
 
 

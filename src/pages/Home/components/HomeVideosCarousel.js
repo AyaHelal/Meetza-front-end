@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useHorizontalCardSlider, useMostInterestedVideos } from "../hooks";
+import { VideoCamera, BookmarkSimple } from "@phosphor-icons/react";
+import { EmptyState } from "../../../components/shared/EmptyState";
 import HomeVideoCard from "./HomeVideoCard";
 
 const SLIDE_SELECTOR = ".home-videos-slider-slide";
@@ -81,11 +83,15 @@ export default function HomeVideosCarousel({
             </div>
           ) : effectiveVideos.length === 0 && emptyMessage ? (
             <div className="home-videos-slider-slide w-100">
-              <div className="home-video-card border-0 shadow-none bg-transparent" aria-label={emptyMessage}>
-                <div className="home-video-card-body py-3">
-                  <p className="text-muted mb-0 small">{emptyMessage}</p>
-                </div>
-              </div>
+              <EmptyState
+                icon={title === "Saved Videos" ? BookmarkSimple : VideoCamera}
+                title={emptyMessage}
+                description={title === "Saved Videos" ? "Save videos from sessions to watch them later" : "All videos you can access will appear here."}
+                buttonLabel={title === "Saved Videos" ? "Browse videos" : undefined}
+                onButtonClick={title === "Saved Videos" ? () => navigate("/video") : undefined}
+                iconColor={title === "Saved Videos" ? "var(--primary-color)" : "#64748b"}
+                iconBg={title === "Saved Videos" ? "#eef2ff" : "#f1f5f9"}
+              />
             </div>
           ) : (
             effectiveVideos.map((v) => (

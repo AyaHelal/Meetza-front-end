@@ -857,7 +857,7 @@ a.home-video-card.home-video-card--link:focus-visible {
 
 [data-theme="dark"] .home-video-card,
 [data-theme="dark"] .home-stat-card,
-[data-theme="dark"] .home-people-card,
+
 [data-theme="dark"] .home-meeting-card {
   background-color: var(--surface-color) !important;
   border: 1px solid var(--border-color);

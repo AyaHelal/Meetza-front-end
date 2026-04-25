@@ -26,37 +26,7 @@ import ContactForm from "../../../components/Contact/ContactForm";
 import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../services/profilePageUtils";
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
 import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
-
-function ProfileEmptyState({
-  icon: Icon,
-  title,
-  description,
-  buttonLabel,
-  onButtonClick,
-  variant = "default",
-  iconColor,
-  iconBg,
-}) {
-  return (
-    <div className={`profile-empty-state profile-empty-state--${variant} d-flex flex-column align-items-center text-center`}>
-      <div className="profile-empty-icon-wrapper" style={{ backgroundColor: iconBg }}>
-        <Icon size={28} weight="regular" color={iconColor} />
-      </div>
-      <h3 className="profile-empty-title mb-1">{title}</h3>
-      <p className="profile-empty-desc mb-3">{description}</p>
-      {buttonLabel && (
-        <Button
-          variant={variant === "inverted" ? "outline-light" : "outline-primary"}
-          size="sm"
-          className="profile-empty-btn rounded-pill"
-          onClick={onButtonClick}
-        >
-          {buttonLabel}
-        </Button>
-      )}
-    </div>
-  );
-}
+import { EmptyState } from "../../../components/shared/EmptyState";
 
 export function ProfilePageContent(props) {
   const navigate = useNavigate();
@@ -88,7 +58,6 @@ export function ProfilePageContent(props) {
     chatMedia,
     chatMediaLoading,
     hasSavedVideos,
-    groupsMap,
     handleJoinLiveMeeting,
     showPositionProfileSection,
     startNameEdit,
@@ -361,7 +330,7 @@ export function ProfilePageContent(props) {
                   ) : savedVideosError ? (
                     <p className="profile-saved-videos-status profile-saved-videos-status--error mb-0">{savedVideosError}</p>
                   ) : savedVideos.length === 0 ? (
-                    <ProfileEmptyState
+                    <EmptyState
                       icon={BookmarkSimple}
                       title="No saved videos yet"
                       description="Save videos from sessions to watch them later"
@@ -415,7 +384,7 @@ export function ProfilePageContent(props) {
                         {meetingsError}
                       </p>
                     ) : profileMeetings.length === 0 ? (
-                      <ProfileEmptyState
+                      <EmptyState
                         icon={CalendarBlank}
                         title="No upcoming meetings"
                         description="Your schedule is clear. New meetings will appear here once scheduled."
@@ -510,7 +479,7 @@ export function ProfilePageContent(props) {
                             })
                           ) : (
                             <div className="w-100 py-3">
-                              <ProfileEmptyState
+                              <EmptyState
                                 icon={FileText}
                                 title="No files shared yet"
                                 description="Files shared in your chats will automatically appear here."
@@ -541,7 +510,7 @@ export function ProfilePageContent(props) {
                         ))}
                       </div>
                     ) : (
-                      <ProfileEmptyState
+                      <EmptyState
                         icon={Clock}
                         title="No ongoing meetings"
                         description="Live meetings you join will show up here in real time."

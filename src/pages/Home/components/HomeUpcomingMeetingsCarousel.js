@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useHorizontalCardSlider, useHomeUpcomingMeetings } from "../hooks";
+import { CalendarBlank } from "@phosphor-icons/react";
+import { EmptyState } from "../../../components/shared/EmptyState";
 import HomeMeetingCard from "./HomeMeetingCard";
 
 const SLIDE_SELECTOR = ".home-meetings-slider-slide";
@@ -63,9 +65,13 @@ function HomeUpcomingMeetingsCarousel({ meetings: meetingsProp = null, limit = 1
             </div>
           ) : meetings.length === 0 ? (
             <div className="home-meetings-slider-slide w-100">
-              <div className="home-meeting-card border-0 shadow-none bg-transparent h-100 p-3">
-                <p className="text-muted small mb-0">No upcoming meetings</p>
-              </div>
+              <EmptyState
+                icon={CalendarBlank}
+                title="No upcoming meetings"
+                description="Your schedule is clear. New meetings will appear here once scheduled."
+                iconColor="#0d6efd"
+                iconBg="#eef2ff"
+              />
             </div>
           ) : (
             meetings.map((m, idx) => (
