@@ -31,6 +31,7 @@ import CalendarRoute from './components/CalendarRoute';
 import ProfileRoute from './components/ProfileRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
+import AppearancePage from './pages/Settings/AppearancePage';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -49,6 +50,7 @@ function isMainAppShellPath(pathname) {
     "/saved-videos",
     "/admin-meetings",
     "/profile",
+    "/settings",
   ];
   if (exact.includes(pathname)) return true;
   return /^\/video(\/|$)/.test(pathname);
@@ -266,6 +268,7 @@ const AppRoutes = () => {
             </AdminRoute>
           }
         />
+        <Route path="settings" element={<AppearancePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
