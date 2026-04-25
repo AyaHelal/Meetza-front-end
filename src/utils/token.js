@@ -27,6 +27,7 @@ export function extractUserFromToken() {
             name: payload.name ?? payload.full_name ?? payload.user_name ?? payload.username ?? null,
             photo,
             user_photo: payload.user_photo ?? photo ?? null,
+            theme: payload.theme ? payload.theme.trim() : null,
             position_id:
                 payload.position_id ??
                 payload.positionId ??
