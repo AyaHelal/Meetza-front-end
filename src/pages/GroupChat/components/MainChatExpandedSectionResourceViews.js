@@ -24,7 +24,7 @@ export function ResourceGrid({
     <div className="expanded-items">
       {items.length === 0 && <p className="empty-state">No items yet.</p>}
       {items.map((item, index) => {
-        const url = item.media_url || item.file_url;
+        const url = item.url || "";
         const isImage =
           /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
           item.media_type?.startsWith("image") ||
