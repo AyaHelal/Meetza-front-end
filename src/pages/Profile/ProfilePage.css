@@ -616,6 +616,25 @@
   align-self: center;
 }
 
+/* Empty states — match reference cards */
+/* Specific card body overrides to center empty state */
+.profile-saved-videos-card__body:has(.empty-state-container),
+.profile-meetings-card__body:has(.empty-state-container),
+.profile-outgoing-card__body:has(.empty-state-container) {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-height: 240px;
+}
+
+.profile-files-card__body:has(.empty-state-container) {
+  /* Keep header left-aligned, empty state will center itself via its own CSS */
+}
+
+.profile-files-grid:has(.empty-state-container) {
+  display: block !important;
+}
+
 /* Uploaded files — CSS Grid so vertical gap between rows is reliable (not Bootstrap row gutters) */
 .profile-files-card {
   min-height: 0;

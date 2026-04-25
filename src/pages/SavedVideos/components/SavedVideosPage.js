@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Lottie from "lottie-react";
+import noDataFoundAnimation from "../../../lottie/noDataFound.json";
 import "./SavedVideosPage.css";
 import SavedVideosHeader from "./SavedVideosHeader";
 import SavedVideosSidebar from "./SavedVideosSidebar";
@@ -8,6 +10,7 @@ import useSavedVideos from "../hooks/useSavedVideos";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../API/axiosInstance";
 import { dedupeById } from "../../../utils/dedupeById";
+import { EmptyState } from "../../../components/shared/EmptyState";
 
 export default function SavedVideosPage() {
   const navigate = useNavigate();
@@ -131,6 +134,17 @@ export default function SavedVideosPage() {
 
       {loading ? (
         <div className="saved-videos-loading">Loading saved videos…</div>
+      ) : savedVideos.length === 0 ? (
+        <div className="saved-videos-full-empty d-flex align-items-center justify-content-center flex-grow-1" style={{ minHeight: "60vh" }}>
+          <EmptyState
+            lottieData={noDataFoundAnimation}
+            lottieStyle={{ maxHeight: 160 }}
+            title="No saved videos yet"
+            description="Videos you save will appear here. Start exploring our sessions!"
+            buttonLabel="Browse videos"
+            onButtonClick={() => navigate("/video")}
+          />
+        </div>
       ) : (
         <div className="saved-videos-layout container-fluid row g-3">
           <div className="saved-videos-left col-12 col-lg-4">
@@ -189,10 +203,10 @@ export default function SavedVideosPage() {
                     <span className="saved-videos-empty-card-action">Delete Selection</span>
                   </div>
                   <div className="saved-videos-empty-body">
-                    <img
-                      src="/assets/GroupChat.png"
-                      alt="No selection"
-                      className="saved-videos-empty-graphic"
+                    <Lottie
+                      animationData={noDataFoundAnimation}
+                      loop
+                      style={{ maxHeight: 200, marginBottom: "1rem" }}
                     />
                     <p className="saved-videos-empty-heading">
                       {filtered.length === 0 ? "No saved videos" : "No Selection Yet!"}
