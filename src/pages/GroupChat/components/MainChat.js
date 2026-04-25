@@ -372,7 +372,7 @@ const MainChat = ({
       window.open(item.media_url, "_blank");
       return;
     }
-    const url = item.media_url || item.file_url;
+    const url = item.media_url || item.file_url || item.url || item.resource_url;
     const isImage =
       /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
       item.media_type?.startsWith("image") ||
@@ -440,13 +440,13 @@ const MainChat = ({
                   String(msg.id) !== String(messageId)
                     ? msg
                     : {
-                        ...msg,
-                        reactions: reactionsFromRawPayload(
-                          { reactions: ack.data.reactions },
-                          lookup,
-                          recordLookup
-                        ),
-                      }
+                      ...msg,
+                      reactions: reactionsFromRawPayload(
+                        { reactions: ack.data.reactions },
+                        lookup,
+                        recordLookup
+                      ),
+                    }
                 )
               );
             }

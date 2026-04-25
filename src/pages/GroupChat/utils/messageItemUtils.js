@@ -6,7 +6,7 @@ import { getMediaLabel } from "./groupChatFormatters";
 export function isLinkItem(item) {
   const declaredType = item?.media_type || item?.file_type || '';
   if (declaredType === 'link' || declaredType.includes('link')) return true;
-  const url = item?.media_url || item?.file_url || '';
+  const url = item?.media_url || item?.file_url || item?.url || item?.resource_url || '';
   return /^https?:\/\//i.test(url);
 }
 
@@ -16,7 +16,7 @@ export function getDisplayText(message, finalMedia) {
 
   const linkUrls = finalMedia
     .filter((item) => isLinkItem(item))
-    .map((item) => (item.media_url || item.file_url || '').replace(/[.,;:!?)]+$/, ''))
+    .map((item) => (item.media_url || item.file_url || item.url || item.resource_url || '').replace(/[.,;:!?)]+$/, ''))
     .filter(Boolean);
 
   if (linkUrls.length === 0) return messageText;
@@ -53,7 +53,7 @@ export function getReplySnippetForMessage(message) {
 export function getExtension(mediaItem) {
   const fileName = mediaItem?.file_name || '';
   if (fileName.includes('.')) return fileName.split('.').pop().toLowerCase();
-  const url = mediaItem?.media_url || mediaItem?.file_url || '';
+  const url = mediaItem?.media_url || mediaItem?.file_url || mediaItem?.url || mediaItem?.resource_url || '';
   if (url.includes('.')) return url.split('?')[0].split('.').pop().toLowerCase();
   return '';
 }
@@ -68,7 +68,7 @@ export function getMediaType(mediaItem) {
   if (explicitMediaType === 'voice_note' || explicitMediaType === 'voice') return 'audio';
 
   const declaredType = mediaItem?.media_type || mediaItem?.file_type || '';
-  const mediaUrl = mediaItem?.media_url || mediaItem?.file_url || '';
+  const mediaUrl = mediaItem?.media_url || mediaItem?.file_url || mediaItem?.url || mediaItem?.resource_url || '';
 
   if (declaredType === 'link' || declaredType.includes('link')) return 'link';
 
@@ -113,7 +113,7 @@ export function getMediaType(mediaItem) {
 
 export function getFileNameFromMedia(mediaItem) {
   if (mediaItem?.file_name) return mediaItem.file_name;
-  const url = mediaItem?.media_url || mediaItem?.file_url;
+  const url = mediaItem?.media_url || mediaItem?.file_url || mediaItem?.url || mediaItem?.resource_url;
   if (url) {
     try {
       const parsedUrl = new URL(url);

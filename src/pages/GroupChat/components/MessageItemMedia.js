@@ -14,7 +14,7 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
   return (
     <div className="message-media-list">
       {finalMedia.map((mediaItem) => {
-        const mediaUrl = mediaItem?.media_url || mediaItem?.file_url;
+        const mediaUrl = mediaItem?.media_url || mediaItem?.file_url || mediaItem?.url || mediaItem?.resource_url;
         if (!mediaUrl) return null;
         const key = mediaItem.id || mediaUrl;
         const type = getMediaType(mediaItem);
