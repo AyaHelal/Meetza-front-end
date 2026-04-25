@@ -2,6 +2,7 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { API_BASE_URL } from './API/axiosInstance';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
@@ -280,22 +281,24 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <SocketProvider>
-        <Router>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-          <AppRoutes />
-        </Router>
-      </SocketProvider>
+      <BrandingProvider>
+        <SocketProvider>
+          <Router>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+            />
+            <AppRoutes />
+          </Router>
+        </SocketProvider>
+      </BrandingProvider>
     </AuthProvider>
   );
 }

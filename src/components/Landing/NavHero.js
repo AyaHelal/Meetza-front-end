@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./HeroSection.css";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function HeroNav() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDiscoverOpen, setIsDiscoverOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { systemName, logoUrl } = useBranding();
 
     const discoverItems = useMemo(
         () => [
@@ -56,11 +58,20 @@ export default function HeroNav() {
                         navigate("/");
                     }}
                 >
-                    <img
-                        src="/assets/meetza_copy.png"
-                        alt="Meetza"
-                        className="navbar-logo"
-                    />
+                    <div className="d-flex flex-column align-items-start">
+                        <img
+                            src={logoUrl || "/assets/meetza_copy.png"}
+                            alt={systemName}
+                            className="navbar-logo"
+                            style={{ objectFit: 'contain', maxHeight: '45px' }}
+                        />
+                        {logoUrl && (
+                            <div className="d-flex align-items-center mt-1" style={{ opacity: 0.8 }}>
+                                <span style={{ fontSize: '10px', color: '#fff', marginRight: '5px' }}>Powered by</span>
+                                <img src="/assets/meetza_copy.png" alt="Meetza" style={{ height: '12px', filter: 'brightness(10)' }} />
+                            </div>
+                        )}
+                    </div>
                 </button>
 
                 <button

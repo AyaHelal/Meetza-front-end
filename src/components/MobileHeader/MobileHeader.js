@@ -1,12 +1,14 @@
 import React from 'react';
 import { List, Bell } from '@phosphor-icons/react';
 import './MobileHeader.css';
+import { useBranding } from '../../context/BrandingContext';
 
 const MobileHeader = ({
   onOpenNotifications,
   onOpenSidebar,
   unreadNotificationCount = 0
 }) => {
+  const { systemName, logoUrl } = useBranding();
   // Debug: Log count changes on mobile
   React.useEffect(() => {
   }, [unreadNotificationCount]);
@@ -16,8 +18,9 @@ const MobileHeader = ({
       <div className="logo-section">
         <div className="logo-icon">
           <img
-            src="/assets/ss.png"
-            alt="logo"
+            src={logoUrl || "/assets/ss.png"}
+            alt={systemName}
+            style={{ objectFit: 'contain' }}
           />
         </div>
         <div className="mobile-header-actions">

@@ -18,6 +18,7 @@ import { useSocket } from "../../../context/SocketContext";
 import { UsersThree } from "@phosphor-icons/react";
 import NotificationPanel from "./NotificationPanel";
 import api from "../../../API/axiosInstance";
+import { useBranding } from "../../../context/BrandingContext";
 
 const LeftNavbar = ({
   activeNav,
@@ -28,6 +29,7 @@ const LeftNavbar = ({
 }) => {
   const navigate = useNavigate();
   const { logoutUser, user } = useContext(AuthContext);
+  const { systemName, logoUrl } = useBranding();
 
   // Check if user is admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
@@ -171,9 +173,9 @@ const LeftNavbar = ({
         <div className="nav-logo">
           <div className="logo-icon">
             <img
-              src="/assets/meetza_logo_1024.png"
-              alt="logo"
-              style={{ width: "80px", height: "80px" }}
+              src={logoUrl || "/assets/meetza_logo_1024.png"}
+              alt={systemName}
+              style={{ width: "80px", height: "80px", objectFit: "contain" }}
             />
           </div>
         </div>

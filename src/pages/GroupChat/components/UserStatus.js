@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { VideoCamera, GearSix, Microphone, MicrophoneSlash, VideoCameraSlash, SpeakerHigh, SpeakerSlash } from '@phosphor-icons/react';
+import { VideoCamera, Microphone, MicrophoneSlash, VideoCameraSlash, SpeakerHigh, SpeakerSlash } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserPhoto from '../../../components/UserPhoto/UserPhoto';
 import { AuthContext } from '../../../context/AuthContext';
@@ -82,9 +82,6 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                                 <span className="status-return-label">Return to meeting</span>
                             </button>
                         )}
-                        <div className="status-icon">
-                            <GearSix size={20} />
-                        </div>
                     </div>
                 </div>
             </div>
