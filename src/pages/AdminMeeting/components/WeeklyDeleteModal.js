@@ -20,7 +20,7 @@ export function WeeklyDeleteModal({ show, onClose, onConfirmThisWeek, onConfirmA
               className="btn-close"
               onClick={onClose}
               aria-label="Close"
-              style={{ fontSize: "14px" }}
+              style={{ fontSize: "14px", filter: "var(--close-btn-filter)" }}
               disabled={confirming}
             />
           </div>

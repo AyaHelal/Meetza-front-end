@@ -335,7 +335,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   width: 100%;
   max-width: 700px;
@@ -349,10 +349,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--card-bg);
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -361,7 +361,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .modal-header button {
@@ -382,7 +382,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
@@ -391,11 +391,11 @@
 .form-textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.9375rem;
   transition: border-color 0.2s;
-  background-color: #fff;
+  background-color: var(--bg-light);
 }
 
 .form-input:focus,
@@ -422,7 +422,7 @@
   cursor: pointer;
 }
 select.form-select {
-  background-color: white;
+  background-color: var(--card-bg);
 }
 
 .modal-actions {
@@ -443,8 +443,8 @@ select.form-select {
 
 .cancel-btn {
   background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #374151;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .cancel-btn:hover {

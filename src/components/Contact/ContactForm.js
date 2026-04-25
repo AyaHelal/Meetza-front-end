@@ -136,7 +136,7 @@ export default function ContactForm({
 
   return (
     <div className={`meetza-contact-form ${className}`.trim()}>
-      {title ? <h2 className="h6 fw-bold text-dark mb-2">{title}</h2> : null}
+      {title ? <h2 className="h6 fw-bold mb-2" style={{ color: "var(--text-primary)" }}>{title}</h2> : null}
       {subtitle ? <p className="text-muted small mb-3">{subtitle}</p> : null}
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3" controlId="profile-contact-fullName">

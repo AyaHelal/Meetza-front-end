@@ -239,12 +239,13 @@ export default function MainChatExpandedSectionContentView({
           <div
             className="add-member-modal"
             style={{
-              background: "white",
+              background: "var(--card-bg)",
+              color: "var(--text-primary)",
               borderRadius: "16px",
               width: "100%",
               maxWidth: "400px",
               padding: "24px",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+              boxShadow: "var(--shadow-lg)",
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -258,7 +259,7 @@ export default function MainChatExpandedSectionContentView({
                 marginBottom: "20px",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600", color: "var(--text-primary)" }}>
                 Add External Link
               </h3>
               <button
@@ -267,7 +268,7 @@ export default function MainChatExpandedSectionContentView({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#666",
+                  color: "var(--text-secondary)",
                 }}
               >
                 <X size={20} />
@@ -281,6 +282,7 @@ export default function MainChatExpandedSectionContentView({
                   marginBottom: "8px",
                   fontSize: "0.9rem",
                   fontWeight: "500",
+                  color: "var(--text-primary)",
                 }}
               >
                 Link URL
@@ -295,7 +297,9 @@ export default function MainChatExpandedSectionContentView({
                   width: "100%",
                   padding: "12px",
                   borderRadius: "8px",
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-light)",
+                  color: "var(--text-primary)",
                   outline: "none",
                 }}
                 onKeyDown={(e) => {
@@ -313,7 +317,8 @@ export default function MainChatExpandedSectionContentView({
                   flex: 1,
                   padding: "12px",
                   borderRadius: "8px",
-                  background: "#f5f5f5",
+                  background: "var(--bg-light)",
+                  color: "var(--text-primary)",
                   border: "none",
                 }}
               >
@@ -327,7 +332,7 @@ export default function MainChatExpandedSectionContentView({
                   flex: 1,
                   padding: "12px",
                   borderRadius: "8px",
-                  background: "#00DC85",
+                  background: "var(--secondary-color)",
                   color: "white",
                   border: "none",
                 }}
