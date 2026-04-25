@@ -833,10 +833,11 @@
 
 .profile-contact-modal {
   width: min(560px, 96vw);
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--detail-card-shadow);
   padding: 1rem;
+  color: var(--text-primary);
 }
 
 .profile-contact-modal__head {
@@ -846,14 +847,14 @@
   gap: 0.75rem;
   padding-bottom: 0.5rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .profile-contact-modal__title {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .profile-contact-modal__close {
@@ -862,12 +863,13 @@
   font-size: 1.5rem;
   line-height: 1;
   padding: 0 0.25rem;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
+  filter: var(--close-btn-filter);
 }
 
 .profile-contact-modal__close:hover {
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 @keyframes profileLivePulse {
