@@ -280,26 +280,24 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrandingProvider>
-        <SocketProvider>
-          <Router>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-            />
-            <AppRoutes />
-          </Router>
-        </SocketProvider>
-      </BrandingProvider>
-    </AuthProvider>
+    <BrandingProvider>
+      <SocketProvider>
+        <Router>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+          <AppRoutes />
+        </Router>
+      </SocketProvider>
+    </BrandingProvider>
   );
 }
 

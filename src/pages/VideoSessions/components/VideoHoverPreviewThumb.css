@@ -36,8 +36,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--bg-alt);
+  color: var(--text-secondary);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;

@@ -3,13 +3,27 @@
   position: relative;
   margin-top: -36px;
   padding: 36px 16px 0 10px;
-  background: var(--surface-color);
+  background: #fff;
   z-index: 1;
   height: 174px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+
+/* ── DARK THEME OVERRIDES ── */
+:root[data-theme="dark"] .meeting-chat {
+  background: var(--bg-alt) !important;
+}
+:root[data-theme="dark"] .meeting-chat-title,
+:root[data-theme="dark"] .meeting-chat-message-sender,
+:root[data-theme="dark"] .meeting-chat-message-text {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .meeting-chat-message-content {
+  background: var(--bg-color) !important;
+}
+
 
 .meeting-chat-input-row {
   display: none;
@@ -127,7 +141,7 @@
 .meeting-chat-message-text {
   font-size: 14px;
   line-height: 1.5;
-  color: var(--text-dark);
+  color: #333;
 }
 
 

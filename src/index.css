@@ -37,6 +37,9 @@
   --shadow-sm: 0 2px 4px var(--shadow-color);
   --shadow-md: 0 4px 12px var(--shadow-color);
   --shadow-lg: 0 8px 24px var(--shadow-color);
+  --detail-card-shadow: none;
+  --detail-card-border: none;
+  --card-active-gradient: linear-gradient(10deg, #ffffff 0%, #daeeff 45%, #a8d4f5 75%, #5bb4f0 110%);
 }
 
 :root[data-theme="dark"] {
@@ -58,6 +61,9 @@
   --divider-color: #334155;
   --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #22c55e 100%);
   --shadow-color: rgba(0, 0, 0, 0.4);
+  --detail-card-shadow: 0 4px 20px var(--shadow-color);
+  --detail-card-border: 1px solid var(--border-color);
+  --card-active-gradient: linear-gradient(10deg, #1e293b 0%, #3b82f6 45%, #2563eb 75%, #1d4ed8 110%);
 }
 
 :root[data-theme="purple"] {
@@ -123,7 +129,8 @@ body {
   color: var(--text-primary);
 }
 
-input, textarea {
+input,
+textarea {
   color: inherit;
 }
 
@@ -162,3 +169,45 @@ body:has(.app-layout) {
 footer.footer-section {
   margin-top: auto;
 }
+
+/* Auth Pages Input Fixes - Force Black text on white background */
+.login-page-wrapper .form-control,
+.login-page-wrapper input,
+.forgot-password-wrapper .form-control,
+.forgot-password-wrapper input {
+  background-color: transparent !important;
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+
+/* The container holding the input and icon */
+.login-page-wrapper .d-flex.gx-2.w-100.border,
+.forgot-password-wrapper .d-flex.gx-2.w-100.border {
+  background-color: #ffffff !important;
+  border-color: #e0e0e0 !important;
+}
+
+.login-page-wrapper label,
+.forgot-password-wrapper label {
+  color: #666666 !important;
+}
+
+.login-page-wrapper input::placeholder,
+.forgot-password-wrapper input::placeholder {
+  color: #999999 !important;
+  -webkit-text-fill-color: #999999 !important;
+}
+
+/* Autofill Overrides */
+.login-page-wrapper input:-webkit-autofill,
+.forgot-password-wrapper input:-webkit-autofill,
+.login-page-wrapper input:-webkit-autofill:hover, 
+.forgot-password-wrapper input:-webkit-autofill:hover, 
+.login-page-wrapper input:-webkit-autofill:focus, 
+.forgot-password-wrapper input:-webkit-autofill:focus, 
+.login-page-wrapper input:-webkit-autofill:active,
+.forgot-password-wrapper input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}

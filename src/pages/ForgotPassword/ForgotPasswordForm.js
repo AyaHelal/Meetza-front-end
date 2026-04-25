@@ -58,7 +58,7 @@ export default function ForgotPasswordForm() {
     };
 
     return (
-        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100">
+        <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100 forgot-password-wrapper">
             <motion.div
                 className="text-center w-100"
                 initial={{ opacity: 0, x: 100 }}

@@ -6,7 +6,7 @@
   background: var(--primary-color);
   border-radius: 24px;
   margin-bottom: 1rem;
-  color: #fff;
+  color: var(--card-bg);
   flex-wrap: wrap;
 }
 
@@ -43,7 +43,7 @@
   border: transparent;
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--card-bg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -51,7 +51,7 @@
 .saved-videos-filter-btn:hover,
 .saved-videos-filter-btn.open {
   background: rgba(255, 255, 255, 0.1);
-  border-color: #fff;
+  border-color: var(--card-bg);
 }
 
 .saved-videos-filter-btn-text {
@@ -71,10 +71,10 @@
   max-height: 280px;
   overflow-y: auto;
   list-style: none;
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   z-index: 1000;
   scrollbar-width: none;
 }
@@ -95,7 +95,7 @@
 }
 
 .saved-videos-filter-item:hover {
-  background: #f0f4f8;
+  background: var(--bg-alt);
 }
 
 .saved-videos-filter-item.selected {
@@ -124,23 +124,23 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #ffffff;
+  color: var(--card-bg);
   pointer-events: none;
 }
 
 .saved-videos-search {
   width: 100%;
   padding: 10px 12px 10px 40px;
-  border: 1px solid #ffffff;
+  border: 1px solid var(--card-bg);
   border-radius: 10px;
   background: transparent;
   font-size: 0.9rem;
-  color: #fff;
-  color: #fff;
+  color: var(--card-bg);
+  color: var(--card-bg);
 }
 
 .saved-videos-search::placeholder {
-  color: #ffffff;
+  color: var(--card-bg);
 }
 
 .saved-videos-search:focus {
@@ -170,7 +170,7 @@
   gap: 12px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: 0.2s;
   text-align: left;
   border: none;
   background: transparent;
@@ -179,7 +179,7 @@
 
 .saved-videos-header-suggestion-item:hover,
 .saved-videos-header-suggestion-item:focus {
-  background: #f0f4f8;
+  background: var(--bg-alt);
   outline: none;
 }
 
@@ -202,7 +202,7 @@
   font-weight: 500;
   color: var(--text-dark);
   margin: 0;
-  white-space: nowrap;
+  var(--card-bg)-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -214,5 +214,3 @@
   text-align: center;
   margin: 0;
 }
-
-
