@@ -7,7 +7,8 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
   const { user } = useAuth();
   const [theme, setThemeState] = useState(() => {
-    return localStorage.getItem('app-theme') || 'light';
+    const saved = localStorage.getItem('app-theme');
+    return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
 
   // Track if we've already synced the theme from the current user token to avoid loops
