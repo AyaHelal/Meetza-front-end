@@ -12,12 +12,12 @@
   margin: 0 0 0.75rem;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .saved-videos-sidebar-empty {
   margin: 0;
-  color: #9ca3af;
+  color: var(--text-secondary);
 }
 
 .saved-videos-sidebar-list {
@@ -32,12 +32,12 @@
   padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
-  background: #f3f4f6;
+  background: var(--bg-alt);
   transition: background 0.15s;
 }
 
 .saved-videos-sidebar-item:hover {
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .saved-videos-sidebar-item.active {
@@ -47,13 +47,8 @@
 
 /* Highlight the selected item (we reuse VideoSessionDetail related-card markup) */
 .video-session-detail-related-item.active {
-  background: linear-gradient(
-    10deg,
-    #ffffff 0%,
-    #daeeff 45%,
-    #a8d4f5 75%,
-    #5bb4f0 110%
-  );
+  background: var(--card-active-gradient);
+  color: #fff !important;
 
   outline: none;
 }
@@ -81,7 +76,7 @@
   align-self: stretch;
   border-radius: 24px 0 0 24px;
   overflow: hidden;
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .saved-videos-left-list .saved-videos-card-thumb img {
@@ -110,7 +105,7 @@
   border-radius: 10px;
   border: none;
   background: rgba(17, 24, 39, 0.06);
-  color: #111827;
+  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -136,7 +131,7 @@
   aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .saved-videos-sidebar-thumb img {
@@ -153,7 +148,7 @@
   padding: 3px 8px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.75);
-  color: #fff;
+  color: var(--card-bg);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -170,7 +165,7 @@
 .saved-videos-sidebar-title-text {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
@@ -180,12 +175,12 @@
 
 .saved-videos-sidebar-instructor {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .saved-videos-sidebar-date {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 992px) {
@@ -195,6 +190,3 @@
     max-height: none;
   }
 }
-
-
-

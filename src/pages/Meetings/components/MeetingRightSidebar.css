@@ -14,6 +14,23 @@
     box-sizing: border-box;
 }
 
+/* ── DARK THEME OVERRIDES ── */
+:root[data-theme="dark"] .meeting-right-sidebar {
+  background: var(--bg-color) !important;
+}
+:root[data-theme="dark"] .participate-card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+}
+:root[data-theme="dark"] .participate-title,
+:root[data-theme="dark"] .participant-name {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .participant-item--admin-pinned {
+  background: var(--card-bg) !important;
+}
+
+
 /* Scrollbars for localized sections - sidebar itself does not scroll */
 .video-description-scroll::-webkit-scrollbar,
 .participants-list::-webkit-scrollbar {
@@ -197,7 +214,7 @@
 
 /* Participate Card - scroll localized to participants list */
 .participate-card {
-    background: var(--surface-color);
+    background: #fff;
     padding: 1rem;
     border-radius: 12px;
     display: flex;
@@ -214,7 +231,7 @@
 .participate-title {
     font-size: 18px;
     margin: 0;
-    color: var(--text-dark);
+    color: #333;
     flex-shrink: 0;
 }
 
@@ -306,7 +323,7 @@
 .participant-name {
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-dark);
+    color: #333;
 }
 
 .participant-status-row {

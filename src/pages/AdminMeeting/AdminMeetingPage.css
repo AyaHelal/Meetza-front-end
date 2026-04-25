@@ -4,12 +4,16 @@
   box-sizing: border-box;
 }
 
+input, select, textarea {
+  color-scheme: dark;
+}
+
 .admin-meeting-page {
   display: flex;
   height: 100vh;
   width: 100%;
   max-width: 100%;
-  background: #f0f2f5;
+  background: var(--bg-color);
   font-family:
     "Poppins",
     -apple-system,
@@ -33,8 +37,8 @@
 
 /* Header card */
 .admin-meeting-header {
-  background: linear-gradient(160deg, #cce4fb 0%, #ffffff 55%);
-  border: 1px solid #e2eaf3;
+  background: linear-gradient(160deg, rgba(59, 130, 246, 0.15) 0%, var(--card-bg) 55%);
+  border: 1px solid var(--border-color);
   padding: 28px 28px 24px;
   border-radius: 16px;
   margin-bottom: 24px;
@@ -52,7 +56,7 @@
   font-size: 28px;
   font-weight: 700;
   margin: 0;
-  color: #111;
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
 }
@@ -75,7 +79,7 @@
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999999;
+  color: var(--text-secondary);
   pointer-events: none;
   z-index: 1;
 }
@@ -83,23 +87,23 @@
 .search-bar input {
   width: 100%;
   padding: 12px 15px 12px 45px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   font-size: 14px;
   outline: none;
-  background: #ffffff;
-  color: #333;
+  background: var(--bg-alt) !important;
+  color: var(--text-primary);
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .search-bar input:focus {
-  border-color: #0076ea;
-  box-shadow: 0 0 0 4px rgba(0, 118, 234, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
 }
 
 .search-bar input::placeholder {
-  color: #999;
+  color: var(--text-secondary);
 }
 
 /* Shown only on mobile / tablet via media query below */
@@ -135,7 +139,7 @@
 .admin-meeting-header p {
   font-size: 14px;
   margin: 0;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 /* Meeting cards grid */
@@ -153,7 +157,7 @@
   background: var(--surface-color);
   border-radius: 14px;
   padding: 18px 18px 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 10px var(--shadow-color);
   display: flex;
   flex-direction: column;
   transition:
@@ -164,7 +168,7 @@
 
 .meeting-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.11);
+  box-shadow: 0 6px 20px var(--shadow-color);
 }
 
 /* Card top row: thumbnail + info + date */
@@ -181,7 +185,7 @@
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  background: #e8e8e8;
+  background: var(--border-color);
 }
 
 .meeting-thumbnail img {
@@ -209,7 +213,7 @@
   font-size: 15px;
   font-weight: 500;
   margin: 0 0 2px 0;
-  color: #111;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -217,7 +221,7 @@
 
 .meeting-subtitle {
   font-size: 12px;
-  color: #888888;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -236,7 +240,7 @@
 
 .meeting-date {
   font-size: 12px;
-  color: #888888;
+  color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
   padding-top: 2px;
@@ -245,7 +249,7 @@
 /* Divider */
 .meeting-card-divider {
   height: 1px;
-  background: #e8e8e8;
+  background: var(--border-color);
   margin: 0 0 14px 0;
 }
 
@@ -259,13 +263,13 @@
 
 .meeting-description {
   font-size: 13px;
-  color: #888888;
+  color: var(--text-secondary);
   line-height: 1.55;
   margin: 0;
 }
 
 .meeting-description strong {
-  color: #111;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -380,9 +384,9 @@
   right: 0;
   margin-top: 4px;
   background: var(--surface-color);
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-color);
   z-index: 1000;
   overflow: hidden;
 }
@@ -398,12 +402,12 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #495057;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
 }
 
 .weekly-dropdown-item:hover {
-  background: #f8f9fa;
+  background: var(--bg-alt);
   color: #212529;
 }
 
@@ -419,12 +423,12 @@
 
 .meeting-time {
   font-size: 13px;
-  color: #888888;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .meeting-time strong {
-  color: #111;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -471,7 +475,7 @@
   gap: 8px;
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
 }
 
 .meeting-card-action-btn {
@@ -509,7 +513,7 @@
   border-radius: 16px;
   margin: 20px 20px 20px 0;
   padding: 24px 30px 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px var(--shadow-color);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -522,7 +526,7 @@
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 12px 0;
-  color: #111 !important;
+  color: var(--text-primary) !important;
 }
 
 /* Create / edit meeting modal (mobile & tablet only; component mounts under 1024px) */
@@ -542,9 +546,9 @@
   width: 100%;
   max-width: 520px;
   max-height: min(90vh, 900px);
-  background: #fff;
+  background: var(--bg-alt) !important;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px var(--shadow-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -557,7 +561,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px 12px;
-  border-bottom: 1px solid #e8eef5;
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -565,7 +569,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: #111;
+  color: var(--text-primary);
 }
 
 .admin-meeting-modal-close {
@@ -578,15 +582,15 @@
   font-size: 26px;
   line-height: 1;
   color: var(--text-secondary);
-  background: #f0f2f5;
+  background: var(--bg-color);
   border: none;
   border-radius: 10px;
   cursor: pointer;
 }
 
 .admin-meeting-modal-close:hover {
-  background: #e5e8ed;
-  color: #111;
+  background: var(--bg-alt);
+  color: var(--text-primary);
 }
 
 .admin-meeting-modal-body {
@@ -617,7 +621,7 @@
 .form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: #111 !important;
+  color: var(--text-primary) !important;
   margin: 0;
 }
 
@@ -632,8 +636,8 @@
   font-size: 11px;
   font-family: "Poppins", sans-serif;
   outline: none;
-  background: #fff;
-  color: #111;
+  background: var(--bg-alt) !important;
+  color: var(--text-primary);
   transition: border-color 0.18s;
 }
 
@@ -641,7 +645,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 118, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 /* Start–End time pill */
@@ -650,7 +654,7 @@
   border: 1.5px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-alt) !important;
 }
 
 .time-inputs input {
@@ -659,8 +663,8 @@
   padding: 6px 8px;
   font-size: 11px;
   font-family: "Poppins", sans-serif;
-  color: #111;
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-alt) !important;
   outline: none;
   min-width: 0;
   width: 50%;
@@ -675,8 +679,8 @@
 }
 
 .time-inputs input.time-start {
-  background: #1a7de8 !important;
-  background-color: #1a7de8 !important;
+  background: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
   color: #fff !important;
   font-weight: 600;
   border-right: 1.5px solid var(--border-color);
@@ -710,8 +714,8 @@
 }
 
 .time-inputs input.time-end {
-  background: #fff;
-  color: #111;
+  background: var(--bg-alt) !important;
+  color: var(--text-primary);
 }
 
 .time-inputs input.time-end::-webkit-calendar-picker-indicator {
@@ -726,7 +730,7 @@
 
 /* Status select */
 .form-group select {
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 12px;
@@ -749,7 +753,7 @@
   gap: 6px;
   cursor: pointer;
   font-size: 11px;
-  color: #111;
+  color: var(--text-primary);
   font-weight: 400;
 }
 
@@ -779,7 +783,7 @@
   border: 1.5px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
-  background: #fff;
+  background: var(--bg-alt) !important;
   transition: border-color 0.18s;
   width: 100%;
   min-height: 36px;
@@ -794,7 +798,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .upload-icon svg {
@@ -805,7 +809,7 @@
 .file-selected-name {
   display: block;
   font-size: 11px;
-  color: #6c757d;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -816,8 +820,8 @@
   border-radius: 12px;
   font-size: 12px;
   font-family: "Poppins", sans-serif;
-  background: #fff;
-  color: #111;
+  background: var(--bg-alt) !important;
+  color: var(--text-primary);
   outline: none;
   cursor: pointer;
   transition: border-color 0.18s;
@@ -826,7 +830,7 @@
 .create-meeting-file-input:hover,
 .create-meeting-file-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 118, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .create-meeting-file-input::file-selector-button {
@@ -838,17 +842,17 @@
   font-size: 11px;
   font-family: "Poppins", sans-serif;
   cursor: pointer;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .create-meeting-file-input::file-selector-button:hover {
-  background: #ebebeb;
-  border-color: #ccc;
+  background: var(--bg-alt);
+  border-color: var(--border-color);
 }
 
 .selected-files-list {
   font-size: 12px;
-  color: #6c757d;
+  color: var(--text-secondary);
   margin-top: 6px;
 }
 
@@ -922,7 +926,7 @@
 .cancel-edit-btn {
   background: var(--bg-light);
   margin-bottom: 20px;
-  color: #555;
+  color: var(--text-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 8px 16px;
@@ -936,15 +940,15 @@
 }
 
 .cancel-edit-btn:hover {
-  background: #ebebeb;
-  border-color: #ccc;
+  background: var(--bg-alt);
+  border-color: var(--border-color);
 }
 
 /* User status bar */
 .user-status-section {
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid #ebebeb;
+  border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -965,7 +969,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #888;
+  color: var(--text-secondary);
   border-radius: 6px;
   transition:
     color 0.18s,
@@ -974,7 +978,7 @@
 
 .status-icon:hover {
   color: var(--primary-color);
-  background: #f0f6ff;
+  background: rgba(59, 130, 246, 0.2);
 }
 
 /* Loading / empty states */
@@ -983,7 +987,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 48px;
-  color: #888;
+  color: var(--text-secondary);
   font-size: 15px;
 }
 

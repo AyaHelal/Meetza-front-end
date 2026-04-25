@@ -10,7 +10,7 @@
 }
 
 .post-video-modal {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 16px;
   max-width: 480px;
   width: 100%;
@@ -86,7 +86,9 @@
 .post-video-form-group textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
@@ -133,7 +135,7 @@
   justify-content: flex-end;
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
 }
 
 .post-video-btn {
@@ -151,12 +153,12 @@
 }
 
 .post-video-btn-cancel:hover:not(:disabled) {
-  background: #eee;
+  background: var(--bg-alt);
 }
 
 .post-video-btn-submit {
   background: var(--primary-color);
-  color: #fff;
+  color: var(--card-bg);
 }
 
 .post-video-btn-submit:hover:not(:disabled) {

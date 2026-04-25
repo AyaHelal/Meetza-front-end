@@ -5,7 +5,6 @@
   flex: 1;
   min-height: 0;
   border-radius: 22px;
-  background: var(--bg-alt);
   background-image: linear-gradient(
     to bottom,
     #ffffff 0%,
@@ -42,7 +41,7 @@
 .meeting-room-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #111;
   margin: 0 0 4px 0;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -1073,7 +1072,7 @@
 
 .meeting-room-prejoin-toggle.muted {
   background: var(--divider-color);
-  color: var(--text-secondary);
+  color: #555;
 }
 
 .meeting-room-prejoin-toggle:hover {
@@ -1113,6 +1112,72 @@
 .meeting-room-prejoin-enter:hover {
   background: #0b5ed7;
 }
+
+/* ── DARK THEME OVERRIDES ── */
+:root[data-theme="dark"] .meeting-room {
+  background: var(--bg-alt) !important;
+  background-image: none !important;
+}
+
+:root[data-theme="dark"] .meeting-room-header {
+  background: linear-gradient(to bottom, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-title {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-subtitle,
+:root[data-theme="dark"] .meeting-room-recording-text,
+:root[data-theme="dark"] .meeting-room-dot,
+:root[data-theme="dark"] .meeting-room-comment-send-btn,
+:root[data-theme="dark"] .meeting-room-prejoin-subtitle {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-tile-avatar,
+:root[data-theme="dark"] .meeting-room-tile-avatar.large,
+:root[data-theme="dark"] .meeting-room-screen-placeholder,
+:root[data-theme="dark"] .meeting-room-screen-placeholder-avatar {
+  background: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-controls,
+:root[data-theme="dark"] .meeting-room-control-btn {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-control-btn.active {
+  background: var(--secondary-color) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .meeting-room-control-btn:hover:not(.active) {
+  background: var(--bg-color) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-control-btn.record-btn.recording {
+  background: #e74c3c !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .meeting-room-comment-input {
+  background: var(--bg-alt) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .reaction-name {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .meeting-room-tile-initial {
+  color: var(--primary-color) !important;
+}
+
 
 
 

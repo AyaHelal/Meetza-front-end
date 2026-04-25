@@ -10,9 +10,9 @@ export function WeeklyDeleteModal({ show, onClose, onConfirmThisWeek, onConfirmA
       onClick={onClose}
     >
       <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0" style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+        <div className="modal-content rounded-4 border-0" style={{ backgroundColor: "var(--card-bg)", boxShadow: "0 10px 40px var(--shadow-color)" }}>
           <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold" style={{ fontSize: "24px", color: "#010101" }}>
+            <h5 className="modal-title fw-bold" style={{ fontSize: "24px", color: "var(--text-primary)" }}>
               Delete Weekly Meeting
             </h5>
             <button
@@ -25,7 +25,7 @@ export function WeeklyDeleteModal({ show, onClose, onConfirmThisWeek, onConfirmA
             />
           </div>
           <div className="modal-body pt-3">
-            <p style={{ fontSize: "16px", color: "#010101", marginBottom: "20px" }}>
+            <p style={{ fontSize: "16px", color: "var(--text-primary)", marginBottom: "20px" }}>
               This is a weekly meeting. What would you like to delete?
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -36,7 +36,7 @@ export function WeeklyDeleteModal({ show, onClose, onConfirmThisWeek, onConfirmA
                 disabled={confirming}
                 style={{
                   backgroundColor: "transparent",
-                  color: "#010101",
+                  color: "var(--text-primary)",
                   border: "1px solid transparent",
                   padding: "12px 20px",
                   fontSize: "16px",
@@ -72,8 +72,8 @@ export function WeeklyDeleteModal({ show, onClose, onConfirmThisWeek, onConfirmA
               onClick={onClose}
               disabled={confirming}
               style={{
-                backgroundColor: "#F4F6F8",
-                color: "#010101",
+                backgroundColor: "var(--bg-light)",
+                color: "var(--text-primary)",
                 border: "none",
                 padding: "10px 24px",
                 fontSize: "16px",

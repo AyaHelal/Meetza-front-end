@@ -19,7 +19,7 @@
   border: none;
   border-radius: 8px;
   background: var(--primary-color);
-  color: #ffff;
+  color: var(--text-on-primary);
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -46,7 +46,7 @@
   margin: 0 0 4px;
   font-size: 1.5rem;
   font-weight: 600 !important;
-  color: #fff;
+  color: var(--text-on-primary);
   line-height: 1.2;
 }
 
@@ -82,7 +82,7 @@
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  color: var(--text-on-primary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -108,14 +108,14 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #ffffff;
+  color: #fff;
   pointer-events: none;
 }
 
 .video-sessions-header-search {
   width: 100%;
   padding: 10px 12px 10px 40px;
-  border: 1px solid #ffffff;
+  border: 1px solid #fff;
   border-radius: 10px;
   background: transparent;
   font-size: 0.9rem;
@@ -123,7 +123,7 @@
 }
 
 .video-sessions-header-search::placeholder {
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .video-sessions-header-search:focus {
@@ -162,7 +162,7 @@
 
 .video-sessions-header-suggestion-item:hover,
 .video-sessions-header-suggestion-item:focus {
-  background: #f0f4f8;
+  background: var(--bg-alt);
   outline: none;
 }
 

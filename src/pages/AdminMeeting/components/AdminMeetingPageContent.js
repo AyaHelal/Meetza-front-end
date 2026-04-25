@@ -61,7 +61,7 @@ export function AdminMeetingPageContent(props) {
             <h1>Meeting Management Page</h1>
             <div className="admin-meeting-header-search">
               <div className="search-bar">
-                <MagnifyingGlass size={20} color="#888888" />
+                <MagnifyingGlass size={20} color="var(--text-secondary)" />
                 <input
                   type="text"
                   placeholder="Search by meeting name..."
