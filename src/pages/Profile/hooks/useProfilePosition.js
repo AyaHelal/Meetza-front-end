@@ -95,7 +95,6 @@ export default function useProfilePosition({
   userId,
   showPositionProfileSection,
   persistUser,
-  setEnrichedUser,
 }) {
   const [positionEditing, setPositionEditing] = useState(false);
   const [positionDraft, setPositionDraft] = useState("");
@@ -253,14 +252,6 @@ export default function useProfilePosition({
         position_name: null,
         positionName: null,
       });
-      if (userId && typeof setEnrichedUser === "function") {
-        try {
-          const u = await getUser(userId);
-          if (u && typeof u === "object") setEnrichedUser(u);
-        } catch {
-          /* session user already cleared locally */
-        }
-      }
       setPositionEditing(false);
       setShowDeletePositionModal(false);
       smartToast.success("Position deleted");
@@ -269,7 +260,7 @@ export default function useProfilePosition({
     } finally {
       setPositionDeleting(false);
     }
-  }, [positionPutId, persistUser, userId, setEnrichedUser]);
+  }, [positionPutId, persistUser, userId]);
 
   return {
     // derived
