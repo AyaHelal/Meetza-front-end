@@ -1061,3 +1061,76 @@
 }
 
 
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .profile-page {
+  --profile-page-bg: var(--bg-color);
+  background-color: var(--bg-color);
+}
+
+[data-theme="dark"] .profile-design-card {
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .profile-field-row {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .profile-contact-row__left,
+[data-theme="dark"] .profile-field-label,
+[data-theme="dark"] .profile-notif-card__title,
+[data-theme="dark"] .profile-meetings-card__title,
+[data-theme="dark"] .profile-meeting-group-name,
+[data-theme="dark"] .profile-meeting-time-clock,
+[data-theme="dark"] .profile-ongoing-card__title,
+[data-theme="dark"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-contact-row__right,
+[data-theme="dark"] .profile-field-value,
+[data-theme="dark"] .profile-notif-card__item,
+[data-theme="dark"] .profile-meeting-online,
+[data-theme="dark"] .profile-meeting-time-meridian,
+[data-theme="dark"] .profile-meeting-times__chev,
+[data-theme="dark"] .profile-meeting-header-text .home-meeting-course,
+[data-theme="dark"] .profile-meeting-header-text .home-meeting-title,
+[data-theme="dark"] .profile-meeting-time-value {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-day {
+  background-color: var(--bg-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-date {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .profile-meetings-row,
+[data-theme="dark"] .profile-notif-card__item {
+  border-bottom-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .profile-file-cell {
+  background-color: var(--bg-alt) !important;
+}
+
+[data-theme="dark"] .profile-saved-video-card {
+  background-color: var(--bg-color) !important;
+}
+
+[data-theme="dark"] .profile-saved-head-icon {
+  background-color: var(--bg-alt) !important;
+}
+
+[data-theme="dark"] .profile-saved-head-icon__yt {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-day {
+  background: var(--bg-alt) !important;
+}

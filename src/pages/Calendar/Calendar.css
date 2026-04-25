@@ -1136,3 +1136,114 @@
 }
 
 
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .calendar-page {
+  background-color: var(--bg-color);
+}
+
+[data-theme="dark"] .calendar-header {
+  background: var(--bg-alt) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .calendar-title,
+[data-theme="dark"] .calendar-nav-month,
+[data-theme="dark"] .calendar-toolbar-all-scheduled,
+[data-theme="dark"] .calendar-nav-view-btn,
+[data-theme="dark"] .calendar-nav-today,
+[data-theme="dark"] .calendar-nav-range,
+[data-theme="dark"] .calendar-subtitle,
+[data-theme="dark"] .calendar-toolbar-cal-icon {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .calendar-toolbar-filter-btn,
+[data-theme="dark"] .calendar-toolbar-filter-item,
+[data-theme="dark"] .calendar-nav-arrow,
+[data-theme="dark"] .calendar-week-header-day,
+[data-theme="dark"] .calendar-week-time-cell,
+[data-theme="dark"] .calendar-month-grid-header-cell,
+[data-theme="dark"] .calendar-month-grid-cell-date {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .calendar-toolbar-card,
+[data-theme="dark"] .calendar-month-grid,
+[data-theme="dark"] .calendar-week-grid,
+[data-theme="dark"] .calendar-month-grid-cell,
+[data-theme="dark"] .calendar-week-header,
+[data-theme="dark"] .calendar-toolbar-filter-list {
+  background-color: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .calendar-nav {
+  border-top-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-nav-views,
+[data-theme="dark"] .calendar-month-grid-header-cell,
+[data-theme="dark"] .calendar-month-grid-cell-out,
+[data-theme="dark"] .calendar-week-time-col,
+[data-theme="dark"] .calendar-nav-arrow,
+[data-theme="dark"] .calendar-toolbar-filter-btn:hover,
+[data-theme="dark"] .calendar-toolbar-filter-item:hover {
+  background-color: var(--bg-alt) !important;
+}
+
+[data-theme="dark"] .calendar-nav-view-btn.active {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .calendar-month-grid-header,
+[data-theme="dark"] .calendar-month-grid-row,
+[data-theme="dark"] .calendar-month-grid-header-cell,
+[data-theme="dark"] .calendar-week-header,
+[data-theme="dark"] .calendar-week-time-col,
+[data-theme="dark"] .calendar-week-time-cell {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-toolbar-search {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-toolbar-search-input {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .calendar-month-grid-meeting {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .calendar-week-body,
+[data-theme="dark"] .calendar-week-days,
+[data-theme="dark"] .calendar-week-day-col {
+  background-color: var(--surface-color) !important;
+}
+
+[data-theme="dark"] .calendar-week-time-col,
+[data-theme="dark"] .calendar-week-time-cell {
+  background-color: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-week-day-col {
+  border-right-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-week-header {
+  border-bottom-color: var(--border-color) !important;
+  border-top-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .calendar-week-day-cells {
+  background-color: var(--surface-color) !important;
+}
+
+[data-theme="dark"] .calendar-week-day-cell {
+  border-bottom-color: var(--border-color) !important;
+}

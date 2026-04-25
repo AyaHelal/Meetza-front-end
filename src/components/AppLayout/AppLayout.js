@@ -154,6 +154,11 @@ const AppLayout = () => {
       location.pathname.startsWith("/saved-videos")
     ) {
       setActiveNav("saved-videos");
+    } else if (
+      location.pathname === "/settings" ||
+      location.pathname.startsWith("/settings")
+    ) {
+      setActiveNav("settings");
     }
   }, [location]);
 
@@ -223,6 +228,9 @@ const AppLayout = () => {
     } else if (nav === "saved-videos" && location.pathname !== "/saved-videos") {
       setActiveNav(nav);
       navigate("/saved-videos", { replace: false });
+    } else if (nav === "settings" && location.pathname !== "/settings") {
+      setActiveNav(nav);
+      navigate("/settings", { replace: false });
     } else {
       // Just update active state if already on the route
       setActiveNav(nav);
