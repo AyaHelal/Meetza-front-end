@@ -19,7 +19,6 @@ import {
 import UserPhoto from "../../../components/UserPhoto/UserPhoto";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import ContactForm from "../../../components/Contact/ContactForm";
-import { FILE_GRID_LABELS } from "../services/profilePageConstants";
 import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../services/profilePageUtils";
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
 import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
@@ -50,6 +49,9 @@ export function ProfilePageContent(props) {
     limitedSavedVideos,
     limitedLiveMeetings,
     limitedNotifications,
+    handleNotifClick,
+    chatMedia,
+    chatMediaLoading,
     hasSavedVideos,
     groupsMap,
     handleJoinLiveMeeting,
@@ -284,7 +286,12 @@ export function ProfilePageContent(props) {
                   <h2 className="profile-notif-card__title">Notification</h2>
                   <ul className="profile-notif-card__list">
                     {limitedNotifications.map((n) => (
-                      <li key={n.id} className={n.highlight ? "profile-notif-card__item is-highlight" : "profile-notif-card__item"}>
+                      <li
+                        key={n.id}
+                        className={n.highlight ? "profile-notif-card__item is-highlight" : "profile-notif-card__item"}
+                        onClick={() => handleNotifClick(n.id)}
+                        style={{ cursor: "pointer" }}
+                      >
                         {n.text}
                       </li>
                     ))}
@@ -423,17 +430,35 @@ export function ProfilePageContent(props) {
                       Uploaded Files from chats
                     </Card.Title>
                     <div className="profile-files-scroll">
-                      <div className="profile-files-grid">
-                        {FILE_GRID_LABELS.map((label, idx) => (
-                          <div key={idx} className="profile-files-grid__cell">
-                            <Ratio aspectRatio="1x1">
-                              <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4">
-                                {label ? <span className="profile-file-label">{label}</span> : null}
+                      {chatMediaLoading ? (
+                        <p className="text-muted small px-1">Loading files…</p>
+                      ) : (
+                        <div className="profile-files-grid">
+                          {chatMedia.map((item, idx) => {
+                            const isImage = item?.media_type === "image";
+                            const ext = !isImage && item?.file_name ? item.file_name.split(".").pop().toUpperCase() : "";
+
+                            return (
+                              <div key={item.id || idx} className="profile-files-grid__cell">
+                                <Ratio aspectRatio="1x1">
+                                  <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4 overflow-hidden border">
+                                    {isImage ? (
+                                      <img
+                                        src={item.media_url}
+                                        alt={item.file_name}
+                                        className="w-100 h-100 object-fit-cover"
+                                        loading="lazy"
+                                      />
+                                    ) : (
+                                      <span className="profile-file-label">{ext || "FILE"}</span>
+                                    )}
+                                  </div>
+                                </Ratio>
                               </div>
-                            </Ratio>
-                          </div>
-                        ))}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </Stack>
                 </Card.Body>

@@ -9,8 +9,9 @@ import { isAdminForPositions } from "../../Groups/hooks/usePositions";
 import { smartToast } from "../../../API/toastManager";
 import { extractUserFromToken } from "../../../utils/token";
 import { getUser, patchUser } from "../services/profileUserService";
+import { useSocket } from "../../../context/SocketContext";
+
 import {
-  PLACEHOLDER_NOTIFICATIONS,
   PROFILE_MAX_LIVE_MEETINGS,
   PROFILE_MAX_MEETINGS,
   PROFILE_MAX_NOTIFICATIONS,
@@ -23,6 +24,12 @@ export function useProfilePage() {
   const navigate = useNavigate();
   const { savedVideos, loading: savedVideosLoading, error: savedVideosError } = useSavedVideos(null);
   const { meetings: profileMeetings, loading: meetingsLoading, error: meetingsError } = useProfileMeetings();
+  const { socket, isConnected } = useSocket();
+  const [notifications, setNotifications] = useState([]);
+  const [chatMedia, setChatMedia] = useState([]);
+  const [chatMediaLoading, setChatMediaLoading] = useState(false);
+
+
 
   const isMemberProfile = useMemo(() => {
     const role = (user?.role || "").toString().trim().toLowerCase();
@@ -34,8 +41,8 @@ export function useProfilePage() {
   const [nameDraft, setNameDraft] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
-  /** Merged GET /user/:id — often carries position_id when session user is minimal. */
-  const [enrichedUser, setEnrichedUser] = useState(null);
+  const [selectedNotifId, setSelectedNotifId] = useState(null);
+
 
   const displayName = user?.name || user?.full_name || user?.username || user?.email || "Member";
   const email = user?.email || "—";
@@ -46,7 +53,92 @@ export function useProfilePage() {
   const limitedMeetings = useMemo(() => (profileMeetings || []).slice(0, PROFILE_MAX_MEETINGS), [profileMeetings]);
   const limitedSavedVideos = useMemo(() => (savedVideos || []).slice(0, PROFILE_MAX_SAVED_VIDEOS), [savedVideos]);
   const limitedLiveMeetings = useMemo(() => liveMeetings.slice(0, PROFILE_MAX_LIVE_MEETINGS), [liveMeetings]);
-  const limitedNotifications = useMemo(() => PLACEHOLDER_NOTIFICATIONS.slice(0, PROFILE_MAX_NOTIFICATIONS), []);
+
+  // Fetch initial notifications
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("/notification")
+      .then((response) => {
+        if (cancelled) return;
+        let data = [];
+        if (response.data) {
+          if (response.data.success && response.data.data) {
+            data = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            data = response.data;
+          } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
+            data = response.data.notifications;
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            data = response.data.data;
+          }
+        }
+        setNotifications(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setNotifications([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch chat media
+  useEffect(() => {
+    let cancelled = false;
+    setChatMediaLoading(true);
+    api
+      .get("/profile/chat-media")
+      .then((response) => {
+        if (cancelled) return;
+        const raw = response?.data?.data ?? response?.data ?? [];
+        setChatMedia(Array.isArray(raw) ? raw : []);
+      })
+      .catch(() => {
+        if (!cancelled) setChatMedia([]);
+      })
+      .finally(() => {
+        if (!cancelled) setChatMediaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Listen for socket notifications
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    const handleNew = (n) => {
+      if (n && typeof n === "object") {
+        setNotifications((prev) => [n, ...prev]);
+      }
+    };
+    socket.on("newNotification", handleNew);
+    socket.on("new_notification", handleNew);
+    return () => {
+      socket.off("newNotification", handleNew);
+      socket.off("new_notification", handleNew);
+    };
+  }, [socket, isConnected]);
+
+  const handleNotifClick = useCallback((id) => {
+    setSelectedNotifId(id);
+  }, []);
+
+  const limitedNotifications = useMemo(() => {
+    return notifications.slice(0, PROFILE_MAX_NOTIFICATIONS).map((n) => {
+      const id = String(n.id || n.notification_id || "");
+      const sender = n.administrator_name || n.sender_name || "";
+      const msg = n.message || n.text || n.title || "New notification";
+      const fullText = sender ? `${sender}: ${msg}` : msg;
+      return {
+        id,
+        text: fullText,
+        highlight: id !== "" && id === selectedNotifId,
+      };
+    });
+  }, [notifications, selectedNotifId]);
+
   const hasSavedVideos = (savedVideos || []).length > 0;
   const [groupsMap, setGroupsMap] = useState(() => ({}));
 
@@ -101,16 +193,7 @@ export function useProfilePage() {
     }
   }, [navigate]);
 
-  const effectiveUser = useMemo(() => {
-    if (!user && !enrichedUser) return null;
-    const base = user && typeof user === "object" ? { ...user } : {};
-    if (!enrichedUser || typeof enrichedUser !== "object") return base;
-    Object.keys(enrichedUser).forEach((k) => {
-      const v = enrichedUser[k];
-      if (v !== undefined) base[k] = v;
-    });
-    return base;
-  }, [user, enrichedUser]);
+  const effectiveUser = user;
 
   const showPositionProfileSection = useMemo(
     () => isAdminForPositions(effectiveUser || user),
@@ -124,25 +207,6 @@ export function useProfilePage() {
     if (fromToken != null && String(fromToken).trim() !== "") return String(fromToken).trim();
     return null;
   }, [user]);
-
-  useEffect(() => {
-    if (!userId) {
-      setEnrichedUser(null);
-      return undefined;
-    }
-    let cancelled = false;
-    getUser(userId)
-      .then((u) => {
-        if (cancelled || !u || typeof u !== "object") return;
-        setEnrichedUser(u);
-      })
-      .catch(() => {
-        if (!cancelled) setEnrichedUser(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
 
   const startNameEdit = useCallback(() => {
     const initial = (user?.name || user?.full_name || user?.username || "").trim();
@@ -213,7 +277,6 @@ export function useProfilePage() {
     userId,
     showPositionProfileSection,
     persistUser,
-    setEnrichedUser,
   });
 
   const triggerPhotoPicker = useCallback(() => {
@@ -247,6 +310,9 @@ export function useProfilePage() {
     limitedSavedVideos,
     limitedLiveMeetings,
     limitedNotifications,
+    handleNotifClick,
+    chatMedia,
+    chatMediaLoading,
     hasSavedVideos,
     groupsMap,
     handleJoinLiveMeeting,

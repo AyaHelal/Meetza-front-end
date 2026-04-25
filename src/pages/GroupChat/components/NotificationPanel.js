@@ -247,16 +247,16 @@ const NotificationPanel = ({
                   <div className="notification-content">
                     <div className="notification-header">
                       <div className="notification-avatar-container">
-                        {notification.administrator_photo ? (
+                        {notification.administrator_photo || notification.user_photo ? (
                           <img
-                            src={notification.administrator_photo || undefined}
-                            alt={notification.administrator_name || "Leader"}
+                            src={notification.administrator_photo || notification.user_photo || undefined}
+                            alt={notification.administrator_name || notification.sender_name || "Leader"}
                             className="notification-avatar"
                           />
                         ) : (
                           <div className="notification-avatar-fallback">
                             {getInitials(
-                              notification.administrator_name || "A"
+                              notification.administrator_name || notification.sender_name || "A"
                             )}
                           </div>
                         )}
@@ -267,7 +267,7 @@ const NotificationPanel = ({
                       <div className="notification-info">
                         <div className="notification-sender-row">
                           <span className="notification-sender">
-                            {notification.administrator_name || "Leader"}
+                            {notification.administrator_name || notification.sender_name || "Leader"}
                           </span>
                           <span className="notification-time">
                             {formatDate(
