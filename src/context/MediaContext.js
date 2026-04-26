@@ -71,7 +71,7 @@ export const MediaProvider = ({ children }) => {
 
     // Mute meeting speaker (when outside meeting page) - only affects local playback
     const [meetingSpeakerMuted, setMeetingSpeakerMutedState] = useState(false);
-    /** Refs from MeetingRoom: { remoteVideoRefsMap, localParticipantAudioMutedRef, localParticipantVolumeRef } - نطبق الميوت مباشرة على عناصر الفيديو */
+    /** Refs from MeetingRoom: { remoteVideoRefsMap, localParticipantAudioMutedRef, localParticipantVolumeRef } */
     const meetingMediaRefsRef = useRef(null);
 
     const setMeetingSpeakerMuted = useCallback((valueOrUpdater) => {

@@ -114,7 +114,7 @@ export function VideoSessionDetailLayout(props) {
     isAdmin,
   } = props;
 
-  const topicList = topics ? mergeTopicLists(topics) : [];
+  const topicList = topics ? mergeTopicLists(topics).filter(t => typeof t === 'string' && t.trim() !== '') : [];
 
   return (
     <div className="video-session-detail">
@@ -591,11 +591,11 @@ export function VideoSessionDetailLayout(props) {
               related.slice(0, 8).map((s) => (
                 <div
                   key={s.id ?? s.title}
-                  className="video-session-detail-related-item box-shadow-none "
-                  onClick={() => onSelectSession?.(s)}
-                  onKeyDown={(e) => e.key === "Enter" && onSelectSession?.(s)}
+                  className={`video-session-detail-related-item box-shadow-none${s._uploadPlaceholder ? " video-session-detail-related-item--uploading" : ""}`}
+                  onClick={() => !s._uploadPlaceholder && onSelectSession?.(s)}
+                  onKeyDown={(e) => e.key === "Enter" && !s._uploadPlaceholder && onSelectSession?.(s)}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={s._uploadPlaceholder ? -1 : 0}
                 >
                   <div className="video-session-detail-related-thumb">
                     <VideoHoverPreviewThumb
@@ -604,6 +604,11 @@ export function VideoSessionDetailLayout(props) {
                       rawVideoUrl={s.videoUrl || s.video_url}
                       alt={s.title || "Related Video"}
                     />
+                    {s._uploadPlaceholder && (
+                      <div className="video-session-detail-related-uploading-overlay">
+                        <span>In progress</span>
+                      </div>
+                    )}
                     <span className="video-session-detail-related-duration">{s.duration ?? "00:00"}</span>
                   </div>
                   <div className="video-session-detail-related-info">
@@ -648,15 +653,9 @@ export function VideoSessionDetailLayout(props) {
             </button>
           </div>
           <div className="video-ai-summary-content">
-            {summaryData.transcript && (
-              <div className="video-ai-summary-transcript">
-                <h4>Transcript</h4>
-                <p>{summaryData.transcript}</p>
-              </div>
-            )}
             <div className="video-ai-summary-summary">
               <h4>Summary</h4>
-              <p>{summaryData.summary}</p>
+              <p>{typeof summaryData.summary === 'string' ? summaryData.summary : 'No summary available'}</p>
             </div>
           </div>
         </div>

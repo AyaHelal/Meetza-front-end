@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { VideoSessionsProvider } from "./store/videoSessionsStore";
 import { useVideoSessions } from "./hooks/useVideoSessions";
@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
 import VideoSessionCard from "./components/VideoSessionCard";
 import PostVideoModal from "./components/PostVideoModal";
+import { buildPendingUploadSession, revokePendingUploadBlobs } from "./utils/pendingUploadPlaceholder";
 import "./VideoSessions.css";
 
 function VideoSessionsContent() {
@@ -24,6 +25,7 @@ function VideoSessionsContent() {
     : null;
   const { user } = useAuth();
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -49,6 +51,20 @@ function VideoSessionsContent() {
     setSearchQuery,
     refetch,
   } = useVideoSessions(groupId);
+
+  const handleUploadBegin = useCallback((payload) => {
+    setPendingUploads((prev) => [buildPendingUploadSession(payload), ...prev]);
+  }, []);
+
+  const handleUploadEnd = useCallback((uploadId) => {
+    setPendingUploads((prev) => {
+      const row = prev.find((p) => p.id === uploadId);
+      if (row) revokePendingUploadBlobs(row);
+      return prev.filter((p) => p.id !== uploadId);
+    });
+  }, []);
+
+  const gridSessions = useMemo(() => [...pendingUploads, ...sessions], [pendingUploads, sessions]);
 
   const handleBack = () => {
     navigate("/home", { replace: true });
@@ -82,6 +98,9 @@ function VideoSessionsContent() {
         isOpen={postVideoModalOpen}
         onClose={() => setPostVideoModalOpen(false)}
         defaultGroupId={groupId}
+        groupName={groupNameFromUrl}
+        onUploadBegin={handleUploadBegin}
+        onUploadEnd={handleUploadEnd}
         onSuccess={() => refetch?.()}
       />
 
@@ -95,10 +114,10 @@ function VideoSessionsContent() {
         <div className="video-sessions-loading">Loading video sessions…</div>
       ) : (
         <div className="video-sessions-grid">
-          {sessions.length === 0 ? (
+          {gridSessions.length === 0 ? (
             <p className="video-sessions-empty">No video sessions found.</p>
           ) : (
-            sessions.map((session) => (
+            gridSessions.map((session) => (
               <VideoSessionCard key={session.id ?? session.title} session={session} />
             ))
           )}

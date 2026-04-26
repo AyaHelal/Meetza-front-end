@@ -2,6 +2,8 @@
  * Message formatting, sorting, and link extraction for MainChat.
  */
 
+import { getMediaType } from "./messageItemUtils";
+
 export function formatMessages(msgs) {
   if (!Array.isArray(msgs)) return [];
   const nonDeleted = msgs.filter((msg) => !msg.is_deleted);
@@ -112,6 +114,54 @@ export function combineBackendAndMessageLinks(backendLinks, extractedLinks) {
     }
   });
   return combined;
+}
+
+/**
+ * Media tabs in group info ("Media, Links and Docs") — chat attachments only,
+ * not group content / group_media uploads.
+ */
+export function buildChatOnlyMediaTabResources(messages) {
+  const photos = [];
+  const videos = [];
+  const audio = [];
+  const documents = [];
+  const linksFromMedia = [];
+
+  (messages || []).forEach((msg) => {
+    if (msg.is_deleted) return;
+    const mediaArr = Array.isArray(msg.media) ? msg.media : [];
+    mediaArr.forEach((item) => {
+      const kind = getMediaType(item);
+      if (kind === "link") {
+        linksFromMedia.push({ ...item, isLink: true });
+        return;
+      }
+      if (kind === "image") {
+        photos.push(item);
+        return;
+      }
+      if (kind === "video") {
+        videos.push(item);
+        return;
+      }
+      if (kind === "audio") {
+        audio.push(item);
+        return;
+      }
+      documents.push(item);
+    });
+  });
+
+  const messageTextLinks = extractMessageLinksFromMessages(messages);
+  const links = combineBackendAndMessageLinks(linksFromMedia, messageTextLinks);
+
+  return {
+    photos,
+    videos,
+    audio,
+    documents,
+    links,
+  };
 }
 
 const FILE_TYPE_EXT_MAP = {

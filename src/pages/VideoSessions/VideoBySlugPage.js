@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import VideoSessionDetail from "./components/VideoSessionDetail";
 import VideoSessionsHeader from "./components/VideoSessionsHeader";
@@ -6,6 +6,7 @@ import PostVideoModal from "./components/PostVideoModal";
 import { getVideoBySlug, parseSession } from "./services";
 import { getAllVideos, mapVideoToSession } from "./services/allVideosService";
 import { useAuth } from "../../context/AuthContext";
+import { buildPendingUploadSession, revokePendingUploadBlobs } from "./utils/pendingUploadPlaceholder";
 import "./VideoSessions.css";
 
 export default function VideoBySlugPage() {
@@ -18,6 +19,7 @@ export default function VideoBySlugPage() {
   const [relatedSessions, setRelatedSessions] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -71,9 +73,26 @@ export default function VideoBySlugPage() {
     };
   }, [slug]);
 
+  const handleUploadBegin = useCallback((payload) => {
+    setPendingUploads((prev) => [buildPendingUploadSession(payload), ...prev]);
+  }, []);
+
+  const handleUploadEnd = useCallback((uploadId) => {
+    setPendingUploads((prev) => {
+      const row = prev.find((p) => p.id === uploadId);
+      if (row) revokePendingUploadBlobs(row);
+      return prev.filter((p) => p.id !== uploadId);
+    });
+  }, []);
+
+  const relatedSessionsWithPending = useMemo(
+    () => [...pendingUploads, ...relatedSessions],
+    [pendingUploads, relatedSessions]
+  );
+
   const handleSelectRelated = useCallback(
     (next) => {
-      if (!next) return;
+      if (!next || next._uploadPlaceholder) return;
       const param = next.slug ?? next.id;
       if (param == null || String(param).trim() === "") return;
       navigate(`/video/${encodeURIComponent(String(param))}`);
@@ -131,11 +150,13 @@ export default function VideoBySlugPage() {
       <PostVideoModal
         isOpen={postVideoModalOpen}
         onClose={() => setPostVideoModalOpen(false)}
+        onUploadBegin={handleUploadBegin}
+        onUploadEnd={handleUploadEnd}
         onSuccess={() => window.location.reload()}
       />
       <VideoSessionDetail
         session={session}
-        relatedSessions={relatedSessions}
+        relatedSessions={relatedSessionsWithPending}
         onBack={() => navigate(-1)}
         onSelectSession={handleSelectRelated}
         useGlobalRelated

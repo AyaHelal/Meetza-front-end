@@ -46,6 +46,11 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
   const groupLabel = session?.groupName ?? session?.group_name ?? null;
   const description = session?.description;
   const hasDescription = description && description.trim() !== "" && description.toLowerCase() !== "null";
+  const status = session?.status ?? "completed";
+  const isUploading = status === "uploading" || Boolean(session?._uploadPlaceholder);
+  const isProcessing = status === "processing" && !isUploading;
+  const isError = status === "error";
+  const isBusy = isUploading || isProcessing;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -57,6 +62,7 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
   }, [menuOpen]);
 
   const handleCardClick = (e) => {
+    if (isBusy) return;
     if (menuRef.current && menuRef.current.contains(e.target)) return;
     onClick?.();
   };
@@ -97,11 +103,12 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
 
   return (
     <article
-      className="video-session-card"
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      className={`video-session-card${isBusy ? " video-session-card--processing" : ""}${isUploading ? " video-session-card--uploading-pulse" : ""}${isError ? " video-session-card--error" : ""}`}
+      role={onClick && !isBusy ? "button" : undefined}
+      tabIndex={onClick && !isBusy ? 0 : undefined}
       onClick={handleCardClick}
       onKeyDown={(e) => {
+        if (isBusy) return;
         if (onClick && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onClick();
@@ -117,6 +124,23 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
           rawVideoUrl={rawVideoUrl}
           alt=""
         />
+        {isUploading && (
+          <div className="video-session-card-processing-overlay video-session-card-upload-overlay">
+            <Spinner size={24} className="spinning" />
+            <span>In progress</span>
+          </div>
+        )}
+        {isProcessing && (
+          <div className="video-session-card-processing-overlay">
+            <Spinner size={24} className="spinning" />
+            <span>Processing...</span>
+          </div>
+        )}
+        {isError && (
+          <div className="video-session-card-error-overlay">
+            <span>Upload Failed</span>
+          </div>
+        )}
         {watchProgressPercent != null && (
           <div
             className="video-session-card-progress-track"
@@ -133,14 +157,16 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
           </div>
         )}
         <span className="video-session-card-duration">{duration}</span>
-        <button
-          className={`video-session-card-download-overlay ${downloading ? "downloading" : ""}`}
-          onClick={handleDownload}
-          disabled={downloading}
-          title="Download video"
-        >
-          {downloading ? <Spinner size={20} className="spinning" /> : <Download size={20} />}
-        </button>
+        {!isBusy && (
+          <button
+            className={`video-session-card-download-overlay ${downloading ? "downloading" : ""}`}
+            onClick={handleDownload}
+            disabled={downloading}
+            title="Download video"
+          >
+            {downloading ? <Spinner size={20} className="spinning" /> : <Download size={20} />}
+          </button>
+        )}
       </div>
       <div className="video-session-card-content">
         <div className="video-session-card-text">
@@ -163,13 +189,14 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
               return [];
             };
             const allT = [...new Set([...getT(raw.en), ...getT(raw.ar), ...getT(raw)])];
-            if (allT.length === 0) return null;
+            const validTopics = allT.filter(t => typeof t === 'string' && t.trim() !== '');
+            if (validTopics.length === 0) return null;
             return (
               <div className="video-session-card-topics">
-                {allT.slice(0, 3).map((topic, idx) => (
+                {validTopics.slice(0, 3).map((topic, idx) => (
                   <span key={idx} className="video-session-card-topic-tag">{topic}</span>
                 ))}
-                {allT.length > 3 && <span className="video-session-card-topic-tag">+{allT.length - 3}</span>}
+                {validTopics.length > 3 && <span className="video-session-card-topic-tag">+{validTopics.length - 3}</span>}
               </div>
             );
           })()}
@@ -178,7 +205,7 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
             <p className="video-session-card-description">{description}</p>
           )}
         </div>
-        {isAdmin && (onEdit || onDelete) && (
+        {isAdmin && (onEdit || onDelete) && !session?._uploadPlaceholder && (
           <div className="video-session-card-menu-wrap" ref={menuRef}>
             <button
               type="button"

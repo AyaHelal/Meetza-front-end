@@ -64,6 +64,7 @@ export function invalidateSavedVideosCache() {
 export function buildFileUrl(url) {
   if (!url || typeof url !== "string") return url;
   const trimmed = url.trim();
+  if (trimmed.startsWith("blob:")) return trimmed;
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
   const base = (API_BASE_URL || "").replace(/\/+$/, "");
   const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
@@ -288,6 +289,9 @@ export function parseSession(raw) {
     watchProgressSeconds,
     watchStatus,
     progressPercentage,
+    status: raw.status ?? "completed",
+    summary: typeof raw.summary === 'string' ? raw.summary : null,
+    transcript: typeof raw.transcript === 'string' ? raw.transcript : null,
   };
 }
 
@@ -295,9 +299,10 @@ export function parseSession(raw) {
  * Fetch full details for a single video by id.
  * Uses backend GET /video/:id and returns the parsed payload.
  */
-export async function getVideoDetail(id) {
+export async function getVideoDetail(id, lang = null) {
   if (!id) throw new Error("video id is required");
-  const res = await api.get(`/video/${id}`);
+  const config = lang ? { headers: { 'X-Localization': lang } } : {};
+  const res = await api.get(`/video/${id}`, config);
   const root = res?.data;
   // Backend shape: { success, data: { video, admin, likes_count, ... } }
   return root?.data ?? root;

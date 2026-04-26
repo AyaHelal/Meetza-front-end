@@ -148,11 +148,13 @@
   overflow-y: auto;
 }
 
+.pdf-summary-action .video-ai-summary-topics,
 .pdf-summary-action .video-ai-summary-transcript,
 .pdf-summary-action .video-ai-summary-summary {
   margin-bottom: 1rem;
 }
 
+.pdf-summary-action .video-ai-summary-topics h4,
 .pdf-summary-action .video-ai-summary-transcript h4,
 .pdf-summary-action .video-ai-summary-summary h4 {
   margin: 0 0 0.5rem 0;
@@ -161,12 +163,24 @@
   color: #111827;
 }
 
+.pdf-summary-action .video-ai-summary-topics ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.6;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.pdf-summary-action .video-ai-summary-topics li {
+  margin-bottom: 0.25rem;
+}
+
 .pdf-summary-action .video-ai-summary-transcript p,
 .pdf-summary-action .video-ai-summary-summary p {
   margin: 0;
   line-height: 1.6;
   color: #4b5563;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 768px) {

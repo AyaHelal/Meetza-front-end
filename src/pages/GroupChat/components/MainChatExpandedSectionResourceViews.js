@@ -6,7 +6,6 @@ import {
   Link as LinkIcon,
 } from "@phosphor-icons/react";
 import { File } from "lucide-react";
-import PdfSummaryAction from "../../../components/PdfSummary/PdfSummaryAction";
 import { isPdfResource } from "../../../utils/pdfMedia";
 import {
   getDownloadFileName,
@@ -24,6 +23,64 @@ export function ResourceGrid({
     <div className="expanded-items">
       {items.length === 0 && <p className="empty-state">No items yet.</p>}
       {items.map((item, index) => {
+        if (item._uploadPlaceholder) {
+          const url = item.url || item.file_url || item._previewObjectUrl || "";
+          const isImage =
+            /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
+            item.file_type?.startsWith("image/");
+          const isVideo =
+            /\.(mp4|webm|ogg|mov|mkv|avi)$/i.test(url) ||
+            item.file_type?.startsWith("video/");
+          const isAudio =
+            /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(url) ||
+            item.media_type === "audio" ||
+            item.file_type?.startsWith("audio/");
+          return (
+            <div
+              key={item.id || index}
+              className={`media-item media-item--uploading ${isImage ? "media-item-photo" : isVideo ? "media-item-video" : isAudio ? "media-item-audio" : ""}`}
+            >
+              {isImage ? (
+                <img
+                  src={url || undefined}
+                  className="expanded-photo"
+                  alt=""
+                  style={{ opacity: 0.6 }}
+                />
+              ) : isVideo ? (
+                <div className="video-thumbnail" style={{ opacity: 0.6 }}>
+                  <video
+                    src={url || undefined}
+                    className="expanded-video"
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              ) : isAudio ? (
+                <div className="voice-note-card" style={{ opacity: 0.75 }}>
+                  <div className="voice-note-header">
+                    <div className="voice-note-icon-wrapper">
+                      <Microphone size={20} weight="fill" />
+                    </div>
+                    <div className="voice-note-title">
+                      <span className="voice-note-label">Audio</span>
+                      <span className="voice-note-filename">
+                        {item.file_name || "Uploading…"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="media-placeholder">
+                  <File size={24} />
+                  <span>{item.file_name || "Uploading…"}</span>
+                </div>
+              )}
+              <span className="resource-uploading-indicator">Uploading…</span>
+            </div>
+          );
+        }
         const url = item.url || item.file_url || "";
         const isImage =
           /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
@@ -166,7 +223,56 @@ export function DocumentList({
     <div className="expanded-items documents-grid">
       {items.length === 0 && <p className="empty-state">No documents yet.</p>}
       {items.map((item, index) =>
-        item.media_type === "audio" ? (
+        item._uploadPlaceholder ? (
+          item.media_type === "audio" ? (
+            <div
+              key={item.id || index}
+              className="document-item audio-item document-item--uploading"
+            >
+              <span className="document-name" style={{ fontWeight: 600 }}>
+                {item.file_name || "Audio"}
+              </span>
+              <span className="resource-uploading-indicator">Uploading…</span>
+            </div>
+          ) : (
+            (() => {
+              const fileName = getDownloadFileName(item);
+              const extFromLabel = getFileExtensionForLabel(fileName).toLowerCase();
+              const cardInner = (
+                <>
+                  <div className="document-icon">
+                    <span className="document-extension">
+                      {getFileExtensionForLabel(fileName)}
+                    </span>
+                  </div>
+                  <div className="document-name">{fileName}</div>
+                  <span className="resource-uploading-indicator">Uploading…</span>
+                </>
+              );
+              const isPdf = extFromLabel === "pdf" || isPdfResource(item);
+              if (isPdf) {
+                return (
+                  <div
+                    key={item.id || index}
+                    className="document-square-wrap document-item--pdf"
+                  >
+                    <div className="document-item document-square document-item--uploading">
+                      {cardInner}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={item.id || index}
+                  className="document-item document-square document-item--uploading"
+                >
+                  {cardInner}
+                </div>
+              );
+            })()
+          )
+        ) : item.media_type === "audio" ? (
           <div
             key={item.id || index}
             className="document-item audio-item"
@@ -230,11 +336,6 @@ export function DocumentList({
                   key={item.id || index}
                   className="document-square-wrap document-item--pdf"
                 >
-                  <PdfSummaryAction
-                    fileUrl={fileUrl}
-                    fileName={fileName}
-                    triggerClassName="pdf-summary-trigger--doc-card"
-                  />
                   <a
                     href={fileUrl}
                     onClick={handleDownload}

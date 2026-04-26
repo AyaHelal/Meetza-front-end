@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../../API/axiosInstance";
-import { createVideo, summarizeVideo, buildFileUrl } from "../services";
+import { createVideo, buildFileUrl } from "../services";
 import { smartToast } from "../../../API/toastManager";
 import "./PostVideoModal.css";
 import { dedupeById } from "../../../utils/dedupeById";
@@ -32,7 +32,19 @@ function getVideoDuration(file) {
   });
 }
 
-export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null, groupName = null, onSuccess }) {
+/**
+ * @param {function} [onUploadBegin] — called when POST starts; use to show optimistic card ({ uploadId, title, description, groupName, thumbnailUrl, videoPreviewUrl, duration })
+ * @param {function} [onUploadEnd] — (uploadId, success) when request finishes (so parent can remove placeholder + revoke blob URLs)
+ */
+export default function PostVideoModal({
+  isOpen,
+  onClose,
+  defaultGroupId = null,
+  groupName = null,
+  onSuccess,
+  onUploadBegin,
+  onUploadEnd,
+}) {
   const isGroupLocked = Boolean(defaultGroupId?.toString?.().trim?.());
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -55,6 +67,15 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
       group_id: isGroupLocked ? (defaultGroupId?.toString?.() || "") : (prev.group_id || ""),
     }));
   }, [isOpen, defaultGroupId, isGroupLocked]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("post-video-modal-open");
+      setSubmitting(false);
+    } else {
+      document.body.classList.remove("post-video-modal-open");
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || isGroupLocked) return;
@@ -115,9 +136,29 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
       smartToast.error("Please select a group");
       return;
     }
-    setSubmitting(true);
+
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const posterBlobUrl = formData.poster_file ? URL.createObjectURL(formData.poster_file) : null;
+    const videoBlobUrl = formData.video_file ? URL.createObjectURL(formData.video_file) : null;
+    const resolvedGroupName = isGroupLocked
+      ? groupName || null
+      : (groups.find((g) => String(g.id) === String(groupId))?.name ?? null);
+
+    onUploadBegin?.({
+      uploadId,
+      title: formData.title.trim(),
+      description: formData.description?.trim() || "",
+      groupName: resolvedGroupName,
+      groupId: String(groupId),
+      thumbnailUrl: posterBlobUrl,
+      videoPreviewUrl: videoBlobUrl,
+      duration: formData.duration?.trim() || "00:00",
+    });
+
+    onClose?.();
+
     try {
-      const videoData = await createVideo({
+      await createVideo({
         title: formData.title.trim(),
         description: formData.description?.trim() || "",
         duration: formData.duration?.trim() || "00:00",
@@ -127,18 +168,6 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
         video_file: formData.video_file,
       });
       smartToast.success("Video posted successfully");
-      // Trigger AI summary in background for EN and AR (same as meeting recording flow)
-      if (videoData?.id && videoData?.video_url) {
-        const fullUrl = buildFileUrl(videoData.video_url);
-        if (fullUrl) {
-          summarizeVideo(videoData.id, fullUrl, "en").catch((err) =>
-            console.warn("Background summary EN failed:", err)
-          );
-          summarizeVideo(videoData.id, fullUrl, "ar").catch((err) =>
-            console.warn("Background summary AR failed:", err)
-          );
-        }
-      }
       setFormData({
         title: "",
         description: "",
@@ -148,13 +177,12 @@ export default function PostVideoModal({ isOpen, onClose, defaultGroupId = null,
         poster_file: null,
         video_file: null,
       });
+      onUploadEnd?.(uploadId, true);
       onSuccess?.();
-      onClose?.();
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || "Failed to post video";
       smartToast.error(msg);
-    } finally {
-      setSubmitting(false);
+      onUploadEnd?.(uploadId, false);
     }
   };
 

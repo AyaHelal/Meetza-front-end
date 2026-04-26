@@ -4,7 +4,8 @@ import Lottie from "lottie-react";
 import { Spinner } from "@phosphor-icons/react";
 import aiAnimation from "../../lottie/AI.json";
 import { smartToast } from "../../API/toastManager";
-import { summarizePdfFromUrl } from "../../services/pdfSummaryService";
+import { getPdfSummaryFromGroupContents } from "../../pages/GroupChat/services/groupChatService";
+import api from "../../API/axiosInstance";
 import "./PdfSummaryAction.css";
 
 export default function PdfSummaryAction({
@@ -88,21 +89,21 @@ export default function PdfSummaryAction({
       }
       setLoading(true);
       try {
-        const { summary, transcript } = await summarizePdfFromUrl(fileUrl, fileName || "document.pdf");
+        const { summary, topics } = await getPdfSummaryFromGroupContents(api, fileUrl, "en");
         setSummaryData({
           summary: summary || "No summary available",
-          transcript: transcript || null,
+          topics: topics || null,
         });
         setShowSummary(true);
-        smartToast.success("Summary generated successfully!");
+        smartToast.success("Summary loaded successfully!");
       } catch (err) {
-        const msg = err?.message || "Failed to generate summary";
+        const msg = err?.message || "Failed to load summary";
         smartToast.error(msg);
       } finally {
         setLoading(false);
       }
     },
-    [fileUrl, fileName]
+    [fileUrl]
   );
 
   const panel =
@@ -141,10 +142,14 @@ export default function PdfSummaryAction({
                 </button>
               </div>
               <div className="video-ai-summary-content">
-                {summaryData.transcript ? (
-                  <div className="video-ai-summary-transcript">
-                    <h4>Transcript</h4>
-                    <p>{summaryData.transcript}</p>
+                {summaryData.topics && summaryData.topics.length > 0 ? (
+                  <div className="video-ai-summary-topics">
+                    <h4>Topics</h4>
+                    <ul>
+                      {summaryData.topics.map((topic, idx) => (
+                        <li key={idx}>{topic}</li>
+                      ))}
+                    </ul>
                   </div>
                 ) : null}
                 <div className="video-ai-summary-summary">

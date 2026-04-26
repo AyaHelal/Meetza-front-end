@@ -225,3 +225,71 @@ export async function reactToMessage(api, groupId, messageId, body = {}) {
   );
   return res?.data ?? null;
 }
+
+/**
+ * Fetch PDF summary from group-contents API.
+ * Finds the resource matching the fileUrl and returns its summary.
+ * GET `/group-contents`
+ *
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} fileUrl - The file URL to search for
+ * @param {string} [lang="en"] - Language preference (ar/en)
+ * @returns {Promise<{ summary: string, topics: string[] | null }>}
+ */
+export async function getPdfSummaryFromGroupContents(api, fileUrl, lang = "en") {
+  if (!fileUrl) throw new Error("Missing file URL");
+
+  const res = await api.get("/group-contents", {
+    headers: lang ? { "X-Localization": lang } : {},
+  });
+
+  const root = res?.data;
+  const contents = Array.isArray(root)
+    ? root
+    : Array.isArray(root?.data)
+      ? root.data
+      : [];
+
+  // Find the resource matching the fileUrl
+  let foundResource = null;
+  for (const content of contents) {
+    const resources = content?.resources || [];
+    for (const resource of resources) {
+      if (resource.file_url === fileUrl || resource.fileUrl === fileUrl) {
+        foundResource = resource;
+        break;
+      }
+    }
+    if (foundResource) break;
+  }
+
+  if (!foundResource) {
+    throw new Error("PDF not found in group contents");
+  }
+
+  // Extract summary from {ar, en} format
+  const summaryObj = foundResource.summary || {};
+  let summary = "";
+  if (typeof summaryObj === "string") {
+    summary = summaryObj;
+  } else if (summaryObj && typeof summaryObj === "object") {
+    summary = summaryObj[lang] || summaryObj["en"] || summaryObj["ar"] || "";
+  }
+
+  // Extract topics from {ar, en} format
+  const topicsObj = foundResource.topics || {};
+  let topics = null;
+  if (typeof topicsObj === "string") {
+    topics = topicsObj;
+  } else if (topicsObj && typeof topicsObj === "object") {
+    const topicsList = topicsObj[lang] || topicsObj["en"] || topicsObj["ar"];
+    if (Array.isArray(topicsList)) {
+      topics = topicsList;
+    }
+  }
+
+  return {
+    summary: summary || "No summary available",
+    topics,
+  };
+}
