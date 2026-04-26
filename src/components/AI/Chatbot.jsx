@@ -1,28 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, PaperPlaneTilt, Robot } from "@phosphor-icons/react";
+import api from "../../API/axiosInstance";
 
 export default function Chatbot({ isOpen, onClose }) {
   const [messages, setMessages] = useState([
     { id: 1, text: "Hello! I'm your Meetza assistant. How can I help you today?", isBot: true },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
     
-    const newUserMessage = { id: Date.now(), text: inputValue, isBot: false };
-    setMessages([...messages, newUserMessage]);
+    const userMessageText = inputValue;
+    const newUserMessage = { id: Date.now(), text: userMessageText, isBot: false };
+    setMessages((prev) => [...prev, newUserMessage]);
     setInputValue("");
+    setIsLoading(true);
 
-    // Simulate bot response
-    setTimeout(() => {
+    try {
+      const response = await api.post("/chat-bot/message", { message: userMessageText });
+      
       const botResponse = { 
         id: Date.now() + 1, 
-        text: "I'm still learning! My AI brain will be fully functional soon. Stay tuned! 🚀", 
+        text: response.data?.data?.reply || response.data?.message || "I received your message!", 
         isBot: true 
       };
       setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error("❌ Chatbot Error:", error);
+      const errorMessage = { 
+        id: Date.now() + 1, 
+        text: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.", 
+        isBot: true,
+        isError: true
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -113,11 +138,13 @@ export default function Chatbot({ isOpen, onClose }) {
 
         .message {
           max-width: 80%;
+          width: fit-content;
           padding: 12px 16px;
           border-radius: 18px;
           font-size: 0.95rem;
           line-height: 1.5;
           position: relative;
+          word-break: break-word;
         }
 
         .bot-message {
@@ -176,6 +203,38 @@ export default function Chatbot({ isOpen, onClose }) {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 118, 234, 0.2);
         }
+        .message.error-message {
+          background: #fee2e2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+        }
+
+        .typing-indicator {
+          align-self: flex-start;
+          background: white;
+          padding: 12px 16px;
+          border-radius: 18px;
+          border-bottom-left-radius: 4px;
+          display: flex;
+          gap: 4px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .typing-dot {
+          width: 6px;
+          height: 6px;
+          background: #94a3b8;
+          border-radius: 50%;
+          animation: typingPulse 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingPulse {
+          0%, 100% { transform: translateY(0); opacity: 0.4; }
+          50% { transform: translateY(-4px); opacity: 1; }
+        }
       `}</style>
 
       <div className="chatbot-header">
@@ -196,10 +255,18 @@ export default function Chatbot({ isOpen, onClose }) {
 
       <div className="chatbot-messages">
         {messages.map((msg) => (
-          <div key={msg.id} className={`message ${msg.isBot ? "bot-message" : "user-message"}`}>
+          <div key={msg.id} className={`message ${msg.isBot ? "bot-message" : "user-message"} ${msg.isError ? "error-message" : ""}`}>
             {msg.text}
           </div>
         ))}
+        {isLoading && (
+          <div className="typing-indicator">
+            <div className="typing-dot"></div>
+            <div className="typing-dot"></div>
+            <div className="typing-dot"></div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="chatbot-input">
@@ -209,9 +276,10 @@ export default function Chatbot({ isOpen, onClose }) {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          disabled={isLoading}
         />
-        <button className="send-btn" onClick={handleSend}>
-          <PaperPlaneTilt size={20} weight="fill" />
+        <button className="send-btn" onClick={handleSend} disabled={isLoading || !inputValue.trim()}>
+          <PaperPlaneTilt size={20} weight="fill" style={{ opacity: isLoading || !inputValue.trim() ? 0.5 : 1 }} />
         </button>
       </div>
     </div>

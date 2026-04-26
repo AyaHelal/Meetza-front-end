@@ -115,7 +115,44 @@ export default function RobotOrb({ onClick }) {
         .platform{position:absolute;bottom:24px;width:70px;height:14px;background:radial-gradient(ellipse,rgba(51,149,255,.5) 0%,rgba(0,118,234,.2) 50%,transparent 80%);border-radius:50%;filter:blur(2px);}
         .platform-top{position:absolute;bottom:30px;width:55px;height:12px;background:linear-gradient(180deg,rgba(128,187,255,.6),rgba(51,149,255,.3));border-radius:50%;box-shadow:0 0 20px rgba(51,149,255,.6),0 0 40px rgba(0,118,234,.3);}
         .glow-base{position:absolute;bottom:10px;width:120px;height:24px;background:radial-gradient(ellipse,rgba(0,118,234,.4) 0%,transparent 70%);filter:blur(8px);animation:glowPulse 2s ease-in-out infinite;}
-        .robot{position:absolute;bottom:38px;display:flex;flex-direction:column;align-items:center;animation:hover 3s ease-in-out infinite;}
+        .robot-tooltip {
+          position: absolute;
+          top: -5px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #1e293b;
+          color: white;
+          padding: 6px 12px;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+          z-index: 20;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          pointer-events: none;
+        }
+        .robot-orb-container:hover .robot-tooltip {
+          opacity: 1;
+          visibility: visible;
+          top: -15px;
+        }
+        .robot-tooltip::after {
+          content: '';
+          position: absolute;
+          bottom: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 6px solid #1e293b;
+        }
+        .robot{position:absolute;bottom:-30px;width:180px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:hover 3s ease-in-out infinite; background: radial-gradient(circle, rgba(147,197,253,0.5) 0%, rgba(96,165,250,0.3) 60%, transparent 80%); border-radius: 50%;}
         .r-head{width:46px;height:46px;background:linear-gradient(145deg,#f0f7ff,#e0efff,#cce4ff);border-radius:50%;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.2),inset 0 -4px 10px rgba(0,0,0,.1),inset 0 4px 8px rgba(255,255,255,.8);}
         .r-visor{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:32px;height:18px;background:rgba(15,23,42,.85);border-radius:9px;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:inset 0 2px 4px rgba(0,0,0,.5);}
         .r-eye{width:9px;height:9px;border-radius:50%;background:#1a1a2e;position:relative;}
@@ -194,6 +231,9 @@ export default function RobotOrb({ onClick }) {
 
           {/* Robot */}
           <div className="robot">
+            <div className="robot-tooltip">
+              <span style={{ fontSize: "16px" }}>👋</span> Need help?
+            </div>
             <div className="r-head">
               <div className="r-visor">
                 <div className="r-eye"></div>
