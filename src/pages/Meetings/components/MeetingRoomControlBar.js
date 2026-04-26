@@ -46,6 +46,8 @@ const MeetingRoomControlBar = ({
   onStartRecording,
   onStopRecording,
   onEndRecording,
+  meetingSpeakerMuted,
+  setMeetingSpeakerMuted,
 }) => {
   const remoteIds = unifiedTiles.filter((t) => !t?.isSelf && t?.socketId).map((t) => t.socketId);
   const hasRemote = remoteIds.length > 0;
@@ -158,7 +160,16 @@ const MeetingRoomControlBar = ({
           type="button"
           className="meeting-room-control-btn"
           aria-label="Chat"
-          onClick={() => setShowCommentInput(true)}
+          onClick={() => {
+            if (window.innerWidth <= 600) {
+              const chatSection = document.getElementById("meeting-chat-section");
+              if (chatSection) {
+                chatSection.scrollIntoView({ behavior: "smooth" });
+              }
+            } else {
+              setShowCommentInput(true);
+            }
+          }}
         >
           <ChatCircleDots size={22} weight="regular" />
         </button>

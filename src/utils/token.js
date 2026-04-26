@@ -10,15 +10,9 @@ export function extractUserFromToken() {
         let token = localStorage.getItem("token");
         if (!token) token = sessionStorage.getItem("token");
         if (!token) return null;
-
         const payload = jwtDecode(token);
         const photo =
-            payload.photo ??
-            payload.picture ??
-            payload.avatar ??
-            payload.image ??
             payload.user_photo ??
-            payload.profile_image ??
             null;
         return {
             id: payload.id ?? payload.sub ?? null,

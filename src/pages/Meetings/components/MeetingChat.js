@@ -129,7 +129,7 @@ const MeetingChat = () => {
 
 
     return (
-        <div className="meeting-chat">
+        <div className="meeting-chat" id="meeting-chat-section">
             <h4 className="meeting-chat-title">Comments during meeting</h4>
 
             <div className="meeting-chat-messages">
