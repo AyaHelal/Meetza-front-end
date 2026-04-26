@@ -138,11 +138,13 @@ export default function Chatbot({ isOpen, onClose }) {
 
         .message {
           max-width: 80%;
+          width: fit-content;
           padding: 12px 16px;
           border-radius: 18px;
           font-size: 0.95rem;
           line-height: 1.5;
           position: relative;
+          word-break: break-word;
         }
 
         .bot-message {
