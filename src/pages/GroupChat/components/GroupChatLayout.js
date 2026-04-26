@@ -22,7 +22,6 @@ function GroupChatLayout({
   activeInfoSection,
   onCloseSection,
   contentResources,
-  groupMediaItems,
   groupMembers,
   groupInfo,
   currentUserEmail,
@@ -89,7 +88,6 @@ function GroupChatLayout({
         activeSection={activeInfoSection}
         onCloseSection={onCloseSection}
         contentResources={contentResources}
-        groupMediaItems={groupMediaItems}
         groupMembers={groupMembers}
         groupInfo={groupInfo}
         currentUserEmail={currentUserEmail}

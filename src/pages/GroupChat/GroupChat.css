@@ -4374,6 +4374,57 @@ body.group-chat-active {
   width: 100%;
 }
 
+.document-item.document-item--uploading {
+  opacity: 0.88;
+  pointer-events: none;
+  cursor: default;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.document-item.document-item--uploading.document-square:hover {
+  background: white;
+  border-color: var(--border-color);
+  transform: none;
+  box-shadow: none;
+}
+
+.document-square-wrap .document-item.document-item--uploading.document-square:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.media-item.media-item--uploading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.media-item.media-item--uploading .resource-uploading-indicator,
+.document-item.document-item--uploading .resource-uploading-indicator {
+  display: block;
+  width: 100%;
+  font-size: 11px;
+  color: var(--secondary-color, #3b82f6);
+  font-weight: 600;
+  text-align: center;
+  animation: groupResourceUploadPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes groupResourceUploadPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* Modal for enlarged photo */
 .photo-modal {
   position: fixed;

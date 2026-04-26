@@ -1,7 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { categorizeResources } from "./utils";
 import { getUserByEmail, joinGroup, deleteMembership, getGroupMemberships, deleteResource, addResource, addLinkResource, addGroupAdmin, removeGroupAdminByEmail } from "../../Groups/services/groupsService";
 import { smartToast } from "../../../API/toastManager";
+import {
+  buildPendingResourceUpload,
+  revokePendingResourceBlobs,
+} from "../../Meetings/utils/pendingResourceUpload";
 import { parseEmailsInput } from "../../../utils/parseEmailsInput";
 import { getEffectiveMemberRole } from "./MainChatExpandedSectionRoleUtils";
 import MainChatExpandedSectionMembersView from "./MainChatExpandedSectionMembersView";
@@ -43,7 +47,7 @@ export default function MainChatExpandedSection({
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [isSubmittingLink, setIsSubmittingLink] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [pendingResourceUploads, setPendingResourceUploads] = useState([]);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editVal, setEditVal] = useState("");
   const titleInputRef = useRef(null);
@@ -327,8 +331,56 @@ export default function MainChatExpandedSection({
     fileInputRef.current?.click();
   };
 
+  const pendingUploadsRef = useRef([]);
+  useEffect(() => {
+    pendingUploadsRef.current = pendingResourceUploads;
+  }, [pendingResourceUploads]);
+
+  useEffect(() => {
+    return () => {
+      pendingUploadsRef.current.forEach(revokePendingResourceBlobs);
+    };
+  }, []);
+
+  const bucketForPendingItem = (item) => {
+    if (item?.media_type === "audio") return "audio";
+    const ft = String(item?.file_type || "").toLowerCase();
+    if (ft.startsWith("image/") || ft.startsWith("video/")) return "photos";
+    if (ft.startsWith("audio/")) return "audio";
+    const name = String(item?.file_name || item?.fileName || "");
+    const ext = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
+    const videoExt = ["mp4", "mov", "webm", "mkv", "avi"];
+    const audioExt = ["mp3", "wav", "aac", "m4a", "ogg"];
+    if (videoExt.includes(ext)) return "photos";
+    if (audioExt.includes(ext)) return "audio";
+    return "documents";
+  };
+
+  const contentResourcesWithPending = useMemo(() => {
+    const base = contentResources || {
+      photos: [],
+      links: [],
+      documents: [],
+      audio: [],
+    };
+    const photos = [...(base.photos || [])];
+    const documents = [...(base.documents || [])];
+    const audio = [...(base.audio || [])];
+    const links = [...(base.links || [])];
+
+    for (const p of pendingResourceUploads) {
+      const b = bucketForPendingItem(p);
+      if (b === "photos") photos.unshift(p);
+      else if (b === "audio") audio.unshift(p);
+      else documents.unshift(p);
+    }
+
+    return { ...base, photos, documents, audio, links };
+  }, [contentResources, pendingResourceUploads]);
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (!file) return;
 
     if (!groupInfo?.content?.id) {
@@ -336,17 +388,43 @@ export default function MainChatExpandedSection({
       return;
     }
 
-    setIsUploading(true);
+    const contentId = groupInfo.content.id;
+    const uploadId = `resource-upload-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const previewUrl = URL.createObjectURL(file);
+    const pending = buildPendingResourceUpload({
+      uploadId,
+      fileName: file.name,
+      fileType: file.type,
+      previewUrl,
+    });
+    const ft = (file.type || "").toLowerCase();
+    const ext = file.name?.includes(".")
+      ? file.name.split(".").pop().toLowerCase()
+      : "";
+    const audioExt = ["mp3", "wav", "aac", "m4a", "ogg"];
+    if (ft.startsWith("audio/") || audioExt.includes(ext)) {
+      pending.media_type = "audio";
+    }
+
+    setPendingResourceUploads((prev) => [pending, ...prev]);
+
     try {
-      await addResource(groupInfo.content.id, file);
+      await addResource(contentId, file);
+      await onRefreshGroupInfo?.();
       smartToast.success("File uploaded successfully");
-      window.location.reload();
+      setPendingResourceUploads((prev) => {
+        const row = prev.find((p) => p.id === uploadId);
+        if (row) revokePendingResourceBlobs(row);
+        return prev.filter((p) => p.id !== uploadId);
+      });
     } catch (error) {
       console.error("Failed to upload file:", error);
       smartToast.error(error.response?.data?.message || "Failed to upload file");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPendingResourceUploads((prev) => {
+        const row = prev.find((p) => p.id === uploadId);
+        if (row) revokePendingResourceBlobs(row);
+        return prev.filter((p) => p.id !== uploadId);
+      });
     }
   };
 
@@ -434,7 +512,7 @@ export default function MainChatExpandedSection({
         mediaTabResources={mediaTabResources}
         mediaTab={mediaTab}
         setMediaTab={setMediaTab}
-        contentResources={contentResources}
+        contentResources={contentResourcesWithPending}
         contentTab={contentTab}
         setContentTab={setContentTab}
         onMediaClick={onMediaClick}
@@ -459,7 +537,6 @@ export default function MainChatExpandedSection({
         setNewLinkUrl={setNewLinkUrl}
         handleAddLinkResource={handleAddLinkResource}
         isSubmittingLink={isSubmittingLink}
-        isUploading={isUploading}
       />
     );
   }

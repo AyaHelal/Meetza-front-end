@@ -42,7 +42,6 @@ export default function MainChatExpandedSectionContentView({
   setNewLinkUrl,
   handleAddLinkResource,
   isSubmittingLink,
-  isUploading,
 }) {
   let expandedContentBody = null;
 
@@ -344,23 +343,6 @@ export default function MainChatExpandedSectionContentView({
         </div>
       )}
 
-      {isUploading && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10001,
-          }}
-        >
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Uploading...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

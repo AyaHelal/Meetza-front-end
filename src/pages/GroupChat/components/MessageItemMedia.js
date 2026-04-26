@@ -1,6 +1,5 @@
 import React from 'react';
 import MessageItemAudioPlayer from './MessageItemAudioPlayer';
-import PdfSummaryAction from '../../../components/PdfSummary/PdfSummaryAction';
 import { getMediaType, getFileNameFromMedia, ensureFileExtension, getExtension } from '../utils/messageItemUtils';
 
 function FileIconPlaceholder({ name }) {
@@ -131,7 +130,6 @@ export default function MessageItemMedia({ finalMedia, isOwnMessage, onMediaClic
               key={key}
               className={`message-media-doc-outer message-media-doc--pdf${isOwnMessage ? ' message-media-doc-outer--own' : ' message-media-doc-outer--other'}`}
             >
-              <PdfSummaryAction fileUrl={mediaUrl} fileName={finalFileName} />
               <a
                 href={mediaUrl}
                 className="message-media message-media-doc"

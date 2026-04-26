@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { VideoSessionsProvider } from "../VideoSessions/store/videoSessionsStore";
 import VideoSessionsSection from "../VideoSessions/VideoSessionsSection";
 import "./GroupChat.css";
-import { categorizeResources, categorizeMediaItems } from "./components/utils";
+import { categorizeResources } from "./components/utils";
 import GroupChatLayout from "./components/GroupChatLayout";
 
 import axiosInstance from "../../API/axiosInstance";
@@ -23,7 +23,7 @@ import { leaveGroup as leaveGroupHttp } from "../Groups/services/groupsService";
 import LeaveGroupLastAdminModal from "../Groups/components/LeaveGroupLastAdminModal";
 import { smartToast } from "../../API/toastManager";
 import { meetingToCalendarEvent, getMeetingId } from "./utils/mainChatMeetingUtils";
-import { extractLinksFromMessages } from "./utils/groupChatFormatters";
+import { formatMessages, buildChatOnlyMediaTabResources } from "./utils/mainChatMessageUtils";
 
 export default function GroupChat() {
   const { user } = useContext(AuthContext);
@@ -444,66 +444,16 @@ export default function GroupChat() {
     [rawContentResources]
   );
 
-  const mediaArray = useMemo(() => {
-    if (groupInfo?.group?.group_media) return groupInfo.group.group_media;
-    return groupInfo?.group_media || [];
-  }, [groupInfo]);
-
-  const groupMediaItems = useMemo(
-    () => categorizeMediaItems(mediaArray),
-    [mediaArray]
-  );
-
-  const allLinks = useMemo(() => {
-    const backendLinks = groupMediaItems?.links || [];
-    const extracted = extractLinksFromMessages(messages);
-    const seen = new Set();
-    const combined = [];
-    backendLinks.forEach((link) => {
-      const url = link.media_url || link.file_url || "";
-      if (!url) return;
-      try {
-        const norm = new URL(url).href.toLowerCase().replace(/\/$/, "");
-        if (!seen.has(norm)) {
-          seen.add(norm);
-          combined.push({ ...link, isLink: true });
-        }
-      } catch {
-        if (!seen.has(url.toLowerCase())) {
-          seen.add(url.toLowerCase());
-          combined.push({ ...link, isLink: true });
-        }
-      }
-    });
-    extracted.forEach((link) => {
-      const url = link.media_url || link.original_url || "";
-      if (!url) return;
-      try {
-        const norm = new URL(url).href.toLowerCase().replace(/\/$/, "");
-        if (!seen.has(norm)) {
-          seen.add(norm);
-          combined.push(link);
-        }
-      } catch {
-        if (!seen.has(url.toLowerCase())) {
-          seen.add(url.toLowerCase());
-          combined.push(link);
-        }
-      }
-    });
-    return combined;
-  }, [groupMediaItems?.links, messages]);
-
-  const mediaSummary = useMemo(
-    () => ({
-      images: groupMediaItems?.images || [],
-      videos: groupMediaItems?.videos || [],
-      audio: groupMediaItems?.audio || [],
-      files: groupMediaItems?.files || [],
-      links: allLinks,
-    }),
-    [groupMediaItems, allLinks]
-  );
+  const mediaSummary = useMemo(() => {
+    const r = buildChatOnlyMediaTabResources(formatMessages(messages));
+    return {
+      images: r.photos,
+      videos: r.videos,
+      audio: r.audio,
+      files: r.documents,
+      links: r.links,
+    };
+  }, [messages]);
 
   const groupMembers = useMemo(() => groupInfo?.members || [], [groupInfo]);
 
@@ -670,7 +620,6 @@ export default function GroupChat() {
         activeInfoSection={activeInfoSection}
         onCloseSection={() => setActiveInfoSection(null)}
         contentResources={contentResources}
-        groupMediaItems={groupMediaItems}
         groupMembers={groupMembers}
         groupInfo={groupInfo}
         currentUserEmail={user?.email}

@@ -43,7 +43,6 @@ const MainChat = ({
   onCloseSection,
   setExpandedSection,
   contentResources,
-  groupMediaItems,
   groupMembers,
   groupInfo,
   currentUserEmail,
@@ -112,7 +111,7 @@ const MainChat = ({
     activeSection,
   });
 
-  const { mediaTabResources } = useMainChatMediaLinks(messages, groupMediaItems);
+  const { mediaTabResources } = useMainChatMediaLinks(messages);
 
   useEffect(() => {
     setContentTab("media");

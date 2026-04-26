@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, Trash, UserCircle, Info } from '@phosphor-icons/react';
+import { Microphone, MicrophoneSlash, Paperclip, PlusCircle, Trash, UserCircle } from '@phosphor-icons/react';
 import './MeetingRightSidebar.css';
 import api from '../../../API/axiosInstance';
 import { smartToast } from '../../../API/toastManager';
@@ -11,6 +11,7 @@ import { useMediaContext } from '../../../context/MediaContext';
 import { ConfirmDeleteModal } from '../../../components/shared/ConfirmDeleteModal';
 import PdfSummaryAction from '../../../components/PdfSummary/PdfSummaryAction';
 import { isPdfResource } from '../../../utils/pdfMedia';
+import { buildPendingResourceUpload, revokePendingResourceBlobs } from '../utils/pendingResourceUpload';
 
 const MeetingRightSidebar = () => {
     const getParticipantDisplayName = (p, fallbackIndex) => {
@@ -80,6 +81,7 @@ const MeetingRightSidebar = () => {
     const [resources, setResources] = useState([]);
     const [loadingResources, setLoadingResources] = useState(false);
     const [uploadingResource, setUploadingResource] = useState(false);
+    const [pendingResourceUploads, setPendingResourceUploads] = useState([]);
     const [deletingResourceId, setDeletingResourceId] = useState(null);
     const [showDeleteResourceModal, setShowDeleteResourceModal] = useState(false);
     const [resourceToDelete, setResourceToDelete] = useState(null);
@@ -178,24 +180,66 @@ const MeetingRightSidebar = () => {
                 e.target.value = '';
                 return;
             }
-            setUploadingResource(true);
-            try {
-                const formData = new FormData();
-                for (let i = 0; i < files.length; i++) formData.append('files', files[i]);
-                formData.append('meeting_id', meetingId);
-                await api.post(`/group-contents/${groupContentId}/files`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
+
+            // Create pending uploads for each file (optimistic UI)
+            const pendingUploads = [];
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const uploadId = `resource-upload-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 10)}`;
+                const previewUrl = file ? URL.createObjectURL(file) : null;
+                const pending = buildPendingResourceUpload({
+                    uploadId,
+                    fileName: file.name,
+                    fileType: file.type,
+                    previewUrl,
+                    meetingId,
                 });
+                pendingUploads.push({ uploadId, pending, file, previewUrl });
+            }
+
+            // Add all pending uploads to the list immediately
+            setPendingResourceUploads((prev) => [...pendingUploads.map((p) => p.pending), ...prev]);
+            setUploadingResource(true);
+            e.target.value = '';
+
+            // Upload each file in the background (non-blocking)
+            const uploadPromises = pendingUploads.map(async ({ uploadId, pending, file, previewUrl }) => {
+                try {
+                    const formData = new FormData();
+                    formData.append('files', file);
+                    formData.append('meeting_id', meetingId);
+                    await api.post(`/group-contents/${groupContentId}/files`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                    });
+                    // Remove from pending on success
+                    setPendingResourceUploads((prev) => {
+                        const row = prev.find((p) => p.id === uploadId);
+                        if (row) revokePendingResourceBlobs(row);
+                        return prev.filter((p) => p.id !== uploadId);
+                    });
+                    return { success: true, uploadId };
+                } catch (err) {
+                    // Remove from pending on error
+                    setPendingResourceUploads((prev) => {
+                        const row = prev.find((p) => p.id === uploadId);
+                        if (row) revokePendingResourceBlobs(row);
+                        return prev.filter((p) => p.id !== uploadId);
+                    });
+                    const msg = err?.response?.data?.message || err?.message || `Failed to upload ${file.name}`;
+                    smartToast.error(msg);
+                    return { success: false, uploadId, error: msg };
+                }
+            });
+
+            // Wait for all uploads and refresh resources list
+            const results = await Promise.allSettled(uploadPromises);
+            const hasSuccess = results.some((r) => r.status === 'fulfilled' && r.value?.success);
+            if (hasSuccess) {
                 smartToast.success('Resource(s) added.');
                 await fetchResources(meetingId);
                 if (socket) socket.emit('meetingResourceAdded', { meetingId });
-            } catch (err) {
-                const msg = err?.response?.data?.message || err?.message || 'Failed to add resource';
-                smartToast.error(msg);
-            } finally {
-                setUploadingResource(false);
-                e.target.value = '';
             }
+            setUploadingResource(false);
         },
         [groupContentId, meetingId, fetchResources, socket]
     );
@@ -374,9 +418,6 @@ const MeetingRightSidebar = () => {
                 <div className="video-description-header">
                     <h3 className="video-description-title fw-semibold">
                         Video description
-                        <span className="video-description-title-info" aria-hidden>
-                            <Info size={16} weight="regular" />
-                        </span>
                     </h3>
                     {showAddResourceBtn && (
                         <>
@@ -419,51 +460,68 @@ const MeetingRightSidebar = () => {
                             <div className="description-item">
                                 <span>Loading resources...</span>
                             </div>
-                        ) : resources.length === 0 ? (
+                        ) : resources.length === 0 && pendingResourceUploads.length === 0 ? (
                             <div className="description-item">
                                 <span>No resources attached to this meeting.</span>
                             </div>
                         ) : (
-                            resources.map((resItem) => {
-                                const isPdf = isPdfResource(resItem);
-                                return (
-                                <div
-                                    key={resItem.id}
-                                    className={`description-item description-item--with-actions${isPdf ? ' description-item--pdf-resource' : ''}`}
-                                    title={resItem.file_name || resItem.name}
-                                >
-                                    <Paperclip size={20} weight="regular" className="item-icon" />
-                                    <a
-                                        href={resItem.file_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="description-item-link"
+                            <>
+                                {/* Pending uploads - show first */}
+                                {pendingResourceUploads.map((resItem) => (
+                                    <div
+                                        key={resItem.id}
+                                        className="description-item description-item--uploading"
+                                        title={resItem.file_name}
                                     >
-                                        {resItem.file_name || 'Resource file'}
-                                    </a>
-                                    {isPdf && resItem.file_url ? (
-                                        <PdfSummaryAction
-                                            fileUrl={resItem.file_url}
-                                            fileName={resItem.file_name || resItem.name || 'document.pdf'}
-                                            triggerClassName="pdf-summary-trigger--meeting-resource"
-                                            triggerLottieSize={20}
-                                        />
-                                    ) : null}
-                                    {showAddResourceBtn && groupContentId && (
-                                        <button
-                                            type="button"
-                                            className="resource-delete-btn"
-                                            onClick={() => handleDeleteResourceClick(resItem.id)}
-                                            disabled={deletingResourceId === resItem.id}
-                                            title="Delete resource"
-                                            aria-label="Delete resource"
+                                        <Paperclip size={20} weight="regular" className="item-icon" />
+                                        <span className="description-item-link description-item-link--uploading">
+                                            {resItem.file_name}
+                                        </span>
+                                        <span className="resource-uploading-indicator">Uploading...</span>
+                                    </div>
+                                ))}
+                                {/* Actual resources */}
+                                {resources.map((resItem) => {
+                                    const isPdf = isPdfResource(resItem);
+                                    return (
+                                    <div
+                                        key={resItem.id}
+                                        className={`description-item description-item--with-actions${isPdf ? ' description-item--pdf-resource' : ''}`}
+                                        title={resItem.file_name || resItem.name}
+                                    >
+                                        <Paperclip size={20} weight="regular" className="item-icon" />
+                                        <a
+                                            href={resItem.file_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="description-item-link"
                                         >
-                                            <Trash size={14} weight="regular" />
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                            })
+                                            {resItem.file_name || 'Resource file'}
+                                        </a>
+                                        {isPdf && resItem.file_url ? (
+                                            <PdfSummaryAction
+                                                fileUrl={resItem.file_url}
+                                                fileName={resItem.file_name || resItem.name || 'document.pdf'}
+                                                triggerClassName="pdf-summary-trigger--meeting-resource"
+                                                triggerLottieSize={20}
+                                            />
+                                        ) : null}
+                                        {showAddResourceBtn && groupContentId && (
+                                            <button
+                                                type="button"
+                                                className="resource-delete-btn"
+                                                onClick={() => handleDeleteResourceClick(resItem.id)}
+                                                disabled={deletingResourceId === resItem.id}
+                                                title="Delete resource"
+                                                aria-label="Delete resource"
+                                            >
+                                                <Trash size={14} weight="regular" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    );
+                                })}
+                            </>
                         )}
                     </div>
                 </div>

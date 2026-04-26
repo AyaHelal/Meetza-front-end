@@ -1,37 +1,25 @@
 import { useMemo } from "react";
 import {
   extractMessageLinksFromMessages,
-  combineBackendAndMessageLinks,
+  buildChatOnlyMediaTabResources,
 } from "../utils/mainChatMessageUtils";
 
 /**
- * messageLinks, allLinks, and mediaTabResources derived from messages and groupMediaItems.
+ * messageLinks, allLinks, and mediaTabResources from chat messages only
+ * (excludes group content / group_media uploads — those appear under Group Resources).
  */
-export function useMainChatMediaLinks(messages, groupMediaItems) {
+export function useMainChatMediaLinks(messages) {
+  const mediaTabResources = useMemo(
+    () => buildChatOnlyMediaTabResources(messages),
+    [messages]
+  );
+
   const messageLinks = useMemo(
     () => extractMessageLinksFromMessages(messages),
     [messages]
   );
 
-  const allLinks = useMemo(
-    () =>
-      combineBackendAndMessageLinks(
-        groupMediaItems?.links || [],
-        messageLinks
-      ),
-    [groupMediaItems?.links, messageLinks]
-  );
-
-  const mediaTabResources = useMemo(
-    () => ({
-      photos: [...(groupMediaItems?.images || [])],
-      videos: [...(groupMediaItems?.videos || [])],
-      audio: [...(groupMediaItems?.audio || [])],
-      links: allLinks,
-      documents: [...(groupMediaItems?.files || [])],
-    }),
-    [groupMediaItems, allLinks]
-  );
+  const allLinks = useMemo(() => mediaTabResources.links, [mediaTabResources]);
 
   return { messageLinks, allLinks, mediaTabResources };
 }
