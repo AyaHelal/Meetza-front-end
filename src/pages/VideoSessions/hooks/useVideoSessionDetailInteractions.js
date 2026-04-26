@@ -9,9 +9,9 @@ import {
   getVideoComments,
   editComment as editCommentAPI,
   deleteComment as deleteCommentAPI,
-  summarizeVideo,
   updateVideo,
   deleteVideo,
+  getVideoDetail,
 } from "../services";
 import { nestComments } from "../services/videoSessionCommentsUtils";
 import {
@@ -120,45 +120,54 @@ export function useVideoSessionDetailInteractions({
 
   const handleSummarize = useCallback(
     async (lang) => {
-      const videoUrl = detail?.videoUrl || session?.videoUrl || null;
-      if (!videoUrl) {
-        smartToast.error("Video URL is missing");
+      if (!session?.id) {
+        smartToast.error("Video ID is missing");
         return;
       }
-      setSummaryLang(lang || "en");
       setLoadingSummary(true);
       try {
-        const response = await summarizeVideo(session.id, videoUrl, lang);
-        const summaryDataRes = response?.data?.summary || response?.summary || response?.data?.data?.summary;
-        const transcriptData = response?.data?.transcript || response?.transcript || response?.data?.data?.transcript;
-        if (summaryDataRes || transcriptData) {
-          let finalSummary = summaryDataRes;
-          if (summaryDataRes === "لم يُكتشف كلام في الفيديو.") finalSummary = "No summary available";
-          let finalTranscript = transcriptData || "No transcript available";
-          if (finalSummary && transcriptData && finalSummary.trim() === transcriptData.trim()) finalTranscript = null;
-          const newTopics = response?.data?.topics || response?.topics || null;
-          if (newTopics) {
-            setDetail((prev) => ({
-              ...prev,
-              topics: {
-                ...prev?.topics,
-                [lang]: newTopics,
-              },
-            }));
-          }
+        const res = await getVideoDetail(session.id, lang);
+        // Handle both array and object response formats
+        let data = res?.data ?? res;
+        if (Array.isArray(data) && data.length > 0) {
+          data = data[0];
+        }
+        const summaryDataRes = data?.summary;
+        const transcriptData = data?.transcript;
+        
+        // Handle {ar, en} format
+        let finalSummary = '';
+        let finalTranscript = '';
+        
+        if (typeof summaryDataRes === 'object' && summaryDataRes !== null) {
+          finalSummary = summaryDataRes[lang] || summaryDataRes.en || summaryDataRes.ar || '';
+        } else if (typeof summaryDataRes === 'string') {
+          finalSummary = summaryDataRes;
+        }
+        
+        if (typeof transcriptData === 'object' && transcriptData !== null) {
+          finalTranscript = transcriptData[lang] || transcriptData.en || transcriptData.ar || '';
+        } else if (typeof transcriptData === 'string') {
+          finalTranscript = transcriptData;
+        }
+        
+        if (finalSummary || finalTranscript) {
+          if (finalSummary === "No words were detected in the video.") finalSummary = "No summary available";
+          if (!finalTranscript) finalTranscript = "No transcript available";
+          if (finalSummary && finalTranscript && finalSummary.trim() === finalTranscript.trim()) finalTranscript = null;
           setSummaryData({ summary: finalSummary || "No summary available", transcript: finalTranscript });
           setShowSummary(true);
-          smartToast.success("Summary generated successfully!");
+          smartToast.success("Summary loaded successfully!");
         } else {
-          throw new Error("Invalid response format from API");
+          smartToast.error("No summary available for this video");
         }
       } catch (err) {
-        smartToast.error("Failed to generate summary: " + (err.response?.data?.message || err.message));
+        smartToast.error("Failed to load summary: " + (err.message || "Unknown error"));
       } finally {
         setLoadingSummary(false);
       }
     },
-    [session?.id, detail?.videoUrl, session?.videoUrl, setDetail, setSummaryLang, setLoadingSummary, setSummaryData, setShowSummary]
+    [session?.id, setLoadingSummary, setSummaryData, setShowSummary]
   );
 
   const handlePostComment = useCallback(async () => {

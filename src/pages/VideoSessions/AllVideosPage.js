@@ -12,6 +12,7 @@ import { getAllVideos, mapVideoToSession } from "./services/allVideosService";
 import { updateVideo, deleteVideo } from "./services";
 import { smartToast } from "../../API/toastManager";
 import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
+import { buildPendingUploadSession, revokePendingUploadBlobs } from "./utils/pendingUploadPlaceholder";
 import "./VideoSessions.css";
 
 function AllVideosContent() {
@@ -29,6 +30,7 @@ function AllVideosContent() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -128,15 +130,28 @@ function AllVideosContent() {
     }
   }, [loading, location.state, location.search, navigate]);
 
+  const handleUploadBegin = useCallback((payload) => {
+    setPendingUploads((prev) => [buildPendingUploadSession(payload), ...prev]);
+  }, []);
+
+  const handleUploadEnd = useCallback((uploadId) => {
+    setPendingUploads((prev) => {
+      const row = prev.find((p) => p.id === uploadId);
+      if (row) revokePendingUploadBlobs(row);
+      return prev.filter((p) => p.id !== uploadId);
+    });
+  }, []);
+
   const filteredSessions = useMemo(() => {
+    const merged = [...pendingUploads, ...sessions];
     const q = searchQuery.toLowerCase().trim();
-    if (q.length < 3) return sessions;
-    return sessions.filter((s) => {
+    if (q.length < 3) return merged;
+    return merged.filter((s) => {
       const title = (s.title || "").toLowerCase();
       const group = (s.groupName ?? s.group_name ?? "").toLowerCase();
       return title.includes(q) || (group && group.includes(q));
     });
-  }, [sessions, searchQuery]);
+  }, [sessions, searchQuery, pendingUploads]);
 
   const handleBack = () => {
     navigate("/home", { replace: true });
@@ -161,6 +176,8 @@ function AllVideosContent() {
       <PostVideoModal
         isOpen={postVideoModalOpen}
         onClose={() => setPostVideoModalOpen(false)}
+        onUploadBegin={handleUploadBegin}
+        onUploadEnd={handleUploadEnd}
         onSuccess={() => refetch()}
       />
 
@@ -186,7 +203,7 @@ function AllVideosContent() {
               <VideoSessionCard
                 key={session.id ?? session.title}
                 session={session}
-                onClick={() => handleSelectSession(session)}
+                onClick={() => !session._uploadPlaceholder && handleSelectSession(session)}
                 isAdmin={isAdmin}
                 onEdit={handleEditFromCard}
                 onDelete={handleDeleteFromCard}

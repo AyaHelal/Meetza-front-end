@@ -20,6 +20,40 @@
   box-shadow: 6px 10px 14px 0 var(--shadow-color);
 }
 
+.video-session-card--processing {
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+/* YouTube-style pulse while multipart upload is in flight */
+.video-session-card--uploading-pulse {
+  animation: videoCardUploadPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes videoCardUploadPulse {
+  0%,
+  100% {
+    box-shadow:
+      4px 7px 9.4px 0 var(--shadow-color),
+      0 0 0 0 rgba(0, 118, 234, 0.22);
+  }
+  50% {
+    box-shadow:
+      4px 7px 9.4px 0 var(--shadow-color),
+      0 0 0 8px rgba(0, 118, 234, 0.06);
+  }
+}
+
+.video-session-card-upload-overlay span {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.video-session-card--error {
+  opacity: 0.7;
+  border-color: #ef4444;
+}
+
 .video-session-card-thumb-wrap {
   position: relative;
   width: 100%;
@@ -231,6 +265,10 @@
   color: var(--text-primary);
 }
 
+body.post-video-modal-open .video-session-card-menu-btn {
+  visibility: hidden;
+}
+
 .video-session-card-dropdown {
   position: absolute;
   top: 100%;
@@ -273,7 +311,41 @@
 }
 
 .video-session-card-dropdown-item-danger:hover {
-  background: rgba(255, 0, 0, 0.1);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.video-session-card-processing-overlay,
+.video-session-card-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.video-session-card-processing-overlay {
+  color: #fff;
+}
+
+.video-session-card-processing-overlay span {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.video-session-card-error-overlay {
+  background: rgba(239, 68, 68, 0.7);
+  color: #fff;
+}
+
+.video-session-card-error-overlay span {
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 /* Tablet */

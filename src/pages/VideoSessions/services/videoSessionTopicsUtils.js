@@ -1,6 +1,8 @@
 /** Normalize topics from API (array, string, or nested en/ar). */
 export function getValidTopicsList(val) {
-  if (Array.isArray(val)) return val.length > 0 ? val : [];
+  if (Array.isArray(val)) {
+    return val.filter(t => typeof t === 'string' && t.trim() !== '');
+  }
   if (typeof val === "string" && val.trim() !== "" && val.toLowerCase() !== "null") {
     return val
       .split(",")

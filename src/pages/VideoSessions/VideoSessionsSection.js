@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Lottie from "lottie-react";
 import noDataFoundAnimation from "../../lottie/noDataFound.json";
 import { useAuth } from "../../context/AuthContext";
@@ -10,6 +10,7 @@ import PostVideoModal from "./components/PostVideoModal";
 import { updateVideo, deleteVideo } from "./services";
 import { smartToast } from "../../API/toastManager";
 import { ConfirmDeleteModal } from "../../components/shared/ConfirmDeleteModal";
+import { buildPendingUploadSession, revokePendingUploadBlobs } from "./utils/pendingUploadPlaceholder";
 import "./VideoSessions.css";
 
 /**
@@ -25,6 +26,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]);
 
   const userRole = (user?.role || "").toString().trim().toLowerCase();
   const isAdmin = userRole.includes("administrator") || userRole.includes("super_admin") || userRole.includes("super-admin");
@@ -39,6 +41,27 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
     setSelectedSession,
     refetch,
   } = useVideoSessions(groupId);
+
+  const handleUploadBegin = useCallback((payload) => {
+    setPendingUploads((prev) => [buildPendingUploadSession(payload), ...prev]);
+  }, []);
+
+  const handleUploadEnd = useCallback((uploadId) => {
+    setPendingUploads((prev) => {
+      const row = prev.find((p) => p.id === uploadId);
+      if (row) revokePendingUploadBlobs(row);
+      return prev.filter((p) => p.id !== uploadId);
+    });
+  }, []);
+
+  const gridSessions = useMemo(() => {
+    const q = (searchQuery || "").toLowerCase().trim();
+    let list = [...pendingUploads, ...sessions];
+    if (q.length >= 3) {
+      list = list.filter((s) => (s.title || "").toLowerCase().includes(q));
+    }
+    return list;
+  }, [pendingUploads, sessions, searchQuery]);
 
   const handleEditFromCard = (session) => {
     setSessionToEdit(session);
@@ -130,6 +153,8 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
           onClose={() => setPostVideoModalOpen(false)}
           defaultGroupId={groupId}
           groupName={groupName}
+          onUploadBegin={handleUploadBegin}
+          onUploadEnd={handleUploadEnd}
           onSuccess={() => refetch?.()}
         />
         <div className="video-sessions-empty">
@@ -158,6 +183,8 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
         onClose={() => setPostVideoModalOpen(false)}
         defaultGroupId={groupId}
         groupName={groupName}
+        onUploadBegin={handleUploadBegin}
+        onUploadEnd={handleUploadEnd}
         onSuccess={() => refetch?.()}
       />
 
@@ -183,7 +210,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
         <div className="video-sessions-loading">Loading video sessions…</div>
       ) : (
         <div className="video-sessions-grid">
-          {sessions.length === 0 ? (
+          {gridSessions.length === 0 ? (
             <div className="video-sessions-empty-state">
               <p className="video-sessions-empty-text">No videos have been updated for this group.</p>
               <div className="video-sessions-empty-illustration">
@@ -191,11 +218,11 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
               </div>
             </div>
           ) : (
-            sessions.map((session) => (
+            gridSessions.map((session) => (
               <VideoSessionCard
                 key={session.id ?? session.title}
                 session={session}
-                onClick={() => setSelectedSession(session)}
+                onClick={() => !session._uploadPlaceholder && setSelectedSession(session)}
                 isAdmin={isAdmin}
                 onEdit={handleEditFromCard}
                 onDelete={handleDeleteFromCard}

@@ -27,6 +27,9 @@ export function buildParsedVideoDetail({
     watchStatus: watchState.watchStatus,
     progressPercentage: watchState.progressPercentage,
     detailVideoId: session.id,
+    summary: typeof data.summary === 'string' ? data.summary : (typeof v.summary === 'string' ? v.summary : null),
+    transcript: typeof data.transcript === 'string' ? data.transcript : (typeof v.transcript === 'string' ? v.transcript : null),
+    status: data.status ?? v.status ?? "completed",
   };
 }
 
@@ -72,6 +75,9 @@ export function mergeSocketVideoDetail(prev, detail, session, data, commentsData
     topics: data.topics ?? detail?.topics ?? session?.topics ?? { ar: [], en: [] },
     groupName: v.group_name ?? detail?.groupName ?? session?.groupName ?? session?.group_name ?? null,
     group_id: v.group_id ?? detail?.group_id ?? session?.group_id ?? null,
+    summary: typeof data.summary === 'string' ? data.summary : (typeof v.summary === 'string' ? v.summary : (typeof detail?.summary === 'string' ? detail?.summary : null)),
+    transcript: typeof data.transcript === 'string' ? data.transcript : (typeof v.transcript === 'string' ? v.transcript : (typeof detail?.transcript === 'string' ? detail?.transcript : null)),
+    status: data.status ?? v.status ?? detail?.status ?? "completed",
   };
   return {
     ...prev,
