@@ -92,6 +92,15 @@ export default function MainChatHeader({
               ref={inputRef}
               value={searchValue || ""}
               onChange={(e) => onSearchValueChange?.(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  onSearchPrev?.();
+                } else if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  onSearchNext?.();
+                }
+              }}
               placeholder="Search in chat"
               aria-label="Search in chat"
               disabled={searchLoading}

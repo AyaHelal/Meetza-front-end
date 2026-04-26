@@ -20,8 +20,7 @@ const SignUp = () => {
         username: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        role: ''
+        confirmPassword: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -94,10 +93,6 @@ const SignUp = () => {
             newErrors.confirmPassword = "Passwords do not match";
         }
 
-        // Role validation
-        if (!formData.role) {
-            newErrors.role = "Please select a role";
-        }
 
         // If there are validation errors, set them and prevent submission
         if (Object.keys(newErrors).length > 0) {
@@ -114,8 +109,7 @@ const SignUp = () => {
             const userData = {
                 name: formData.username,
                 email: formData.email,
-                password: formData.password,
-                role: formData.role,
+                password: formData.password
             };
 
             const response = await signup(userData);
@@ -253,44 +247,6 @@ const SignUp = () => {
                             )}
                         </div>
                     )}
-                    {/* Role Selection */}
-                    <div>
-                        <div className="d-flex px-2 py-2 role-radio-group">
-                            <div className="form-check">
-                                <input
-                                    className="form-check-input"
-                                    type="radio"
-                                    name="role"
-                                    id="memberRole"
-                                    value="Member"
-                                    checked={formData.role === 'Member'}
-                                    onChange={handleInputChange}
-                                />
-                                <label className="form-check-label mx-2" htmlFor="memberRole">
-                                    Member
-                                </label>
-                            </div>
-                            <div className="form-check">
-                                <input
-                                    className="form-check-input"
-                                    type="radio"
-                                    name="role"
-                                    id="adminRole"
-                                    value="Administrator"
-                                    checked={formData.role === 'Administrator'}
-                                    onChange={handleInputChange}
-                                />
-                                <label className="form-check-label ms-2" htmlFor="adminRole">
-                                    Leader
-                                </label>
-                            </div>
-                        </div>
-                        {errors.role && (
-                            <div className="text-danger small mt-1 mb-1" style={{ fontSize: '0.875rem', paddingLeft: '12px' }}>
-                                {errors.role}
-                            </div>
-                        )}
-                    </div>
 
                     <Button
                         type="submit"
@@ -313,7 +269,7 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"}  type={"signup"}/>
+                    <SocialLoginButtons redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signup"}/>
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>
