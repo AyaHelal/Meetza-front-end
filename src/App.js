@@ -33,6 +33,8 @@ import ProfileRoute from './components/ProfileRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import AppearancePage from './pages/Settings/AppearancePage';
+import RobotOrb from './components/AI/RobotOrb';
+import Chatbot from './components/AI/Chatbot';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -64,6 +66,7 @@ const AppRoutes = () => {
   const socialLoginProcessed = useRef(false);
   const prevPathRef = useRef(location.pathname);
   const [routeLoading, setRouteLoading] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   useEffect(() => {
     ensureUiSoundsUnlocked();
@@ -206,7 +209,8 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
+    <>
+      <Routes>
       {/* Root: default to Landing; if remembered session exists, go to /home */}
       <Route
         path="/"
@@ -273,8 +277,10 @@ const AppRoutes = () => {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-
-
+    {/* Global Robot Orb and Chatbot */}
+    <RobotOrb onClick={() => setIsChatbotOpen(!isChatbotOpen)} />
+    <Chatbot isOpen={isChatbotOpen} onClose={() => setIsChatbotOpen(false)} />
+    </>
   );
 };
 
