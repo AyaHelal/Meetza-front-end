@@ -13,40 +13,16 @@ const AppearancePage = () => {
       id: "light",
       name: "Light",
       preview: {
-        bg: "#f4f6f8",
+        bg: "#f3f4f6",
         sidebar: "#ffffff",
-        message: "#0076ea",
-        messageAlt: "#e0e0e0",
       },
     },
     {
       id: "dark",
       name: "Dark",
       preview: {
-        bg: "#0f172a",
-        sidebar: "#1e293b",
-        message: "#3b82f6",
-        messageAlt: "#334155",
-      },
-    },
-    {
-      id: "purple",
-      name: "Purple",
-      preview: {
-        bg: "#f5f3ff",
-        sidebar: "#ffffff",
-        message: "#7c3aed",
-        messageAlt: "#e5e7eb",
-      },
-    },
-    {
-      id: "warm",
-      name: "Warm",
-      preview: {
-        bg: "#fff7ed",
-        sidebar: "#ffffff",
-        message: "#f97316",
-        messageAlt: "#fed7aa",
+        bg: "#0a0b10",
+        sidebar: "#111827",
       },
     },
   ];
@@ -72,6 +48,7 @@ const AppearancePage = () => {
               <div
                 key={t.id}
                 className={`theme-card ${theme === t.id ? "active" : ""}`}
+                data-theme-id={t.id}
                 onClick={() => setTheme(t.id)}
               >
                 <div className="theme-preview" style={{ backgroundColor: t.preview.bg }}>
@@ -87,18 +64,19 @@ const AppearancePage = () => {
                              <div className="preview-line" style={{ width: '50%' }}></div>
                         </div>
                         <div className="preview-chat">
-                            <div className="preview-bubble right" style={{ backgroundColor: t.preview.message }}></div>
-                            <div className="preview-bubble right" style={{ backgroundColor: t.preview.message, width: '40%' }}></div>
-                            <div className="preview-bubble left" style={{ backgroundColor: t.preview.messageAlt }}></div>
+                            <div className="preview-bubble right"></div>
+                            <div className="preview-bubble right" style={{ width: '40%' }}></div>
+                            <div className="preview-bubble left"></div>
+                        </div>
+                        <div className="preview-footer">
+                            <div className="preview-pill"></div>
                         </div>
                     </div>
                   </div>
                 </div>
                 <div className="theme-info">
                   <span className="theme-name">{t.name}</span>
-                  {theme === t.id && (
-                    <CheckCircle size={24} weight="fill" className="check-icon" />
-                  )}
+                  <CheckCircle size={24} weight="fill" className="check-icon" />
                 </div>
               </div>
             ))}

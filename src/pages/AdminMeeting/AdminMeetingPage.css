@@ -7,7 +7,7 @@
 input,
 select,
 textarea {
-  color-scheme: light;
+  color-scheme: inherit;
 }
 
 .admin-meeting-page {

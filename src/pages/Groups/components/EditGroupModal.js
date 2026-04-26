@@ -3,8 +3,56 @@ import Select from 'react-select';
 import { smartToast } from '../../../API/toastManager';
 import { SEMESTER_OPTIONS } from '../constants';
 
-const inputStyle = { border: '2px solid #E9ECEF', fontSize: '16px' };
-const labelStyle = { color: '#010101', fontSize: '16px' };
+const inputStyle = { 
+  backgroundColor: 'var(--bg-light)', 
+  border: '2px solid var(--border-color)', 
+  color: 'var(--text-primary)',
+  fontSize: '16px' 
+};
+const labelStyle = { color: 'var(--text-primary)', fontSize: '16px' };
+
+const selectStyles = {
+  control: (base, state) => ({
+    ...base,
+    backgroundColor: 'var(--bg-light)',
+    borderColor: state.isFocused ? 'var(--primary-color)' : 'var(--border-color)',
+    color: 'var(--text-primary)',
+    boxShadow: state.isFocused ? '0 0 0 1px var(--primary-color)' : 'none',
+    '&:hover': {
+      borderColor: 'var(--primary-color)'
+    }
+  }),
+  menu: (base) => ({
+    ...base,
+    backgroundColor: 'var(--card-bg)',
+    border: '1px solid var(--border-color)',
+  }),
+  option: (base, { isFocused, isSelected }) => ({
+    ...base,
+    backgroundColor: isSelected 
+      ? 'var(--primary-color)' 
+      : isFocused 
+        ? 'var(--bg-color)' 
+        : 'transparent',
+    color: isSelected ? 'white' : 'var(--text-primary)',
+    cursor: 'pointer',
+    '&:active': {
+      backgroundColor: 'var(--primary-color)'
+    }
+  }),
+  singleValue: (base) => ({
+    ...base,
+    color: 'var(--text-primary)',
+  }),
+  input: (base) => ({
+    ...base,
+    color: 'var(--text-primary)',
+  }),
+  placeholder: (base) => ({
+    ...base,
+    color: 'var(--text-muted)',
+  }),
+};
 
 export default function EditGroupModal({
   show,
@@ -69,11 +117,11 @@ export default function EditGroupModal({
     : null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Edit Group</h3>
-          <button type="button" onClick={onClose} disabled={submitting}>
+    <div className="modal-overlay" onClick={onClose} style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
+          <h3 style={{ color: 'var(--text-primary)' }}>Edit Group</h3>
+          <button type="button" onClick={onClose} disabled={submitting} style={{ color: 'var(--text-secondary)', filter: 'var(--close-btn-filter)' }}>
             ×
           </button>
         </div>
@@ -126,7 +174,7 @@ export default function EditGroupModal({
                   placeholder="Select semester"
                   isClearable
                   menuPortalTarget={document.body}
-                  styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                  styles={{ ...selectStyles, menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                 />
               </div>
 

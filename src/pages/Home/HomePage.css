@@ -864,6 +864,11 @@ a.home-video-card.home-video-card--link:focus-visible {
   box-shadow: var(--shadow-md) !important;
 }
 
+[data-theme="dark"] .home-meeting-time-arrow-inner {
+  border-color: #94a3b8; /* A grey color */
+  color: #94a3b8;
+}
+
 [data-theme="dark"] .home-section-divider {
   background-color: var(--border-color) !important;
 }

@@ -24,7 +24,7 @@ export function ResourceGrid({
     <div className="expanded-items">
       {items.length === 0 && <p className="empty-state">No items yet.</p>}
       {items.map((item, index) => {
-        const url = item.url || "";
+        const url = item.url || item.file_url || "";
         const isImage =
           /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
           item.media_type?.startsWith("image") ||
@@ -414,7 +414,7 @@ export function LegacyExpandedSection({
             <div key={index} className="expanded-item">
               {expandedSection === "photos" && (
                 <img
-                  src={item.file_url || undefined}
+                  src={item.file_url || item.url || item.media_url || item.resource_url || undefined}
                   alt={item.file_name || "Photo"}
                   className="expanded-photo"
                   onClick={() => onMediaClick(item)}
@@ -422,7 +422,7 @@ export function LegacyExpandedSection({
               )}
               {expandedSection === "links" && (
                 <a
-                  href={item.file_url}
+                  href={item.file_url || item.url || item.media_url || item.resource_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="link-item"
@@ -432,7 +432,7 @@ export function LegacyExpandedSection({
               )}
               {expandedSection === "documents" && (
                 <a
-                  href={item.file_url}
+                  href={item.file_url || item.url || item.media_url || item.resource_url}
                   download={getDownloadFileName(item)}
                   target="_blank"
                   rel="noopener noreferrer"
