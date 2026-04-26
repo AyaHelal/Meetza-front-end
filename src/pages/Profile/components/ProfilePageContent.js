@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
@@ -23,6 +23,7 @@ import {
 import UserPhoto from "../../../components/UserPhoto/UserPhoto";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import ContactForm from "../../../components/Contact/ContactForm";
+import MainChatPhotoModal from "../../GroupChat/components/MainChatPhotoModal";
 import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../services/profilePageUtils";
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
 import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
@@ -30,6 +31,8 @@ import { EmptyState } from "../../../components/shared/EmptyState";
 
 export function ProfilePageContent(props) {
   const navigate = useNavigate();
+  const [modalPhoto, setModalPhoto] = useState(null);
+
   const {
     user,
     savedVideos,
@@ -455,22 +458,80 @@ export function ProfilePageContent(props) {
                         <div className="profile-files-grid">
                           {chatMedia.length > 0 ? (
                             chatMedia.map((item, idx) => {
-                              const isImage = item?.media_type === "image";
-                              const ext = !isImage && item?.file_name ? item.file_name.split(".").pop().toUpperCase() : "";
+                              const fileName = item?.file_name || "";
+                              const fileExt = fileName.split(".").pop().toLowerCase();
+                              const isImage = item?.media_type === "image" || ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExt);
+                              const isVideo = item?.media_type === "video" || ["mp4", "mov", "avi", "webm", "mkv", "3gp"].includes(fileExt);
+                              const isAudio = item?.media_type === "audio" || ["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(fileExt);
+                              const isPdf = item?.media_type === "pdf" || fileExt === "pdf";
+                              const ext = !isImage && !isVideo && !isAudio && !isPdf && fileName ? fileExt.toUpperCase() : fileName ? fileExt.toUpperCase() : "FILE";
+
+                              // Debug: Log to see if file type is detected correctly
+                              console.log("File:", fileName, "Ext:", fileExt, "isVideo:", isVideo, "isImage:", isImage, "isAudio:", isAudio, "isPdf:", isPdf, "media_type:", item?.media_type);
+
+                              const handleDownload = async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try {
+                                  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                  const response = await fetch(item.media_url, {
+                                    method: 'GET',
+                                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                  });
+                                  if (!response.ok) throw new Error('Failed to download file');
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = fileName;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  window.URL.revokeObjectURL(url);
+                                } catch (error) {
+                                  console.error('Error downloading file:', error);
+                                  window.open(item.media_url, '_blank');
+                                }
+                              };
+
+                              const handleOpen = () => {
+                                if (isImage) {
+                                  setModalPhoto(item);  // Images open in modal
+                                } else if (isVideo || isAudio) {
+                                  window.open(item.media_url, '_blank');  // Videos/Audio open in new tab
+                                } else {
+                                  handleDownload(new Event('click'));  // Documents download with filename
+                                }
+                              };
 
                               return (
                                 <div key={item.id || idx} className="profile-files-grid__cell">
                                   <Ratio aspectRatio="1x1">
-                                    <div className="profile-file-cell d-flex align-items-center justify-content-center rounded-4 overflow-hidden border">
+                                    <div
+                                      className="profile-file-cell d-flex align-items-center justify-content-center rounded-4 overflow-hidden border"
+                                      style={{ cursor: "pointer" }}
+                                      onClick={handleOpen}
+                                      role="button"
+                                      aria-label={`Open ${fileName}`}
+                                    >
                                       {isImage ? (
                                         <img
                                           src={item.media_url}
-                                          alt={item.file_name}
+                                          alt={fileName}
                                           className="w-100 h-100 object-fit-cover"
                                           loading="lazy"
                                         />
+                                      ) : isVideo ? (
+                                        <video
+                                          src={item.media_url}
+                                          className="w-100 h-100 object-fit-cover"
+                                          muted
+                                          preload="metadata"
+                                        />
                                       ) : (
-                                        <span className="profile-file-label">{ext || "FILE"}</span>
+                                        <span className="profile-file-label" style={{ fontSize: "10px", padding: "4px 8px", wordWrap: "break-word", overflowWrap: "break-word", maxWidth: "100%", textAlign: "center", lineHeight: "1.2" }}>
+                                          {isPdf ? fileName : ext}
+                                        </span>
                                       )}
                                     </div>
                                   </Ratio>
@@ -565,6 +626,9 @@ export function ProfilePageContent(props) {
           </div>
         </div>
       ) : null}
+
+      {/* Media modal for images/videos/documents */}
+      <MainChatPhotoModal modalPhoto={modalPhoto} onClose={() => setModalPhoto(null)} />
     </div>
   );
 }

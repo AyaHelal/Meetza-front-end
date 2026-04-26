@@ -17,6 +17,12 @@ import {
   playChatIncomingSound,
   shouldSuppressChatIncomingSound,
 } from "../utils/uiSounds";
+import {
+  parseNotificationsFromApiResponse,
+  countUnreadNotifications,
+  notificationsListFingerprint,
+  normalizeSocketNotificationPayload,
+} from "../utils/notificationSync";
 
 const SocketContext = createContext();
 
@@ -55,10 +61,15 @@ export const SocketProvider = ({ children }) => {
   const connectionTimeoutRef = useRef(null);
   const userRef = useRef(user);
   const activeGroupChatIdForSoundRef = useRef(null);
+  const notificationsSyncFingerprintRef = useRef("");
 
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  useEffect(() => {
+    notificationsSyncFingerprintRef.current = "";
+  }, [token]);
 
   const setActiveGroupChatForSound = useCallback((groupId) => {
     activeGroupChatIdForSoundRef.current =
@@ -146,23 +157,16 @@ export const SocketProvider = ({ children }) => {
         // Get initial unread notification count after socket connects
         // Use REST API directly since socket event doesn't seem to work reliably
         setTimeout(() => {
-          api.get("/notification")
+          api
+            .get("/notification")
             .then((response) => {
-              let notificationsData = [];
-              if (response.data) {
-                if (response.data.success && response.data.data) {
-                  notificationsData = Array.isArray(response.data.data) ? response.data.data : [];
-                } else if (Array.isArray(response.data)) {
-                  notificationsData = response.data;
-                } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
-                  notificationsData = response.data.notifications;
-                }
-              }
-              const unreadCount = notificationsData.filter(n => !n.is_read && n.is_read !== true).length;
+              const notificationsData = parseNotificationsFromApiResponse(response.data);
+              const unreadCount = countUnreadNotifications(notificationsData);
+              notificationsSyncFingerprintRef.current =
+                notificationsListFingerprint(notificationsData);
               setUnreadNotificationCount(unreadCount);
             })
-            .catch((error) => {
-            });
+            .catch(() => {});
         }, 500);
 
         setConnectionError(null);
@@ -222,6 +226,47 @@ export const SocketProvider = ({ children }) => {
       }
       setSocket(null);
       setIsConnected(false);
+    };
+  }, [token]);
+
+  // Poll notifications while logged in — backend may not emit socket events the client listens for.
+  useEffect(() => {
+    if (!token) return;
+
+    const POLL_MS = 8000;
+
+    const syncFromApi = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      try {
+        const response = await api.get("/notification");
+        const list = parseNotificationsFromApiResponse(response.data);
+        const fp = notificationsListFingerprint(list);
+        if (fp === notificationsSyncFingerprintRef.current) return;
+        notificationsSyncFingerprintRef.current = fp;
+        const unread = countUnreadNotifications(list);
+        unreadNotificationCountRef.current = unread;
+        setUnreadNotificationCount(unread);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("meetza:notifications-sync", {
+              detail: { notifications: list, unreadCount: unread },
+            })
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const interval = setInterval(syncFromApi, POLL_MS);
+    window.addEventListener("focus", syncFromApi);
+    document.addEventListener("visibilitychange", syncFromApi);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", syncFromApi);
+      document.removeEventListener("visibilitychange", syncFromApi);
     };
   }, [token]);
 
@@ -296,14 +341,42 @@ export const SocketProvider = ({ children }) => {
       setUnreadNotificationCount(nextSafe);
     };
 
+    const knownNotificationEventNames = new Set([
+      "new_notification",
+      "newnotification",
+      "notification_count_update",
+      "notification_read",
+      "all_notifications_read",
+    ]);
+
+    const onAnyNotificationLike = (eventName, ...args) => {
+      const key = String(eventName).toLowerCase();
+      if (knownNotificationEventNames.has(key)) return;
+      if (!key.includes("notif")) return;
+      const raw = args[0];
+      const n = normalizeSocketNotificationPayload(raw);
+      if (n && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("meetza:socket-notification", { detail: n }));
+      }
+      armSuppressChatIncomingForNotification();
+      playNotificationSound();
+    };
+
     socket.on("new_notification", onNewNotification);
     socket.on("newNotification", onNewNotification);
     socket.on("notification_count_update", onNotificationCountUpdate);
+
+    if (typeof socket.onAny === "function") {
+      socket.onAny(onAnyNotificationLike);
+    }
 
     return () => {
       socket.off("new_notification", onNewNotification);
       socket.off("newNotification", onNewNotification);
       socket.off("notification_count_update", onNotificationCountUpdate);
+      if (typeof socket.offAny === "function") {
+        socket.offAny(onAnyNotificationLike);
+      }
     };
   }, [socket]);
 

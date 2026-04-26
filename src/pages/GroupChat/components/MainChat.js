@@ -230,44 +230,22 @@ const MainChat = ({
   );
 
   const goToNextSearchResult = useCallback(() => {
-    const ordered = getMatchIdsByDomOrder();
-    if (ordered.length) {
-      const cur = activeSearchMessageId != null ? String(activeSearchMessageId) : null;
-      const curIdx = cur ? ordered.findIndex((id) => id === cur) : -1;
-      const nextId = ordered[(curIdx + 1 + ordered.length) % ordered.length];
-      applyActiveSearchMessageId(nextId);
-      return;
-    }
     const n = searchResultIds.length;
     if (!n) return;
     const next = (activeSearchIndex + 1) % n;
     applyActiveSearchIndex(next);
   }, [
-    getMatchIdsByDomOrder,
-    activeSearchMessageId,
-    applyActiveSearchMessageId,
     searchResultIds.length,
     activeSearchIndex,
     applyActiveSearchIndex,
   ]);
 
   const goToPrevSearchResult = useCallback(() => {
-    const ordered = getMatchIdsByDomOrder();
-    if (ordered.length) {
-      const cur = activeSearchMessageId != null ? String(activeSearchMessageId) : null;
-      const curIdx = cur ? ordered.findIndex((id) => id === cur) : -1;
-      const prevId = ordered[(curIdx - 1 + ordered.length) % ordered.length];
-      applyActiveSearchMessageId(prevId);
-      return;
-    }
     const n = searchResultIds.length;
     if (!n) return;
     const prev = (activeSearchIndex - 1 + n) % n;
     applyActiveSearchIndex(prev);
   }, [
-    getMatchIdsByDomOrder,
-    activeSearchMessageId,
-    applyActiveSearchMessageId,
     searchResultIds.length,
     activeSearchIndex,
     applyActiveSearchIndex,
