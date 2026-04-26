@@ -1,5 +1,3 @@
-import React from "react";
-
 const MeetingRoomSliderViewport = ({
   sliderViewportRef,
   activeSlide,
@@ -8,22 +6,33 @@ const MeetingRoomSliderViewport = ({
   slide2,
   floatingEmojis,
   isAdmin = false,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
 }) => {
-  const slideCount = isAdmin ? 2 : 3;
-  const slideWidth = 100 / slideCount;
-
   return (
-    <div className="meeting-room-slider-viewport" ref={sliderViewportRef}>
+    <div
+      className="meeting-room-slider-viewport"
+      ref={sliderViewportRef}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ overflow: "hidden" }}
+    >
       <div
         className={`meeting-room-slider-track ${activeSlide === 1 ? "single-view" : ""} ${isAdmin ? "admin-layout" : ""}`}
         style={{
-          transform: `translateX(-${activeSlide * slideWidth}%)`,
-          width: `${slideCount * 100}%`
+          display: "flex",
+          transform: `translateX(-${activeSlide * 100}%)`,
+          transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+          width: "100%" /* Track is a flex container, children will expand it */
         }}
       >
-        <div className={`meeting-room-slide ${isAdmin ? "admin-slide" : ""}`} style={{ width: `${slideWidth}%`, flex: `0 0 ${slideWidth}%` }}>{slide0}</div>
-        <div className={`meeting-room-slide ${isAdmin ? "admin-slide" : ""}`} style={{ width: `${slideWidth}%`, flex: `0 0 ${slideWidth}%` }}>{slide1}</div>
-        {!isAdmin && <div className="meeting-room-slide" style={{ width: `${slideWidth}%`, flex: `0 0 ${slideWidth}%` }}>{slide2}</div>}
+        <div className="meeting-room-slide slide-0" style={{ flex: "0 0 100%", width: "100%" }}>{slide0}</div>
+        <div className="meeting-room-slide slide-1" style={{ flex: "0 0 100%", width: "100%" }}>{slide1}</div>
+        {!isAdmin && (
+          <div className="meeting-room-slide slide-2" style={{ flex: "0 0 100%", width: "100%" }}>{slide2}</div>
+        )}
       </div>
       {floatingEmojis}
     </div>

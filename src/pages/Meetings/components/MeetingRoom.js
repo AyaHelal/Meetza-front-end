@@ -76,6 +76,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     setAudioMuted: setContextAudioMuted,
     setVideoMuted: setContextVideoMuted,
     meetingSpeakerMuted,
+    setMeetingSpeakerMuted, // Used in MeetingRoomControlBar
     setMeetingMediaRefs,
     registerPeerConnection,
     unregisterPeerConnection,
@@ -98,6 +99,41 @@ const MeetingRoom = ({ recordRegionRef }) => {
   }, [contextVideoMuted]);
   const [screenSharing, setScreenSharing] = useState(false);
   const [showSaveRecordingModal, setShowSaveRecordingModal] = useState(false);
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const touchEndX = useRef(null);
+  const touchEndY = useRef(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = null;
+    touchEndY.current = null;
+  };
+
+  const onTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current || !touchStartY.current || !touchEndY.current) return;
+    
+    const deltaX = touchStartX.current - touchEndX.current;
+    const deltaY = touchStartY.current - touchEndY.current;
+    
+    // Only swipe if horizontal movement is dominant
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      const slideCount = isMeetingAdmin ? 2 : 3;
+      if (deltaX > 0 && activeSlide < slideCount - 1) {
+        handleSetActiveSlide(activeSlide + 1);
+      } else if (deltaX < 0 && activeSlide > 0) {
+        handleSetActiveSlide(activeSlide - 1);
+      }
+    }
+  };
 
   const meetingIdRef = useRef(null);
   const localVideoRef = useRef(null);
@@ -168,6 +204,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     audioMuted,
     setParticipants,
     setHasJoined,
+    setMediaContextHasJoined,
     setMediaContextHasJoined,
     setMediaStateMap,
     setScreenSharing,
@@ -659,6 +696,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
     if (result?.error) smartToast.error(result.error);
   };
 
+
   return (
     <div className="meeting-room">
       <ConfirmDeleteModal
@@ -700,83 +738,92 @@ const MeetingRoom = ({ recordRegionRef }) => {
         memberVideoVideoRef={memberVideoVideoRef}
       />
 
-      <MeetingRoomSliderViewport
-        sliderViewportRef={sliderViewportRef}
-        activeSlide={activeSlide}
-        isAdmin={isMeetingAdmin}
-        slide0={
-          <MeetingRoomGrid
-            unifiedTiles={unifiedTiles}
-            handRaised={hand.handRaised}
-            handRaisedMap={handRaisedMap}
-            localVideoRef={localVideoRef}
-            remoteVideoRefsMap={remoteVideoRefsMap}
-            localParticipantAudioMuted={localParticipantAudioMuted}
-            localParticipantVolume={localParticipantVolume}
-            meetingSpeakerMuted={meetingSpeakerMuted}
-            toggleFullscreenForScreenShare={toggleFullscreenForScreenShare}
-            toggleFullscreenForMember={toggleFullscreenForMember}
-          />
-        }
-        slide1={
-          <MeetingRoomSingleView
-            localVideoRef2={localVideoRef2}
-            videoMuted={videoMuted}
-            screenSharing={screenSharing}
-            selfPhoto={selfPhoto}
-            user={user}
-            handRaised={hand.handRaised}
-          />
-        }
-        slide2={
-          !isMeetingAdmin ? (
-            <MeetingRoomScreenPlaceholder
-              adminTile={adminTileForMembers}
+      <div className="meeting-room-carousel-container">
+        <MeetingRoomSliderViewport
+          sliderViewportRef={sliderViewportRef}
+          activeSlide={activeSlide}
+          isAdmin={isMeetingAdmin}
+          slide0={
+            <MeetingRoomGrid
+              unifiedTiles={unifiedTiles}
+              handRaised={hand.handRaised}
+              handRaisedMap={handRaisedMap}
+              localVideoRef={localVideoRef}
               remoteVideoRefsMap={remoteVideoRefsMap}
               localParticipantAudioMuted={localParticipantAudioMuted}
               localParticipantVolume={localParticipantVolume}
               meetingSpeakerMuted={meetingSpeakerMuted}
+              toggleFullscreenForScreenShare={toggleFullscreenForScreenShare}
+              toggleFullscreenForMember={toggleFullscreenForMember}
             />
-          ) : null
-        }
-        floatingEmojis={<MeetingRoomFloatingEmojis floatingEmojis={floatingEmojis} />}
-      />
+          }
+          slide1={
+            <MeetingRoomSingleView
+              localVideoRef2={localVideoRef2}
+              videoMuted={videoMuted}
+              screenSharing={screenSharing}
+              selfPhoto={selfPhoto}
+              user={user}
+              handRaised={hand.handRaised}
+            />
+          }
+          slide2={
+            !isMeetingAdmin ? (
+              <MeetingRoomScreenPlaceholder
+                adminTile={adminTileForMembers}
+                remoteVideoRefsMap={remoteVideoRefsMap}
+                localParticipantAudioMuted={localParticipantAudioMuted}
+                localParticipantVolume={localParticipantVolume}
+                meetingSpeakerMuted={meetingSpeakerMuted}
+              />
+            ) : null
+          }
+          floatingEmojis={<MeetingRoomFloatingEmojis floatingEmojis={floatingEmojis} />}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        />
 
-      <MeetingRoomSliderDots activeSlide={activeSlide} setActiveSlide={handleSetActiveSlide} isAdmin={isMeetingAdmin} />
-
-      <MeetingRoomControlBar
-        showCommentInput={chat.showCommentInput}
-        setShowCommentInput={chat.setShowCommentInput}
-        commentText={chat.commentText}
-        setCommentText={chat.setCommentText}
-        audioMuted={audioMuted}
-        videoMuted={videoMuted}
-        micLockedByAdmin={micLockedByAdmin}
-        handRaised={hand.handRaised}
-        screenSharing={screenSharing}
-        meetingId={meetingId}
-        unifiedTiles={unifiedTiles}
-        localParticipantAudioMuted={localParticipantAudioMuted}
-        handleToggleAudio={rtc.handleToggleAudio}
-        handleToggleHand={hand.handleToggleHand}
-        handleToggleVideo={rtc.handleToggleVideo}
-        handleToggleScreenShare={handleToggleScreenShare}
-        setShowEmojiPicker={setShowEmojiPicker}
-        handleSendComment={chat.handleSendComment}
-        handleMuteUnmuteAllParticipants={handleMuteUnmuteAllParticipants}
-        socket={socket}
-        isConnected={isConnected}
-        showEmojiPicker={showEmojiPicker}
-        emojiPickerRef={emojiPickerRef}
-        emojiList={emojiList}
-        selectEmoji={selectEmoji}
-        isMeetingAdmin={isMeetingAdmin}
-        isRecording={isRecording}
-        isRecordingPaused={isRecordingPaused}
-        onStartRecording={handleRecordingStartOrResume}
-        onStopRecording={handleRecordingStop}
-        onEndRecording={handleRecordingEnd}
-      />
+        <div className="meeting-room-mobile-overlay">
+          <MeetingRoomSliderDots activeSlide={activeSlide} setActiveSlide={handleSetActiveSlide} isAdmin={isMeetingAdmin} />
+          <MeetingRoomControlBar
+            showCommentInput={chat.showCommentInput}
+            setShowCommentInput={chat.setShowCommentInput}
+            commentText={chat.commentText}
+            setCommentText={chat.setCommentText}
+            audioMuted={audioMuted}
+            videoMuted={videoMuted}
+            micLockedByAdmin={micLockedByAdmin}
+            handRaised={hand.handRaised}
+            screenSharing={screenSharing}
+            meetingId={meetingId}
+            unifiedTiles={unifiedTiles}
+            localParticipantAudioMuted={localParticipantAudioMuted}
+            handleToggleAudio={rtc.handleToggleAudio}
+            handleToggleHand={hand.handleToggleHand}
+            handleToggleVideo={rtc.handleToggleVideo}
+            handleToggleScreenShare={handleToggleScreenShare}
+            handleSendLike={handleSendLike}
+            isRecording={isRecording}
+            onStartRecording={handleRecordingStartOrResume}
+            onStopRecording={handleRecordingStop}
+            onEndRecording={handleRecordingEnd}
+            isRecordingPaused={isRecordingPaused}
+            isMeetingAdmin={isMeetingAdmin}
+            handleMuteUnmuteAllParticipants={handleMuteUnmuteAllParticipants}
+            handleSendComment={chat.handleSendComment}
+            socket={socket}
+            isConnected={isConnected}
+            meetingSpeakerMuted={meetingSpeakerMuted}
+            setMeetingSpeakerMuted={setMeetingSpeakerMuted}
+            selectEmoji={selectEmoji}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            emojiPickerRef={emojiPickerRef}
+            emojiList={emojiList}
+          />
+        </div>
+      </div>
 
       <MeetingRoomReactionsContainer reactionsMap={reactionsMap} getReactionIcon={getReactionIcon} />
     </div>
