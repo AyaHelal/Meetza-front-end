@@ -79,7 +79,7 @@ export default function MainChatHeader({
       </div>
 
       <div className="chat-header-actions">
-        {!!groupId && searchOpen && (
+        {!!groupId && searchOpen && !activeSection && !expandedSection && (
           <form
             className="chat-header-search"
             onSubmit={(e) => {
@@ -166,7 +166,7 @@ export default function MainChatHeader({
             {isInMeeting ? "Joined" : "Join Meeting"}
           </button>
         )}
-        {!!groupId && (
+        {!!groupId && !activeSection && !expandedSection && (
           <button
             type="button"
             className={`search-icon-header${searchOpen || searchHasResults ? " search-icon-header--active" : ""}`}

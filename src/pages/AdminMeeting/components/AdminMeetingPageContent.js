@@ -58,7 +58,7 @@ export function AdminMeetingPageContent(props) {
         {/* Header */}
         <div className="admin-meeting-header">
           <div className="admin-meeting-header-row">
-            <h1>Meeting Management Page</h1>
+            <h1>Meeting Management </h1>
             <div className="admin-meeting-header-search">
               <div className="search-bar">
                 <MagnifyingGlass size={20} color="var(--text-secondary)" />

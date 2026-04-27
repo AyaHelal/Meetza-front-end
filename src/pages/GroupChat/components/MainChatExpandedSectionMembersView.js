@@ -72,7 +72,7 @@ export default function MainChatExpandedSectionMembersView({
           flexWrap: "wrap",
         }}
       >
-        <h4 style={{ margin: 0 }}>Members ({members.length})</h4>
+        <h4 style={{ margin: 0 }}></h4>
         {(isOwner || isAdmin) && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {isAdmin && (
@@ -168,7 +168,7 @@ export default function MainChatExpandedSectionMembersView({
                   ) &&
                   member.email &&
                   String(member.email).trim().toLowerCase() !==
-                    String(currentUserEmail || "").trim().toLowerCase() && (
+                  String(currentUserEmail || "").trim().toLowerCase() && (
                     <button
                       type="button"
                       className="remove-group-admin-btn"

@@ -506,10 +506,13 @@ select.form-select {
 }
 
 .group-card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface-color);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
@@ -573,6 +576,7 @@ select.form-select {
   padding: 15px;
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 2px;
 }
 
@@ -604,7 +608,9 @@ select.form-select {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
+  margin-top: auto !important;
+  margin-left: auto;
+  margin-right: auto;
   width: min(56%, 160px);
   height: 36px;
   padding: 0 8px;
@@ -634,6 +640,7 @@ select.form-select {
   cursor: pointer;
   transition: background 0.2s;
   align-self: center;
+  margin-top: auto !important;
   width: 50%;
 }
 

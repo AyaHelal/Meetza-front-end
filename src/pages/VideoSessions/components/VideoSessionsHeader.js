@@ -167,7 +167,6 @@ export default function VideoSessionsHeader({
                   <VideoHoverPreviewThumb
                     posterSrc={s.poster_url || s.thumbnailUrl || s.thumbnail_url || null}
                     alt={s.title || "Video"}
-                    fill
                     className="video-sessions-header-suggestion-thumb"
                   />
                   <div className="video-sessions-header-suggestion-text">
