@@ -466,9 +466,6 @@ export function ProfilePageContent(props) {
                               const isPdf = item?.media_type === "pdf" || fileExt === "pdf";
                               const ext = !isImage && !isVideo && !isAudio && !isPdf && fileName ? fileExt.toUpperCase() : fileName ? fileExt.toUpperCase() : "FILE";
 
-                              // Debug: Log to see if file type is detected correctly
-                              console.log("File:", fileName, "Ext:", fileExt, "isVideo:", isVideo, "isImage:", isImage, "isAudio:", isAudio, "isPdf:", isPdf, "media_type:", item?.media_type);
-
                               const handleDownload = async (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
