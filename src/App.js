@@ -33,8 +33,7 @@ import ProfileRoute from './components/ProfileRoute';
 import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import AppearancePage from './pages/Settings/AppearancePage';
-import RobotOrb from './components/AI/RobotOrb';
-import Chatbot from './components/AI/Chatbot';
+import { ChatbotProvider, ChatbotContainer } from './components/chatbot/chatbot';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -66,7 +65,7 @@ const AppRoutes = () => {
   const socialLoginProcessed = useRef(false);
   const prevPathRef = useRef(location.pathname);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  // const [isChatbotOpen, setIsChatbotOpen] = useState(false); // Managed by ChatbotProvider now
 
   useEffect(() => {
     ensureUiSoundsUnlocked();
@@ -278,8 +277,7 @@ const AppRoutes = () => {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     {/* Global Robot Orb and Chatbot */}
-    <RobotOrb onClick={() => setIsChatbotOpen(!isChatbotOpen)} />
-    <Chatbot isOpen={isChatbotOpen} onClose={() => setIsChatbotOpen(false)} />
+    <ChatbotContainer />
     </>
   );
 };
@@ -287,22 +285,24 @@ const AppRoutes = () => {
 function App() {
   return (
     <BrandingProvider>
-      <SocketProvider>
-        <Router>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-          <AppRoutes />
-        </Router>
-      </SocketProvider>
+      <ChatbotProvider>
+        <SocketProvider>
+          <Router>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+            />
+            <AppRoutes />
+          </Router>
+        </SocketProvider>
+      </ChatbotProvider>
     </BrandingProvider>
   );
 }
