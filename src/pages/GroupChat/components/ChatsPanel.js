@@ -62,9 +62,8 @@ const ChatsPanel = ({
 
   return (
     <div
-      className={`chats-panel rounded-4 shadow-sm ${
-        isMobile && showMainChat ? "mobile-hidden" : ""
-      }`}
+      className={`chats-panel rounded-4 shadow-sm ${isMobile && showMainChat ? "mobile-hidden" : ""
+        }`}
     >
       <ChatsPanelToolbar
         searchQuery={searchQuery}

@@ -39,12 +39,12 @@ body.group-chat-active {
   height: 0;
 }
 
-.group-chat-page-scroll-wrap > .home-container {
+.group-chat-page-scroll-wrap>.home-container {
   flex-shrink: 0;
 }
 
 /* When viewing video sessions only: hide chat so only video section is visible */
-.group-chat-page-scroll-wrap.video-section-active > .home-container {
+.group-chat-page-scroll-wrap.video-section-active>.home-container {
   display: none !important;
 }
 
@@ -497,11 +497,9 @@ body.group-chat-active {
   display: flex;
   flex-direction: column;
   background: var(--surface-color);
-  background-image: radial-gradient(
-    circle at top right,
-    #80baf5 0%,
-    transparent 50%
-  );
+  background-image: radial-gradient(circle at top right,
+      #80baf5 0%,
+      transparent 50%);
   overflow: hidden;
   margin: 20px 0;
   border-radius: 12px;
@@ -601,6 +599,7 @@ body.group-chat-active {
 
 /* Gentle up‑down motion to feel like the button is "calling" you */
 @keyframes joinMeetingBounce {
+
   0%,
   100% {
     transform: translateY(0);
@@ -671,6 +670,7 @@ body.group-chat-active {
 }
 
 @media (max-width: 768px) {
+
   /* Keep header actions inside width; when search is open show it under Join/Create */
   .chat-header-actions {
     flex-wrap: wrap;
@@ -833,6 +833,7 @@ body.group-chat-active {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 /* For own messages, align content to the right */
@@ -861,11 +862,15 @@ body.group-chat-active {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .message-time {
   font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .message-header:not(.message-header-own) .message-time {
@@ -935,10 +940,11 @@ body.group-chat-active {
   background: #e8e8e8;
   padding: 10px 14px;
   border-radius: 18px;
-  display: inline-block;
+  display: block;
+  width: fit-content;
   max-width: 100%;
   word-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
 }
 
 .chat-search-highlight {
@@ -961,9 +967,11 @@ body.group-chat-active {
   0% {
     filter: drop-shadow(0 0 0 rgba(255, 235, 59, 0));
   }
+
   45% {
     filter: drop-shadow(0 0 10px rgba(255, 235, 59, 0.55));
   }
+
   100% {
     filter: drop-shadow(0 0 0 rgba(255, 235, 59, 0));
   }
@@ -1375,7 +1383,7 @@ body.group-chat-active {
 }
 
 /* When link is below text, remove top border radius to connect with text bubble */
-.message-text + .message-media-list .message-media-link {
+.message-text+.message-media-list .message-media-link {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-bottom-left-radius: 18px;
@@ -3166,6 +3174,7 @@ body.group-chat-active {
 }
 
 @media (max-width: 576px) {
+
   /* Logo Section - Mobile Only */
   .logo-section {
     display: flex;
@@ -3705,8 +3714,8 @@ body.group-chat-active {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.member-item > .member-avatar,
-.member-item > .member-avatar-fallback {
+.member-item>.member-avatar,
+.member-item>.member-avatar-fallback {
   flex-shrink: 0;
   flex-grow: 0;
 }
@@ -3747,7 +3756,7 @@ body.group-chat-active {
 }
 
 /* Name/email column grows; actions column stays tight (no huge gap before role badge) */
-.member-item > div:not(.member-avatar-fallback):not(.member-item-actions) {
+.member-item>div:not(.member-avatar-fallback):not(.member-item-actions) {
   flex: 1;
   min-width: 0;
 }
@@ -4197,6 +4206,7 @@ body.group-chat-active {
 }
 
 @keyframes voiceWave {
+
   0%,
   100% {
     transform: scaleY(0.5);
@@ -4416,10 +4426,12 @@ body.group-chat-active {
 }
 
 @keyframes groupResourceUploadPulse {
+
   0%,
   100% {
     opacity: 0.55;
   }
+
   50% {
     opacity: 1;
   }
@@ -5209,11 +5221,9 @@ body.group-chat-active {
 }
 
 [data-theme="dark"] .main-chat {
-  background-image: radial-gradient(
-    circle at top right,
-    rgba(59, 130, 246, 0.15) 0%,
-    transparent 50%
-  ) !important;
+  background-image: radial-gradient(circle at top right,
+      rgba(59, 130, 246, 0.15) 0%,
+      transparent 50%) !important;
 }
 
 [data-theme="dark"] .chat-header-search {
