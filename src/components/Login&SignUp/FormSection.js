@@ -82,9 +82,10 @@ const FormSection = ({
             <div ref={formRef} className="text-center mb-0 mt-0">
                 <div className="logo-container" style={{
                     margin: '0 auto',
-                    padding: '0 0 70px',
+                    padding: '0 0 26px',
                     width: '100%',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    transform: 'translateY(-52px)'
                 }}>
                     <img
                         src="/assets/meetza.png"
