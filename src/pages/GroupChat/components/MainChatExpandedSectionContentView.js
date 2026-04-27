@@ -48,9 +48,7 @@ export default function MainChatExpandedSectionContentView({
   if (activeSection === "media") {
     expandedContentBody = (
       <>
-        <div className="media-header">
-          <h4>Media, Links and Docs</h4>
-        </div>
+
         <TabbedSection
           source={mediaTabResources}
           tabValue={mediaTab}
@@ -69,9 +67,7 @@ export default function MainChatExpandedSectionContentView({
   } else if (activeSection === "contents") {
     expandedContentBody = (
       <>
-        <div className="media-header">
-          <h4>Group Resources</h4>
-        </div>
+
         <TabbedSection
           source={contentResources}
           tabValue={contentTab}
