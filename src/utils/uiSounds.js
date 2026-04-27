@@ -9,9 +9,11 @@ const URLS = {
   incomingMessage: `${base}/sounds/incoming-message.mp3`,
   chatMessagePop: `${base}/sounds/chat-message-pop.mp3`,
   sendMessage: `${base}/sounds/send-message.wav`,
+  /** Bell: primed on first user gesture like other UI sounds (autoplay policy). */
+  notificationBell: `${base}/sounds/notification.wav`,
 };
 
-const NOTIFICATION_SOUND_URL = `${base}/sounds/notification.wav`;
+const NOTIFICATION_SOUND_KEY = "notificationBell";
 
 const cache = {};
 
@@ -19,7 +21,6 @@ let unlockListenersAttached = false;
 
 /**
  * Registers listeners: first pointer/key primes cached Audio elements (helps autoplay on some browsers).
- * Skip priming bell file — bell uses fresh Audio() so it never shares cache with chat sounds.
  */
 export function ensureUiSoundsUnlocked() {
   if (typeof document === "undefined" || unlockListenersAttached) return;
@@ -127,20 +128,12 @@ const NOTIFICATION_SOUND_DEBOUNCE_MS = 400;
  * Never uses chat-message-pop. Fresh Audio() so cache cannot swap files with chat.
  */
 export function playNotificationSound() {
-  armSuppressChatIncomingForNotification(DEFAULT_BELL_CHAT_SUPPRESS_MS);
   const now = Date.now();
   if (now - lastNotificationDebounceAt < NOTIFICATION_SOUND_DEBOUNCE_MS) return;
   lastNotificationDebounceAt = now;
 
-  try {
-    const el = new Audio(NOTIFICATION_SOUND_URL);
-    el.volume = 1;
-    el.currentTime = 0;
-    const p = el.play();
-    if (p && typeof p.catch === "function") p.catch(() => {});
-  } catch (_) {
-    /* ignore */
-  }
+  armSuppressChatIncomingForNotification(DEFAULT_BELL_CHAT_SUPPRESS_MS);
+  playKey(NOTIFICATION_SOUND_KEY);
 }
 
 export function playChatSendSound() {

@@ -14,7 +14,7 @@ function notificationListKey(n) {
 
 /** `:id` on `PUT /group/pending/:id/status` — prefers `pendingGroupApproval.pendingGroupId` from API. */
 function getGroupPendingRequestId(n) {
-  if (!n || typeof n !== "object") return "";
+  // Try to get ID from pendingGroupApproval object
   const pga = n.pendingGroupApproval ?? n.pending_group_approval;
   if (pga && typeof pga === "object") {
     const pendingId =
@@ -23,6 +23,22 @@ function getGroupPendingRequestId(n) {
       return String(pendingId).trim();
     }
   }
+  
+  // Try to get ID directly from notification object
+  const directId = n.pendingGroupId ?? n.pending_group_id ?? n.pendingGroupID;
+  if (directId != null && String(directId).trim() !== "") {
+    return String(directId).trim();
+  }
+  
+  // Try to get ID from nested data object
+  if (n.data && typeof n.data === "object") {
+    const dataId = n.data.pendingGroupId ?? n.data.pending_group_id ?? n.data.pendingGroupID;
+    if (dataId != null && String(dataId).trim() !== "") {
+      return String(dataId).trim();
+    }
+  }
+  
+  // Fallback to notification ID if no pending group ID found
   const id = n.id ?? n.notification_id;
   if (id == null || String(id).trim() === "") return "";
   return String(id).trim();
