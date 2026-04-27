@@ -942,7 +942,7 @@ body.group-chat-active {
   border-radius: 18px;
   display: block;
   width: fit-content;
-  max-width: 100%;
+  max-width: 200px;
   word-wrap: break-word;
   word-break: normal;
 }
