@@ -87,7 +87,7 @@ export default function HeroNav() {
 
                 {/* Menu Items */}
                 <div className={`collapse navbar-collapse justify-content-between ${isMenuOpen ? 'show' : ''}`} id="heroNav">
-                    <div className="vr mx-3 d-none d-lg-block"></div>
+                    
 
                     {/* Navigation Links */}
                     <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
