@@ -148,25 +148,36 @@ const FormSection = ({
             </div>
 
             {message?.text && (
-                <div
-                    className={`alert d-flex align-items-center justify-content-center text-center ${message.type === "success" ? "alert-success" : "alert-danger"
-                        }`}
-                    role="alert"
-                    style={{
-                        fontSize: "1rem",
-                        fontWeight: "500",
-                        gap: "10px",
-                        borderRadius: "12px",
-                        maxWidth: "450px",
-                        margin: "10px auto"
-                    }}
-                >
-                    {message.type === "success" ? (
-                        <span style={{ fontSize: "1.4rem" }}>✅</span>
-                    ) : (
-                        <span style={{ fontSize: "1.4rem" }}>⚠️</span>
-                    )}
-                    <span>{message.text}</span>
+                <div className={`login-error-container ${message.type === "success" ? "success-container" : ""}`} role="alert">
+                    <div className={`login-error-icon ${message.type === "success" ? "success-icon" : ""}`}>
+                        {message.type === "success" ? (
+                            <span style={{ fontSize: "1.2rem" }}>✅</span>
+                        ) : (
+                            <div style={{
+                                width: "24px",
+                                height: "24px",
+                                borderRadius: "50%",
+                                backgroundColor: "#e54b4b",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontSize: "16px",
+                                fontWeight: "bold",
+                                flexShrink: 0
+                            }}>
+                                !
+                            </div>
+                        )}
+                    </div>
+                    <div className="login-error-text">
+                        <div className={`login-error-title ${message.type === "success" ? "success-title" : ""}`}>
+                            {message.type === "success" ? "Success" : message.text}
+                        </div>
+                        <div className={`login-error-message ${message.type === "success" ? "success-message" : ""}`}>
+                            Please check your credentials and try again.
+                        </div>
+                    </div>
                 </div>
             )}
 

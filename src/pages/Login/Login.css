@@ -6,6 +6,79 @@
   font-family: "Poppins", sans-serif !important;
 }
 
+/* ===== UTILITY CLASSES ===== */
+.text-888888 {
+  color: #888888;
+}
+
+.p-8 {
+  padding-top: 30%;
+}
+
+.forgot-password-container1 {
+  justify-content: center;
+  align-items: center;
+  margin-top: 5rem;
+}
+
+/* ===== API ERROR STYLING ===== */
+.login-error-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: #fff1f1;
+  border: 1px solid #ffcccc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.login-error-container.success-container {
+  background-color: #f0f9f0;
+  border: 1px solid #c8e6c9;
+}
+
+.login-error-icon {
+  color: #e54b4b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.login-error-icon.success-icon {
+  color: #2e7d32;
+}
+
+.login-error-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.login-error-title {
+  color: #b3261e;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.login-error-title.success-title {
+  color: #2e7d32;
+}
+
+.login-error-message {
+  color: #b3261e;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.login-error-message.success-message {
+  color: #2e7d32;
+}
+
 /* Loading spinner animation */
 .spinner-border-sm {
   animation: spinner-border 0.75s linear infinite;
