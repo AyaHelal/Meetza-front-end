@@ -421,3 +421,33 @@ body.post-video-modal-open .video-session-card-menu-btn {
     font-size: 0.75rem;
   }
 }
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .video-session-card {
+  background-color: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .video-session-card-content {
+  background-color: var(--surface-color) !important;
+}
+
+[data-theme="dark"] .video-session-card-topic-tag {
+  background-color: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .video-session-card-dropdown {
+  background-color: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .video-session-card-dropdown-item:hover {
+  background-color: var(--bg-alt) !important;
+}
+
+[data-theme="dark"] .video-session-card-menu-btn:hover {
+  background-color: var(--bg-alt) !important;
+}

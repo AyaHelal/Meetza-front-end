@@ -782,7 +782,7 @@ select.form-select {
 
 /* Dark Mode Adjustments */
 [data-theme="dark"] .groups-page {
-  background-color: var(--bg-color);
+  background-color: var(--bg-alt);
 }
 
 [data-theme="dark"] .filter-panel {
@@ -792,13 +792,14 @@ select.form-select {
 }
 
 [data-theme="dark"] .groups-content {
-  background: var(--bg-color) !important;
+  background: var(--bg-alt) !important;
   border: 1px solid var(--border-color);
 }
 
 [data-theme="dark"] .group-card {
   background-color: var(--surface-color) !important;
   border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme="dark"] .group-card-title--member,
@@ -832,8 +833,9 @@ select.form-select {
 
 [data-theme="dark"] .form-input,
 [data-theme="dark"] .form-select,
-[data-theme="dark"] .form-textarea {
-  background-color: var(--bg-alt) !important;
+[data-theme="dark"] .form-textarea,
+[data-theme="dark"] .search-bar input {
+  background-color: var(--bg-color) !important;
   border-color: var(--border-color) !important;
   color: var(--text-primary) !important;
 }
