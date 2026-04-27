@@ -85,7 +85,6 @@ const FormSection = ({
                     padding: '0 0 26px',
                     width: '100%',
                     textAlign: 'center',
-                    transform: 'translateY(-52px)'
                 }}>
                     <img
                         src="/assets/meetza.png"
@@ -106,7 +105,7 @@ const FormSection = ({
                 {/* Only show default title for signin/signup, hide for verification */}
                 {activeTab !== 'verification' && (
                     <>
-                        <h1 className="h2 fw-semibold mb-2 font-size-lg" style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Welcome Back</h1>
+                        <h1 className="h2 fw-semibold mb-2 font-size-lg" style={{ marginBottom: '0.25rem', marginTop: '10%', fontSize: '1.75rem' }}>Welcome Back</h1>
                         <p className="text-muted p-font-size-lg" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
                             {formData?.role ? `Please enter your details as a ${formData.role}` : 'Please enter your details'}
                         </p>
@@ -291,7 +290,7 @@ const FormSection = ({
                                 </div>
                             )}
 
-                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"}/>
+                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"} />
                         </>
                     )
                 )}
