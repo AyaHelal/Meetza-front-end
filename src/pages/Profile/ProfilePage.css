@@ -1085,14 +1085,15 @@
 
 /* Dark Mode Adjustments */
 [data-theme="dark"] .profile-page {
-  --profile-page-bg: var(--bg-color);
-  background-color: var(--bg-color);
+  --profile-page-bg: var(--bg-alt);
+  background-color: var(--bg-alt);
 }
 
 [data-theme="dark"] .profile-design-card {
   background-color: var(--surface-color) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
 [data-theme="dark"] .profile-field-row {
@@ -1138,10 +1139,12 @@
 
 [data-theme="dark"] .profile-file-cell {
   background-color: var(--bg-alt) !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 [data-theme="dark"] .profile-saved-video-card {
-  background-color: var(--bg-color) !important;
+  background-color: var(--surface-color) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 [data-theme="dark"] .profile-saved-head-icon {
