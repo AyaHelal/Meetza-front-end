@@ -66,7 +66,11 @@ const Groups = () => {
         isSuperAdmin,
         adminIds: Array.isArray(adminIds) ? adminIds : [],
       });
-      smartToast.success('Group created successfully!');
+      if (isSuperAdmin) {
+        smartToast.success('Group created successfully!');
+      } else {
+        smartToast.info('Group creation request sent. Waiting for super admin approval.');
+      }
       setShowCreateModal(false);
       await fetchGroupsAndMembership();
     } catch (error) {

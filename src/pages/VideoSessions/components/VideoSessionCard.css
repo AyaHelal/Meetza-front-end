@@ -241,7 +241,7 @@
 .video-session-card-menu-wrap {
   position: relative;
   flex-shrink: 0;
-  z-index: 10000;
+  z-index: 999;
 }
 
 .video-session-card-menu-btn {
@@ -283,7 +283,7 @@ body.post-video-modal-open .video-session-card-menu-btn {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  z-index: 10001;
+  z-index: 1000;
 }
 
 .video-session-card-dropdown-item {

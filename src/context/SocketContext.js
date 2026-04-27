@@ -62,6 +62,8 @@ export const SocketProvider = ({ children }) => {
   const userRef = useRef(user);
   const activeGroupChatIdForSoundRef = useRef(null);
   const notificationsSyncFingerprintRef = useRef("");
+  /** Last list length from /notification sync — super/pending rows may be `is_read` so unread does not rise. */
+  const notificationsListLengthRef = useRef(0);
 
   useEffect(() => {
     userRef.current = user;
@@ -69,6 +71,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     notificationsSyncFingerprintRef.current = "";
+    notificationsListLengthRef.current = 0;
   }, [token]);
 
   const setActiveGroupChatForSound = useCallback((groupId) => {
@@ -164,6 +167,8 @@ export const SocketProvider = ({ children }) => {
               const unreadCount = countUnreadNotifications(notificationsData);
               notificationsSyncFingerprintRef.current =
                 notificationsListFingerprint(notificationsData);
+              notificationsListLengthRef.current = notificationsData.length;
+              unreadNotificationCountRef.current = unreadCount;
               setUnreadNotificationCount(unreadCount);
             })
             .catch(() => {});
@@ -244,8 +249,13 @@ export const SocketProvider = ({ children }) => {
         const list = parseNotificationsFromApiResponse(response.data);
         const fp = notificationsListFingerprint(list);
         if (fp === notificationsSyncFingerprintRef.current) return;
-        notificationsSyncFingerprintRef.current = fp;
+        const hadBaseline = notificationsSyncFingerprintRef.current !== "";
+        const prevUnread = Number(unreadNotificationCountRef.current) || 0;
+        const prevLen = notificationsListLengthRef.current;
         const unread = countUnreadNotifications(list);
+        const len = list.length;
+        notificationsSyncFingerprintRef.current = fp;
+        notificationsListLengthRef.current = len;
         unreadNotificationCountRef.current = unread;
         setUnreadNotificationCount(unread);
         if (typeof window !== "undefined") {
@@ -254,6 +264,9 @@ export const SocketProvider = ({ children }) => {
               detail: { notifications: list, unreadCount: unread },
             })
           );
+        }
+        if (hadBaseline && (unread > prevUnread || len > prevLen)) {
+          playNotificationSound();
         }
       } catch {
         /* ignore */
@@ -309,6 +322,11 @@ export const SocketProvider = ({ children }) => {
     const onNewNotification = () => {
       armSuppressChatIncomingForNotification();
       playNotificationSound();
+      // Increment unread count when new notification arrives
+      const prev = Number(unreadNotificationCountRef.current) || 0;
+      const next = prev + 1;
+      unreadNotificationCountRef.current = next;
+      setUnreadNotificationCount(next);
     };
 
     const onNotificationCountUpdate = (data) => {
@@ -349,10 +367,18 @@ export const SocketProvider = ({ children }) => {
       "all_notifications_read",
     ]);
 
+    const eventNameSuggestsNotification = (key) => {
+      if (key.includes("notif")) return true;
+      if (key.includes("pending") && key.includes("group")) return true;
+      if (key.includes("group") && key.includes("approval")) return true;
+      if (key.includes("pendinggroup")) return true;
+      return false;
+    };
+
     const onAnyNotificationLike = (eventName, ...args) => {
       const key = String(eventName).toLowerCase();
       if (knownNotificationEventNames.has(key)) return;
-      if (!key.includes("notif")) return;
+      if (!eventNameSuggestsNotification(key)) return;
       const raw = args[0];
       const n = normalizeSocketNotificationPayload(raw);
       if (n && typeof window !== "undefined") {
