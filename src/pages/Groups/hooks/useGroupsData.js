@@ -71,12 +71,21 @@ export function useGroupsData(user, selectedYears, selectedSemesters) {
       
       localStorage.setItem(cacheKey, JSON.stringify(visibleGroups));
 
-      const joinedFromGroups = visibleGroups
-        .filter((group) => Number(group?.is_joined) === 1)
-        .map((group) => String(group.group_id || group.id))
-        .filter(Boolean);
-      setJoinedGroups(joinedFromGroups);
-      localStorage.setItem(joinedCacheKey, JSON.stringify(joinedFromGroups));
+      setJoinedGroups((prev) => {
+        const joinedSet = new Set(prev || []);
+        visibleGroups.forEach((group) => {
+          const id = String(group.group_id || group.id);
+          if (!id || id === 'undefined') return;
+          if (Number(group.is_joined) === 1) {
+            joinedSet.add(id);
+          } else {
+            joinedSet.delete(id);
+          }
+        });
+        const newJoined = Array.from(joinedSet);
+        localStorage.setItem(joinedCacheKey, JSON.stringify(newJoined));
+        return newJoined;
+      });
     } catch (error) {
       console.error('Error fetching groups:', error);
       smartToast.error('Failed to load groups. Please try again.');

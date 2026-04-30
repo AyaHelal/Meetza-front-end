@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { smartToast } from '../../API/toastManager';
 import { useAuth } from '../../context/AuthContext';
-import { createGroup, joinGroup } from './services/groupsService';
+import { createGroup, joinGroup, leaveGroup } from './services/groupsService';
 import GroupsFilterPanel from './components/GroupsFilterPanel';
 import GroupsGrid from './components/GroupsGrid';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
+import LeaveGroupLastAdminModal from './components/LeaveGroupLastAdminModal';
 import { ConfirmDeleteModal } from '../../components/shared/ConfirmDeleteModal';
 import api from '../../API/axiosInstance';
 import {
@@ -27,6 +28,8 @@ const Groups = () => {
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [createModalAdmins, setCreateModalAdmins] = useState([]);
   const [createModalAdminsLoading, setCreateModalAdminsLoading] = useState(false);
+  const [lastAdminLeaveModal, setLastAdminLeaveModal] = useState(null);
+  const [lastAdminLeaveSubmitting, setLastAdminLeaveSubmitting] = useState(false);
 
   const filters = useGroupsFilters();
   const {
@@ -137,11 +140,64 @@ const Groups = () => {
         return;
       }
       await joinGroup(groupId, user.id);
-      setJoinedGroups((prev) => [...prev, groupId]);
+      setJoinedGroups((prev) => [...prev, String(groupId)]);
       smartToast.success('Joined successfully!');
     } catch (error) {
       console.error('Join Error:', error);
       smartToast.error(error.response?.data?.message || error.message || 'Failed to join group');
+    }
+  };
+
+  const handleLeaveGroup = async (groupId) => {
+    try {
+      if (!user?.id) {
+        smartToast.error('You must be logged in to leave a group');
+        return;
+      }
+      await leaveGroup(groupId, {});
+      setJoinedGroups((prev) => prev.filter(id => String(id) !== String(groupId)));
+      smartToast.success('Left group successfully!');
+      setLastAdminLeaveModal(null);
+      await fetchGroupsAndMembership();
+    } catch (error) {
+      console.error('Leave Error:', error);
+      const data = error.response?.data;
+      if (data?.code === 'LAST_ADMIN_ASSIGN_REQUIRED') {
+        const payload = data?.data || {};
+        const candidates = Array.isArray(payload.admins)
+          ? payload.admins
+          : Array.isArray(payload.candidates)
+          ? payload.candidates
+          : [];
+        const groupName = groups.find(g => String(g.id) === String(groupId) || String(g.group_id) === String(groupId))?.name || '';
+        setLastAdminLeaveModal({
+          groupId: payload.group_id ?? groupId,
+          groupName,
+          candidates,
+          currentAdminRole: payload.current_admin_role ?? null,
+        });
+      } else {
+        smartToast.error(data?.message || error.message || 'Failed to leave group');
+      }
+    }
+  };
+
+  const handleLastAdminLeaveConfirm = async (body) => {
+    if (!lastAdminLeaveModal?.groupId) return;
+    const gid = lastAdminLeaveModal.groupId;
+    setLastAdminLeaveSubmitting(true);
+    try {
+      await leaveGroup(gid, body);
+      setJoinedGroups((prev) => prev.filter(id => String(id) !== String(gid)));
+      smartToast.success('Left group successfully!');
+      setLastAdminLeaveModal(null);
+      await fetchGroupsAndMembership();
+    } catch (error) {
+      console.error('Leave confirm error:', error);
+      const data = error.response?.data;
+      smartToast.error(data?.message || error.message || 'Failed to leave group');
+    } finally {
+      setLastAdminLeaveSubmitting(false);
     }
   };
 
@@ -294,6 +350,7 @@ const Groups = () => {
           isSuperAdmin={isSuperAdmin}
           joinedGroups={joinedGroups}
           onJoinGroup={handleJoinGroup}
+          onLeaveGroup={handleLeaveGroup}
           onEditGroup={handleEditGroupClick}
           onDeleteGroup={handleDeleteGroupClick}
           onCreateGroup={() => setShowCreateModal(true)}
@@ -323,6 +380,15 @@ const Groups = () => {
         title="Delete Group"
         message={`Are you sure you want to delete the group "${groupToDelete?.name || groupToDelete?.group_name || groupToDelete?.title || 'this group'}"?`}
         confirming={actionSubmitting}
+      />
+      <LeaveGroupLastAdminModal
+        show={Boolean(lastAdminLeaveModal)}
+        groupName={lastAdminLeaveModal?.groupName}
+        candidates={lastAdminLeaveModal?.candidates ?? []}
+        currentAdminRole={lastAdminLeaveModal?.currentAdminRole}
+        onClose={() => !lastAdminLeaveSubmitting && setLastAdminLeaveModal(null)}
+        onConfirm={handleLastAdminLeaveConfirm}
+        submitting={lastAdminLeaveSubmitting}
       />
     </div>
   );

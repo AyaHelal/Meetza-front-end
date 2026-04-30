@@ -87,7 +87,7 @@ export function OutgoingMeetingCard({ meeting, onJoin }) {
           className="outgoing-meeting-card__btn" 
           onClick={() => onJoin(meeting.id)}
         >
-          Click to open full video
+          Click to open meeting
         </button>
       </div>
     </div>

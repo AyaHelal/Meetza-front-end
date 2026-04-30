@@ -395,7 +395,7 @@ export function VideoSessionDetailLayout(props) {
             )}
 
             <section className="video-session-detail-questions" ref={commentsSectionRef}>
-              <h3>Student Questions {commentCount ? `(${commentCount})` : ""}</h3>
+              <h3>Comments {commentCount ? `(${commentCount})` : ""}</h3>
               <div className="video-session-detail-comment-input">
                 {(user?.Member_photo || user?.member_photo || user?.photo || user?.avatar) ? (
                   <img

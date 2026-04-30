@@ -142,6 +142,12 @@
   background: transparent !important;
 }
 
+.home-hero-search:focus {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: black;
+}
+
 .home-hero-search::placeholder {
   color: black;
 }
