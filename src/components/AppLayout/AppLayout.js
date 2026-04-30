@@ -15,7 +15,8 @@ import {
 } from "@phosphor-icons/react";
 import api from "../../API/axiosInstance";
 import { getGroups } from "../../pages/GroupChat/services/groupChatService";
-import LeftNavbar from "../../pages/GroupChat/components/LeftNavbar";
+import LeftNavbar from "../shared/LeftNavbar/LeftNavbar";
+import * as meetingService from "../../pages/Meetings/services/meetingService";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
 import MobileHeader from "../MobileHeader/MobileHeader";
 import UserPhoto from "../UserPhoto/UserPhoto";
@@ -262,8 +263,9 @@ const AppLayout = () => {
       const activeMeetingId = sessionStorage.getItem("activeMeetingId");
       if (activeMeetingId) {
         try {
-          await api.post(`/meeting/${activeMeetingId}/leave`);
+          await meetingService.leaveMeeting(api, activeMeetingId);
         } catch (leaveErr) {
+          console.error("Failed to leave meeting during logout in AppLayout:", leaveErr);
         }
         sessionStorage.removeItem("activeMeetingId");
         sessionStorage.removeItem("activeMeetingGroupId");

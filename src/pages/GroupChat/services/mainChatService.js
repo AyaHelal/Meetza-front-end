@@ -73,3 +73,30 @@ export function extractMeetingsList(root) {
   if (Array.isArray(payload)) return payload;
   return payload ? [payload] : [];
 }
+
+/**
+ * Update the content name for a group content record.
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} groupId
+ * @param {string} contentId
+ * @param {string} newName
+ */
+export async function updateContentName(api, groupId, contentId, newName) {
+  if (!contentId || !newName) return;
+
+  try {
+    // Try updating via group-contents first
+    await api.put(`/group-contents/${contentId}`, {
+      name: newName,
+      content_name: newName,
+      group_content_name: newName
+    });
+  } catch {
+    // Fallback to group update if the first one fails
+    if (groupId) {
+      const form = new FormData();
+      form.append('group_content_name', newName);
+      await api.put(`/group/${groupId}`, form);
+    }
+  }
+}
