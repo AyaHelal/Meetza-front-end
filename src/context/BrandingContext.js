@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import axios from 'axios';
 import { API_BASE_URL } from '../API/axiosInstance';
 
-const BrandingContext = createContext();
+export const BrandingContext = createContext();
 
 export const useBranding = () => useContext(BrandingContext);
 
@@ -17,6 +17,7 @@ export const BrandingProvider = ({ children }) => {
         privacyHtml: '',
         guidelinesHtml: '',
         authGoogleEnabled: true,
+        domains: [],
         loading: true
     });
 
@@ -43,6 +44,7 @@ export const BrandingProvider = ({ children }) => {
                     privacyHtml: settings.privacy_html || '',
                     guidelinesHtml: settings.guidelines_html || '',
                     authGoogleEnabled: settings.auth_google_enabled !== false && settings.auth_google_enabled !== 0 && settings.auth_google_enabled !== '0',
+                    domains: data.domains || [],
                     loading: false
                 });
                 
