@@ -49,6 +49,8 @@ export function useVideoSessionDetail(session, options = {}) {
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [likeSubmitting, setLikeSubmitting] = useState(false);
+  const [saveSubmitting, setSaveSubmitting] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const adminMenuRef = useRef(null);
 
@@ -141,6 +143,7 @@ export function useVideoSessionDetail(session, options = {}) {
     isRTL,
     setReplyDraft,
     toggleReplyInput,
+    toggleRepliesVisibility,
     handlePostReply,
   } = useVideoSessionDetailInteractions({
     session,
@@ -179,6 +182,8 @@ export function useVideoSessionDetail(session, options = {}) {
     setDeleting,
     onVideoDeleted,
     onBack,
+    setLikeSubmitting,
+    setSaveSubmitting,
   });
 
   const videoUrl = detail?.videoUrl || session?.videoUrl || null;
@@ -274,6 +279,9 @@ export function useVideoSessionDetail(session, options = {}) {
     formatRelativeTime,
     formatFullDate,
     toggleReplyInput,
+    toggleRepliesVisibility,
     isRTL,
+    likeSubmitting,
+    saveSubmitting,
   };
 }

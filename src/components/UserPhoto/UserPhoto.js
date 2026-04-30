@@ -69,10 +69,9 @@ const UserPhoto = ({
   }, [photoUpdatedAt, basePhotoUrl, user?.photoUpdatedAt, authUser?.photoUpdatedAt, userId, initializing, localPhotoUrl]);
 
   const handlePhotoClick = () => {
-    if (!allowUpload) return;
     if (onClick) {
       onClick();
-    } else {
+    } else if (allowUpload) {
       fileInputRef.current?.click();
     }
   };
@@ -239,8 +238,8 @@ const UserPhoto = ({
       <div
         className="user-photo-avatar-container"
         onClick={handlePhotoClick}
-        style={{ cursor: isUploading ? 'wait' : (allowUpload ? 'pointer' : 'default') }}
-        title={isUploading ? 'Uploading...' : (allowUpload ? 'Click to change photo' : '')}
+        style={{ cursor: isUploading ? 'wait' : ((allowUpload || onClick) ? 'pointer' : 'default') }}
+        title={isUploading ? 'Uploading...' : (allowUpload ? 'Click to change photo' : (onClick ? 'View profile' : ''))}
       >
         <div className="user-photo-avatar">
           {userPhoto ? (

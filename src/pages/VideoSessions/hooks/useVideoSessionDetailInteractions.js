@@ -62,10 +62,13 @@ export function useVideoSessionDetailInteractions({
   setDeleting,
   onVideoDeleted,
   onBack,
+  setLikeSubmitting,
+  setSaveSubmitting,
 }) {
   const handleLikeAction = useCallback(
     async (likeType) => {
       if (!session?.id) return;
+      setLikeSubmitting(true);
       const isLike = likeType === 1;
       const alreadyLiked = isLike && liked;
       const alreadyDisliked = !isLike && disliked;
@@ -113,9 +116,11 @@ export function useVideoSessionDetailInteractions({
         }
       } catch (err) {
         console.error("Failed to submit like/dislike", err);
+      } finally {
+        setLikeSubmitting(false);
       }
     },
-    [session?.id, liked, disliked, setDetail, setLiked, setDisliked, setLikeDislikeRecordId]
+    [session?.id, liked, disliked, setDetail, setLiked, setDisliked, setLikeDislikeRecordId, setLikeSubmitting]
   );
 
   const handleSummarize = useCallback(
@@ -210,7 +215,15 @@ export function useVideoSessionDetailInteractions({
       if (!commentId) return;
       try {
         await deleteCommentAPI(commentId);
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setComments((prev) => {
+          // Remove from top-level comments
+          const filtered = prev.filter((c) => c.id !== commentId);
+          // Also remove from nested replies
+          return filtered.map((c) => ({
+            ...c,
+            replies: (c.replies || []).filter((r) => r.id !== commentId),
+          }));
+        });
         setDetail((prev) => ({ ...prev, commentCount: Math.max((prev?.commentCount ?? 1) - 1, 0) }));
         smartToast.success("Comment deleted");
       } catch (err) {
@@ -240,7 +253,17 @@ export function useVideoSessionDetailInteractions({
       setEditCommentSubmitting(true);
       await editCommentAPI(editingCommentId, editCommentText.trim());
       setComments((prev) =>
-        prev.map((c) => (c.id === editingCommentId ? { ...c, comment_text: editCommentText.trim() } : c))
+        prev.map((c) => {
+          // Update top-level comment
+          if (c.id === editingCommentId) return { ...c, comment_text: editCommentText.trim() };
+          // Update nested reply
+          return {
+            ...c,
+            replies: (c.replies || []).map((r) =>
+              r.id === editingCommentId ? { ...r, comment_text: editCommentText.trim() } : r
+            ),
+          };
+        })
       );
       handleEditCommentClose();
       smartToast.success("Comment updated");
@@ -256,6 +279,7 @@ export function useVideoSessionDetailInteractions({
     if (!session?.id) return;
     if (saveInFlightRef.current) return;
     saveInFlightRef.current = true;
+    setSaveSubmitting(true);
 
     const wasSaved = savedRef.current;
     try {
@@ -291,8 +315,9 @@ export function useVideoSessionDetailInteractions({
       smartToast.error("Failed to save video. Please try again.");
     } finally {
       saveInFlightRef.current = false;
+      setSaveSubmitting(false);
     }
-  }, [session?.id, onUnsave, saveInFlightRef, savedRef, setSaved, setDetail]);
+  }, [session?.id, onUnsave, saveInFlightRef, savedRef, setSaved, setDetail, setSaveSubmitting]);
 
   const handleEditOpen = useCallback(() => {
     setEditForm({
@@ -353,6 +378,13 @@ export function useVideoSessionDetailInteractions({
     [setReplyDrafts]
   );
 
+  const toggleRepliesVisibility = useCallback(
+    (id) => {
+      setComments((prev) => prev.map((c) => (c.id === id ? { ...c, showReplies: !c.showReplies } : c)));
+    },
+    [setComments]
+  );
+
   const toggleReplyInput = useCallback(
     (id) => {
       setComments((prev) => prev.map((c) => (c.id === id ? { ...c, showReplyInput: !c.showReplyInput } : c)));
@@ -403,6 +435,7 @@ export function useVideoSessionDetailInteractions({
     isRTL,
     setReplyDraft,
     toggleReplyInput,
+    toggleRepliesVisibility,
     handlePostReply,
   };
 }
