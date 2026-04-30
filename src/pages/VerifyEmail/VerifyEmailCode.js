@@ -3,8 +3,13 @@ import { motion } from "framer-motion";
 import { verifyEmail, resendResetCode } from "../../API/auth";
 import "../Login/Login.css";
 import { useNavigate, Link } from "react-router-dom";
+import BrandingLogo from "../../components/common/BrandingLogo";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function VerifyEmailCode() {
+    const { systemName, showPoweredBy } = useBranding();
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+    
     const [code, setCode] = useState(["", "", "", ""]);
     const [loading, setLoading] = useState(false);
     const inputsRef = useRef([]);
@@ -139,10 +144,28 @@ export default function VerifyEmailCode() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        <img src="/assets/meetza.png" alt="Meetza" style={{
-                            maxWidth: '210px',
-                            height: 'auto'
-                        }} />
+                        <div className="d-flex flex-column align-items-center">
+                            <BrandingLogo
+                                showSystemName={!isMeetza}
+                                className={`d-flex flex-row align-items-center justify-content-center gap-2 ${isMeetza ? "meetza-standalone-logo" : ""}`}
+                                style={{
+                                    maxHeight: '60px',
+                                    objectFit: 'contain',
+                                    margin: '0',
+                                    padding: '0'
+                                }}
+                                systemNameStyle={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}
+                            />
+                            {(!isMeetza && showPoweredBy !== false) && (
+                                <div className="d-flex align-items-center justify-content-center mt-1 text-muted" style={{ fontSize: '0.75rem', gap: '5px' }}>
+                                    <span>Powered by</span>
+                                    <div className="d-flex align-items-center" style={{ gap: '2px' }}>
+                                        <img src="/assets/MeetzaLogo.png" alt="Meetza Logo" style={{ height: '18px', objectFit: 'contain' }} />
+                                        <img src="/assets/MeetzaWord.png" alt="Meetza Text" style={{ height: '18px', objectFit: 'contain', marginBottom: '-1px' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     {/* Title */}

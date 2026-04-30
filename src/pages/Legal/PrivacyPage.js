@@ -1,9 +1,11 @@
 import "./LegalPage.css";
 import { useNavigate } from "react-router-dom";
 import React, { useMemo } from "react";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
+  const { privacyHtml } = useBranding();
 
   const DEFAULT_TEXT = useMemo(
     () =>
@@ -35,9 +37,8 @@ export default function PrivacyPage() {
         </button>
         <div className="legal-card">
           <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-subtitle">Last updated: April 2026</p>
           <div className="legal-body">
-            <div className="legal-body-pre">{DEFAULT_TEXT}</div>
+            <div className="legal-body-pre">{privacyHtml || DEFAULT_TEXT}</div>
           </div>
         </div>
       </div>

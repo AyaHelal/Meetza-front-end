@@ -30,6 +30,7 @@ const LeftNavbar = ({
   const navigate = useNavigate();
   const { logoutUser, user } = useContext(AuthContext);
   const { systemName, logoUrl } = useBranding();
+  const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
 
   // Check if user is admin
   const userRole = (user?.role || "").toString().trim().toLowerCase();
@@ -175,7 +176,7 @@ const LeftNavbar = ({
             <img
               src={logoUrl || "/assets/meetza_logo_1024.png"}
               alt={systemName}
-              style={{ width: "80px", height: "80px", objectFit: "contain" }}
+              style={{ width: isMeetza ? "80px" : "50px", height: isMeetza ? "80px" : "50px", objectFit: "contain" }}
             />
           </div>
         </div>

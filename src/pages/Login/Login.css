@@ -117,6 +117,7 @@
     margin: 0 auto;
   }
 }
+
 /* Focus styles for keyboard navigation */
 .form-control:focus,
 .btn:focus,
@@ -240,15 +241,19 @@
 @media (max-width: 575px) {
   .role-radio-group {
     flex-direction: row;
-    flex-wrap: nowrap; /* keep in one row */
+    flex-wrap: nowrap;
+    /* keep in one row */
     gap: 0 !important;
     overflow: hidden;
-    justify-content: flex-start !important; /* Override justify-content-between */
+    justify-content: flex-start !important;
+    /* Override justify-content-between */
   }
 
   .role-radio-group .form-check {
-    flex: 0 0 auto !important; /* Don't grow, keep natural size */
-    min-width: 0; /* allow contents to shrink/truncate if needed */
+    flex: 0 0 auto !important;
+    /* Don't grow, keep natural size */
+    min-width: 0;
+    /* allow contents to shrink/truncate if needed */
     display: flex;
     align-items: start;
     margin: 0 !important;
@@ -339,6 +344,7 @@
     object-position: center;
     display: block;
   }
+
   .col-lg-6.form-section,
   .col-lg-6.image-section {
     flex: 0 0 50%;
@@ -417,15 +423,17 @@
     max-width: 20rem !important;
     max-height: 5rem !important;
   }
+
   .logo-container {
     margin-bottom: 10px !important;
-}
+  }
 }
 
 /* ============================================
    MEDIUM-LARGE SCREENS (1024px - 1499px)
    ============================================ */
 @media (min-width: 1024px) and (max-width: 1499px) {
+
   /* Image takes full height */
   .d-none.d-lg-flex.align-items-center.justify-content-center {
     height: 100vh !important;
@@ -464,9 +472,10 @@
       margin: 0 !important;
       padding: 0 !important;
       height: 100vh !important;
+      gap: 2rem;
     }
 
-    .d-flex.flex-column.justify-content-center > * {
+    .d-flex.flex-column.justify-content-center>* {
       margin-top: 0 !important;
       margin-bottom: 0 !important;
     }
@@ -502,6 +511,7 @@
    MOBILE AND TABLETS (max-width: 991px)
    ============================================ */
 @media (max-width: 991px) {
+
   /* Prevent horizontal scroll */
   * {
     max-width: 100%;
@@ -569,7 +579,8 @@
 
   /* Remove space between radio buttons in mobile */
   .role-radio-group {
-    justify-content: flex-start !important; /* Override justify-content-between */
+    justify-content: flex-start !important;
+    /* Override justify-content-between */
     gap: 0 !important;
   }
 
@@ -628,7 +639,8 @@
   }
 
   .form-control {
-    font-size: 16px; /* Prevent zoom on iOS */
+    font-size: 16px;
+    /* Prevent zoom on iOS */
   }
 
   .social-buttons {
@@ -638,6 +650,12 @@
   .logo-container {
     margin-bottom: 0.5rem !important;
     margin-top: 0 !important;
+  }
+
+  .logo-container .branding-logo {
+    transform: scale(0);
+    transform-origin: center center;
+    margin-bottom: -10px !important;
   }
 
   .rounded-3 {
@@ -661,9 +679,10 @@
     padding: 12px 16px !important;
     line-height: 1.2 !important;
   }
+
   .role-radio-group {
-        gap: 20px !important;
-    }
+    gap: 20px !important;
+  }
 
   /* Larger tablets */
   @media (min-width: 576px) {
@@ -845,12 +864,19 @@
       font-size: 14px !important;
     }
 
+    .meetza-standalone-logo img {
+      max-height: 47px !important;
+    }
+
     .logo-container img {
-      max-width: 30rem !important;
-      height: 30rem !important;
+      max-width: 6rem !important;
+      height: 6rem !important;
+    }
+
+    .logo-container .meetza-standalone-logo img {
+      max-width: 12rem !important;
+      height: auto !important;
+      max-height: 12rem !important;
     }
   }
 }
-
-
-
