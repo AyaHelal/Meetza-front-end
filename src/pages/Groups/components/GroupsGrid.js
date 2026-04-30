@@ -49,89 +49,91 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
           >
             {name || 'Title'}
           </div>
-          {userRole === 'Administrator' && groupId && (
-            <div className="d-flex gap-2 align-items-center flex-shrink-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(group);
-                }}
-                onMouseEnter={() => setHoverEdit(true)}
-                onMouseLeave={() => setHoverEdit(false)}
-                title="Edit Group"
-                style={{
-                  border: 'none',
-                  background: hoverEdit ? '#f3f4f6' : 'transparent',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  transition: 'background 0.2s ease',
-                }}
-              >
-                <PencilSimpleLineIcon size={20} color="#000" weight="bold" />
-              </button>
-            </div>
-          )}
         </div>
-        
+
         {(isMemberView || showInstructorLine) && (
           <div className="group-card-instructor mb-3">{`Dr ${instructor}`}</div>
         )}
 
-        <div className="d-flex mt-auto align-items-center position-relative w-100 justify-content-center" style={{ minHeight: '36px' }}>
-          <div className="d-flex gap-2">
-            {isJoined ? (
-              <>
-                {isMemberView && (
-                  <button
-                    className="group-join-btn group-join-btn--member joined"
-                    disabled={true}
-                    style={{ width: '85px', margin: 0 }}
-                  >
-                    Joined
-                  </button>
-                )}
-                {!isSuperAdmin && (
-                  <button
-                    className={`group-join-btn group-join-btn--member ${!isMemberView ? 'position-absolute start-0' : ''}`}
-                    onClick={() => groupId && onLeave(groupId)}
-                    style={{ backgroundColor: '#dc3545', borderColor: '#dc3545', color: '#fff', width: '85px', margin: 0 }}
-                  >
-                    Leave
-                  </button>
-                )}
-              </>
-            ) : !isSuperAdmin && (
-              <button
-                className={`group-join-btn group-join-btn--member ${!isMemberView ? 'position-absolute start-0' : ''}`}
-                onClick={() => groupId && onJoin(groupId)}
-                disabled={!groupId}
-                style={{ width: '85px', margin: 0 }}
-              >
-                Join
-              </button>
-            )}
-          </div>
+        <div className="d-flex mt-auto align-items-center gap-2 w-100 justify-content-center" style={{ minHeight: '36px' }}>
+          {isJoined ? (
+            <>
+              {isMemberView && (
+                <button
+                  className="group-join-btn group-join-btn--member joined"
+                  disabled={true}
+                  style={{ width: '85px', margin: 0 }}
+                >
+                  Joined
+                </button>
+              )}
+              {!isSuperAdmin && (
+                <button
+                  className="group-join-btn group-join-btn--member"
+                  onClick={() => groupId && onLeave(groupId)}
+                  style={{ backgroundColor: '#FF383C', borderColor: '#FF383C', color: '#fff', width: '85px', margin: 0 }}
+                >
+                  Leave
+                </button>
+              )}
+            </>
+          ) : !isSuperAdmin && (
+            <button
+              className="group-join-btn group-join-btn--member"
+              onClick={() => groupId && onJoin(groupId)}
+              disabled={!groupId}
+              style={{ width: '85px', margin: 0 }}
+            >
+              Join
+            </button>
+          )}
 
           {userRole === 'Administrator' && groupId && (
-            <button
-              className="group-join-btn group-join-btn--member position-absolute end-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(group);
-              }}
-              title="Delete Group"
-              style={{
-                backgroundColor: '#dc3545',
-                borderColor: '#dc3545',
-                color: '#fff',
-                padding: '0 12px',
-                width: 'auto',
-                margin: 0
-              }}
-            >
-              <TrashIcon size={20} weight="bold" />
-            </button>
+            <>
+              <button
+                className="group-join-btn group-join-btn--member"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(group);
+                }}
+                title="Edit Group"
+                style={{
+                  backgroundColor: '#f3f4f6',
+                  borderColor: '#e5e7eb',
+                  color: '#000',
+                  padding: '0 12px',
+                  width: 'auto',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <PencilSimpleLineIcon size={20} weight="bold" />
+              </button>
+
+              <button
+                className="group-join-btn group-join-btn--member"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(group);
+                }}
+                title="Delete Group"
+                style={{
+                  backgroundColor: '#f3f4f6',
+                  borderColor: '#e5e7eb',
+                  color: '#FF0000',
+                  padding: '0 12px',
+                  width: 'auto',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <TrashIcon size={20} weight="bold" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -159,7 +161,7 @@ export default function GroupsGrid({
       </div>
     );
   }
-  
+
   if (!groups || groups.length === 0) {
     return (
       <div className="no-groups-container">
