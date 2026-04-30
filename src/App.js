@@ -2,7 +2,7 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
-import { BrandingProvider } from './context/BrandingContext';
+import { BrandingProvider, BrandingContext } from './context/BrandingContext';
 import { API_BASE_URL } from './API/axiosInstance';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
@@ -125,16 +125,18 @@ const AppRoutes = () => {
   }, []);
 
 
+  const { domains } = useContext(BrandingContext);
+
   // Handle social login redirect
   useEffect(() => {
     // Only process if we have token or error in URL and haven't processed yet
     const urlParams = new URLSearchParams(location.search);
-    const token = urlParams.get('token');
-    const user = urlParams.get('user');
+    const tokenFromUrl = urlParams.get('token');
+    const userDataStr = urlParams.get('user');
     const error = urlParams.get('error');
 
     // Skip if no token/error or already processed
-    if ((!token && !error) || socialLoginProcessed.current) {
+    if ((!tokenFromUrl && !error) || socialLoginProcessed.current) {
       return;
     }
 
@@ -149,14 +151,14 @@ const AppRoutes = () => {
     }
 
     // Process token
-    if (token) {
+    if (tokenFromUrl) {
       try {
         let userData = null;
 
         // Parse user data from URL (comes from backend)
-        if (user) {
+        if (userDataStr) {
           try {
-            userData = JSON.parse(decodeURIComponent(user));
+            userData = JSON.parse(decodeURIComponent(userDataStr));
 
             // Normalize Google photo field - Google OAuth typically returns 'picture'
             if (userData && !userData.user_photo && !userData.photo) {
@@ -181,7 +183,7 @@ const AppRoutes = () => {
         }
 
         // Store token and user data in localStorage (like normal login)
-        loginUser(userData, token, true); // true = localStorage (remember me)
+        loginUser(userData, tokenFromUrl, true); // true = localStorage (remember me)
 
         // Wait a bit for state to update, then navigate
         setTimeout(() => {
@@ -192,7 +194,7 @@ const AppRoutes = () => {
           } else {
             console.error('❌ Token not found after storage, retrying...');
             // Retry storing
-            loginUser(userData, token, true);
+            loginUser(userData, tokenFromUrl, true);
             setTimeout(() => navigate('/home', { replace: true }), 200);
           }
         }, 100);
@@ -202,7 +204,7 @@ const AppRoutes = () => {
         navigate('/login', { replace: true });
       }
     }
-  }, [location.search, loginUser, navigate]);
+  }, [location.search, loginUser, navigate, domains]);
 
   if (initializing || routeLoading) {
     return <PageLoader />;
