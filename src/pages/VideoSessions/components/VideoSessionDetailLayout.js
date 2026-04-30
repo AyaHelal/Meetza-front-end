@@ -10,7 +10,6 @@ import {
   Play as PlayIcon,
   Pause as PauseIcon,
   SpeakerSimpleLow as SpeakerSimpleLowIcon,
-  PaperPlaneRight as PaperPlaneRightIcon,
   Spinner,
   Download,
 } from "@phosphor-icons/react";
@@ -19,8 +18,9 @@ import aiAnimation from "../../../lottie/AI.json";
 import "./VideoSessionDetail.css";
 import { VideoHoverPreviewThumb } from "./VideoHoverPreviewThumb";
 import { mergeTopicLists } from "../services/videoSessionTopicsUtils";
-import { DEFAULT_AVATAR } from "../services/videoSessionDetailConstants";
 import { VideoSessionDetailConfirmModals } from "./VideoSessionDetailModals";
+import { VsdCommentsSection } from "./VsdCommentsSection";
+import { VsdVideoEditModals } from "./VsdVideoEditModals";
 
 const VolumeIcon = (props) => <SpeakerSimpleLowIcon size={18} weight="regular" {...props} />;
 
@@ -94,12 +94,15 @@ export function VideoSessionDetailLayout(props) {
     formatRelativeTime,
     formatFullDate,
     toggleReplyInput,
+    toggleRepliesVisibility,
     isRTL,
     shareOpen,
     setShareOpen,
     shareCopied,
     commentsSectionRef,
     downloading,
+    likeSubmitting,
+    saveSubmitting,
     showVideoDeleteModal,
     setShowVideoDeleteModal,
     commentToDeleteId,
@@ -114,12 +117,15 @@ export function VideoSessionDetailLayout(props) {
     isAdmin,
   } = props;
 
-  const topicList = topics ? mergeTopicLists(topics).filter(t => typeof t === 'string' && t.trim() !== '') : [];
+  const topicList = topics
+    ? mergeTopicLists(topics).filter((t) => typeof t === "string" && t.trim() !== "")
+    : [];
 
   return (
     <div className="video-session-detail">
       <div className="video-session-detail-inner">
         <div className="video-session-detail-main">
+          {/* ── Player ── */}
           <div className="video-session-detail-player-wrap">
             {videoUrl ? (
               <video
@@ -131,11 +137,7 @@ export function VideoSessionDetailLayout(props) {
               />
             ) : (
               <div className="video-session-detail-player-placeholder">
-                {thumbUrl ? (
-                  <img src={thumbUrl} alt="" />
-                ) : (
-                  <img src="/assets/video-standard.png" alt="" />
-                )}
+                <img src={thumbUrl || "/assets/video-standard.png"} alt="" />
               </div>
             )}
             <div className="video-session-detail-controls">
@@ -182,7 +184,9 @@ export function VideoSessionDetailLayout(props) {
             </div>
           </div>
 
+          {/* ── Content below player ── */}
           <div className="video-session-detail-content">
+            {/* Title + Actions */}
             <div className="video-session-detail-title-row">
               <div className="video-session-detail-title-stack">
                 <h2 className="video-session-detail-title">{title}</h2>
@@ -195,26 +199,36 @@ export function VideoSessionDetailLayout(props) {
               <div className="video-session-detail-actions">
                 <button
                   type="button"
-                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${liked ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${liked ? "active" : ""} ${likeSubmitting ? "loading" : ""}`}
                   onClick={() => handleLikeAction(1)}
+                  disabled={likeSubmitting}
                   title={`Like${likesCount ? ` (${likesCount})` : ""}`}
-                  aria-label={`Like${likesCount ? ` (${likesCount})` : ""}`}
                 >
-                  <ThumbsUp size={16} weight={liked ? "fill" : "regular"} />
+                  {likeSubmitting ? (
+                    <Spinner size={16} className="spinning" />
+                  ) : (
+                    <ThumbsUp size={16} weight={liked ? "fill" : "regular"} />
+                  )}
                   <span className="video-session-detail-btn-label">Like {likesCount ? `(${likesCount})` : ""}</span>
                   <span className="video-session-detail-btn-count" aria-hidden="true">{likesCount ?? 0}</span>
                 </button>
                 <button
                   type="button"
-                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${disliked ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${disliked ? "active" : ""} ${likeSubmitting ? "loading" : ""}`}
                   onClick={() => handleLikeAction(0)}
+                  disabled={likeSubmitting}
                   title={`Dislike${dislikesCount ? ` (${dislikesCount})` : ""}`}
-                  aria-label={`Dislike${dislikesCount ? ` (${dislikesCount})` : ""}`}
                 >
-                  <ThumbsDown size={16} weight={disliked ? "fill" : "regular"} />
+                  {likeSubmitting ? (
+                    <Spinner size={16} className="spinning" />
+                  ) : (
+                    <ThumbsDown size={16} weight={disliked ? "fill" : "regular"} />
+                  )}
                   <span className="video-session-detail-btn-label">Dislike {dislikesCount ? `(${dislikesCount})` : ""}</span>
                   <span className="video-session-detail-btn-count" aria-hidden="true">{dislikesCount ?? 0}</span>
                 </button>
+
+                {/* AI Summary */}
                 <div className="summary-container">
                   <button
                     type="button"
@@ -231,67 +245,43 @@ export function VideoSessionDetailLayout(props) {
                   </button>
                   {showLangDropdown && (
                     <div className="language-options" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="language-option"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSummarize("en");
-                        }}
-                        disabled={loadingSummary}
-                      >
-                        English
-                      </button>
-                      <button
-                        className="language-option"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSummarize("ar");
-                        }}
-                        disabled={loadingSummary}
-                      >
-                        Arabic
-                      </button>
+                      <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("en"); }} disabled={loadingSummary}>English</button>
+                      <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("ar"); }} disabled={loadingSummary}>Arabic</button>
                     </div>
                   )}
                 </div>
+
                 <button
                   type="button"
-                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${saved ? "active" : ""}`}
+                  className={`video-session-detail-btn video-session-detail-btn-icon-only ${saved ? "active" : ""} ${saveSubmitting ? "loading" : ""}`}
                   onClick={handleSaveVideo}
+                  disabled={saveSubmitting}
                   title={`Save${savedCount ? ` (${savedCount})` : ""}`}
-                  aria-label={`Save${savedCount ? ` (${savedCount})` : ""}`}
                 >
-                  <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
+                  {saveSubmitting ? (
+                    <Spinner size={16} className="spinning" />
+                  ) : (
+                    <BookmarkSimple size={16} weight={saved ? "fill" : "regular"} />
+                  )}
                   <span className="video-session-detail-btn-label">Save {savedCount ? `(${savedCount})` : ""}</span>
                 </button>
 
+                {/* Share */}
                 <div className="video-session-detail-share-wrap">
                   <button
                     type="button"
                     className="video-session-detail-btn video-session-detail-btn-icon-only"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShareOpen((prev) => !prev);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setShareOpen((prev) => !prev); }}
                     title="Share"
-                    aria-label="Share"
                     aria-expanded={shareOpen}
                     aria-haspopup="true"
                   >
                     <LinkSimple size={16} weight="regular" />
                     <span className="video-session-detail-btn-label">Share</span>
                   </button>
-
                   {shareOpen && (
-                    <div
-                      className="video-session-detail-share-popover"
-                      onClick={(e) => e.stopPropagation()}
-                      role="dialog"
-                      aria-label="Share link"
-                    >
-                      <a className="video-session-detail-share-link" href={sharePath}>
-                        {shareUrl}
-                      </a>
+                    <div className="video-session-detail-share-popover" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Share link">
+                      <a className="video-session-detail-share-link" href={sharePath}>{shareUrl}</a>
                       <button type="button" className="video-session-detail-share-copy" onClick={handleCopyShare}>
                         {shareCopied ? "Copied" : "Copy"}
                       </button>
@@ -299,31 +289,25 @@ export function VideoSessionDetailLayout(props) {
                   )}
                 </div>
 
+                {/* Download */}
                 <button
                   className={`video-session-detail-btn vsd-download-btn ${downloading ? "loading" : ""}`}
                   onClick={handleDownloadClick}
                   disabled={downloading}
                   title="Download Video"
                 >
-                  {downloading ? (
-                    <Spinner size={16} className="spinning" />
-                  ) : (
-                    <Download size={16} />
-                  )}
+                  {downloading ? <Spinner size={16} className="spinning" /> : <Download size={16} />}
                   <span>{downloading ? "Downloading..." : "Download"}</span>
                 </button>
 
+                {/* Admin menu */}
                 {isAdmin && (
                   <div className="video-session-detail-admin-menu-wrap" ref={adminMenuRef}>
                     <button
                       type="button"
                       className="video-session-detail-btn video-session-detail-btn-dots"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowAdminMenu((prev) => !prev);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); setShowAdminMenu((prev) => !prev); }}
                       title="More options"
-                      aria-label="More options"
                       aria-expanded={showAdminMenu}
                       aria-haspopup="true"
                     >
@@ -331,30 +315,13 @@ export function VideoSessionDetailLayout(props) {
                     </button>
                     {showAdminMenu && (
                       <div className="video-session-detail-admin-dropdown" role="menu">
-                        <button
-                          type="button"
-                          className="video-session-detail-admin-dropdown-item"
-                          role="menuitem"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowAdminMenu(false);
-                            handleEditOpen();
-                          }}
-                        >
-                          <PencilSimple size={18} />
-                          <span>Edit</span>
+                        <button type="button" className="video-session-detail-admin-dropdown-item" role="menuitem"
+                          onClick={(e) => { e.stopPropagation(); setShowAdminMenu(false); handleEditOpen(); }}>
+                          <PencilSimple size={18} /><span>Edit</span>
                         </button>
-                        <button
-                          type="button"
-                          className="video-session-detail-admin-dropdown-item video-session-detail-admin-dropdown-item-danger"
-                          role="menuitem"
-                          disabled={deleting}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowAdminMenu(false);
-                            setShowVideoDeleteModal(true);
-                          }}
-                        >
+                        <button type="button" className="video-session-detail-admin-dropdown-item video-session-detail-admin-dropdown-item-danger"
+                          role="menuitem" disabled={deleting}
+                          onClick={(e) => { e.stopPropagation(); setShowAdminMenu(false); setShowVideoDeleteModal(true); }}>
                           {deleting ? <Spinner size={18} className="spinning" /> : <Trash size={18} />}
                           <span>{deleting ? "Deleting…" : "Delete"}</span>
                         </button>
@@ -365,224 +332,49 @@ export function VideoSessionDetailLayout(props) {
               </div>
             </div>
 
+            {/* Description */}
             <section className="video-session-detail-description">
-
-              {description && (
-                <>
-                  <h3>Video Description</h3>
-                  <p>{description}</p>
-                </>
-              )}
-
-              {instructor && (
-                <p className="video-session-detail-instructor">
-                  Instructor: {instructor}
-                </p>
-              )}
-
+              {description && (<><h3>Video Description</h3><p>{description}</p></>)}
+              {instructor && <p className="video-session-detail-instructor">Instructor: {instructor}</p>}
             </section>
+
+            {/* Topics */}
             {topicList.length > 0 && (
               <section className="vsd-topics-section">
                 <h3>Topics</h3>
                 <div className="vsd-topics-container">
                   {topicList.map((topic, index) => (
-                    <span key={index} className="vsd-topic-badge">
-                      {topic}
-                    </span>
+                    <span key={index} className="vsd-topic-badge">{topic}</span>
                   ))}
                 </div>
               </section>
             )}
 
-            <section className="video-session-detail-questions" ref={commentsSectionRef}>
-              <h3>Comments {commentCount ? `(${commentCount})` : ""}</h3>
-              <div className="video-session-detail-comment-input">
-                {(user?.Member_photo || user?.member_photo || user?.photo || user?.avatar) ? (
-                  <img
-                    src={user?.Member_photo || user?.member_photo || user?.photo || user?.avatar}
-                    alt={user?.name || user?.member_name || "Me"}
-                    className="video-session-detail-avatar"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = DEFAULT_AVATAR;
-                    }}
-                  />
-                ) : (
-                  <div className="video-session-detail-avatar video-session-detail-avatar-initial">
-                    {(user?.name || user?.member_name || "M").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <input
-                  type="text"
-                  placeholder="Add a comment"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !commentSubmitting && commentText.trim()) {
-                      e.preventDefault();
-                      handlePostComment();
-                    }
-                  }}
-                  className="video-session-detail-comment-field"
-                />
-                <button
-                  type="button"
-                  className="video-session-detail-comment-btn"
-                  onClick={handlePostComment}
-                  disabled={commentSubmitting || !commentText.trim()}
-                  aria-label="post comment"
-                >
-                  {commentSubmitting ? "Posting..." : <PaperPlaneRightIcon size={22} />}
-                </button>
-              </div>
-              <div className="video-session-detail-comments-list">
-                {comments.length === 0 ? (
-                  <p className="video-session-detail-comments-empty">No comments yet. Be the first to ask.</p>
-                ) : (
-                  comments.map((c) => {
-                    const authorName = c.member_name || c.author || c.user_name || c.name || "Anonymous";
-                    const avatarUrl = c.Member_photo || c.member_photo || c.avatar || c.user_avatar;
-                    const commentBody = c.comment_text || c.comment || c.text || "";
-                    const createdAt = c.timestamp || c.time || c.created_at || c.createdAt || "";
-                    return (
-                      <div key={c.id} className="vsd-comment">
-                        {avatarUrl ? (
-                          <img
-                            className="vsd-comment-avatar"
-                            src={avatarUrl}
-                            alt={authorName}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = DEFAULT_AVATAR;
-                            }}
-                          />
-                        ) : (
-                          <div className="vsd-comment-avatar vsd-comment-avatar-initial">
-                            {authorName.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="vsd-comment-body">
-                          <div className="vsd-comment-header">
-                            <span className="vsd-comment-author">{authorName}</span>
-                            <span className="vsd-comment-time">{formatRelativeTime(createdAt) || "Just now"}</span>
-                          </div>
-                          <p className={`vsd-comment-text ${isRTL(commentBody) ? "" : "ltr"}`}>{commentBody}</p>
-                          <button className="vsd-comment-reply-btn" onClick={() => toggleReplyInput(c.id)}>
-                            Reply
-                          </button>
-                          {(c.replies || []).map((r) => {
-                            const replyAuthor = r.member_name || r.author || r.user_name || r.name || "Anonymous";
-                            const replyBody = r.comment_text || r.comment || r.text || "";
-                            const replyTime = r.timestamp || r.time || r.created_at || r.createdAt || "";
-                            return (
-                              <div key={r.id} className="vsd-reply">
-                                {(r.Member_photo || r.member_photo || r.avatar) ? (
-                                  <img
-                                    className="vsd-reply-avatar vsd-reply-avatar-img"
-                                    src={r.Member_photo || r.member_photo || r.avatar}
-                                    alt={replyAuthor}
-                                    onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_AVATAR; }}
-                                  />
-                                ) : (
-                                  <div className="vsd-reply-avatar vsd-reply-avatar-initial">
-                                    {replyAuthor.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <div className="vsd-reply-body">
-                                  <span className="vsd-reply-author">{replyAuthor}</span>
-                                  <span className="vsd-reply-time">{formatRelativeTime(replyTime) || replyTime || "Just now"}</span>
-                                  <p className={`vsd-reply-text ${isRTL(replyBody) ? "" : "ltr"}`}>{replyBody}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {c.showReplyInput && (
-                            <div className="vsd-nested-input">
-                              {(() => {
-                                const currentUserName = user?.name || user?.member_name || user?.memberName || user?.email || "You";
-                                const currentUserAvatar =
-                                  user?.photo ||
-                                  user?.user_photo ||
-                                  user?.Member_photo ||
-                                  user?.member_photo ||
-                                  user?.avatar ||
-                                  user?.image ||
-                                  user?.picture ||
-                                  null;
-
-                                if (currentUserAvatar) {
-                                  return (
-                                    <img
-                                      className="vsd-comment-avatar"
-                                      src={currentUserAvatar}
-                                      alt={currentUserName}
-                                      onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = DEFAULT_AVATAR;
-                                      }}
-                                    />
-                                  );
-                                }
-
-                                return (
-                                  <div className="vsd-comment-avatar vsd-comment-avatar-initial">
-                                    {currentUserName.charAt(0).toUpperCase()}
-                                  </div>
-                                );
-                              })()}
-                              <input
-                                className="vsd-nested-field"
-                                placeholder="Write a reply..."
-                                value={replyDrafts[c.id] ?? ""}
-                                onChange={(e) => setReplyDraft(c.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && !replySubmittingForId && (replyDrafts[c.id] ?? "").trim()) {
-                                    e.preventDefault();
-                                    handlePostReply(c.id);
-                                  }
-                                }}
-                                disabled={replySubmittingForId === c.id}
-                              />
-                              <button
-                                type="button"
-                                className="video-session-detail-comment-btn vsd-reply-submit"
-                                onClick={() => handlePostReply(c.id)}
-                                disabled={replySubmittingForId === c.id || !(replyDrafts[c.id] ?? "").trim()}
-                                aria-label="Post reply"
-                              >
-                                {replySubmittingForId === c.id ? "Posting..." : <PaperPlaneRightIcon size={20} />}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="vsd-comment-actions">
-                          {(user?.role === "Administrator" ||
-                            user?.role === "Super_Admin" ||
-                            user?.id === c.member_id ||
-                            user?.id === c.memberId) && (
-                              <>
-                                <button
-                                  className="vsd-edit-btn"
-                                  onClick={() => handleEditCommentOpen(c)}
-                                  title="Edit"
-                                >
-                                  <PencilSimple size={18} />
-                                </button>
-                                <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(c.id)} title="Delete">
-                                  <Trash size={18} />
-                                </button>
-                              </>
-                            )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </section>
+            {/* Comments */}
+            <VsdCommentsSection
+              user={user}
+              commentCount={commentCount}
+              comments={comments}
+              commentText={commentText}
+              setCommentText={setCommentText}
+              commentSubmitting={commentSubmitting}
+              commentsSectionRef={commentsSectionRef}
+              handlePostComment={handlePostComment}
+              handleEditCommentOpen={handleEditCommentOpen}
+              setCommentToDeleteId={setCommentToDeleteId}
+              replyDrafts={replyDrafts}
+              setReplyDraft={setReplyDraft}
+              replySubmittingForId={replySubmittingForId}
+              handlePostReply={handlePostReply}
+              toggleReplyInput={toggleReplyInput}
+              toggleRepliesVisibility={toggleRepliesVisibility}
+              formatRelativeTime={formatRelativeTime}
+              isRTL={isRTL}
+            />
           </div>
         </div>
 
+        {/* Related sidebar */}
         <aside className="video-session-detail-related">
           <div className="video-session-detail-related-list">
             {related.length === 0 ? (
@@ -605,29 +397,15 @@ export function VideoSessionDetailLayout(props) {
                       alt={s.title || "Related Video"}
                     />
                     {s._uploadPlaceholder && (
-                      <div className="video-session-detail-related-uploading-overlay">
-                        <span>In progress</span>
-                      </div>
+                      <div className="video-session-detail-related-uploading-overlay"><span>In progress</span></div>
                     )}
                     <span className="video-session-detail-related-duration">{s.duration ?? "00:00"}</span>
                   </div>
                   <div className="video-session-detail-related-info">
                     <span className="video-session-detail-related-item-title">{s.title ?? "Video"}</span>
-                    {(s.groupName || s.group_name) && (
-                      <span className="video-session-detail-related-group">
-                        {s.groupName || s.group_name}
-                      </span>
-                    )}
-                    {(s.admin?.name || s.instructor) && (
-                      <span className="video-session-detail-related-instructor">
-                        {s.admin?.name || s.instructor}
-                      </span>
-                    )}
-                    {(s.created_at || s.createdAt) && (
-                      <span className="video-session-detail-related-date">
-                        {formatFullDate(s.created_at || s.createdAt)}
-                      </span>
-                    )}
+                    {(s.groupName || s.group_name) && <span className="video-session-detail-related-group">{s.groupName || s.group_name}</span>}
+                    {(s.admin?.name || s.instructor) && <span className="video-session-detail-related-instructor">{s.admin?.name || s.instructor}</span>}
+                    {(s.created_at || s.createdAt) && <span className="video-session-detail-related-date">{formatFullDate(s.created_at || s.createdAt)}</span>}
                   </div>
                 </div>
               ))
@@ -636,6 +414,7 @@ export function VideoSessionDetailLayout(props) {
         </aside>
       </div>
 
+      {/* AI Summary panel */}
       {showSummary && summaryData && (
         <div className="video-ai-summary">
           <div className="video-ai-summary-header">
@@ -643,146 +422,34 @@ export function VideoSessionDetailLayout(props) {
               <Lottie animationData={aiAnimation} style={{ width: 30, height: 30 }} />
               <span>AI Summary</span>
             </div>
-            <button
-              type="button"
-              className="video-ai-summary-close"
-              onClick={() => setShowSummary(false)}
-              aria-label="Close AI Summary"
-            >
-              ✕
-            </button>
+            <button type="button" className="video-ai-summary-close" onClick={() => setShowSummary(false)} aria-label="Close AI Summary">✕</button>
           </div>
           <div className="video-ai-summary-content">
             <div className="video-ai-summary-summary">
               <h4>Summary</h4>
-              <p>{typeof summaryData.summary === 'string' ? summaryData.summary : 'No summary available'}</p>
+              <p>{typeof summaryData.summary === "string" ? summaryData.summary : "No summary available"}</p>
             </div>
           </div>
         </div>
       )}
 
-      {showEditModal && (
-        <div
-          className="video-edit-modal-overlay"
-          onClick={() => !editSubmitting && setShowEditModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-video-title"
-        >
-          <div className="video-edit-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="video-edit-modal-header">
-              <h3 id="edit-video-title">Edit video</h3>
-              <button
-                type="button"
-                className="video-edit-modal-close"
-                onClick={() => !editSubmitting && setShowEditModal(false)}
-                aria-label="Close"
-                disabled={editSubmitting}
-              >
-                ×
-              </button>
-            </div>
-            <form className="video-edit-modal-form" onSubmit={handleEditSubmit}>
-              <div className="video-edit-form-group">
-                <label htmlFor="edit-video-title-input">Title</label>
-                <input
-                  id="edit-video-title-input"
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Video title"
-                  required
-                />
-              </div>
-              <div className="video-edit-form-group">
-                <label htmlFor="edit-video-description">Description</label>
-                <textarea
-                  id="edit-video-description"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder="Video description"
-                  rows={3}
-                />
-              </div>
-              <div className="video-edit-modal-actions">
-                <button
-                  type="button"
-                  className="video-edit-btn video-edit-btn-cancel"
-                  onClick={() => setShowEditModal(false)}
-                  disabled={editSubmitting}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="video-edit-btn video-edit-btn-submit" disabled={editSubmitting}>
-                  {editSubmitting ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Edit modals */}
+      <VsdVideoEditModals
+        showEditModal={showEditModal}
+        setShowEditModal={setShowEditModal}
+        editSubmitting={editSubmitting}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        handleEditSubmit={handleEditSubmit}
+        editingCommentId={editingCommentId}
+        editCommentText={editCommentText}
+        setEditCommentText={setEditCommentText}
+        editCommentSubmitting={editCommentSubmitting}
+        handleEditCommentClose={handleEditCommentClose}
+        handleEditCommentSubmit={handleEditCommentSubmit}
+      />
 
-      {editingCommentId && (
-        <div
-          className="video-edit-modal-overlay"
-          onClick={() => !editCommentSubmitting && handleEditCommentClose()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-comment-title"
-        >
-          <div className="video-edit-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="video-edit-modal-header">
-              <h3 id="edit-comment-title">Edit comment</h3>
-              <button
-                type="button"
-                className="video-edit-modal-close"
-                onClick={() => !editCommentSubmitting && handleEditCommentClose()}
-                aria-label="Close"
-                disabled={editCommentSubmitting}
-              >
-                ×
-              </button>
-            </div>
-            <form
-              className="video-edit-modal-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleEditCommentSubmit();
-              }}
-            >
-              <div className="video-edit-form-group">
-                <label htmlFor="edit-comment-text">Comment</label>
-                <textarea
-                  id="edit-comment-text"
-                  value={editCommentText}
-                  onChange={(e) => setEditCommentText(e.target.value)}
-                  placeholder="Edit your comment"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="video-edit-modal-actions">
-                <button
-                  type="button"
-                  className="video-edit-btn video-edit-btn-cancel"
-                  onClick={handleEditCommentClose}
-                  disabled={editCommentSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="video-edit-btn video-edit-btn-submit"
-                  disabled={editCommentSubmitting}
-                >
-                  {editCommentSubmitting ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      {/* Confirm modals */}
       <VideoSessionDetailConfirmModals
         showVideoDeleteModal={showVideoDeleteModal}
         setShowVideoDeleteModal={setShowVideoDeleteModal}

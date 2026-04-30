@@ -33,6 +33,7 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                 size="medium"
                 className="status-user-photo"
                 allowUpload={false}
+                onClick={() => navigate('/profile')}
             />
             <div className="status-info">
                 <div className="status-name">{userName}</div>

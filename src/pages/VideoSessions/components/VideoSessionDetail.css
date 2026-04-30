@@ -494,11 +494,67 @@
   background-color: var(--card-bg);
 }
 
+.vsd-comments-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: default;
+  pointer-events: none;
+}
+
 .video-session-detail-questions h3 {
   margin: 0 0 0.75rem;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.vsd-comments-toggle-icon {
+  display: none;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  transition: transform 0.25s ease;
+  margin-bottom: 0.75rem;
+}
+
+.vsd-comments-toggle-icon.open {
+  transform: rotate(180deg);
+}
+
+/* Always show comments on desktop */
+.vsd-comments-body {
+  display: block;
+}
+
+/* Mobile: make it toggleable */
+@media (max-width: 768px) {
+  .vsd-comments-toggle {
+    cursor: pointer;
+    pointer-events: auto;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .vsd-comments-toggle:hover h3 {
+    color: var(--primary-color);
+  }
+
+  .vsd-comments-toggle-icon {
+    display: inline-block;
+  }
+
+  .vsd-comments-body {
+    display: none;
+    overflow: hidden;
+  }
+
+  .vsd-comments-body.open {
+    display: block;
+  }
 }
 
 .video-session-detail-comment-input {
@@ -654,6 +710,14 @@
   text-align: left;
 }
 
+.vsd-comment-actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
 .vsd-comment-reply-btn {
   background: none;
   border: none;
@@ -793,6 +857,22 @@
 
 .vsd-nested-field::placeholder {
   color: var(--text-muted);
+}
+
+.vsd-reply-cancel-inline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  background: var(--bg-alt);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.vsd-reply-cancel-inline:hover {
+  background: var(--card-bg);
+  color: var(--text-primary);
 }
 
 /* ── related sidebar (enlarged cards) with container ── */
