@@ -2,9 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import "./chatbot.css";
 
 export default function RobotOrb({ onClick }) {
-  const [position, setPosition] = useState({ x: window.innerWidth - 140, y: window.innerHeight - 220 });
+  // Use right and bottom offsets to stay anchored to the corner on resize
+  const [position, setPosition] = useState({ 
+    right: window.innerWidth <= 768 ? 20 : 20, 
+    bottom: window.innerWidth <= 768 ? 50 : 100 
+  });
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartOffset = useRef({ right: 0, bottom: 0 });
   const containerRef = useRef(null);
   const hasMoved = useRef(false);
 
@@ -12,33 +16,31 @@ export default function RobotOrb({ onClick }) {
     const handleMouseMove = (e) => {
       if (!isDragging) return;
 
-      const newX = e.clientX - dragStartPos.current.x;
-      const newY = e.clientY - dragStartPos.current.y;
+      const newRight = window.innerWidth - e.clientX - dragStartOffset.current.right;
+      const newBottom = window.innerHeight - e.clientY - dragStartOffset.current.bottom;
 
-      // Boundary checks
-      const boundedX = Math.min(Math.max(0, newX), window.innerWidth - 120);
-      const boundedY = Math.min(Math.max(0, newY), window.innerHeight - 120);
+      // Boundary checks (width/height of container is ~120px)
+      const orbSize = window.innerWidth <= 768 ? 90 : 120;
+      const boundedRight = Math.min(Math.max(0, newRight), window.innerWidth - orbSize);
+      const boundedBottom = Math.min(Math.max(0, newBottom), window.innerHeight - orbSize);
 
-      if (Math.abs(e.clientX - (dragStartPos.current.x + position.x)) > 5 ||
-        Math.abs(e.clientY - (dragStartPos.current.y + position.y)) > 5) {
-        hasMoved.current = true;
-      }
-
-      setPosition({ x: boundedX, y: boundedY });
+      hasMoved.current = true;
+      setPosition({ right: boundedRight, bottom: boundedBottom });
     };
 
     const handleTouchMove = (e) => {
       if (!isDragging) return;
       const touch = e.touches[0];
 
-      const newX = touch.clientX - dragStartPos.current.x;
-      const newY = touch.clientY - dragStartPos.current.y;
+      const newRight = window.innerWidth - touch.clientX - dragStartOffset.current.right;
+      const newBottom = window.innerHeight - touch.clientY - dragStartOffset.current.bottom;
 
-      const boundedX = Math.min(Math.max(0, newX), window.innerWidth - 120);
-      const boundedY = Math.min(Math.max(0, newY), window.innerHeight - 120);
+      const orbSize = window.innerWidth <= 768 ? 90 : 120;
+      const boundedRight = Math.min(Math.max(0, newRight), window.innerWidth - orbSize);
+      const boundedBottom = Math.min(Math.max(0, newBottom), window.innerHeight - orbSize);
 
       hasMoved.current = true;
-      setPosition({ x: boundedX, y: boundedY });
+      setPosition({ right: boundedRight, bottom: boundedBottom });
     };
 
     const handleMouseUp = () => {
@@ -59,14 +61,14 @@ export default function RobotOrb({ onClick }) {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleMouseUp);
     };
-  }, [isDragging, position.x, position.y]);
+  }, [isDragging]);
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
     hasMoved.current = false;
-    dragStartPos.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+    dragStartOffset.current = {
+      right: window.innerWidth - e.clientX - position.right,
+      bottom: window.innerHeight - e.clientY - position.bottom,
     };
     document.body.style.userSelect = "none";
   };
@@ -75,9 +77,9 @@ export default function RobotOrb({ onClick }) {
     setIsDragging(true);
     hasMoved.current = false;
     const touch = e.touches[0];
-    dragStartPos.current = {
-      x: touch.clientX - position.x,
-      y: touch.clientY - position.y,
+    dragStartOffset.current = {
+      right: window.innerWidth - touch.clientX - position.right,
+      bottom: window.innerHeight - touch.clientY - position.bottom,
     };
   };
 
@@ -92,8 +94,10 @@ export default function RobotOrb({ onClick }) {
       ref={containerRef}
       className="robot-orb-container"
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`
+        right: `${position.right}px`,
+        bottom: `${position.bottom}px`,
+        top: 'auto',
+        left: 'auto'
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}

@@ -4810,7 +4810,12 @@ body.group-chat-active {
   position: fixed;
   inset: 0;
   z-index: 5600;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
 .message-reaction-popover-panel {
@@ -4996,6 +5001,15 @@ body.group-chat-active {
   color: #6c757d;
   margin-top: 2px;
   word-break: break-all;
+}
+
+.message-reaction-sheet-row-emoji--removable {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.message-reaction-sheet-row-emoji--removable:hover {
+  transform: scale(1.2);
 }
 
 .message-reaction-sheet-row-emoji {

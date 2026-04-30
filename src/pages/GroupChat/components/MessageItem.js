@@ -147,13 +147,16 @@ const MessageItem = ({
   const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
   const isOwnMessage = emailMatch || nameMatch;
 
-  const isGroupAdminRole =
-    userRole === 'Administrator' ||
+  const isSuperAdmin =
     userRole === 'Super_Admin' ||
     (typeof userRole === 'string' && userRole.toLowerCase().includes('super_admin'));
 
-  const canReply = Boolean(onReply) && !message.is_deleted && !String(message.id || '').startsWith('temp-');
-  const canReact = Boolean(onReact) && !message.is_deleted && !String(message.id || '').startsWith('temp-');
+  const isGroupAdminRole =
+    userRole === 'Administrator' ||
+    isSuperAdmin;
+
+  const canReply = Boolean(onReply) && !isSuperAdmin && !message.is_deleted && !String(message.id || '').startsWith('temp-');
+  const canReact = Boolean(onReact) && !isSuperAdmin && !message.is_deleted && !String(message.id || '').startsWith('temp-');
   const canModerate = isOwnMessage || isGroupAdminRole;
   const canOpenSheet = canModerate || canReply || canReact;
 
@@ -585,44 +588,14 @@ const MessageItem = ({
 
   const reactionPopoverLayout = (() => {
     if (!reactionSheet?.anchor) return null;
-    const a = reactionSheet.anchor;
-    const gap = 10;
-    const pad = 12;
     const vw = typeof window !== 'undefined' ? window.innerWidth : 360;
     const vh = typeof window !== 'undefined' ? window.innerHeight : 640;
-    const maxW = Math.min(560, vw - pad * 2);
-    const maxH = Math.min(520, vh - pad * 2);
-
-    const preferLeft = isOwnMessage;
-    const leftCandidate = a.right + gap;
-
-    const placeOnLeft = preferLeft ? true : leftCandidate + maxW > vw - pad;
-    const left = placeOnLeft ? Math.max(pad, a.left - gap - maxW) : Math.min(vw - pad - maxW, leftCandidate);
-
-    const topIdeal = a.top - 8;
-    const top = Math.max(pad, Math.min(vh - pad - maxH, topIdeal));
-    return { left, top, maxW, maxH };
+    
+    const maxW = Math.min(450, vw - 40);
+    const maxH = Math.min(500, vh - 100);
+    
+    return { maxW, maxH };
   })();
-
-  useEffect(() => {
-    if (!reactionSheet) return;
-    const tick = () => {
-      const r = readReactionPillRect();
-      if (!r?.width) return;
-      setReactionSheet((prev) => (prev ? { ...prev, anchor: r } : prev));
-    };
-    tick();
-    const scrollOpts = { capture: true, passive: true };
-    const onScrollOrResize = () => requestAnimationFrame(tick);
-    window.addEventListener('scroll', onScrollOrResize, scrollOpts);
-    document.addEventListener('scroll', onScrollOrResize, scrollOpts);
-    window.addEventListener('resize', onScrollOrResize);
-    return () => {
-      window.removeEventListener('scroll', onScrollOrResize, scrollOpts);
-      document.removeEventListener('scroll', onScrollOrResize, scrollOpts);
-      window.removeEventListener('resize', onScrollOrResize);
-    };
-  }, [reactionSheet, readReactionPillRect]);
 
   const reactionSheetOverlay =
     reactionSheet &&
@@ -635,12 +608,10 @@ const MessageItem = ({
           aria-label={`${reactionSheetTotal} reactions`}
           style={
             reactionPopoverLayout
-              ? {
-                  position: 'fixed',
-                  left: reactionPopoverLayout.left,
-                  top: reactionPopoverLayout.top,
-                  width: reactionPopoverLayout.maxW,
-                  maxHeight: reactionPopoverLayout.maxH,
+               ? {
+                  width: '100%',
+                  maxWidth: `${reactionPopoverLayout.maxW}px`,
+                  maxHeight: `${reactionPopoverLayout.maxH}px`,
                 }
               : undefined
           }
@@ -702,7 +673,17 @@ const MessageItem = ({
                         <div className="message-reaction-sheet-row-sub">{row.email}</div>
                       ) : null}
                     </div>
-                    <span className="message-reaction-sheet-row-emoji" aria-hidden>
+                    <span
+                      className={`message-reaction-sheet-row-emoji ${displayName === 'You' ? 'message-reaction-sheet-row-emoji--removable' : ''}`}
+                      onClick={() => {
+                        if (displayName === 'You') {
+                          handlePickReaction(row.emoji);
+                          setReactionSheet(null);
+                        }
+                      }}
+                      role={displayName === 'You' ? "button" : undefined}
+                      title={displayName === 'You' ? "Click to remove" : undefined}
+                    >
                       {row.emoji}
                     </span>
                   </li>

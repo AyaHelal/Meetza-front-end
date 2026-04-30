@@ -1127,7 +1127,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16/10;
-  background: var(--text-primary);
+  background: #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -1274,6 +1274,46 @@
   color: var(--primary-color) !important;
 }
 
+:root[data-theme="dark"] .meeting-room-prejoin-modal {
+  background: var(--card-bg) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+}
 
+:root[data-theme="dark"] .meeting-room-prejoin-title {
+  color: var(--text-primary) !important;
+}
 
+:root[data-theme="dark"] .meeting-room-prejoin-subtitle,
+:root[data-theme="dark"] .meeting-room-prejoin-loading {
+  color: var(--text-secondary) !important;
+}
 
+:root[data-theme="dark"] .meeting-room-prejoin-toggle,
+:root[data-theme="dark"] .meeting-room-prejoin-cancel {
+  background: var(--bg-alt) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-prejoin-toggle:hover,
+:root[data-theme="dark"] .meeting-room-prejoin-cancel:hover {
+  background: var(--bg-color) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-prejoin-toggle.muted {
+  background: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-prejoin-video-off {
+  background: #111827 !important;
+  color: var(--text-muted) !important;
+}
+
+:root[data-theme="dark"] .meeting-room-prejoin-preview {
+  background: #000 !important;
+}
+
+:root[data-theme="dark"] .meeting-room-prejoin-error {
+  background: rgba(201, 42, 58, 0.1) !important;
+}
