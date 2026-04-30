@@ -34,6 +34,7 @@ import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
 import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
 import AppearancePage from './pages/Settings/AppearancePage';
 import { ChatbotProvider, ChatbotContainer } from './components/chatbot/chatbot';
+import NotFound from './pages/NotFound/NotFound';
 import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -274,7 +275,8 @@ const AppRoutes = () => {
         />
         <Route path="settings" element={<AppearancePage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/not-found" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/not-found" replace />} />
     </Routes>
     {/* Global Robot Orb and Chatbot */}
     <ChatbotContainer />
