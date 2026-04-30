@@ -16,6 +16,7 @@ export const BrandingProvider = ({ children }) => {
         termsHtml: '',
         privacyHtml: '',
         guidelinesHtml: '',
+        authGoogleEnabled: true,
         loading: true
     });
 
@@ -41,6 +42,7 @@ export const BrandingProvider = ({ children }) => {
                     termsHtml: settings.terms_html || '',
                     privacyHtml: settings.privacy_html || '',
                     guidelinesHtml: settings.guidelines_html || '',
+                    authGoogleEnabled: settings.auth_google_enabled !== false && settings.auth_google_enabled !== 0 && settings.auth_google_enabled !== '0',
                     loading: false
                 });
                 
