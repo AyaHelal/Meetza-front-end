@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import axiosInstance from "../../../API/axiosInstance";
-import { useSocket } from "../../../context/SocketContext";
-import { useAuth } from "../../../context/AuthContext";
+import axiosInstance from "../../../../API/axiosInstance";
+import { useSocket } from "../../../../context/SocketContext";
+import { useAuth } from "../../../../context/AuthContext";
 import {
   normalizeSocketNotificationPayload,
   parseNotificationsFromApiResponse,
-} from "../../../utils/notificationSync";
+} from "../../../../utils/notificationSync";
 import "./NotificationPanel.css";
 
 function notificationListKey(n) {
