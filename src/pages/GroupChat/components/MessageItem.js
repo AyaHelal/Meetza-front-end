@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import {
@@ -9,67 +9,23 @@ import {
   Plus,
 } from '@phosphor-icons/react';
 import MessageItemMedia from './MessageItemMedia';
-import { getDisplayText } from '../utils/messageItemUtils';
+import {
+  getDisplayText,
+  viewerLabelForActor,
+  totalReactionCount,
+  reactionSheetRows,
+} from '../utils/messageItemUtils';
+import {
+  useMessageItemPermissions,
+  useMessageItemContextMenu,
+  useMessageItemReactions,
+  useMessageItemEditing,
+  useMessageItemSearchHighlight,
+} from '../hooks';
 import { smartToast } from '../../../API/toastManager';
 import '../GroupChat.css';
 
 const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🥰'];
-
-const LONG_PRESS_MS = 520;
-
-function viewerLabelForActor(actor, currentUser, currentUserEmail) {
-  const a = String(actor || '').trim();
-  if (!a) return a;
-  const emails = [currentUserEmail, currentUser?.email, currentUser?.user_email].filter(Boolean);
-  for (const em of emails) {
-    const norm = em.trim().toLowerCase();
-    if (!norm) continue;
-    const local = norm.split('@')[0] || '';
-    if (a.toLowerCase() === norm || (local && a.toLowerCase() === local)) return 'You';
-  }
-  const nm = currentUser?.name?.trim();
-  if (nm && a.toLowerCase() === nm.toLowerCase()) return 'You';
-  return a;
-}
-
-function totalReactionCount(reactions) {
-  if (!Array.isArray(reactions)) return 0;
-  return reactions.reduce((sum, r) => sum + Math.max(1, Number(r.count) || 1), 0);
-}
-
-/** @param {string} filterEmoji `'all'` or one emoji string */
-function reactionSheetRows(reactions, filterEmoji) {
-  const rows = [];
-  for (const r of reactions || []) {
-    if (filterEmoji !== 'all' && r.emoji !== filterEmoji) continue;
-    const reactors = Array.isArray(r.reactors) ? r.reactors : [];
-    const em = r.emoji;
-    if (reactors.length > 0) {
-      reactors.forEach((rec, idx) => {
-        rows.push({
-          key: `${em}-${rec.id}-${idx}`,
-          name: rec.name,
-          email: rec.email,
-          photo: rec.photo,
-          emoji: rec.emoji || em,
-        });
-      });
-    } else {
-      (r.actors || []).forEach((name, idx) => {
-        rows.push({
-          key: `${em}-a-${idx}`,
-          name,
-          email: '',
-          photo: null,
-          emoji: em,
-        });
-      });
-    }
-  }
-  return rows.sort((a, b) =>
-    String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
-  );
-}
 
 const MessageItem = ({
   message,
@@ -86,13 +42,68 @@ const MessageItem = ({
   isActiveSearchResult,
   onRegisterMessageEl,
 }) => {
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [anchorRect, setAnchorRect] = useState(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(message.message || message.text || '');
-  /** `{ filter: 'all' | emoji }` when open */
-  const [reactionSheet, setReactionSheet] = useState(null);
+  const messageRef = useRef(null);
+  const messageContentRef = useRef(null);
+  const reactionPillRef = useRef(null);
+  const sheetRef = useRef(null);
+
+  const {
+    isOwnMessage,
+    isGroupAdminRole,
+    canReply,
+    canReact,
+    canOpenSheet,
+    resolvedCurrentEmail,
+  } = useMessageItemPermissions({
+    message,
+    currentUser,
+    currentUserEmail,
+    userRole,
+    onReply,
+    onReact,
+  });
+
+  const {
+    showContextMenu,
+    anchorRect,
+    showEmojiPicker,
+    setShowEmojiPicker,
+    handleRightClick,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    closeContextSheet,
+  } = useMessageItemContextMenu({
+    canOpenSheet,
+    messageContentRef,
+  });
+
+  const {
+    reactionSheet,
+    setReactionSheet,
+    toggleReactionSheet,
+  } = useMessageItemReactions({
+    messageId: message.id,
+    reactionPillRef,
+  });
+
+  const {
+    isEditing,
+    editText,
+    setEditText,
+    setIsEditing,
+    handleEdit,
+    handleEditSubmit,
+    handleEditKeyDown,
+  } = useMessageItemEditing({
+    message,
+    onEditMessage,
+  });
+
+  const { renderHighlighted } = useMessageItemSearchHighlight({
+    searchWord,
+    isSearchMatch,
+  });
 
   const isLinkMessage = message.message && /^https?:\/\/\S+$/i.test(message.message.trim());
   const finalMedia =
@@ -103,120 +114,6 @@ const MessageItem = ({
         : [];
 
   const displayText = getDisplayText(message, finalMedia);
-
-  const highlightNeedle = useMemo(() => String(searchWord || '').trim(), [searchWord]);
-  const shouldHighlight = Boolean(highlightNeedle) && Boolean(isSearchMatch);
-
-  const renderHighlighted = useCallback(
-    (text) => {
-      const raw = String(text || '');
-      if (!shouldHighlight || !raw) return raw;
-      const needle = highlightNeedle;
-      if (!needle) return raw;
-      const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(`(${escaped})`, 'ig');
-      const parts = raw.split(re);
-      return parts.map((part, i) => {
-        const isHit = i % 2 === 1 && part;
-        if (!isHit) return <React.Fragment key={i}>{part}</React.Fragment>;
-        return (
-          <mark key={i} className="chat-search-highlight">
-            {part}
-          </mark>
-        );
-      });
-    },
-    [shouldHighlight, highlightNeedle]
-  );
-
-  useEffect(() => {
-    setEditText(message.message || message.text || '');
-  }, [message.message, message.text]);
-
-  const messageRef = useRef(null);
-  /** Bubble column only (max-width ~70%); used so the highlight matches real size, not full chat row. */
-  const messageContentRef = useRef(null);
-  const reactionPillRef = useRef(null);
-  const sheetRef = useRef(null);
-  const longPressTimerRef = useRef(null);
-  const touchStartRef = useRef({ x: 0, y: 0 });
-
-  const resolvedCurrentEmail = currentUserEmail || currentUser?.email || currentUser?.user_email || null;
-  const messageEmail = message.senderEmail || message.sender_email || null;
-  const emailMatch = messageEmail && resolvedCurrentEmail && messageEmail.toLowerCase() === resolvedCurrentEmail.toLowerCase();
-  const nameMatch = message.sender === 'You' || message.sender === currentUser?.name;
-  const isOwnMessage = emailMatch || nameMatch;
-
-  const isSuperAdmin =
-    userRole === 'Super_Admin' ||
-    (typeof userRole === 'string' && userRole.toLowerCase().includes('super_admin'));
-
-  const isGroupAdminRole =
-    userRole === 'Administrator' ||
-    isSuperAdmin;
-
-  const canReply = Boolean(onReply) && !isSuperAdmin && !message.is_deleted && !String(message.id || '').startsWith('temp-');
-  const canReact = Boolean(onReact) && !isSuperAdmin && !message.is_deleted && !String(message.id || '').startsWith('temp-');
-  const canModerate = isOwnMessage || isGroupAdminRole;
-  const canOpenSheet = canModerate || canReply || canReact;
-
-  const clearLongPress = useCallback(() => {
-    if (longPressTimerRef.current != null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
-
-  const readAnchorRect = useCallback(() => {
-    const el = messageContentRef.current;
-    if (!el) return null;
-    return el.getBoundingClientRect();
-  }, []);
-
-  const openContextSheet = useCallback(() => {
-    if (!canOpenSheet) return;
-    const rect = readAnchorRect();
-    if (!rect?.width) return;
-    setReactionSheet(null);
-    setShowEmojiPicker(false);
-    setAnchorRect(rect);
-    setShowContextMenu(true);
-  }, [canOpenSheet, readAnchorRect]);
-
-  const closeContextSheet = useCallback(() => {
-    setShowContextMenu(false);
-    setAnchorRect(null);
-    setShowEmojiPicker(false);
-  }, []);
-
-  const handleRightClick = (e) => {
-    if (!canOpenSheet) return;
-    e.preventDefault();
-    openContextSheet();
-  };
-
-  const handleTouchStart = (e) => {
-    if (!canOpenSheet || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    touchStartRef.current = { x: t.clientX, y: t.clientY };
-    clearLongPress();
-    longPressTimerRef.current = window.setTimeout(() => {
-      longPressTimerRef.current = null;
-      openContextSheet();
-    }, LONG_PRESS_MS);
-  };
-
-  const handleTouchMove = (e) => {
-    if (longPressTimerRef.current == null || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const dx = Math.abs(t.clientX - touchStartRef.current.x);
-    const dy = Math.abs(t.clientY - touchStartRef.current.y);
-    if (dx + dy > 14) clearLongPress();
-  };
-
-  const handleTouchEnd = () => {
-    clearLongPress();
-  };
 
   const handleReply = () => {
     onReply?.(message);
@@ -255,32 +152,9 @@ const MessageItem = ({
     closeContextSheet();
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
+  const onEditClick = () => {
+    handleEdit();
     closeContextSheet();
-  };
-
-  const handleEditSubmit = () => {
-    const trimmedText = editText.trim();
-    const currentText = message.message || message.text || '';
-    if (trimmedText && trimmedText !== currentText) {
-      onEditMessage(message.id, trimmedText);
-    } else if (!trimmedText) {
-      setEditText(message.message || message.text || '');
-      setIsEditing(false);
-      return;
-    }
-    setIsEditing(false);
-  };
-
-  const handleEditCancel = () => {
-    setEditText(message.message || message.text || '');
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleEditSubmit();
-    else if (e.key === 'Escape') handleEditCancel();
   };
 
   const setOuterRef = useCallback(
@@ -296,64 +170,11 @@ const MessageItem = ({
     const onKeyDown = (e) => {
       if (e.key !== 'Escape') return;
       if (reactionSheet) setReactionSheet(null);
-      else if (showContextMenu) closeContextSheet();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showContextMenu, closeContextSheet, reactionSheet]);
+  }, [reactionSheet, setReactionSheet]);
 
-  useEffect(() => {
-    if (!reactionSheet) return;
-    const onPointerDown = (e) => {
-      const t = e.target;
-      if (typeof t.closest === 'function' && t.closest('.message-reaction-sheet-panel')) return;
-      if (typeof t.closest === 'function' && t.closest('.message-reaction-summary-pill')) return;
-      setReactionSheet(null);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('touchstart', onPointerDown, { passive: true });
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('touchstart', onPointerDown);
-    };
-  }, [reactionSheet]);
-
-  useEffect(() => {
-    setReactionSheet(null);
-  }, [message.id]);
-
-  const readReactionPillRect = useCallback(() => {
-    const el = reactionPillRef.current;
-    if (!el) return null;
-    return el.getBoundingClientRect();
-  }, []);
-
-  useEffect(() => {
-    if (!showContextMenu) return;
-    const tick = () => {
-      const el = messageContentRef.current;
-      if (!el) return;
-      const next = el.getBoundingClientRect();
-      setAnchorRect(next);
-      if (next.bottom < -80 || next.top > window.innerHeight + 80) closeContextSheet();
-    };
-    tick();
-    const ro = new ResizeObserver(() => requestAnimationFrame(tick));
-    if (messageContentRef.current) ro.observe(messageContentRef.current);
-    const scrollOpts = { capture: true, passive: true };
-    const onScrollOrResize = () => requestAnimationFrame(tick);
-    window.addEventListener('scroll', onScrollOrResize, scrollOpts);
-    document.addEventListener('scroll', onScrollOrResize, scrollOpts);
-    window.addEventListener('resize', onScrollOrResize);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('scroll', onScrollOrResize, scrollOpts);
-      document.removeEventListener('scroll', onScrollOrResize, scrollOpts);
-      window.removeEventListener('resize', onScrollOrResize);
-    };
-  }, [showContextMenu, closeContextSheet]);
-
-  /** Same structure/classes as the in-thread bubble (read-only in portal). */
   const renderBubbleColumn = (preview) => (
     <>
       {!isOwnMessage && (
@@ -384,7 +205,7 @@ const MessageItem = ({
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               onBlur={handleEditSubmit}
-              onKeyDown={handleKeyDown}
+              onKeyDown={handleEditKeyDown}
               autoFocus
               className="edit-input"
             />
@@ -408,11 +229,7 @@ const MessageItem = ({
           ref={reactionPillRef}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setReactionSheet((prev) => (prev ? null : { filter: 'all', anchor: readReactionPillRect() }));
-          }}
+          onClick={toggleReactionSheet}
         >
           <span className="message-reaction-summary-emojis" aria-hidden>
             {message.reactions.map((r, i) => (
@@ -564,7 +381,7 @@ const MessageItem = ({
               <CopySimple size={22} className="message-context-action-icon" aria-hidden />
             </button>
             {isOwnMessage && (
-              <button type="button" className="message-context-action-row" onClick={handleEdit}>
+              <button type="button" className="message-context-action-row" onClick={onEditClick}>
                 <span>Edit</span>
                 <PencilSimple size={22} className="message-context-action-icon" aria-hidden />
               </button>
@@ -590,10 +407,8 @@ const MessageItem = ({
     if (!reactionSheet?.anchor) return null;
     const vw = typeof window !== 'undefined' ? window.innerWidth : 360;
     const vh = typeof window !== 'undefined' ? window.innerHeight : 640;
-    
     const maxW = Math.min(450, vw - 40);
     const maxH = Math.min(500, vh - 100);
-    
     return { maxW, maxH };
   })();
 

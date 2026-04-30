@@ -13,3 +13,8 @@ export { useMessageSearch } from "./useMessageSearch";
 export { useMessageActions } from "./useMessageActions";
 export { useReply } from "./useReply";
 export { useMediaViewer } from "./useMediaViewer";
+export { useMessageItemPermissions } from "./useMessageItemPermissions";
+export { useMessageItemContextMenu } from "./useMessageItemContextMenu";
+export { useMessageItemReactions } from "./useMessageItemReactions";
+export { useMessageItemEditing } from "./useMessageItemEditing";
+export { useMessageItemSearchHighlight } from "./useMessageItemSearchHighlight";
