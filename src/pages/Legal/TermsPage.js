@@ -1,9 +1,11 @@
 import "./LegalPage.css";
 import { useNavigate } from "react-router-dom";
 import React, { useMemo } from "react";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function TermsPage() {
   const navigate = useNavigate();
+  const { termsHtml } = useBranding();
 
   const DEFAULT_TEXT = useMemo(
     () =>
@@ -39,9 +41,8 @@ export default function TermsPage() {
         </button>
         <div className="legal-card">
           <h1 className="legal-title">Terms of Service</h1>
-          <p className="legal-subtitle">Last updated: April 2026</p>
           <div className="legal-body">
-            <div className="legal-body-pre">{DEFAULT_TEXT}</div>
+            <div className="legal-body-pre">{termsHtml || DEFAULT_TEXT}</div>
           </div>
         </div>
       </div>

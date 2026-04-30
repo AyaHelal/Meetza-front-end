@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./HeroSection.css";
 import { useBranding } from "../../context/BrandingContext";
+import BrandingLogo from "../common/BrandingLogo";
 
 export default function HeroNav() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,6 +11,8 @@ export default function HeroNav() {
     const navigate = useNavigate();
     const location = useLocation();
     const { systemName, logoUrl } = useBranding();
+    
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
 
     const discoverItems = useMemo(
         () => [
@@ -58,20 +61,12 @@ export default function HeroNav() {
                         navigate("/");
                     }}
                 >
-                    <div className="d-flex flex-column align-items-start">
-                        <img
-                            src={logoUrl || "/assets/meetza_copy.png"}
-                            alt={systemName}
-                            className="navbar-logo"
-                            style={{ objectFit: 'contain', maxHeight: '45px' }}
-                        />
-                        {logoUrl && (
-                            <div className="d-flex align-items-center mt-1" style={{ opacity: 0.8 }}>
-                                <span style={{ fontSize: '10px', color: '#fff', marginRight: '5px' }}>Powered by</span>
-                                <img src="/assets/meetza_copy.png" alt="Meetza" style={{ height: '12px', filter: 'brightness(10)' }} />
-                            </div>
-                        )}
-                    </div>
+                    <BrandingLogo 
+                        showSystemName={!isMeetza}
+                        className="d-flex flex-row align-items-center gap-2"
+                        style={{ objectFit: 'contain', maxHeight: isMeetza ? '25px' : '40px' }}
+                        systemNameStyle={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}
+                    />
                 </button>
 
                 <button

@@ -8,10 +8,13 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useBranding } from "../../context/BrandingContext";
+import BrandingLogo from "../common/BrandingLogo";
 
 function Footer() {
     const navigate = useNavigate();
     const { systemName, logoUrl, showPoweredBy } = useBranding();
+    
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
 
     const go = (to) => (e) => {
         e.preventDefault();
@@ -97,16 +100,16 @@ function Footer() {
                 <hr className="footer-line" />
                 <div className="fl d-flex justify-content-between align-items-center">
                     <div className="footer-logo-container">
-                        <img
-                            src={logoUrl || "/assets/meetza.png"}
-                            alt={systemName}
-                            className="footer-logo"
-                            style={{ objectFit: 'contain' }}
+                        <BrandingLogo 
+                            showSystemName={!isMeetza}
+                            className="footer-logo d-flex flex-row align-items-center gap-2"
+                            style={{ objectFit: 'contain', maxHeight: '35px', maxWidth: '100px' }}
+                            systemNameStyle={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0 }}
                         />
                     </div>
                     <div className="footer-copyright d-flex flex-column align-items-end">
                         <p>© 2025Meetza — All rights reserved</p>
-                        {showPoweredBy && (
+                        {(!isMeetza && showPoweredBy) && (
                             <div className="d-flex align-items-center mt-1" style={{ opacity: 0.7 }}>
                                 <small style={{ fontSize: '12px', marginRight: '5px' }}>
                                     Powered by
