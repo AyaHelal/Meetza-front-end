@@ -378,8 +378,8 @@
     z-index: 10;
   }
 
-  .logo-container img {
-    width: 17rem !important;
+  .logo-container .branding-logo img {
+    width: 10rem !important;
     height: auto;
     max-height: 320px;
     object-fit: contain;
@@ -390,14 +390,14 @@
 
   /* Adjust logo size for different screens */
   @media (min-width: 768px) {
-    .logo-container img {
+    .logo-container .branding-logo img {
       width: 250px;
       max-height: 150px;
     }
   }
 
   @media (min-width: 1200px) {
-    .logo-container img {
+    .logo-container .branding-logo img {
       width: 280px;
       max-height: 170px;
     }
@@ -419,7 +419,7 @@
 
 /* Smaller screens within 1500px */
 @media (max-height: 900px) {
-  .logo-container img {
+  .logo-container .branding-logo img {
     max-width: 20rem !important;
     max-height: 5rem !important;
   }
@@ -868,7 +868,7 @@
       max-height: 47px !important;
     }
 
-    .logo-container img {
+    .logo-container .branding-logo img {
       max-width: 6rem !important;
       height: 6rem !important;
     }
