@@ -5402,3 +5402,102 @@ body.group-chat-active {
 [data-theme="dark"] .audio-item audio {
   filter: invert(90%) hue-rotate(180deg) brightness(1.2);
 }
+
+/* Reaction Details Dark Mode */
+[data-theme="dark"] .message-reaction-popover-panel,
+[data-theme="dark"] .message-reaction-sheet-panel {
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-title,
+[data-theme="dark"] .message-reaction-sheet-row-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-row-sub {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-tab {
+  background-color: var(--bg-alt) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-tab--active {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  border-color: var(--primary-color) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-tab--active .message-reaction-sheet-tab-count {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-handle {
+  background-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-tabs {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .message-reaction-sheet-avatar {
+  background-color: var(--bg-alt) !important;
+}
+/* Quick Add Reaction Button (WhatsApp Style) */
+.message-reactions-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.message-reaction-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  color: #64748b;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.message:hover .message-reaction-add-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.message-own .message-reaction-add-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message-reaction-add-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+  transform: scale(1.15);
+}
+
+.message-own .message-reaction-add-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+[data-theme='dark'] .message-reaction-add-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .message-reaction-add-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+}
