@@ -281,3 +281,50 @@
 @keyframes gemPulse{0%,100%{box-shadow:0 0 10px #a78bfa,0 0 20px rgba(167,139,250,.5);}50%{box-shadow:0 0 18px #a78bfa,0 0 35px rgba(167,139,250,.8);}}
 @keyframes glowPulse{0%,100%{opacity:.6;}50%{opacity:1;}}
 @keyframes scan{0%{top:15%;opacity:0;}20%{opacity:1;}80%{opacity:1;}100%{top:85%;opacity:0;}}
+
+/* Dark Mode Support for Chatbot Window */
+[data-theme='dark'] .chatbot-window {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(51, 149, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 118, 234, 0.1);
+}
+
+[data-theme='dark'] .chatbot-messages {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .bot-message {
+  background: #1e293b;
+  color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .chatbot-input {
+  background: #1e293b;
+  border-top-color: #334155;
+}
+
+[data-theme='dark'] .chatbot-input input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .chatbot-input input::placeholder {
+  color: #64748b;
+}
+
+[data-theme='dark'] .typing-indicator {
+  background: #1e293b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .typing-dot {
+  background: #64748b;
+}
+
+[data-theme='dark'] .message-chatbot.error-message {
+  background: #450a0a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
