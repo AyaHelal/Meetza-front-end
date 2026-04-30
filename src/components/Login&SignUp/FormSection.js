@@ -190,16 +190,16 @@ const FormSection = ({
                                 flexDirection: 'row',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: '8px',
+                                gap: '4px',
                                 padding: '0',
                                 background: 'transparent'
                             }}
-                            systemNameStyle={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}
+                            systemNameStyle={{ fontSize: '2.5rem', fontWeight: 'bold', margin: 0 }}
                         />
                         {(!isMeetza && showPoweredBy !== false) && (
-                            <div className="d-flex align-items-center mt-0 text-muted" style={{ fontSize: '0.75rem' }}>
-                                <span >Powered by</span>
-                                <img src="/assets/meetza.png" alt="Meetza" style={{ height: '14px', objectFit: 'contain' }} />
+                            <div className="d-flex align-items-center mt-2 text-muted justify-content-center" style={{ fontSize: '0.85rem', gap: '6px' }}>
+                                <span>Powered by</span>
+                                <img src="/assets/meetza.png" alt="Meetza" style={{ height: '18px', objectFit: 'contain' }} />
                             </div>
                         )}
                     </div>
