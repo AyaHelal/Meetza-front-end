@@ -138,3 +138,57 @@ export function ensureFileExtension(name, mediaItem) {
   }
   return name;
 }
+
+export function viewerLabelForActor(actor, currentUser, currentUserEmail) {
+  const a = String(actor || '').trim();
+  if (!a) return a;
+  const emails = [currentUserEmail, currentUser?.email, currentUser?.user_email].filter(Boolean);
+  for (const em of emails) {
+    const norm = em.trim().toLowerCase();
+    if (!norm) continue;
+    const local = norm.split('@')[0] || '';
+    if (a.toLowerCase() === norm || (local && a.toLowerCase() === local)) return 'You';
+  }
+  const nm = currentUser?.name?.trim();
+  if (nm && a.toLowerCase() === nm.toLowerCase()) return 'You';
+  return a;
+}
+
+export function totalReactionCount(reactions) {
+  if (!Array.isArray(reactions)) return 0;
+  return reactions.reduce((sum, r) => sum + Math.max(1, Number(r.count) || 1), 0);
+}
+
+/** @param {string} filterEmoji `'all'` or one emoji string */
+export function reactionSheetRows(reactions, filterEmoji) {
+  const rows = [];
+  for (const r of reactions || []) {
+    if (filterEmoji !== 'all' && r.emoji !== filterEmoji) continue;
+    const reactors = Array.isArray(r.reactors) ? r.reactors : [];
+    const em = r.emoji;
+    if (reactors.length > 0) {
+      reactors.forEach((rec, idx) => {
+        rows.push({
+          key: `${em}-${rec.id}-${idx}`,
+          name: rec.name,
+          email: rec.email,
+          photo: rec.photo,
+          emoji: rec.emoji || em,
+        });
+      });
+    } else {
+      (r.actors || []).forEach((name, idx) => {
+        rows.push({
+          key: `${em}-a-${idx}`,
+          name,
+          email: '',
+          photo: null,
+          emoji: em,
+        });
+      });
+    }
+  }
+  return rows.sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+  );
+}
