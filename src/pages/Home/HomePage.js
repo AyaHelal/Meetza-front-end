@@ -17,7 +17,10 @@ export default function HomePage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
+      const trimmed = searchTerm.trim();
+      if (trimmed.length === 0 || trimmed.length >= 2) {
+        setDebouncedSearchTerm(trimmed);
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);

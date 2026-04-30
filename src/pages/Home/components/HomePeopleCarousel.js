@@ -25,7 +25,7 @@ export default function HomePeopleCarousel({ people = null, searchTerm = "" }) {
   return (
     <section className="home-section home-people-section">
       <div className="home-section-header">
-        <h2 className="home-section-title">People</h2>
+        <h2 className="home-section-title">Leaders</h2>
       </div>
 
       <div className="home-carousel-wrap position-relative home-bootstrap-carousel home-people-slider-wrap home-people-carousel">
@@ -49,7 +49,7 @@ export default function HomePeopleCarousel({ people = null, searchTerm = "" }) {
           {loading ? (
             <div className="home-people-slider-slide">
               <div className="home-people-card" aria-label="Loading people">
-                <div className="text-muted small">Loading people…</div>
+                <div className="text-muted small">Loading Leaders</div>
               </div>
             </div>
           ) : error ? (

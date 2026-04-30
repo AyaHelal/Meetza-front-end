@@ -215,7 +215,7 @@ const LeftNavbar = ({
               title="Messages"
             >
               <Envelope size={32} />
-              {activeNav !== "messages" && unreadGroupChatCount > 0 && (
+              {unreadGroupChatCount > 0 && (
                 <span
                   className="nav-badge"
                   title={`${unreadGroupChatCount} unread message${
