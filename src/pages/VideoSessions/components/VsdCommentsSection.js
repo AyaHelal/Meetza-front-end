@@ -81,7 +81,11 @@ export function VsdCommentsSection({
               const avatarUrl = c.Member_photo || c.member_photo || c.avatar || c.user_avatar;
               const commentBody = c.comment_text || c.comment || c.text || "";
               const createdAt = c.timestamp || c.time || c.created_at || c.createdAt || "";
-              const canEditComment = user?.role === "Administrator" || user?.role === "Super_Admin" || user?.id === c.member_id || user?.id === c.memberId;
+              const isAuthor = user?.id === c.member_id || user?.id === c.memberId;
+              const isSuperAdmin = user?.role === "Super_Admin";
+              const isAdmin = user?.role === "Administrator" || isSuperAdmin;
+              const canEdit = isAuthor || isSuperAdmin;
+              const canDelete = isAuthor || isAdmin;
               return (
                 <div key={c.id} className="vsd-comment">
                   {avatarUrl ? (
@@ -116,7 +120,9 @@ export function VsdCommentsSection({
                       const replyAuthor = r.member_name || r.author || r.user_name || r.name || "Anonymous";
                       const replyBody = r.comment_text || r.comment || r.text || "";
                       const replyTime = r.timestamp || r.time || r.created_at || r.createdAt || "";
-                      const canEditReply = user?.role === "Administrator" || user?.role === "Super_Admin" || user?.id === r.member_id || user?.id === r.memberId;
+                      const isReplyAuthor = user?.id === r.member_id || user?.id === r.memberId;
+                      const canEditRep = isReplyAuthor || isSuperAdmin;
+                      const canDeleteRep = isReplyAuthor || isAdmin; 
                       return (
                         <div key={r.id} className="vsd-reply">
                           {(r.Member_photo || r.member_photo || r.avatar) ? (
@@ -136,14 +142,18 @@ export function VsdCommentsSection({
                             <span className="vsd-reply-time">{formatRelativeTime(replyTime) || replyTime || "Just now"}</span>
                             <p className={`vsd-reply-text ${isRTL(replyBody) ? "" : "ltr"}`}>{replyBody}</p>
                           </div>
-                          {canEditReply && (
+                          {(canEditRep || canDeleteRep) && (
                             <div className="vsd-comment-actions">
-                              <button className="vsd-edit-btn" onClick={() => handleEditCommentOpen(r)} title="Edit reply">
-                                <PencilSimple size={16} />
-                              </button>
-                              <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(r.id)} title="Delete reply">
-                                <Trash size={16} />
-                              </button>
+                              {canEditRep && (
+                                <button className="vsd-edit-btn" onClick={() => handleEditCommentOpen(r)} title="Edit reply">
+                                  <PencilSimple size={16} />
+                                </button>
+                              )}
+                              {canDeleteRep && (
+                                <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(r.id)} title="Delete reply">
+                                  <Trash size={16} />
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -204,14 +214,18 @@ export function VsdCommentsSection({
                       </div>
                     )}
                   </div>
-                  {canEditComment && (
+                  {(canEdit || canDelete) && (
                     <div className="vsd-comment-actions">
-                      <button className="vsd-edit-btn" onClick={() => handleEditCommentOpen(c)} title="Edit">
-                        <PencilSimple size={18} />
-                      </button>
-                      <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(c.id)} title="Delete">
-                        <Trash size={18} />
-                      </button>
+                      {canEdit && (
+                        <button className="vsd-edit-btn" onClick={() => handleEditCommentOpen(c)} title="Edit">
+                          <PencilSimple size={18} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button className="vsd-delete-btn" onClick={() => setCommentToDeleteId(c.id)} title="Delete">
+                          <Trash size={18} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

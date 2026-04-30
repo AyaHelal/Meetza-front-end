@@ -9,6 +9,7 @@ const URLS = {
   incomingMessage: `${base}/sounds/incoming-message.mp3`,
   chatMessagePop: `${base}/sounds/chat-message-pop.mp3`,
   sendMessage: `${base}/sounds/send-message.wav`,
+  chatbotOpenVoice: `${base}/sounds/Friendly_AI_voice.mp3`,
   /** Bell: primed on first user gesture like other UI sounds (autoplay policy). */
   notificationBell: `${base}/sounds/notification.wav`,
 };
@@ -138,4 +139,26 @@ export function playNotificationSound() {
 
 export function playChatSendSound() {
   playKey("sendMessage");
+}
+
+export function playChatbotOpenVoice() {
+  const url = URLS.chatbotOpenVoice;
+  if (!url) return;
+
+  try {
+    // Use a fresh element for this long voice clip to avoid stale cached state.
+    const freshAudio = new Audio(url);
+    freshAudio.preload = "auto";
+    freshAudio.volume = 1;
+    freshAudio.currentTime = 0;
+    const playPromise = freshAudio.play();
+
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {
+        playKey("chatbotOpenVoice");
+      });
+    }
+  } catch (_) {
+    playKey("chatbotOpenVoice");
+  }
 }
