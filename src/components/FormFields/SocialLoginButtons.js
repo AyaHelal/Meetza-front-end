@@ -1,24 +1,12 @@
 import { Button } from 'react-bootstrap';
-import { useState, useEffect } from 'react';
+import React from 'react';
 import '../../pages/Login/Login.css';
 
-const SocialLoginButtons = ({ role, redirectUrl ,type}) => {
-    const [roleError, setRoleError] = useState('');
-    useEffect(() => {
-        if (role) {
-            setRoleError('');
-        }
-    }, [role]);
-
+const SocialLoginButtons = ({ redirectUrl, type }) => {
     const handleGoogleLogin = () => {
-        if (!role) {
-            setRoleError('You must choose a Role before completing the Google login process.');
-            return;
-        }
-
         const finalRedirect = redirectUrl || `${window.location.origin}/home`;
         const encodedRedirect = encodeURIComponent(finalRedirect);
-        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?role=${role}&type=${type}&redirect=${encodedRedirect}`;
+        const googleAuthUrl = `https://hulda-unglutted-curably.ngrok-free.dev/api/auth/social/google?type=${type}&redirect=${encodedRedirect}`;
 
         window.location.href = googleAuthUrl;
     };
@@ -48,11 +36,6 @@ const SocialLoginButtons = ({ role, redirectUrl ,type}) => {
                         Continue with Google
                     </Button>
                 </div>
-                {roleError && (
-                    <div className="text-danger small mt-2 text-center">
-                        {roleError}
-                    </div>
-                )}
             </div>
         </>
     );

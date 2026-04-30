@@ -55,7 +55,7 @@ const FormSection = ({
 }) => {
 
     const formRef = useRef(null);
-    const { systemName, showPoweredBy } = useBranding();
+    const { systemName, showPoweredBy, authGoogleEnabled } = useBranding();
     const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
 
 
@@ -134,7 +134,7 @@ const FormSection = ({
 
         }
 
-    }, [showCaptcha]);
+    }, [showCaptcha, systemName, authGoogleEnabled]);
 
 
 
@@ -583,7 +583,9 @@ const FormSection = ({
 
 
 
-                            <SocialLoginButtons role={formData.role} redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"} />
+                            {authGoogleEnabled && (
+                                <SocialLoginButtons redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"} />
+                            )}
 
                         </>
 

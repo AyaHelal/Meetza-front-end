@@ -12,6 +12,7 @@ import SocialLoginButtons from '../../components/FormFields/SocialLoginButtons';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import '../Login/Login.css';
 import '../../components/Login&SignUp/FormSection.css';
+import { useBranding } from '../../context/BrandingContext';
 
 const SignUp = () => {
     const navigate = useNavigate();
@@ -138,6 +139,7 @@ const SignUp = () => {
             setIsLoading(false);
         }
     };
+    const { authGoogleEnabled } = useBranding();
 
     return (
         <LayoutWrapper activeTab="signup">
@@ -269,7 +271,9 @@ const SignUp = () => {
                             'Create Account'
                         )}
                     </Button>
-                    <SocialLoginButtons redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signup"}/>
+                    {authGoogleEnabled && (
+                        <SocialLoginButtons redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signup"}/>
+                    )}
                 </FormSection>
             </SignUpLayout>
         </LayoutWrapper>
