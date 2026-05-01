@@ -324,6 +324,9 @@ body.group-chat-active {
 
 .chat-name {
   font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-item.active .chat-name {

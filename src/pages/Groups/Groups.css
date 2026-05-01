@@ -622,6 +622,9 @@ select.form-select {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .group-card-instructor {

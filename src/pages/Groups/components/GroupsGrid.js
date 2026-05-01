@@ -8,7 +8,7 @@ function normalizePhotoSrc(v) {
   return t ? t : null;
 }
 
-function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin, onLeave, onEdit, onDelete }) {
+function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin, onLeave, onEdit, onDelete, onCardClick }) {
   const [hoverEdit, setHoverEdit] = React.useState(false);
   const [hoverDelete, setHoverDelete] = React.useState(false);
   const [imgOk, setImgOk] = React.useState(true);
@@ -21,10 +21,21 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
   const isMemberView = userRole === 'Member';
   const showInstructorLine = isMemberView || isSuperAdmin;
 
+  const handleCardClick = () => {
+    if (!onCardClick) return;
+    if (isMemberView) {
+      if (isJoined) onCardClick(groupId);
+    } else {
+      // Administrator or SuperAdmin
+      onCardClick(groupId);
+    }
+  };
+
   return (
     <div
       key={groupId || group.name || index}
       className={`group-card ${isMemberView ? 'group-card--member' : 'group-card--admin'}`}
+      onClick={handleCardClick}
     >
       <div className="group-card-image">
         {photo && imgOk ? (
@@ -45,7 +56,7 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
         <div className="d-flex justify-content-between align-items-start mb-2">
           <div
             className={`group-card-title mb-0 ${isMemberView ? 'group-card-title--member' : ''}`}
-            style={{ wordBreak: 'break-word', paddingRight: '8px' }}
+            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '8px' }}
           >
             {name || 'Title'}
           </div>
@@ -70,7 +81,10 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
               {!isSuperAdmin && (
                 <button
                   className="group-join-btn group-join-btn--member"
-                  onClick={() => groupId && onLeave(groupId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (groupId) onLeave(groupId);
+                  }}
                   style={{ backgroundColor: '#FF383C', borderColor: '#FF383C', color: '#fff', width: '85px', margin: 0 }}
                 >
                   Leave
@@ -80,7 +94,10 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
           ) : !isSuperAdmin && (
             <button
               className="group-join-btn group-join-btn--member"
-              onClick={() => groupId && onJoin(groupId)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (groupId) onJoin(groupId);
+              }}
               disabled={!groupId}
               style={{ width: '85px', margin: 0 }}
             >
@@ -151,6 +168,7 @@ export default function GroupsGrid({
   onLeaveGroup,
   onEditGroup,
   onDeleteGroup,
+  onCardClick,
   onCreateGroup,
   ...props
 }) {
@@ -195,6 +213,7 @@ export default function GroupsGrid({
           onLeave={onLeaveGroup}
           onEdit={onEditGroup}
           onDelete={onDeleteGroup}
+          onCardClick={onCardClick}
         />
       ))}
     </div>

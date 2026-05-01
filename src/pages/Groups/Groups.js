@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { smartToast } from '../../API/toastManager';
 import { useAuth } from '../../context/AuthContext';
 import { createGroup, joinGroup, leaveGroup } from './services/groupsService';
@@ -20,6 +21,7 @@ const SEARCH_MIN_LENGTH = 2;
 
 const Groups = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [groupToEdit, setGroupToEdit] = useState(null);
@@ -301,6 +303,10 @@ const Groups = () => {
       setActionSubmitting(false);
     }
   };
+  
+  const handleCardClick = (groupId) => {
+    navigate('/messages', { state: { groupId } });
+  };
 
   const filteredGroups =
     searchQuery.length >= SEARCH_MIN_LENGTH
@@ -353,6 +359,7 @@ const Groups = () => {
           onLeaveGroup={handleLeaveGroup}
           onEditGroup={handleEditGroupClick}
           onDeleteGroup={handleDeleteGroupClick}
+          onCardClick={handleCardClick}
           onCreateGroup={() => setShowCreateModal(true)}
         />
       </div>
