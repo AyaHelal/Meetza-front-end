@@ -38,7 +38,9 @@ export default function HomePage() {
         <HomePeopleCarousel searchTerm={debouncedSearchTerm} />
         <div className="home-section-divider" role="presentation" />
         <HomeSavedVideosCarousel searchTerm={debouncedSearchTerm} />
-        <div className="home-section-divider" role="presentation" />
+        <footer className="home-footer text-center mt-5 mb-0">
+          <p className="mb-0">© 2025Meetza — All rights reserved</p>
+        </footer>
       </Container>
     </div>
   );

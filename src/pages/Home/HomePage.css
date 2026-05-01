@@ -933,3 +933,13 @@ a.home-video-card.home-video-card--link:focus-visible {
   align-items: center !important;
   text-align: center !important;
 }
+ 
+.home-footer {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .home-footer {
+  color: var(--text-muted);
+}
