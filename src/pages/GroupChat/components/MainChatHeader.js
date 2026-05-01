@@ -68,7 +68,7 @@ export default function MainChatHeader({
         )
       )}
       <div 
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, justifySelf: 'flex-start' }}
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, justifySelf: 'flex-start', minWidth: 0 }}
       >
         <h3 
           onClick={groupId && onGroupNameClick ? onGroupNameClick : undefined}
