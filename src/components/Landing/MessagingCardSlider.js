@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Lottie from 'lottie-react';
 import chatAnimation from '../../lottie/Chat.json';
 import bookAppointmentAnimation from '../../lottie/BookAppointmentAnimation.json';
@@ -7,6 +7,75 @@ import videoConferencingGIF from '../../lottie/VideoConferencingGIF.json';
 import contentManager from '../../lottie/ContentManager.json';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './MessagingCardSlider.css';
+
+/**
+ * Validator to ensure the animation data is a valid Lottie object.
+ * Checks for the presence of 'layers', which is mandatory for rendering.
+ */
+const isValidAnimation = (data) => {
+    return data && 
+           typeof data === 'object' && 
+           Array.isArray(data.layers) &&
+           data.layers.length > 0;
+};
+
+/**
+ * SafeLottie: A production-safe wrapper for Lottie animations.
+ * Prevents NaN transform errors by:
+ * 1. Validating animation data structure before rendering.
+ * 2. Deep cloning animation data to avoid cross-instance pollution.
+ * 3. Delaying rendering until mount to ensure stable container dimensions.
+ */
+const SafeLottie = ({ animationData, ...props }) => {
+    const [isMounted, setIsMounted] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    
+    useEffect(() => {
+        setIsMounted(true);
+        // Wait for next frame to ensure layout has stabilized
+        const raf = requestAnimationFrame(() => {
+            setIsReady(true);
+        });
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    // Deep clone the animation data to ensure each instance in the slider
+    // has its own unique object reference, preventing shared-state NaN issues.
+    const safeData = useMemo(() => {
+        if (!isValidAnimation(animationData)) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(JSON.stringify(animationData));
+        } catch (e) {
+            return null;
+        }
+    }, [animationData]);
+
+    if (!isMounted || !isReady || !safeData) return null;
+
+    return (
+        <Lottie
+            animationData={safeData}
+            renderer="canvas"
+            rendererSettings={{
+                preserveAspectRatio: 'xMidYMid slice',
+                clearCanvas: true,
+                progressiveLoad: false,
+                hideOnTransparent: true,
+            }}
+            style={{
+                width: "100%",
+                height: "100%",
+                minHeight: "120px",
+                transform: "none", // Prevent parent transform inheritance issues
+                ...props.style
+            }}
+            {...props}
+        />
+    );
+};
 
 export default function MessagingCardSlider() {
     const [slidePosition, setSlidePosition] = useState(0);
@@ -65,7 +134,9 @@ export default function MessagingCardSlider() {
     const halfCardOffset = cardWidth / 2;
     const totalCards = cards.length;
 
-    const duplicatedCards = [...cards, ...cards, ...cards];
+    // Diagnostic logging to identify potentially corrupt JSON files
+
+    const duplicatedCards = useMemo(() => [...cards, ...cards, ...cards], [cards]);
     const startIndex = totalCards;
 
     const actualPosition = startIndex + slidePosition;
@@ -164,8 +235,8 @@ export default function MessagingCardSlider() {
                                         padding: isMobile ? '0 10px' : '0 15px',
                                         boxSizing: 'border-box',
                                         minWidth: '0',
-                                        transform: `translateY(${offsetY}px)`,
-                                        transition: isTransitioning ? 'transform 0.5s ease-in-out' : 'none',
+                                        marginTop: `${offsetY}px`,
+                                        transition: isTransitioning ? 'margin-top 0.5s ease-in-out' : 'none',
                                         zIndex: Math.abs(cardPosition) <= (isMobile ? 1 : 2) ? (isMobile ? 10 - Math.abs(cardPosition) : 10 - Math.abs(cardPosition)) : 1
                                     }}>
                                         <div style={{
@@ -188,17 +259,18 @@ export default function MessagingCardSlider() {
                                                 flex: '1 1 auto'
                                             }}>
                                                 {card.lottie ? (
-                                                    <Lottie
-                                                        animationData={card.lottie}
-                                                        loop
-                                                        autoplay
-                                                        style={{
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            objectFit: 'cover',
-                                                            display: 'block'
-                                                        }}
-                                                    />
+                                                    <div style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        position: 'relative',
+                                                        transform: 'none' // Critical: isolate from parent slider transforms
+                                                    }}>
+                                                        <SafeLottie
+                                                            animationData={card.lottie}
+                                                            loop={true}
+                                                            style={{ width: "100%", height: "100%" }}
+                                                        />
+                                                    </div>
                                                 ) : (
                                                     <img
                                                         src={card.image}

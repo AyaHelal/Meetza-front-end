@@ -1,8 +1,3 @@
-/**
- * lottie-web's getMarkerData loops markers and reads marker.payload without
- * checking marker (sparse / invalid marker entries → "Cannot read properties of undefined (reading 'payload')").
- * Patch once at startup before any Lottie instance loads.
- */
 import lottie from "lottie-web";
 
 const MINIMAL_LOTTIE = {
