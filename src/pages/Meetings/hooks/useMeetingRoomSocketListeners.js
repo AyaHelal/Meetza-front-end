@@ -516,6 +516,36 @@ export function useMeetingRoomSocketListeners({
     socket.on("meetingReaction", onReaction);
     socket.on("reactionReceived", onReaction);
 
+    // Participant info update (photo / name changed while in meeting)
+    const onParticipantInfoUpdated = (data) => {
+      const mid = data?.meetingId;
+      const socketId = data?.socketId;
+      if (!mid || mid !== meetingIdRef.current) return;
+
+      // Update peerMetaRef so new peers get the latest info
+      if (socketId && peerMetaRef.current.has(socketId)) {
+        const existing = peerMetaRef.current.get(socketId);
+        peerMetaRef.current.set(socketId, {
+          ...existing,
+          ...(data.member_photo !== undefined && { member_photo: data.member_photo }),
+          ...(data.member_name !== undefined && { member_name: data.member_name }),
+        });
+      }
+
+      // Update the participants list in MeetingContext
+      setParticipants((prev) =>
+        prev.map((p) => {
+          if ((p?.socketId || p?.id) !== socketId) return p;
+          return {
+            ...p,
+            ...(data.member_photo !== undefined && { member_photo: data.member_photo }),
+            ...(data.member_name !== undefined && { member_name: data.member_name }),
+          };
+        })
+      );
+    };
+    socket.on(meetingSocketService.MEETING_EVENTS.PARTICIPANT_INFO_UPDATED, onParticipantInfoUpdated);
+
     const onScreenShareStarted = () => {
       // Screen entry is added when we receive the track in ontrack; no need to update state here
     };
@@ -544,6 +574,7 @@ export function useMeetingRoomSocketListeners({
       socket.off("reaction", onReaction);
       socket.off("meetingReaction", onReaction);
       socket.off("reactionReceived", onReaction);
+      socket.off(meetingSocketService.MEETING_EVENTS.PARTICIPANT_INFO_UPDATED, onParticipantInfoUpdated);
       socket.off("screenShareStarted", onScreenShareStarted);
       socket.off("screenShareStopped", onScreenShareStopped);
     };

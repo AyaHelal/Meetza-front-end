@@ -2,6 +2,8 @@ import React, { useState, useRef, useContext, useEffect } from 'react';
 import { Plus } from '@phosphor-icons/react';
 import axiosInstance from '../../API/axiosInstance';
 import { AuthContext } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
+import { updateParticipantInfo } from '../../pages/Meetings/services/meetingSocketService';
 import { smartToast } from '../../API/toastManager';
 import './UserPhoto.css';
 
@@ -22,6 +24,7 @@ const UserPhoto = ({
   allowUpload = true,
 }) => {
   const { user: authUser, loginUser, initializing } = useContext(AuthContext);
+  const { socket, isConnected } = useSocket();
   const [isUploading, setIsUploading] = useState(false);
   const [photoKey, setPhotoKey] = useState(Date.now());
   const [localPhotoUrl, setLocalPhotoUrl] = useState(null);
@@ -190,6 +193,20 @@ const UserPhoto = ({
         const rememberMe = localStorage.getItem('remember') === 'true';
 
         loginUser(updatedUser, token, rememberMe);
+
+        // If the user is currently in a meeting, broadcast the photo change to all peers
+        try {
+          const activeMeetingId = sessionStorage.getItem('activeMeetingId');
+          if (activeMeetingId && socket && isConnected) {
+            updateParticipantInfo(socket, activeMeetingId, {
+              member_photo: finalPhotoUrl,
+              member_name: updatedUser.name || updatedUser.full_name || updatedUser.username || '',
+            });
+          }
+        } catch (e) {
+          // ignore — socket broadcast is best-effort
+        }
+
         if (
           tempPreviewUrl &&
           typeof finalPhotoUrl === "string" &&

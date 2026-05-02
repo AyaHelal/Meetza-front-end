@@ -32,6 +32,10 @@ export const MEETING_EVENTS = {
   PARTICIPANT_MUTED_BY_ADMIN: "participantMutedByAdmin",
   /** Server → target only: apply forced mic/cam state */
   ADMIN_MUTE_YOU: "adminMuteYou",
+  /** Client → server: broadcast updated photo/name to all peers in this meeting */
+  UPDATE_PARTICIPANT_INFO: "updateParticipantInfo",
+  /** Server → room: a participant's photo or name was updated */
+  PARTICIPANT_INFO_UPDATED: "participantInfoUpdated",
 };
 
 export function joinMeeting(socket, meetingId, callback) {
@@ -84,6 +88,16 @@ export function meetingEnded(socket, meetingId, callback) {
 
 export function sendMeetingChatMessage(socket, payload, callback) {
   return socketService.emit(socket, MEETING_EVENTS.MEETING_CHAT_MESSAGE, payload, callback);
+}
+
+/**
+ * Broadcast updated participant info (photo, name) to all peers in the meeting.
+ * @param {object} socket
+ * @param {string} meetingId
+ * @param {{ member_photo?: string, member_name?: string }} info
+ */
+export function updateParticipantInfo(socket, meetingId, info) {
+  return socketService.emit(socket, MEETING_EVENTS.UPDATE_PARTICIPANT_INFO, { meetingId, ...info });
 }
 
 export function onMeetingEvent(socket, eventName, handler) {
