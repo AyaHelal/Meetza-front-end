@@ -280,8 +280,10 @@ const AppRoutes = () => {
       <Route path="/not-found" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/not-found" replace />} />
     </Routes>
-    {/* Global Robot Orb and Chatbot */}
-    <ChatbotContainer />
+    {/* Global Robot Orb and Chatbot - Hidden on landing and auth pages */}
+    {!(location.pathname === "/" || location.pathname === "/landing" || location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/verify-email" || location.pathname === "/forgot-password" || location.pathname === "/verify-reset-code" || location.pathname === "/reset-password") && (
+      <ChatbotContainer />
+    )}
     </>
   );
 };
