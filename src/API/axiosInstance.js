@@ -4,7 +4,7 @@ import axios from "axios";
 
 // Use environment variable or default to ngrok URL
 
-const API_BASE_URL = (process.env.REACT_APP_API_URL || " http://localhost:4000/api").trim();
+const API_BASE_URL = (process.env.REACT_APP_API_URL || "http://localhost:4000/api").trim();
 
 export { API_BASE_URL };
 

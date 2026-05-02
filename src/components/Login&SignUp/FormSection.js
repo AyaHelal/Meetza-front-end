@@ -150,7 +150,7 @@ const FormSection = ({
 
             transition={{ duration: 0.6 }}
 
-            className="w-100 d-flex flex-column justify-content-center ff"
+            className="w-100 d-flex flex-column justify-content-start ff"
 
             style={{
 
@@ -158,7 +158,11 @@ const FormSection = ({
 
                 minHeight: '100vh',
 
-                overflowY: 'auto'
+                overflowY: 'auto',
+
+                paddingTop: isMeetza ? '80px' : '40px',
+
+                paddingBottom: '40px'
 
             }}
 
