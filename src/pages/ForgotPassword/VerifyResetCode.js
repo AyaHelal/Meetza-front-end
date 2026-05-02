@@ -130,7 +130,7 @@ export default function VerifyResetCode() {
                                 showSystemName={!isMeetza}
                                 className={`d-flex flex-row align-items-center justify-content-center gap-2 ${isMeetza ? "meetza-standalone-logo" : ""}`}
                                 style={{
-                                    maxHeight: '60px',
+                                    maxHeight: isMeetza ? '36px' : '60px',
                                     objectFit: 'contain',
                                     margin: '0',
                                     padding: '0'

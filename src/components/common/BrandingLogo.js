@@ -12,7 +12,8 @@ const BrandingLogo = ({
 }) => {
   const { logoUrl, systemName, systemNameColor, loading } = useBranding();
 
-  if (loading) {
+  // Only show loading state if we don't have a logoUrl or systemName yet
+  if (loading && !logoUrl && systemName === 'Meetza') {
     return (
       <div className={`branding-logo-loading ${className}`} style={{ ...style, transform: 'none' }}>
         <img src={fallbackSrc} alt={alt} style={{ maxWidth: '100%', height: 'auto', transform: 'none' }} />

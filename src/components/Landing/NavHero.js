@@ -64,7 +64,7 @@ export default function HeroNav() {
                     <BrandingLogo 
                         showSystemName={!isMeetza}
                         className="d-flex flex-row align-items-center gap-2"
-                        style={{ objectFit: 'contain', maxHeight: isMeetza ? '25px' : '40px' }}
+                        style={{ objectFit: 'contain', maxHeight: isMeetza ? '30px' : '40px' }}
                         systemNameStyle={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}
                     />
                 </button>

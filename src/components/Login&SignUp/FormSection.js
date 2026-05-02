@@ -176,14 +176,17 @@ const FormSection = ({
 
                 }}>
 
-                    <div className="d-flex flex-column align-items-center">
+                    <div
+                        className="d-flex flex-column align-items-center"
+                        style={isMeetza ? { position: 'relative', top: activeTab === 'signin' ? '-67px' : '-45px' } : {}}
+                    >
                         <BrandingLogo
                             showSystemName={!isMeetza}
                             className={isMeetza ? "meetza-standalone-logo" : ""}
                             style={{
-                                width: activeTab === 'verification' ? '150px' : '200px',
+                                width: activeTab === 'verification' ? '150px' : (isMeetza ? '240px' : '200px'),
                                 height: 'auto',
-                                maxHeight: '86px',
+                                maxHeight: isMeetza ? '110px' : '86px',
                                 objectFit: 'contain',
                                 margin: '0 auto',
                                 display: 'flex',

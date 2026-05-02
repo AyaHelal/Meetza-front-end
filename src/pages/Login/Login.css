@@ -379,13 +379,12 @@
   }
 
   .logo-container .branding-logo img {
-    width: 10rem !important;
+    width: auto;
     height: auto;
     max-height: 320px;
     object-fit: contain;
     display: block;
     margin: 0 auto;
-
   }
 
   /* Adjust logo size for different screens */
@@ -653,7 +652,6 @@
   }
 
   .logo-container .branding-logo {
-    transform: scale(0);
     transform-origin: center center;
     margin-bottom: -10px !important;
   }
@@ -865,7 +863,7 @@
     }
 
     .meetza-standalone-logo img {
-      max-height: 47px !important;
+      max-height: 110px !important;
     }
 
     .logo-container .branding-logo img {

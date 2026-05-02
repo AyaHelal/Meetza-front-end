@@ -323,10 +323,12 @@ body.group-chat-active {
 }
 
 .chat-name {
-  font-size: 15px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
 }
 
 .chat-item.active .chat-name {
@@ -336,6 +338,8 @@ body.group-chat-active {
 .chat-date {
   font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chat-item.active .chat-date {
@@ -2661,6 +2665,8 @@ body.group-chat-active {
   .chat-date {
     font-size: 12px;
     color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
     margin-left: auto;
   }
 
