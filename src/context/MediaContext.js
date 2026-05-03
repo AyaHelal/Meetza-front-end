@@ -16,7 +16,7 @@ export const useMediaContext = () => {
 /**
  * MediaProvider manages persistent media streams (mic/camera) across the entire app.
  * This ensures mic/camera stay active even when navigating between pages.
- * 
+ *
  * Features:
  * - Persistent refs that survive component unmounts
  * - State management for audio/video muted state
@@ -70,13 +70,21 @@ export const MediaProvider = ({ children }) => {
     });
 
     // Mute meeting speaker (when outside meeting page) - only affects local playback
-    const [meetingSpeakerMuted, setMeetingSpeakerMutedState] = useState(false);
+    const [meetingSpeakerMuted, setMeetingSpeakerMutedState] = useState(() => {
+        try {
+            const v = sessionStorage.getItem("meetza_meetingSpeakerMuted");
+            return v !== null ? v === "true" : true;
+        } catch { return true; }
+    });
     /** Refs from MeetingRoom: { remoteVideoRefsMap, localParticipantAudioMutedRef, localParticipantVolumeRef } */
     const meetingMediaRefsRef = useRef(null);
 
     const setMeetingSpeakerMuted = useCallback((valueOrUpdater) => {
         setMeetingSpeakerMutedState((prev) => {
             const next = typeof valueOrUpdater === "function" ? valueOrUpdater(prev) : valueOrUpdater;
+            try {
+                sessionStorage.setItem("meetza_meetingSpeakerMuted", String(next));
+            } catch { }
             const refs = meetingMediaRefsRef.current;
             if (refs?.remoteVideoRefsMap?.current) {
                 try {
@@ -135,7 +143,7 @@ export const MediaProvider = ({ children }) => {
             }
         } else {
             setAudioMuted(newMuted);
-            
+
             // If stream exists but has NO audio tracks, we must fetch them
             if (stream.getAudioTracks().length === 0 && !newMuted) {
                 try {
@@ -205,13 +213,13 @@ export const MediaProvider = ({ children }) => {
                         });
                         const newAudioTracks = audioMedia.getAudioTracks();
                         newAudioTracks.forEach(t => t.enabled = true);
-                        
+
                         let currentStream = localStreamRef.current;
                         if (!currentStream) {
                             currentStream = webrtcService.createEmptyStream();
                             localStreamRef.current = currentStream;
                         }
-                        
+
                         newAudioTracks.forEach(t => currentStream.addTrack(t));
 
                         // Add to all peer connections

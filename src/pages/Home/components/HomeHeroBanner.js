@@ -14,7 +14,7 @@ function HomeHeroBanner({ searchTerm, onSearchChange }) {
         <div className="home-hero-lottie home-hero-lottie--right" aria-hidden="true">
           <Lottie animationData={heroAnimation} loop={true} className="home-hero-lottie-player" />
         </div>
- 
+
         <Card.ImgOverlay className="home-hero-inner text-white">
           <div className="home-hero-content text-center">
             <h1 className="home-hero-title mb-2">Hello, again Welcome back</h1>

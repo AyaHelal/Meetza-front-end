@@ -15,11 +15,14 @@ const MeetingsContent = () => (
   </div>
 );
 
-/** When an active meeting exists, AppLayout already wraps the route with MeetingProvider — avoid a second provider + second MeetingRoom (duplicate pre-join). */
+/**
+ * When an active meeting exists, AppLayout renders the single persistent MeetingRoom (visible on /meetings, hidden elsewhere).
+ * Outlet must not mount a second MeetingRoom — that remount used to drop remote peers/audio when returning to the meeting.
+ */
 const Meetings = () => {
   const meetingCtx = useContext(MeetingContext);
   if (meetingCtx != null) {
-    return <MeetingsContent />;
+    return null;
   }
   return (
     <MeetingProvider>

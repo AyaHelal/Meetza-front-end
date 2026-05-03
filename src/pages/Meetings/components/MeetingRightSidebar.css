@@ -32,11 +32,15 @@
 
 
 /* Scrollbars for localized sections - sidebar itself does not scroll */
-.video-description-scroll::-webkit-scrollbar,
-.participants-list::-webkit-scrollbar {
+.video-description-scroll::-webkit-scrollbar {
     width: 6px;
 }
-.video-description-scroll::-webkit-scrollbar-track,
+.participants-list::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for participants list */
+}
+.video-description-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
 .participants-list::-webkit-scrollbar-track {
     background: transparent;
 }
@@ -46,13 +50,6 @@
 }
 .video-description-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(255,255,255,0.5);
-}
-.participants-list::-webkit-scrollbar-thumb {
-    background: #d0d0d0;
-    border-radius: 3px;
-}
-.participants-list::-webkit-scrollbar-thumb:hover {
-    background: #b0b0b0;
 }
 
 /* Video Description Card - fixed height with scrollable content */
@@ -267,6 +264,8 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 
 .participant-item {

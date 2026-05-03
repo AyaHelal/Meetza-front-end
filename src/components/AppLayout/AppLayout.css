@@ -28,6 +28,16 @@
   margin-left: 0;
 }
 
+/* Wraps persistent meeting host + <Outlet /> so only one flex child is visible at a time */
+.app-layout-content-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* When Video Sessions section is in view (hash #video-sessions), hide left navbar so scroll has no navbar on the left */
 .app-layout--video-section .left-navbar {
   display: none !important;
@@ -373,7 +383,7 @@
 }
 
 .fixed-user-status .user-status.user-status-expanded {
-  min-width: 220px;
+  min-width: 380px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -400,6 +410,11 @@
 @media (max-width: 768px) {
   .fixed-user-status {
     display: none !important;
+  }
+
+  /* Room for fixed meeting mic/camera/speaker/return bar when away from /meetings */
+  .app-layout.app-layout--mobile-meeting-bar .app-layout-content-shell > .app-layout-content {
+    padding-bottom: 72px;
   }
 }
 

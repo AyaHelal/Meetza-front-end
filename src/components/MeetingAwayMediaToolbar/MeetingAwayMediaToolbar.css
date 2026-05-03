@@ -1,0 +1,90 @@
+/* Self-contained styles for mobile/sidebar toolbars (GroupChat.css may not be loaded on every route). */
+
+.ma-toolbar--mobileBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  background: var(--surface-color, #fff);
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+}
+
+.ma-toolbar--sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.ma-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-dark, #1f2937);
+  transition: color 0.2s, transform 0.15s;
+}
+
+.ma-toolbar-btn svg {
+  stroke: currentColor;
+  color: inherit;
+}
+
+.ma-toolbar-btn--mic.active svg,
+.ma-toolbar-btn--camera.active svg {
+  color: var(--secondary-color, #00c853);
+  stroke-width: 4;
+}
+
+.ma-toolbar-btn--speaker.active svg {
+  color: var(--secondary-color, #00c853);
+}
+
+.ma-toolbar-btn--return {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px !important;
+  background: var(--secondary-color, #00c853) !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.ma-toolbar-btn--return svg {
+  color: #fff !important;
+  flex-shrink: 0;
+}
+
+.ma-toolbar-btn--return .status-return-label {
+  white-space: nowrap;
+}
+
+.ma-toolbar--mobileBar .ma-toolbar-btn--return {
+  padding: 6px 10px !important;
+  font-size: 11px;
+}
+
+.ma-toolbar-btn:active {
+  transform: scale(0.97);
+}

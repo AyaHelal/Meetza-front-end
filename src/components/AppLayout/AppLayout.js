@@ -18,6 +18,7 @@ import { getGroups } from "../../pages/GroupChat/services/groupChatService";
 import LeftNavbar from "../shared/LeftNavbar/LeftNavbar";
 import * as meetingService from "../../pages/Meetings/services/meetingService";
 import UserStatus from "../../pages/GroupChat/components/UserStatus";
+import MeetingAwayMediaToolbar from "../MeetingAwayMediaToolbar/MeetingAwayMediaToolbar";
 import MobileHeader from "../MobileHeader/MobileHeader";
 import UserPhoto from "../UserPhoto/UserPhoto";
 import { AuthContext } from "../../context/AuthContext";
@@ -299,10 +300,21 @@ const AppLayout = () => {
   const isVideoSectionActive =
     location.pathname === "/messages" && location.hash === "#video-sessions";
 
+  const showMobileMeetingAwayBar =
+    isMobile &&
+    !!activeMeetingId &&
+    location.pathname !== "/meetings";
+
+  const onMeetingsPage =
+    location.pathname === "/meetings" || location.pathname.startsWith("/meetings/");
+  const hideOutletForActiveMeetingUi = !!activeMeetingId && onMeetingsPage;
+
   return (
     <MediaProvider>
       <div
-        className={`app-layout ${isVideoSectionActive ? "app-layout--video-section" : ""}`}
+        className={`app-layout ${isVideoSectionActive ? "app-layout--video-section" : ""} ${
+          showMobileMeetingAwayBar ? "app-layout--mobile-meeting-bar" : ""
+        }`.trim()}
       >
         <LeftNavbar
           activeNav={activeNav}
@@ -351,20 +363,23 @@ const AppLayout = () => {
                       allowUpload={false}
                     />
                   {activeMeetingId && location.pathname !== "/meetings" && (
-                    <button
-                      type="button"
-                      className="sidebar-return-to-meeting"
-                      onClick={() => {
-                        navigate("/meetings", {
-                          state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
-                        });
-                        setIsSidebarOpen(false);
-                      }}
-                      aria-label="Return to meeting"
-                    >
-                      <VideoCamera size={18} weight="fill" />
-                      <span>Return to meeting</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="sidebar-return-to-meeting"
+                        onClick={() => {
+                          navigate("/meetings", {
+                            state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
+                          });
+                          setIsSidebarOpen(false);
+                        }}
+                        aria-label="Return to meeting"
+                      >
+                        <VideoCamera size={18} weight="fill" />
+                        <span>Return to meeting</span>
+                      </button>
+                      <MeetingAwayMediaToolbar variant="sidebar" showSpeaker showReturn={false} />
+                    </>
                   )}
                 </div>
               </div>
@@ -397,12 +412,14 @@ const AppLayout = () => {
 
         {activeMeetingId ? (
           <MeetingProvider>
-            {/* One MeetingRoom: route /meetings renders it via <Outlet /> (Meetings.js). When away, keep a hidden copy so media/socket stay alive. */}
-            {location.pathname !== "/meetings" && (
+            {/* Single MeetingRoom for the whole active session: stays mounted when you leave /meetings (hidden) so peers/audio/video are not torn down on return. */}
+            <div className="app-layout-content-shell">
               <div
-                className="app-layout-content"
-                style={{ display: "none" }}
-                aria-hidden
+                className="app-layout-content app-layout-active-meeting"
+                style={{
+                  display: onMeetingsPage ? "flex" : "none",
+                }}
+                aria-hidden={!onMeetingsPage}
               >
                 <div className="meetings-container">
                   <div className="meetings-center">
@@ -412,14 +429,32 @@ const AppLayout = () => {
                   <MeetingRightSidebar />
                 </div>
               </div>
-            )}
-            <div className="app-layout-content">
-              <Outlet />
+              <div
+                className="app-layout-content"
+                style={{
+                  display: hideOutletForActiveMeetingUi ? "none" : "flex",
+                }}
+                aria-hidden={hideOutletForActiveMeetingUi}
+              >
+                <Outlet />
+              </div>
             </div>
             {!isMobile && (
               <div className="fixed-user-status">
                 <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
               </div>
+            )}
+            {showMobileMeetingAwayBar && (
+              <MeetingAwayMediaToolbar
+                variant="mobileBar"
+                showSpeaker
+                showReturn
+                onReturn={() => {
+                  navigate("/meetings", {
+                    state: { meetingId: activeMeetingId, groupId: activeGroupId || null },
+                  });
+                }}
+              />
             )}
           </MeetingProvider>
         ) : (
