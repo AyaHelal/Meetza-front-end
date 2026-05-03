@@ -72,8 +72,12 @@ const Login = () => {
         try {
             const response = await login(credentials);
 
-            if (response?.success && response?.data) {
-                const { user, token } = response.data;
+            // CRITICAL: Must check for token, exactly like meetza-admin
+            const actualData = response?.data || {};
+            const token = actualData?.token;
+            const user = actualData?.user;
+
+            if (response?.success && token) {
                 setShowCaptcha(false);
                 setCaptchaToken('');
                 setCaptchaRequiredByBackend(false);
@@ -99,33 +103,37 @@ const Login = () => {
 
                 setTimeout(() => navigate("/home"), 500);
             } else {
-                const msg = response?.message ?? "Login failed.";
+                // Failure case: handle security data even if status 200
+                const msg = response?.message ?? actualData?.message ?? "Login failed.";
                 setMessage({ text: msg, type: "error" });
-                if (response?.remaining !== undefined) setRemainingAttempts(response.remaining);
+                
+                if (actualData.requiresCaptcha || response.requiresCaptcha) {
+                    setCaptchaRequiredByBackend(true);
+                    setShowCaptcha(true);
+                }
+                if (actualData.remaining !== undefined) {
+                    setRemainingAttempts(actualData.remaining);
+                }
             }
         } catch (error) {
             const res = error.response;
             const data = res?.data || {};
             const msg = data?.message ?? data?.data?.message ?? error.message ?? "Login failed. Please try again.";
 
-            if (res?.status === 429 && data?.requiresCaptcha) {
+            const remaining = data?.remaining;
+            const needsCaptcha = data?.requiresCaptcha || (res?.status === 429);
+
+            if (remaining !== undefined) {
+                setRemainingAttempts(remaining);
+            }
+
+            if (needsCaptcha) {
                 setCaptchaRequiredByBackend(true);
                 setShowCaptcha(true);
                 setMessage({ text: msg, type: "error" });
             } else {
                 setMessage({ text: msg, type: "error" });
-                const isCaptchaError = res?.status === 400 || res?.status === 500;
-                const msgLower = (msg || "").toLowerCase();
-                if (isCaptchaError && (msgLower.includes("captcha") || msgLower.includes("recaptcha"))) {
-                    setCaptchaToken("");
-                    setShowCaptcha(true);
-                    setCaptchaRequiredByBackend(true);
-                    if (typeof window.grecaptcha?.reset === "function") {
-                        try { window.grecaptcha.reset(); } catch (e) { /* ignore */ }
-                    }
-                }
             }
-            if (data?.remaining !== undefined) setRemainingAttempts(data.remaining);
         } finally {
             setIsLoading(false);
         }
