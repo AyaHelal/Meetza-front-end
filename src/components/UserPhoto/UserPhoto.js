@@ -1,6 +1,6 @@
 import React, { useState, useRef, useContext, useEffect } from 'react';
 import { Plus } from '@phosphor-icons/react';
-import axiosInstance from '../../API/axiosInstance';
+import { updateUser, getUserById } from '../../services/userService';
 import { AuthContext } from '../../context/AuthContext';
 import { smartToast } from '../../API/toastManager';
 import './UserPhoto.css';
@@ -124,17 +124,12 @@ const UserPhoto = ({
       const formData = new FormData();
       formData.append('user_photo', file);
 
-      const response = await axiosInstance.patch(`/user/${userId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const { res: response, patchPayload: payload } = await updateUser(userId, formData);
 
       // Check if the upload was successful (status 200-299)
       const isSuccess = response.status >= 200 && response.status < 300;
       
-      if (response.data && isSuccess) {
-        const payload = response.data?.data ?? response.data;
+      if (response && isSuccess) {
         let photoUrl =
           payload?.user_photo ||
           payload?.photo ||
@@ -147,11 +142,7 @@ const UserPhoto = ({
 
         if (!photoUrl) {
           try {
-            const userResponse = await axiosInstance.get(`/user/${userId}`);
-            const fetchedUser =
-              userResponse.data?.data ??
-              userResponse.data?.user ??
-              userResponse.data;
+            const fetchedUser = await getUserById(userId);
             photoUrl =
               fetchedUser?.user_photo ||
               fetchedUser?.photo ||

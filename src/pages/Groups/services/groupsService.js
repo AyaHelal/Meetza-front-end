@@ -1,4 +1,5 @@
 import api from '../../../API/axiosInstance';
+import { getUserByEmail, getAdministrators } from '../../../services/userService';
 
 export function getGroups(params = {}) {
   const searchParams = new URLSearchParams();
@@ -14,6 +15,19 @@ export function getPositions() {
 
 export function deleteResource(contentId, resourceId) {
   return api.delete(`/group-contents/${contentId}/files/${resourceId}`);
+}
+
+export function deleteGroup(groupId) {
+  return api.delete(`/group/${groupId}`);
+}
+
+export function updateGroup(groupId, payload, isMultipart = false) {
+  if (isMultipart) {
+    return api.put(`/group/${groupId}`, payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+  return api.put(`/group/${groupId}`, payload);
 }
 
 export function addResource(contentId, file) {
@@ -32,9 +46,7 @@ export function addLinkResource(contentId, link) {
   });
 }
 
-export function getUserByEmail(email) {
-  return api.get(`/user/email/${encodeURIComponent(email)}`);
-}
+// User-related functions moved to userService.js
 
 /**
  * Create group — backend: `administrator_id` (primary) plus `administrator_ids[0]`, `[1]`, …
@@ -288,31 +300,13 @@ function mapRowsToAdministrators(rows) {
  * Primary: GET /administrator/ (all site administrators).
  * Also merges admins discovered from `groupsList` (e.g. co-admins) and falls back to GET /user/administrators if needed.
  */
-export async function getAdministrators(groupsFallback = []) {
-  let fromApi = [];
-  for (const path of ['/administrator/', '/administrator']) {
-    try {
-      const res = await api.get(path);
-      const raw = res?.data?.data ?? res?.data;
-      fromApi = mapRowsToAdministrators(Array.isArray(raw) ? raw : []);
-      if (fromApi.length > 0) break;
-    } catch (e) {
-      if (e.response?.status !== 404 && e.response?.status !== 403) {
-        console.warn(`getAdministrators: GET ${path}`, e);
-      }
-    }
-  }
-  if (fromApi.length === 0) {
-    try {
-      const res = await api.get('/user/administrators');
-      const raw = res?.data?.data ?? res?.data;
-      fromApi = mapRowsToAdministrators(Array.isArray(raw) ? raw : []);
-    } catch (e2) {
-      if (e2.response?.status !== 404 && e2.response?.status !== 403) {
-        console.warn('getAdministrators: GET /user/administrators', e2);
-      }
-    }
-  }
+/**
+ * Super-admin: administrators for "Group administrator" on create.
+ * Primary: GET /administrator/ (all site administrators).
+ * Also merges admins discovered from `groupsList` (e.g. co-admins) and falls back to GET /user/administrators if needed.
+ */
+export async function getAdministratorsWithFallback(groupsFallback = []) {
+  const fromApi = await getAdministrators();
   const fromGroups = collectUniqueAdminsFromGroups(groupsFallback);
   // Groups-derived rows often only have UUID fallbacks; `/administrator/` has real names — merge API last.
   return mergeAdministratorLists(fromGroups, fromApi);

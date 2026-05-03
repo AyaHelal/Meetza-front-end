@@ -3,3 +3,4 @@ export { usePositions, isAdminForPositions } from './usePositions';
 export { useGroupsData } from './useGroupsData';
 export { useCreateGroupForm } from './useCreateGroupForm';
 export { useGroupCard } from './useGroupCard';
+export { useGroupsActions } from './useGroupsActions';

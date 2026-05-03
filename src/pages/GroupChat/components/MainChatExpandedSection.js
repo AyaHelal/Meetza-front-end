@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { categorizeResources } from "./utils";
-import { getUserByEmail, joinGroup, deleteMembership, getGroupMemberships, deleteResource, addResource, addLinkResource, addGroupAdmin, removeGroupAdminByEmail } from "../../Groups/services/groupsService";
+import { getUserByEmail } from "../../../services/userService";
+import { joinGroup, deleteMembership, getGroupMemberships, deleteResource, addResource, addLinkResource, addGroupAdmin, removeGroupAdminByEmail } from "../../Groups/services/groupsService";
 import { smartToast } from "../../../API/toastManager";
 import {
   buildPendingResourceUpload,

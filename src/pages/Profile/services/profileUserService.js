@@ -1,4 +1,5 @@
 import api from "../../../API/axiosInstance";
+export { getUserById as getUser, updateUser as patchUser } from "../../../services/userService";
 
 function pickUserFromResponse(res) {
   const root = res?.data;
@@ -6,34 +7,7 @@ function pickUserFromResponse(res) {
   return payload && typeof payload === "object" ? payload : null;
 }
 
-/**
- * PATCH /user/:id — partial JSON update (name, etc.). Photo uploads use multipart in {@link UserPhoto}.
- */
-export async function patchUser(userId, body) {
-  if (userId == null || String(userId).trim() === "") {
-    throw new Error("Missing user id");
-  }
-  const res = await api.patch(`/user/${userId}`, body);
-  return { res, patchPayload: pickUserFromResponse(res) };
-}
-
-/**
- * GET /user/:id — full user (often includes position_id when login payload is minimal).
- */
-export async function getUser(userId) {
-  if (userId == null || String(userId).trim() === "") {
-    throw new Error("Missing user id");
-  }
-  const id = String(userId).trim();
-  let res;
-  try {
-    res = await api.get(`/user/${id}`);
-  } catch (err) {
-    if (err?.response?.status !== 404) throw err;
-    res = await api.get(`/user/${id}/`);
-  }
-  return pickUserFromResponse(res);
-}
+// User-related functions moved to userService.js
 
 function looksLikePositionRecord(o) {
   if (!o || typeof o !== "object" || Array.isArray(o)) return false;
