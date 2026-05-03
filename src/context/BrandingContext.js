@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../API/axiosInstance';
+import api from '../API/axiosInstance';
 
 export const BrandingContext = createContext();
 
@@ -37,13 +36,7 @@ export const BrandingProvider = ({ children }) => {
 
     const fetchBranding = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            const headers = {};
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;
-            }
-
-            const res = await axios.get(`${API_BASE_URL}/companies/id`, { headers });
+            const res = await api.get(`/companies/id`);
             const data = res.data?.data || res.data;
             const settings = data?.settings || {};
             
