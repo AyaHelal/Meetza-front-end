@@ -5,7 +5,7 @@ import MainChatHeader from "./MainChatHeader";
 import MainChatExpandedSection from "./MainChatExpandedSection";
 import MainChatMessageList from "./MainChatMessageList";
 import MainChatPhotoModal from "./MainChatPhotoModal";
-import { deleteMessage, updateMessage } from "../../../API/auth";
+import { deleteMessage, updateMessage } from "../../../services/authService";
 import { formatMessages } from "../utils/mainChatMessageUtils";
 import { reactToMessage } from "../services/groupChatService";
 import {
