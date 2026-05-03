@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
 import { SignUpLayout } from '../../components/Login&SignUp/SignUpLayout';
 import FormSection from '../../components/Login&SignUp/FormSection';
-import { signup } from "../../API/auth.js";
+import { signup } from "../../services/authService";
 import { User, Password } from '@phosphor-icons/react';
 import { Button, Spinner } from 'react-bootstrap';
 import EmailField from '../../components/FormFields/EmailField';

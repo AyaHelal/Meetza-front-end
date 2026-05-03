@@ -5,7 +5,7 @@ import api from "../../API/axiosInstance";
 import BrandingLogo from "../../components/common/BrandingLogo";
 import { useBranding } from "../../context/BrandingContext";
 import PasswordField from "../../components/FormFields/PasswordField";
-import { resetPassword } from "../../API/auth";
+import { resetPassword } from "../../services/authService";
 import "../Login/Login.css";
 import "./ForgotPassword.css";
 

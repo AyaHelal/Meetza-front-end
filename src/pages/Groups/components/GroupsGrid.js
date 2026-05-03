@@ -1,35 +1,29 @@
 import React from 'react';
 import { PencilSimpleLine as PencilSimpleLineIcon, Trash as TrashIcon } from '@phosphor-icons/react';
-
-function normalizePhotoSrc(v) {
-  if (v == null) return null;
-  if (typeof v !== "string") return null;
-  const t = v.trim();
-  return t ? t : null;
-}
+import { useGroupCard } from '../hooks';
 
 function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin, onLeave, onEdit, onDelete, onCardClick }) {
-  const [hoverEdit, setHoverEdit] = React.useState(false);
-  const [hoverDelete, setHoverDelete] = React.useState(false);
-  const [imgOk, setImgOk] = React.useState(true);
-  const groupId = group.group_id || group.id;
-  const name = group.name || group.title || group.group_name || group.content_name;
-  const photo = normalizePhotoSrc(group.group_photo || group.photo);
-  const fallbackPhoto = "/assets/group-standard.png";
-  const instructor = group.admin?.name || group.admin_name || 'Unknown';
-  const isJoined = groupId && joinedGroups.includes(groupId);
-  const isMemberView = userRole === 'Member';
-  const showInstructorLine = isMemberView || isSuperAdmin;
+  const {
+    groupId,
+    name,
+    photo,
+    instructor,
+    description,
+    isJoined,
+    isMemberView,
+    showInstructorLine,
+    imgOk,
+    setImgOk,
+    handleCardClick,
+  } = useGroupCard({
+    group,
+    userRole,
+    isSuperAdmin,
+    joinedGroups,
+    onCardClick,
+  });
 
-  const handleCardClick = () => {
-    if (!onCardClick) return;
-    if (isMemberView) {
-      if (isJoined) onCardClick(groupId);
-    } else {
-      // Administrator or SuperAdmin
-      onCardClick(groupId);
-    }
-  };
+  const fallbackPhoto = "/assets/group-standard.png";
 
   return (
     <div
@@ -53,7 +47,7 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
         )}
       </div>
       <div className="group-card-body d-flex flex-column">
-        <div className="d-flex justify-content-between align-items-start mb-2">
+        <div className="d-flex justify-content-between align-items-start mb-0">
           <div
             className={`group-card-title mb-0 ${isMemberView ? 'group-card-title--member' : ''}`}
             style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '8px' }}
@@ -62,8 +56,14 @@ function GroupCard({ group, index, userRole, isSuperAdmin, joinedGroups, onJoin,
           </div>
         </div>
 
+        {description && (
+          <div className="group-card-description">
+            {description}
+          </div>
+        )}
+
         {(isMemberView || showInstructorLine) && (
-          <div className="group-card-instructor mb-3">{`Dr ${instructor}`}</div>
+          <div className="group-card-instructor">{`Dr ${instructor}`}</div>
         )}
 
         <div className="d-flex mt-auto align-items-center gap-2 w-100 justify-content-center" style={{ minHeight: '36px' }}>

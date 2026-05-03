@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { verifyEmail, resendResetCode } from "../../API/auth";
+import { verifyEmail, resendResetCode } from "../../services/authService";
 import "../Login/Login.css";
 import { useNavigate, Link } from "react-router-dom";
 import BrandingLogo from "../../components/common/BrandingLogo";

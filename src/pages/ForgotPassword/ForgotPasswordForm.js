@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { forgotPassword } from "../../API/auth";
+import { forgotPassword } from "../../services/authService";
 import FormInput from "../../components/FormFields/FormInput";
 import BrandingLogo from "../../components/common/BrandingLogo";
 import { useBranding } from "../../context/BrandingContext";

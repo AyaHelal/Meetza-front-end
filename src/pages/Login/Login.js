@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../../components/Login&SignUp/LayoutWrapper';
 import { LoginLayout } from '../../components/Login&SignUp/LoginLayouts/LoginLayouts.js';
-import { login } from "../../API/auth.js";
+import { login } from "../../services/authService";
 import { useBranding } from '../../context/BrandingContext';
 import './Login.css';
 import { AuthContext } from "../../context/AuthContext";

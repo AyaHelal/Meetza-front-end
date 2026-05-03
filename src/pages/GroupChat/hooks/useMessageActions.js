@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { smartToast } from "../../../API/toastManager";
-import { deleteMessage, updateMessage } from "../../../API/auth";
+import { deleteMessage, updateMessage } from "../../../services/authService";
 import { reactToMessage } from "../services/groupChatService";
 import { formatMessages } from "../utils/mainChatMessageUtils";
 import {

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../API/axiosInstance";
 import BrandingLogo from "../../components/common/BrandingLogo";
 import { useBranding } from "../../context/BrandingContext";
-import { verifyResetCode, resendResetCode } from "../../API/auth";
+import { verifyResetCode, resendResetCode } from "../../services/authService";
 import "../Login/Login.css";
 import "./ForgotPassword.css";
 
