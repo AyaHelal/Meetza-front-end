@@ -81,7 +81,6 @@ const FormSection = ({
         enableDesktopMeetzaBehavior &&
         (activeTab === 'signup' || allowInnerScroll);
 
-    /** Sign-up: لا نعيد scrollTop لو 0 لتفادي قفزة لمساحة فارغة فوق اللوجو؛ اللوجـين يضل يثبت من فوق وقت الإيرور */
     useLayoutEffect(() => {
         if (!logoStickyMeetza) return;
         if (activeTab === 'signup') return;

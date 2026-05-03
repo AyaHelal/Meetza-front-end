@@ -23,7 +23,7 @@ const BrandingLogo = ({
 
   return (
     <div className={`branding-logo ${className}`} style={{ ...style, transform: 'none' }}>
-      {logoUrl ? (
+      {(logoUrl && systemName?.toLowerCase() !== 'meetza') ? (
         <img 
           src={logoUrl} 
           alt={alt} 

@@ -9,16 +9,14 @@ const MobileHeader = ({
   unreadNotificationCount = 0
 }) => {
   const { systemName, logoUrl } = useBranding();
-  // Debug: Log count changes on mobile
-  React.useEffect(() => {
-  }, [unreadNotificationCount]);
-
+  const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+  
   return (
     <div className="mobile-header">
       <div className="logo-section">
         <div className="logo-icon">
           <img
-            src={logoUrl || "/assets/ss.png"}
+            src={(logoUrl && !isMeetza) ? logoUrl : "/assets/meetza_logo_1024.png"}
             alt={systemName}
             style={{ objectFit: 'contain' }}
           />

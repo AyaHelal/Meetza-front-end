@@ -58,7 +58,7 @@ const LeftNavbar = ({
         <div className="nav-logo">
           <div className="logo-icon">
             <img
-              src={logoUrl || "/assets/meetza_logo_1024.png"}
+              src={(logoUrl && !isMeetza) ? logoUrl : "/assets/meetza_logo_1024.png"}
               alt={systemName}
               style={{ 
                 width: isMeetza ? "80px" : "50px", 
