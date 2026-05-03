@@ -464,8 +464,31 @@
     overflow: hidden;
   }
 
+  .p-8 {
+    padding-top: 80px !important;
+  }
+
+  .meetza-logo-wrapper {
+    margin-top: 60px !important;
+    margin-bottom: -50px !important;
+  }
+
+  .company-logo-wrapper {
+    margin-top: 0 !important;
+    margin-bottom: -10px !important;
+  }
+
+  .logo-container .branding-logo img {
+    max-height: 90px !important;
+    width: auto !important;
+  }
+
   /* For tall screens */
   @media (min-height: 1024px) {
+    .p-8 {
+      padding-top: 150px !important;
+    }
+
     .d-flex.flex-column.justify-content-center {
       min-height: 100vh !important;
       margin: 0 !important;
@@ -494,6 +517,12 @@
     .col-lg-6 {
       height: 100vh !important;
     }
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1499px) {
+  .welocome-meetza {
+    margin-top: 30% !important;
   }
 }
 

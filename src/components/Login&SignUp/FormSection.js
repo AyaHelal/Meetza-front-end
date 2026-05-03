@@ -74,7 +74,7 @@ const FormSection = ({
         !isResponsiveView;
     const meetzaRestrictInnerScroll =
         enableDesktopMeetzaBehavior &&
-        activeTab === 'signin' &&
+        (activeTab === 'signin' || activeTab === 'signup') &&
         !allowInnerScroll;
 
     const logoStickyMeetza =
@@ -211,7 +211,7 @@ const FormSection = ({
                             : undefined
                     }
                 >
-                    <div className="logo-container" style={{ margin: '0 auto', width: '100%', textAlign: 'center' }}>
+                    <div className={`logo-container ${isMeetza ? 'meetza-logo-wrapper' : 'company-logo-wrapper'}`} style={{ margin: '0 auto', width: '100%', textAlign: 'center' }}>
                         <div
                             className="d-flex flex-column align-items-center"
                             style={
@@ -226,7 +226,7 @@ const FormSection = ({
                                                     ? '-22px'
                                                     : '-45px',
                                     }
-                                    : {}
+                                    : { position: 'relative', marginTop: isResponsiveView ? '0' : '-30px', marginBottom: isResponsiveView ? '0' : '-10px' }
                             }
                         >
                             <BrandingLogo
@@ -260,7 +260,7 @@ const FormSection = ({
 
                 {activeTab !== 'verification' && (
                     <>
-                        <h1 className="h2 fw-semibold mb-2 font-size-lg" style={{ marginBottom: '0.25rem', marginTop: '10%', fontSize: '1.75rem' }}>Welcome Back</h1>
+                        <h1 className="h2 fw-semibold mb-2 font-size-lg welocome-meetza" style={{ marginBottom: '0.25rem', marginTop: '10%', fontSize: '1.75rem' }}>Welcome Back</h1>
                         <p className="text-muted p-font-size-lg" style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
                             {formData?.role ? `Please enter your details as a ${formData.role}` : 'Please enter your details'}
                         </p>
