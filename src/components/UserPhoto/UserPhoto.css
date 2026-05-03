@@ -18,11 +18,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e0e0e0;
+  background: var(--border-color);
 }
 
 .user-photo-sidebar .user-photo-avatar {
-  background: #1976d2; /* Blue background for sidebar variant */
+  background: var(--primary-color); /* Blue background for sidebar variant */
 }
 
 .user-photo-small .user-photo-avatar {
@@ -130,7 +130,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -176,7 +176,7 @@
   width: 28px;
   height: 28px;
   opacity: 1; /* Always visible in sidebar */
-  background: #1976d2;
+  background: var(--primary-color);
 }
 
 .user-photo-status .user-photo-overlay {
@@ -229,7 +229,7 @@
 .user-photo-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-dark);
   text-align: center;
 }
 
@@ -237,4 +237,7 @@
   font-size: 1rem;
   font-weight: 600;
 }
+
+
+
 

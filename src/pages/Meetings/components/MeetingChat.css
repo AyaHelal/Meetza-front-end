@@ -1,0 +1,249 @@
+.meeting-chat {
+  flex-shrink: 0;
+  position: relative;
+  margin-top: -36px;
+  padding: 36px 16px 0 10px;
+  background: #fff;
+  z-index: 1;
+  height: 174px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── DARK THEME OVERRIDES ── */
+:root[data-theme="dark"] .meeting-chat {
+  background: var(--bg-alt) !important;
+}
+:root[data-theme="dark"] .meeting-chat-title,
+:root[data-theme="dark"] .meeting-chat-message-sender,
+:root[data-theme="dark"] .meeting-chat-message-text {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .meeting-chat-message-content {
+  background: var(--bg-color) !important;
+}
+
+
+.meeting-chat-input-row {
+  display: none;
+}
+
+.meeting-chat-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000;
+  margin: 12px 0 16px 0;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.meeting-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meeting-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.meeting-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.meeting-chat-messages::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.meeting-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+.meeting-chat-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.meeting-chat-message {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 8px 0;
+  word-wrap: break-word;
+  align-items: flex-start;
+}
+
+.meeting-chat-message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.meeting-chat-message-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+.meeting-chat-message-avatar-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.meeting-chat-message-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meeting-chat-message-sender {
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 2px;
+}
+
+.meeting-chat-message-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+}
+
+
+@media (max-width: 768px) {
+  .meeting-chat {
+    margin-top: 0;
+    padding: 16px 16px 14px;
+    height: auto;
+    min-height: 200px;
+    max-height: min(42vh, 360px);
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(148, 197, 246, 0.35);
+    background: #fff;
+  }
+
+  .meeting-chat-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f2744;
+    margin: 0 0 12px 0;
+    padding: 0 4px;
+  }
+
+  .meeting-chat-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .meeting-chat-field {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: #eef3f8;
+    border-radius: 22px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #0f2744;
+    outline: none;
+  }
+
+  .meeting-chat-field::placeholder {
+    color: #94a3b8;
+  }
+
+  .meeting-chat-send {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--secondary-color);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .meeting-chat-send:hover:not(:disabled) {
+    background: #00c278;
+  }
+
+  .meeting-chat-send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .meeting-chat-message {
+    max-width: 100%;
+    padding: 4px 0;
+    align-items: flex-start;
+  }
+
+  .meeting-chat-message-content {
+    background: #e2edf8;
+    border-radius: 14px;
+    padding: 10px 12px;
+  }
+
+  .meeting-chat-message-avatar {
+    background: #3b82c4;
+  }
+
+  .meeting-chat-message-sender {
+    color: #0f2744;
+  }
+
+  .meeting-chat-message-text {
+    color: #334155;
+  }
+
+  .meeting-chat-messages {
+    padding: 0 4px;
+  }
+}
+
+
+
+

@@ -16,7 +16,10 @@ const UserPhoto = ({
   showName = false, 
   className = '',
   onClick,
-  variant = 'default' // 'default', 'sidebar', 'status'
+  variant = 'default', // 'default', 'sidebar', 'status'
+  /** When set, the hidden file input gets this `id` so a parent can call `document.getElementById(id)?.click()`. */
+  fileInputId,
+  allowUpload = true,
 }) => {
   const { user: authUser, loginUser, initializing } = useContext(AuthContext);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,7 +71,7 @@ const UserPhoto = ({
   const handlePhotoClick = () => {
     if (onClick) {
       onClick();
-    } else {
+    } else if (allowUpload) {
       fileInputRef.current?.click();
     }
   };
@@ -99,12 +102,22 @@ const UserPhoto = ({
     setLocalPhotoUrl(tempPreviewUrl);
 
     try {
-      // Store in sessionStorage for persistence across reloads
+      // Optional: cache small thumbnails in sessionStorage only (avoid QuotaExceededError)
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result;
-        sessionStorage.setItem(`userPhoto_${userId}`, base64String);
-        sessionStorage.setItem(`userPhotoTimestamp_${userId}`, Date.now().toString());
+        const maxStoredSize = 200 * 1024; // 200KB - sessionStorage is limited (~5MB total)
+        if (typeof base64String === 'string' && base64String.length <= maxStoredSize) {
+          try {
+            sessionStorage.setItem(`userPhoto_${userId}`, base64String);
+            sessionStorage.setItem(`userPhotoTimestamp_${userId}`, Date.now().toString());
+          } catch (err) {
+            if (err?.name === 'QuotaExceededError') {
+              sessionStorage.removeItem(`userPhoto_${userId}`);
+              sessionStorage.removeItem(`userPhotoTimestamp_${userId}`);
+            }
+          }
+        }
       };
       reader.readAsDataURL(file);
 
@@ -121,64 +134,70 @@ const UserPhoto = ({
       const isSuccess = response.status >= 200 && response.status < 300;
       
       if (response.data && isSuccess) {
-        let photoUrl = response.data.user_photo ||
-          response.data.photo ||
-          response.data.data?.user_photo ||
-          response.data.data?.photo ||
-          response.data.user?.user_photo ||
-          response.data.user?.photo ||
-          response.data.profile_photo ||
-          response.data.avatar;
+        const payload = response.data?.data ?? response.data;
+        let photoUrl =
+          payload?.user_photo ||
+          payload?.photo ||
+          response.data?.user_photo ||
+          response.data?.photo ||
+          response.data?.user?.user_photo ||
+          response.data?.user?.photo ||
+          response.data?.profile_photo ||
+          response.data?.avatar;
 
-        // If we can't find the photo URL in the response, check existing photo or try to fetch updated user
         if (!photoUrl) {
-          const existingPhoto = user?.user_photo || user?.photo || authUser?.user_photo || authUser?.photo;
-          if (existingPhoto) {
-            photoUrl = existingPhoto;
-          } else {
-            // Upload was successful but no URL in response - try to fetch updated user data
-            try {
-              console.log('Upload successful but no photo URL in response. Fetching updated user data...');
-              const userResponse = await axiosInstance.get(`/user/${userId}`);
-              const fetchedUser = userResponse.data?.user || userResponse.data?.data || userResponse.data;
-              
-              photoUrl = fetchedUser?.user_photo || 
-                        fetchedUser?.photo || 
-                        fetchedUser?.profile_photo || 
-                        fetchedUser?.avatar;
-              
-              if (photoUrl) {
-                console.log('Successfully fetched photo URL from updated user data');
-              } else {
-                // Still no URL, but upload was successful - keep local preview
-                console.log('Photo uploaded successfully but URL not available yet. Keeping local preview.');
-                // Don't show error - upload was successful, photo will be available on refresh
-              }
-            } catch (fetchError) {
-              console.log('Could not fetch updated user data, but upload was successful:', fetchError);
-              // Don't show error - upload was successful
-            }
+          try {
+            const userResponse = await axiosInstance.get(`/user/${userId}`);
+            const fetchedUser =
+              userResponse.data?.data ??
+              userResponse.data?.user ??
+              userResponse.data;
+            photoUrl =
+              fetchedUser?.user_photo ||
+              fetchedUser?.photo ||
+              fetchedUser?.profile_photo ||
+              fetchedUser?.avatar;
+          } catch {
+            /* ignore */
           }
         }
 
         const photoUpdatedAt = Date.now();
         const currentUser = user || authUser;
-        
-        // If we have a photoUrl, use it. Otherwise, keep the local preview URL temporarily
-        // The local preview will be replaced when the user data refreshes or on page reload
-        const finalPhotoUrl = photoUrl || tempPreviewUrl || currentUser?.user_photo || currentUser?.photo;
-        
+
+        const finalPhotoUrl =
+          photoUrl ||
+          tempPreviewUrl ||
+          currentUser?.user_photo ||
+          currentUser?.photo;
+
+        const fromServer =
+          payload &&
+          typeof payload === "object" &&
+          (payload.id || payload.email)
+            ? payload
+            : null;
+
         const updatedUser = {
           ...currentUser,
+          ...(fromServer || {}),
           user_photo: finalPhotoUrl,
           photo: finalPhotoUrl,
-          photoUpdatedAt: photoUpdatedAt
+          photoUpdatedAt,
         };
 
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const rememberMe = localStorage.getItem('remember') === 'true';
 
         loginUser(updatedUser, token, rememberMe);
+        if (
+          tempPreviewUrl &&
+          typeof finalPhotoUrl === "string" &&
+          !finalPhotoUrl.startsWith("blob:")
+        ) {
+          URL.revokeObjectURL(tempPreviewUrl);
+        }
+        setLocalPhotoUrl(null);
         smartToast.success('Profile photo updated successfully');
       }
     } catch (error) {
@@ -209,6 +228,7 @@ const UserPhoto = ({
     <div className={containerClass}>
       <input
         ref={fileInputRef}
+        id={fileInputId || undefined}
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
@@ -218,14 +238,14 @@ const UserPhoto = ({
       <div
         className="user-photo-avatar-container"
         onClick={handlePhotoClick}
-        style={{ cursor: isUploading ? 'wait' : 'pointer' }}
-        title={isUploading ? 'Uploading...' : 'Click to change photo'}
+        style={{ cursor: isUploading ? 'wait' : ((allowUpload || onClick) ? 'pointer' : 'default') }}
+        title={isUploading ? 'Uploading...' : (allowUpload ? 'Click to change photo' : (onClick ? 'View profile' : ''))}
       >
         <div className="user-photo-avatar">
           {userPhoto ? (
             <img
               key={`photo-${photoKey}-${photoUpdatedAt || ''}`}
-              src={userPhoto}
+              src={userPhoto || undefined}
               alt={userName}
               className="user-photo-img"
               crossOrigin="anonymous"
@@ -246,9 +266,11 @@ const UserPhoto = ({
             {isUploading ? '...' : userInitials}
           </span>
         </div>
-        <div className="user-photo-overlay">
-          <Plus size={variant === 'sidebar' ? 18 : variant === 'status' ? 24 : 16} weight="bold" />
-        </div>
+        {allowUpload && (
+          <div className="user-photo-overlay">
+            <Plus size={variant === 'sidebar' ? 18 : variant === 'status' ? 24 : 16} weight="bold" />
+          </div>
+        )}
         {isUploading && (
           <div className="user-photo-loading">
             <div className="spinner"></div>

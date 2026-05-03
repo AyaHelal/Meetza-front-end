@@ -1,11 +1,17 @@
 import React, { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import api from "../../API/axiosInstance";
+import BrandingLogo from "../../components/common/BrandingLogo";
+import { useBranding } from "../../context/BrandingContext";
 import { verifyResetCode, resendResetCode } from "../../API/auth";
 import "../Login/Login.css";
 import "./ForgotPassword.css";
 
 export default function VerifyResetCode() {
+    const { systemName, showPoweredBy } = useBranding();
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+    
     const [code, setCode] = useState(["", "", "", ""]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -106,11 +112,10 @@ export default function VerifyResetCode() {
         <div className="container-fluid d-flex align-items-center justify-content-center min-vh-100" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <motion.div
                 className="text-center w-100"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                style={{ maxWidth: '500px' }}
             >
                 <div className="w-100 d-flex flex-column align-items-center text-center justify-content-center p-2">
                     {/* Logo */}
@@ -120,10 +125,28 @@ export default function VerifyResetCode() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        <img src="/assets/meetza.png" alt="Meetza" style={{
-                            maxWidth: '210px',
-                            height: 'auto'
-                        }} />
+                        <div className="d-flex flex-column align-items-center">
+                            <BrandingLogo
+                                showSystemName={!isMeetza}
+                                className={`d-flex flex-row align-items-center justify-content-center gap-2 ${isMeetza ? "meetza-standalone-logo" : ""}`}
+                                style={{
+                                    maxHeight: isMeetza ? '36px' : '60px',
+                                    objectFit: 'contain',
+                                    margin: '0',
+                                    padding: '0'
+                                }}
+                                systemNameStyle={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}
+                            />
+                            {(!isMeetza && showPoweredBy !== false) && (
+                                <div className="d-flex align-items-center justify-content-center mt-1 text-muted" style={{ fontSize: '0.75rem', gap: '5px' }}>
+                                    <span>Powered by</span>
+                                    <div className="d-flex align-items-center" style={{ gap: '2px' }}>
+                                        <img src="/assets/MeetzaLogo.png" alt="Meetza Logo" style={{ height: '18px', objectFit: 'contain' }} />
+                                        <img src="/assets/MeetzaWord.png" alt="Meetza Text" style={{ height: '18px', objectFit: 'contain', marginBottom: '-1px' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     {/* Title */}

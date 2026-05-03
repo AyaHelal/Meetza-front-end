@@ -19,10 +19,16 @@ const item = {
 export default function HeroSection() {
     const navigate = useNavigate();
     return (
-        <div className="hero-section" style={{
-            background: 'url(/assets/landing_bg.png) no-repeat center center',
-            backgroundSize: 'cover'
-        }}>
+        <div
+            className="hero-section"
+            style={{
+                backgroundImage: "url(/assets/landing_bg.png)",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "cover",
+                backgroundPosition: "top center",
+                backgroundAttachment: "fixed",
+            }}
+        >
             <HeroNav />
             <motion.div
                 className="container text-center text-white"
@@ -41,10 +47,10 @@ export default function HeroSection() {
                     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className=" hero-login-btn her0-button-primary btn  btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#00DC85", border: "none", fontSize: '18px' }}
                         onClick={() => navigate('/signup')}
-                    >Home</motion.button>
+                    >Meetza</motion.button>
                     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className=" hero-button-secondary hero-login-btn btn btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#0076EA", border: "none", fontSize: '18px' }}
-                        onClick={() => { window.location.href = 'https://meetza-front-end-admin.vercel.app/signup'; }}
+                        onClick={() => { window.location.href = 'https://meetza-front-end-admin.vercel.app/login'; }}
                     >Dashboard</motion.button>
                 </motion.div>
             </motion.div>

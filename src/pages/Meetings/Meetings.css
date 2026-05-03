@@ -31,38 +31,107 @@
   z-index: 2;
 }
 
-/* Empty place for comments - title + empty space */
+/* Empty place for comments - scroll localized to this container only */
 .meetings-comments-placeholder {
   flex-shrink: 0;
   position: relative;
   margin-top: -36px;
   padding: 36px 16px 0 10px;
-  background: #ffffff;
+  background: var(--surface-color);
   z-index: 1;
   height: 174px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.meetings-comments-placeholder::-webkit-scrollbar {
+  width: 6px;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-track {
+  background: transparent;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+.meetings-comments-placeholder::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
 }
 
 .meetings-comments-title {
   font-size: 15px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-dark);
   margin: 0 0 10px 0;
-padding: 16px 16px 0 10px;
+  padding: 16px 16px 0 10px;
 }
 
 
+/* Mobile: single column matching design — video area, participants, comments, video description */
 @media (max-width: 768px) {
+  .meetings-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    height: auto;
+    min-height: 0;
+    /* app-layout-content is a row flex with align-items: stretch — without this the block
+       stretches to full viewport height, .meeting-room flex:1 on the slider eats space and
+       overflow:hidden clips the control bar off-screen */
+    align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px 100px;
+    box-sizing: border-box;
+    align-content: start;
+  }
+
+  .meetings-container .meetings-center {
+    display: contents;
+  }
+
+  .meetings-container .meeting-right-sidebar {
+    display: contents;
+  }
+
   .meetings-center {
-    margin: 12px;
+    margin: 12px 0 0;
     height: auto;
     min-height: 0;
   }
 
+  .meeting-room {
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    border-radius: 18px;
+  }
+
+  .participate-card {
+    grid-row: 2;
+  }
+
+  .meeting-chat {
+    grid-row: 3;
+  }
+
+  .video-description-card {
+    grid-row: 4;
+  }
+
   .meeting-right-sidebar {
-        width: 100%;
-        margin: 0;
-        height: auto;
-        max-height: 50vh;
-        border-radius: 0;
-    }
+    width: 100%;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    padding-bottom: 0;
+    border-radius: 0;
+  }
 }
+
+
+

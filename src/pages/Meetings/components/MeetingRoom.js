@@ -1,875 +1,470 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  Microphone,
-  MicrophoneSlash,
-  VideoCamera,
-  HandWaving,
-  MonitorArrowUp,
-  Smiley,
-  ChatCircleDots,
-  SignOut,
-  ArrowUp,
-} from "@phosphor-icons/react";
 import "./MeetingRoom.css";
-import api from "../../../API/axiosInstance";
+import MeetingRoomHeader from "./MeetingRoomHeader";
+import MeetingRoomFullscreenVideos from "./MeetingRoomFullscreenVideos";
+import MeetingRoomSliderViewport from "./MeetingRoomSliderViewport";
+import MeetingRoomGrid from "./MeetingRoomGrid";
+import MeetingRoomSingleView from "./MeetingRoomSingleView";
+import MeetingRoomScreenPlaceholder from "./MeetingRoomScreenPlaceholder";
+import MeetingRoomFloatingEmojis from "./MeetingRoomFloatingEmojis";
+import MeetingRoomSliderDots from "./MeetingRoomSliderDots";
+import MeetingRoomControlBar from "./MeetingRoomControlBar";
+import MeetingRoomReactionsContainer from "./MeetingRoomReactionsContainer";
+import { toParticipant, getReactionIcon, getCameraTrack, getScreenShareTrack, isScreenShareVideoTrack } from "./meetingRoomUtils";
+import { useMeetingRoomSocketListeners } from "../hooks/useMeetingRoomSocketListeners";
+import { useMeetingRoomFullscreen } from "../hooks/useMeetingRoomFullscreen";
+import { useMeetingRoomMediaEffects } from "../hooks/useMeetingRoomMediaEffects";
+import { useMeetingRoomMeetingId } from "../hooks/useMeetingRoomMeetingId";
+import { useMeetingRoomMeetingLifecycle } from "../hooks/useMeetingRoomMeetingLifecycle";
+import { useMeetingRoomRtc } from "../hooks/useMeetingRoomRtc";
+import { useMeetingChat } from "../hooks/useMeetingChat";
+import { useMeetingHand } from "../hooks/useMeetingHand";
+import { useMeetingRoomReactions } from "../hooks/useMeetingRoomReactions";
+import { useMeetingRoomUnifiedTiles } from "../hooks/useMeetingRoomUnifiedTiles";
+import { useMeetingRoomParticipantHelpers } from "../hooks/useMeetingRoomParticipantHelpers";
+import { useMeetingRecording } from "../hooks/useMeetingRecording";
+import { useMeetingInfo } from "../hooks/useMeetingInfo";
+import { useMeetingPreJoin } from "../hooks/useMeetingPreJoin";
+import { useMeetingLifecycleHandlers } from "../hooks/useMeetingLifecycleHandlers";
+import MeetingRoomPreJoinModal from "./MeetingRoomPreJoinModal";
+import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
 import { smartToast } from "../../../API/toastManager";
 import { useSocket } from "../../../context/SocketContext";
 import { AuthContext } from "../../../context/AuthContext";
+import { useMeetingContext } from "../../../context/MeetingContext";
+import { useMediaContext } from "../../../context/MediaContext";
 
-const MeetingRoom = () => {
+/** Survives React StrictMode remount so we do not open pre-join twice for the same meeting tab session. */
+const preJoinUiGateStorageKey = (meetingId) => `meetza_preJoinUiGate_${String(meetingId)}`;
+
+/** Same logical meeting must use one string id — otherwise `5 !== "5"` resets pre-join state and the modal reopens after Enter. */
+const normalizeMeetingId = (id) => (id == null || id === "" ? null : String(id));
+
+const MeetingRoom = ({ recordRegionRef }) => {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [, setLocalStream] = useState(null);
-  const [remoteStreams, setRemoteStreams] = useState([]); // [{ socketId, stream }]
-  const [audioMuted, setAudioMuted] = useState(true);
-  const [videoMuted, setVideoMuted] = useState(true);
-  const [handRaised, setHandRaised] = useState(false);
-  const [screenSharing, setScreenSharing] = useState(false);
-  const [participants, setParticipants] = useState([]); // from REST: [{member_id, member_name, member_photo, ...}]
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [handRaisedMap, setHandRaisedMap] = useState(() => ({}));
+  const [localParticipantVolume, setLocalParticipantVolume] = useState({});
+  const [meetingTitle, setMeetingTitle] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const { user } = useContext(AuthContext);
+  const {
+    participants,
+    setParticipants,
+    setMeetingId,
+    setHasJoined,
+    hasJoined,
+    addChatMessage,
+    localParticipantAudioMuted,
+    setLocalParticipantAudioMuted,
+    mediaStateMap,
+    setMediaStateMap,
+    micLockedByAdmin,
+  } = useMeetingContext();
 
-  const peersRef = useRef(new Map()); // socketId -> RTCPeerConnection
-  const peerMetaRef = useRef(new Map()); // socketId -> { member_id, member_name, member_photo }
-  const localStreamRef = useRef(null);
-  const cameraVideoTrackRef = useRef(null);
+  // Get persistent media streams and state from MediaContext
+  const {
+    localStreamRef,
+    cameraVideoTrackRef,
+    screenTrackRef,
+    audioMuted: contextAudioMuted,
+    videoMuted: contextVideoMuted,
+    setAudioMuted: setContextAudioMuted,
+    setVideoMuted: setContextVideoMuted,
+    meetingSpeakerMuted,
+    setMeetingSpeakerMuted, // Used in MeetingRoomControlBar
+    setMeetingMediaRefs,
+    registerPeerConnection,
+    unregisterPeerConnection,
+    getPeerConnections,
+    setMeetingId: setMediaContextMeetingId,
+    setHasJoined: setMediaContextHasJoined,
+  } = useMediaContext();
+
+  // Use MediaContext state, but keep local state for UI updates
+  const [audioMuted, setAudioMuted] = useState(contextAudioMuted);
+  const [videoMuted, setVideoMuted] = useState(contextVideoMuted);
+
+  // Sync with MediaContext state changes
+  useEffect(() => {
+    setAudioMuted(contextAudioMuted);
+  }, [contextAudioMuted]);
+
+  useEffect(() => {
+    setVideoMuted(contextVideoMuted);
+  }, [contextVideoMuted]);
+  const [screenSharing, setScreenSharing] = useState(false);
+  const [showSaveRecordingModal, setShowSaveRecordingModal] = useState(false);
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const touchEndX = useRef(null);
+  const touchEndY = useRef(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = null;
+    touchEndY.current = null;
+  };
+
+  const onTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current || !touchStartY.current || !touchEndY.current) return;
+    
+    const deltaX = touchStartX.current - touchEndX.current;
+    const deltaY = touchStartY.current - touchEndY.current;
+    
+    // Only swipe if horizontal movement is dominant
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      const slideCount = isMeetingAdmin ? 2 : 3;
+      if (deltaX > 0 && activeSlide < slideCount - 1) {
+        handleSetActiveSlide(activeSlide + 1);
+      } else if (deltaX < 0 && activeSlide > 0) {
+        handleSetActiveSlide(activeSlide - 1);
+      }
+    }
+  };
+
   const meetingIdRef = useRef(null);
-  const startedRef = useRef(false);
   const localVideoRef = useRef(null);
-  const localVideoRef2 = useRef(null); // separate ref for single view (slide 2)
+  const localVideoRef2 = useRef(null);
   const sliderViewportRef = useRef(null);
-  const screenTrackRef = useRef(null);
-  const makingOffer = useRef(false); // Track if we're currently making an offer
-  const polite = useRef(new Map()); // socketId -> boolean (true = polite, false = impolite)
-  const iceQueueRef = useRef(new Map()); // socketId -> [candidates]
+  const recordingStartedRef = useRef(false);
+  const recordingPayloadRef = useRef(null);
+  const remoteVideoRefsMap = useRef(new Map());
+  const localParticipantAudioMutedRef = useRef({});
+  const localParticipantVolumeRef = useRef({});
+  const userLeftMeetingRef = useRef(false);
+  const lastMeetingIdForPreJoinRef = useRef(null);
+  const preJoinPromptedRef = useRef({});
+  const preJoinCompletedRef = useRef({});
+  const preJoinOpenedThisLoadRef = useRef(false);
+  const userDismissedPreJoinRef = useRef({});
+  const [preJoinDismissTick, setPreJoinDismissTick] = useState(0);
+  /** After a full page reload while this meeting is open, reset join/pre-join once so user goes through join again. */
+  const reloadJoinResetDoneForMidRef = useRef(null);
 
-  const meetingId = useMemo(() => {
-    // Prefer navigation state (set when joining), then query string (?meetingId=...)
-    return (
-      location?.state?.meetingId ||
-      searchParams.get("meetingId") ||
-      null
-    );
-  }, [location?.state?.meetingId, searchParams]);
+  const meetingId = useMeetingRoomMeetingId({
+    location,
+    searchParams,
+    meetingIdRef,
+    setMeetingId,
+    setMediaContextMeetingId,
+  });
+
+  const selfMemberIdForInfo = user?.id ?? user?.member_id ?? null;
+  const { meetingInfo, isMeetingAdmin } = useMeetingInfo(meetingId, selfMemberIdForInfo);
 
   useEffect(() => {
-    meetingIdRef.current = meetingId;
+    try {
+      sessionStorage.setItem("meetza_audioMuted", String(audioMuted));
+      sessionStorage.setItem("meetza_videoMuted", String(videoMuted));
+    } catch { /* ignore */ }
+  }, [audioMuted, videoMuted]);
+
+  const handlePreJoinDismiss = useCallback(() => {
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+    if (mid != null) {
+      userDismissedPreJoinRef.current[mid] = true;
+      try {
+        sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+      } catch {
+        /* ignore */
+      }
+    }
+    preJoinOpenedThisLoadRef.current = false;
+    setPreJoinDismissTick((t) => t + 1);
   }, [meetingId]);
 
-  const upsertRemoteStream = useCallback((socketId, stream) => {
-    if (!socketId || !stream) return;
-    console.log("🔄 Upserting remote stream:", socketId, {
-      videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length,
-      videoTrackEnabled: stream.getVideoTracks()[0]?.enabled,
-      audioTrackEnabled: stream.getAudioTracks()[0]?.enabled,
-    });
-    setRemoteStreams((prev) => {
-      const idx = prev.findIndex((x) => x.socketId === socketId);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { socketId, stream };
-        console.log("✅ Updated existing remote stream for", socketId);
-        return next;
-      }
-      console.log("✅ Added new remote stream for", socketId);
-      return [...prev, { socketId, stream }];
-    });
-  }, []);
+  const rtc = useMeetingRoomRtc({
+    socket,
+    isConnected,
+    meetingIdRef,
+    hasJoined,
+    localStreamRef,
+    setLocalStream,
+    cameraVideoTrackRef,
+    setVideoMuted,
+    setContextVideoMuted,
+    setAudioMuted,
+    setContextAudioMuted,
+    contextVideoMuted,
+    contextAudioMuted,
+    videoMuted,
+    audioMuted,
+    setParticipants,
+    setHasJoined,
+    setMediaContextHasJoined,
+    setMediaContextHasJoined,
+    setMediaStateMap,
+    setScreenSharing,
+    user,
+    location,
+    getPeerConnections,
+    registerPeerConnection,
+    unregisterPeerConnection,
+    localVideoRef,
+    localVideoRef2,
+    meetingSpeakerMuted,
+    localParticipantAudioMuted,
+    localParticipantVolume,
+    remoteVideoRefsMap,
+    screenTrackRef,
+  });
 
-  const removeRemoteStream = useCallback((socketId) => {
-    setRemoteStreams((prev) => prev.filter((x) => x.socketId !== socketId));
-  }, []);
-
-  const closePeer = useCallback((peerSocketId) => {
-    const pc = peersRef.current.get(peerSocketId);
-    if (pc) {
-      try {
-        pc.close();
-      } catch (e) {
-        // ignore
-      }
-      peersRef.current.delete(peerSocketId);
-    }
-    removeRemoteStream(peerSocketId);
-  }, [removeRemoteStream]);
-
-  const createPeerConnection = useCallback((peerSocketId) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-
-    pc.onicecandidate = (event) => {
-      if (!event.candidate) return;
-      if (!socket) return;
-      const mid = meetingIdRef.current;
-      if (!mid) return;
-      socket.emit(
-        "webrtcIceCandidate",
-        { toSocketId: peerSocketId, meetingId: mid, candidate: event.candidate },
-        () => { }
-      );
-    };
-
-    pc.ontrack = (event) => {
-      const [stream] = event.streams || [];
-      if (stream) {
-        console.log("🎬 onTrack event received from", peerSocketId, {
-          trackKind: event.track.kind,
-          trackId: event.track.id,
-          streamId: stream.id,
-          videoTracks: stream.getVideoTracks().length,
-          audioTracks: stream.getAudioTracks().length,
-          trackEnabled: event.track.enabled,
-        });
-        upsertRemoteStream(peerSocketId, stream);
-      } else {
-        console.warn("⚠️ onTrack event but no stream found for", peerSocketId);
-      }
-    };
-
-    // Add local tracks if stream is available
-    const stream = localStreamRef.current;
-    if (stream) {
-      stream.getTracks().forEach((t) => {
-        // Only add tracks that are enabled or if they're audio (audio should always be added)
-        // For video, if it's disabled, we still add it but it won't send data until enabled
-        if (t.kind === 'video' && !t.enabled) {
-          console.log("⚠️ Adding disabled video track to peer", peerSocketId, "- will show black until enabled");
-        }
-        console.log("➕ Adding local track to peer", peerSocketId, { kind: t.kind, enabled: t.enabled });
-        pc.addTrack(t, stream);
-      });
-    } else {
-      console.warn("⚠️ Local stream not ready when creating peer connection for", peerSocketId);
-    }
-
-    return pc;
-  }, [socket, upsertRemoteStream]);
-
-  // Add tracks to all existing peer connections when local stream becomes available
-  const addTracksToAllPeers = useCallback(() => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-
-    for (const [peerSocketId, pc] of peersRef.current.entries()) {
-      // Check if tracks are already added
-      const senders = pc.getSenders();
-      const hasVideo = senders.some(s => s.track && s.track.kind === 'video');
-      const hasAudio = senders.some(s => s.track && s.track.kind === 'audio');
-
-      if (!hasVideo || !hasAudio) {
-        console.log("🔄 Adding missing tracks to peer", peerSocketId);
-        stream.getTracks().forEach((t) => {
-          const existing = senders.find(s => s.track && s.track.kind === t.kind);
-          if (!existing) {
-            pc.addTrack(t, stream);
-            console.log("➕ Added track to peer", peerSocketId, { kind: t.kind });
-          }
-        });
-
-        // Trigger renegotiation if needed
-        if (!hasVideo || !hasAudio) {
-          pc.createOffer().then(offer => {
-            pc.setLocalDescription(offer).then(() => {
-              const mid = meetingIdRef.current;
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            }).catch(err => console.error("❌ Error renegotiating after adding tracks:", err));
-          }).catch(err => console.error("❌ Error creating offer after adding tracks:", err));
-        }
-      }
-    }
-  }, [socket]);
-
-  // Create and send offer to a peer (only if we're the impolite peer)
-  const createAndSendOffer = useCallback(async (targetSocketId) => {
-    const pc = peersRef.current.get(targetSocketId);
-    if (!pc) {
-      console.warn("⚠️ Cannot create offer - no peer connection for", targetSocketId);
-      return;
-    }
-
-    try {
-      makingOffer.current = true;
-      console.log("📤 Creating offer for", targetSocketId);
-
-      // Ensure local tracks are added
-      const stream = localStreamRef.current;
-      if (stream) {
-        stream.getTracks().forEach((t) => {
-          const existing = pc.getSenders().find(s => s.track && s.track.kind === t.kind);
-          if (!existing) {
-            pc.addTrack(t, stream);
-          }
-        });
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for track addition
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const mid = meetingIdRef.current;
-      socket.emit(
-        "webrtcOffer",
-        { toSocketId: targetSocketId, meetingId: mid, sdp: offer },
-        (ack) => {
-          if (ack && !ack.ok) {
-            console.error("❌ Offer send failed:", ack);
-          } else {
-            console.log("✅ Offer sent successfully to", targetSocketId);
-          }
-        }
-      );
-    } catch (err) {
-      console.error("❌ Error creating/sending offer:", err);
-    } finally {
-      makingOffer.current = false;
-    }
-  }, [socket]);
-
-  const ensureLocalMedia = useCallback(async () => {
-    if (localStreamRef.current) return localStreamRef.current;
-    console.log("🎥 Getting user media...");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "user"
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-      });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      cameraVideoTrackRef.current = stream.getVideoTracks()?.[0] || null;
-      // Ensure video track is enabled initially (respects videoMuted state)
-      if (cameraVideoTrackRef.current) {
-        cameraVideoTrackRef.current.enabled = !videoMuted;
-      }
-      console.log("✅ Media stream obtained:", {
-        videoTracks: stream.getVideoTracks().length,
-        audioTracks: stream.getAudioTracks().length,
-        videoEnabled: cameraVideoTrackRef.current?.enabled,
-      });
-      // Add tracks to any existing peer connections
-      setTimeout(() => addTracksToAllPeers(), 100);
-      return stream;
-    } catch (videoErr) {
-      console.warn("Camera denied, trying audio only...", videoErr);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-      });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      cameraVideoTrackRef.current = null;
-      console.log("✅ Audio-only stream obtained (camera not required)");
-      // Add tracks to any existing peer connections
-      setTimeout(() => addTracksToAllPeers(), 100);
-      return stream;
-    }
-  }, [addTracksToAllPeers, videoMuted]);
-
-  const startAndJoinMeetingRtc = useCallback(async () => {
-    if (!socket || !isConnected) return;
-    const mid = meetingIdRef.current;
+  const preJoin = useMeetingPreJoin((stream, videoMuted, audioMuted) => {
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
     if (!mid) return;
-    if (startedRef.current) return;
-    startedRef.current = true;
+    const keysToMark = [mid];
 
     try {
-      await ensureLocalMedia();
-    } catch (e) {
-      console.error("❌ getUserMedia failed:", e);
-      smartToast.error("Could not access camera/microphone.");
-      startedRef.current = false;
-      return;
-    }
+      const active = normalizeMeetingId(sessionStorage.getItem("activeMeetingId"));
+      if (active && active !== mid) keysToMark.push(active);
+    } catch { /* ignore */ }
 
-    console.log("📤 Emitting joinMeetingRoom for meeting:", mid);
-    socket.emit("joinMeetingRoom", { meetingId: mid }, async (ack) => {
-      console.log("📥 joinMeetingRoom ack received:", ack);
-      if (!ack?.ok) {
-        console.error("❌ joinMeetingRoom failed:", ack);
-        smartToast.error(ack?.message || "Failed to join meeting room.");
-        startedRef.current = false;
-        return;
-      }
-      console.log("✅ Successfully joined meeting room");
-
-      // Persist active meeting so that other parts of the app (e.g. logout handler, floating tile)
-      // can perform a proper leave if the user logs out while in a meeting.
+    keysToMark.forEach((key) => {
+      preJoinCompletedRef.current[key] = true;
+      preJoinPromptedRef.current[key] = true;
       try {
-        sessionStorage.setItem("activeMeetingId", String(mid));
-        const groupId = location?.state?.groupId;
-        if (groupId) sessionStorage.setItem("activeMeetingGroupId", String(groupId));
-      } catch (e) {
-        console.warn("Could not persist activeMeetingId to sessionStorage:", e);
-      }
-
-      const participants = Array.isArray(ack?.participants) ? ack.participants : [];
-      console.log("👥 Found existing participants:", participants.length, "Full ack:", ack);
-
-      // If backend doesn't send participants in ack, try to get them from REST API
-      if (participants.length === 0) {
-        console.log("⚠️ No participants in ack, will check REST API for current participants");
-        setTimeout(async () => {
-          try {
-            const res = await api.get(`/meeting/${mid}/participants`);
-            const root = res?.data;
-            const effective = root?.data && root?.success === undefined ? root.data : root;
-            const payload = effective?.data ?? effective;
-            const list = Array.isArray(payload) ? payload : [];
-            console.log("👥 REST API participants:", list.length);
-            // Note: REST API gives member_id, but we need socketId to create peer connections
-            // So we can't directly use this, but it confirms other people are in the meeting
-          } catch (e) {
-            console.warn("Could not fetch participants from REST:", e);
-          }
-        }, 1000);
-      }
-
-      // Ensure local stream is ready before creating peer connections
-      const stream = localStreamRef.current;
-      if (!stream) {
-        console.warn("⚠️ Local stream not ready, waiting...");
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      for (const p of participants) {
-        const peerSocketId = p?.socketId || p?.id || p;
-        if (!peerSocketId) continue;
-        if (peerSocketId === socket.id) continue;
-        if (peersRef.current.has(peerSocketId)) {
-          console.log("⚠️ Peer connection already exists for", peerSocketId);
-          continue;
-        }
-
-        // Store any metadata if backend provides it
-        const meta = {
-          member_id: p?.member_id || p?.memberId || p?.userId || p?.user_id,
-          member_name: p?.member_name || p?.memberName || p?.name,
-          member_photo: p?.member_photo || p?.memberPhoto || p?.photo,
-        };
-        if (meta.member_id || meta.member_name || meta.member_photo) {
-          peerMetaRef.current.set(peerSocketId, meta);
-        }
-
-        console.log("🔗 Creating peer connection for", peerSocketId);
-        const pc = createPeerConnection(peerSocketId);
-        peersRef.current.set(peerSocketId, pc);
-
-        // Determine polite/impolite based on socket.id comparison
-        // The peer with smaller socket.id is impolite (initiates offer)
-        if (socket.id < peerSocketId) {
-          polite.current.set(peerSocketId, false); // We are impolite
-          console.log("🔵 We are impolite for", peerSocketId, "(our id is smaller)");
-          // We initiate the offer
-          await createAndSendOffer(peerSocketId);
-        } else {
-          polite.current.set(peerSocketId, true); // We are polite
-          console.log("🟢 We are polite for", peerSocketId, "(their id is smaller)");
-          // We wait for their offer
-        }
-      }
-
-      // Final check: add tracks to all peers after a short delay
-      setTimeout(() => addTracksToAllPeers(), 200);
+        sessionStorage.setItem(`meeting_preJoinCompleted_${key}`, "true");
+      } catch { /* ignore */ }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createPeerConnection, ensureLocalMedia, isConnected, socket, createAndSendOffer]);
-
-  const stopMeetingRtc = useCallback(() => {
-    const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("leaveMeetingRoom", { meetingId: mid });
+    // Pre-join UI finished — allow RTC effect path; keep refs aligned with `waitingOnPreJoinUi` / `shouldShowPreJoin`.
+    preJoinOpenedThisLoadRef.current = false;
+    try {
+      sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+    } catch {
+      /* ignore */
     }
+    rtc.startJoinRef.current?.({ preObtainedStream: stream, initialVideoMuted: videoMuted, initialAudioMuted: audioMuted });
+  }, handlePreJoinDismiss);
 
-    // close peer connections
-    for (const [peerSocketId] of peersRef.current.entries()) {
-      closePeer(peerSocketId);
-    }
-    peersRef.current = new Map();
-    setRemoteStreams([]);
+  const showPreJoinModalRef = useRef(preJoin.showPreJoinModal);
+  showPreJoinModalRef.current = preJoin.showPreJoinModal;
 
-    // stop local tracks
-    const stream = localStreamRef.current;
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-    }
-    localStreamRef.current = null;
-    cameraVideoTrackRef.current = null;
-    setLocalStream(null);
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
-    if (localVideoRef2.current) {
-      localVideoRef2.current.srcObject = null;
-    }
+  const chat = useMeetingChat({
+    socket,
+    isConnected,
+    meetingIdRef,
+    meetingId,
+    addChatMessage,
+    user,
+  });
 
-    setScreenSharing(false);
-    startedRef.current = false;
-  }, [closePeer, socket]);
+  const hand = useMeetingHand({ meetingIdRef, socket });
 
-  // Auto-start RTC when entering meeting page with meetingId
+  const setShowPreJoinModal = preJoin.setShowPreJoinModal;
   useEffect(() => {
-    if (!meetingId || !socket || !isConnected) {
-      console.log("⏸️ Not starting RTC - missing:", { meetingId: !!meetingId, socket: !!socket, isConnected });
-      return;
-    }
-    if (startedRef.current) {
-      console.log("⏸️ RTC already started, skipping");
-      return;
-    }
-    console.log("🚀 Starting RTC meeting...");
-    startAndJoinMeetingRtc();
+    if (!socket || !isConnected) return;
+    const mid = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+    if (!mid) return;
 
-    return () => {
-      // cleanup on unmount
-      console.log("🧹 Cleaning up RTC on unmount");
-      stopMeetingRtc();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meetingId, socket, isConnected]);
-
-  // Attach stream to both video elements when it changes (incl. when screen share starts)
-  useEffect(() => {
-    const stream = localStreamRef.current;
-    const videoEl1 = localVideoRef.current;
-    const videoEl2 = localVideoRef2.current;
-
-    if (stream && videoEl1 && videoEl1.srcObject !== stream) {
-      videoEl1.srcObject = stream;
-    }
-
-    if (stream && videoEl2 && videoEl2.srcObject !== stream) {
-      videoEl2.srcObject = stream;
-    }
-  }, [videoMuted, audioMuted, screenSharing]);
-
-  // Handle video/audio track enabled state
-  useEffect(() => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    console.log("🔄 Updating track states - videoMuted:", videoMuted, "audioMuted:", audioMuted);
-    const videoTracks = stream.getVideoTracks();
-    const audioTracks = stream.getAudioTracks();
-
-    videoTracks.forEach((t) => {
-      const wasEnabled = t.enabled;
-      t.enabled = !videoMuted;
-      console.log("  Video track enabled:", t.enabled, "was:", wasEnabled);
-
-      // If video was just enabled and we have peers, trigger renegotiation
-      if (!wasEnabled && t.enabled && peersRef.current.size > 0) {
-        console.log("🔄 Video enabled, triggering renegotiation for all peers");
-        const mid = meetingIdRef.current;
-        for (const [peerSocketId, pc] of peersRef.current.entries()) {
-          // Check if video track is already in the connection
-          const hasVideoSender = pc.getSenders().some(s => s.track && s.track.kind === 'video');
-          if (!hasVideoSender && t) {
-            // Add video track if it's missing
-            pc.addTrack(t, stream);
-          }
-          // Trigger renegotiation
-          pc.createOffer().then(offer => {
-            pc.setLocalDescription(offer).then(() => {
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            }).catch(err => console.error("❌ Error renegotiating after enabling video:", err));
-          }).catch(err => console.error("❌ Error creating offer after enabling video:", err));
-        }
-      }
-    });
-
-    audioTracks.forEach((t) => {
-      t.enabled = !audioMuted;
-      console.log("  Audio track enabled:", t.enabled);
-    });
-  }, [videoMuted, audioMuted, socket]);
-
-  // Fetch meeting participants (names/photos) via REST for in-room display
-  useEffect(() => {
-    const fetchParticipants = async () => {
-      if (!meetingId) return;
-      setLoadingParticipants(true);
+    const isPageReload = (() => {
       try {
-        const res = await api.get(`/meeting/${meetingId}/participants`);
-        const root = res?.data;
-        const effective = root?.data && root?.success === undefined ? root.data : root;
-        const payload = effective?.data ?? effective;
-        const list = Array.isArray(payload) ? payload : [];
-        setParticipants(list);
-      } catch (e) {
-        console.warn("⚠️ Failed to fetch meeting participants:", e);
-        setParticipants([]);
-      } finally {
-        setLoadingParticipants(false);
+        const navEntries = performance?.getEntriesByType?.("navigation");
+        const navType = navEntries && navEntries[0] ? navEntries[0].type : null;
+        if (navType) return navType === "reload";
+        return performance.navigation?.type === 1;
+      } catch {
+        return false;
       }
-    };
+    })();
 
-    fetchParticipants();
-  }, [meetingId]);
+    if (
+      isPageReload &&
+      reloadJoinResetDoneForMidRef.current !== mid
+    ) {
+      reloadJoinResetDoneForMidRef.current = mid;
+      preJoinCompletedRef.current = {};
+      preJoinOpenedThisLoadRef.current = false;
+      preJoinPromptedRef.current = {};
+      try {
+        sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+        sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+        sessionStorage.removeItem(`meeting_hasJoined_${mid}`);
+      } catch {
+        /* ignore */
+      }
+    }
 
-  // Socket listeners (signaling)
-  useEffect(() => {
-    if (!socket) return;
+    const prevMidNorm = normalizeMeetingId(lastMeetingIdForPreJoinRef.current);
+    if (prevMidNorm !== mid) {
+      if (prevMidNorm != null) {
+        reloadJoinResetDoneForMidRef.current = null;
+        try {
+          sessionStorage.removeItem(preJoinUiGateStorageKey(prevMidNorm));
+        } catch {
+          /* ignore */
+        }
+      }
+      lastMeetingIdForPreJoinRef.current = mid;
+      userLeftMeetingRef.current = false;
+      preJoinOpenedThisLoadRef.current = false;
+      preJoinPromptedRef.current = {};
+      userDismissedPreJoinRef.current = {};
 
-    const onParticipantJoined = async (data) => {
-      console.log("🎉 participantJoined event received:", data);
-      const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
-      const mid = data?.meetingId;
-      if (!peerSocketId || !mid) {
-        console.warn("⚠️ participantJoined - missing socketId or meetingId", { peerSocketId, mid });
-        return;
-      }
-      if (mid !== meetingIdRef.current) {
-        console.warn("⚠️ participantJoined - wrong meeting", { received: mid, current: meetingIdRef.current });
-        return;
-      }
-      if (peerSocketId === socket.id) {
-        console.log("ℹ️ participantJoined - ignoring self");
-        return;
-      }
-      if (peersRef.current.has(peerSocketId)) {
-        console.log("⚠️ participantJoined - peer already exists for", peerSocketId);
-        return;
-      }
-      console.log("✅ Processing participantJoined for", peerSocketId);
-
-      // store metadata if provided
-      const meta = {
-        member_id: data?.member_id || data?.memberId || data?.userId || data?.user_id,
-        member_name: data?.member_name || data?.memberName || data?.name,
-        member_photo: data?.member_photo || data?.memberPhoto || data?.photo,
-      };
-      if (meta.member_id || meta.member_name || meta.member_photo) {
-        peerMetaRef.current.set(peerSocketId, meta);
+      let completedForMidInStorage = false;
+      try {
+        completedForMidInStorage =
+          sessionStorage.getItem(`meeting_preJoinCompleted_${mid}`) === "true";
+      } catch {
+        /* ignore */
       }
 
-      console.log("🔗 Creating peer connection for new participant", peerSocketId);
-      const pc = createPeerConnection(peerSocketId);
-      peersRef.current.set(peerSocketId, pc);
-
-      // Determine polite/impolite based on socket.id comparison
-      // The peer with smaller socket.id is impolite (initiates offer)
-      if (socket.id < peerSocketId) {
-        polite.current.set(peerSocketId, false); // We are impolite
-        console.log("🔵 We are impolite for new participant", peerSocketId, "(our id is smaller)");
-        // We initiate the offer
-        await createAndSendOffer(peerSocketId);
+      if (prevMidNorm != null) {
+        // Switched to another meeting — fresh pre-join for `mid`.
+        preJoinCompletedRef.current = {};
+        try {
+          sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+          sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+        } catch {
+          /* ignore */
+        }
       } else {
-        polite.current.set(peerSocketId, true); // We are polite
-        console.log("🟢 We are polite for new participant", peerSocketId, "(their id is smaller)");
-        // We wait for their offer
-      }
-    };
-
-    const onParticipantLeft = (data) => {
-      const peerSocketId = data?.socketId || data?.id || data?.fromSocketId;
-      const mid = data?.meetingId;
-      if (!peerSocketId || !mid) return;
-      if (mid !== meetingIdRef.current) return;
-      peerMetaRef.current.delete(peerSocketId);
-      closePeer(peerSocketId);
-    };
-
-    const onWebrtcOffer = async (data) => {
-      const fromSocketId = data?.fromSocketId || data?.socketId || data?.from;
-      const mid = data?.meetingId;
-      const sdp = data?.sdp || data?.offer; // Support both 'sdp' and 'offer' field names
-      if (!fromSocketId || !mid || !sdp) {
-        console.warn("⚠️ Received invalid offer:", { fromSocketId, mid, hasSdp: !!sdp });
-        return;
-      }
-      if (mid !== meetingIdRef.current) {
-        console.warn("⚠️ Received offer for wrong meeting:", { received: mid, current: meetingIdRef.current });
-        return;
-      }
-
-      let pc = peersRef.current.get(fromSocketId);
-      if (!pc) {
-        console.log("🔗 Creating peer connection for incoming offer from", fromSocketId);
-        pc = createPeerConnection(fromSocketId);
-        peersRef.current.set(fromSocketId, pc);
-        // Set polite flag based on socket.id comparison
-        if (socket.id < fromSocketId) {
-          polite.current.set(fromSocketId, false); // We are impolite
+        // First attach for this MeetingRoom instance (includes React StrictMode remount after Enter).
+        // Do NOT wipe meeting_preJoinCompleted_* here — that would erase completion from the previous mount
+        // and reopen the camera/mic modal a second time.
+        if (completedForMidInStorage) {
+          preJoinCompletedRef.current[mid] = true;
         } else {
-          polite.current.set(fromSocketId, true); // We are polite
-        }
-      }
-
-      // Check for offer collision
-      const isPolite = polite.current.get(fromSocketId) ?? true; // Default to polite
-      const offerCollision = makingOffer.current || pc.signalingState !== "stable";
-      const ignoreOffer = !isPolite && offerCollision;
-
-      if (ignoreOffer) {
-        console.log("⚠️ Ignoring offer due to collision (we are impolite and making offer):", fromSocketId);
-        return;
-      }
-
-      try {
-        console.log("📥 Setting remote offer from", fromSocketId, "state:", pc.signalingState);
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-        // Process queued ICE candidates after setting remote description
-        const queue = iceQueueRef.current.get(fromSocketId);
-        if (queue && queue.length > 0) {
-          console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
-          for (const candidate of queue) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (err) {
-              if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                console.warn("⚠️ Failed to process queued ICE candidate:", err);
-              }
-            }
+          preJoinCompletedRef.current = {};
+          try {
+            sessionStorage.removeItem(`meeting_preJoinCompleted_${mid}`);
+            sessionStorage.removeItem(preJoinUiGateStorageKey(mid));
+          } catch {
+            /* ignore */
           }
-          iceQueueRef.current.delete(fromSocketId);
         }
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        console.log("📤 Sending answer to", fromSocketId);
-        socket.emit(
-          "webrtcAnswer",
-          { toSocketId: fromSocketId, meetingId: mid, sdp: answer },
-          (ack) => {
-            if (ack && !ack.ok) {
-              console.error("❌ Answer send failed:", ack);
-            } else {
-              console.log("✅ Answer sent successfully to", fromSocketId);
-            }
-          }
-        );
-      } catch (err) {
-        console.error("❌ Error handling offer:", err, "for", fromSocketId);
       }
-    };
-
-    const onWebrtcAnswer = async (data) => {
-      const fromSocketId = data?.fromSocketId || data?.socketId || data?.from;
-      const mid = data?.meetingId;
-      const sdp = data?.sdp;
-      if (!fromSocketId || !mid || !sdp) return;
-      if (mid !== meetingIdRef.current) return;
-
-      const pc = peersRef.current.get(fromSocketId);
-      if (!pc) {
-        console.warn("⚠️ Received answer but no peer connection for", fromSocketId);
-        return;
-      }
-
+    }
+    if (userLeftMeetingRef.current) return;
+    const stableKey = mid;
+    const completedFromStorage = (() => {
       try {
-        const currentState = pc.signalingState;
-        const remoteDesc = pc.remoteDescription;
-
-        // Only set remote description if we're in the right state
-        if (currentState === "have-local-offer") {
-          console.log("✅ Setting remote answer for", fromSocketId, "current state:", currentState);
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-          // Process queued ICE candidates after setting remote description
-          const queue = iceQueueRef.current.get(fromSocketId);
-          if (queue && queue.length > 0) {
-            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
-            for (const candidate of queue) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              } catch (err) {
-                if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
-                }
-              }
-            }
-            iceQueueRef.current.delete(fromSocketId);
-          }
-        } else if (currentState === "stable" && !remoteDesc) {
-          // If we're stable but don't have a remote description yet, try to set it
-          console.log("⚠️ Setting remote answer in stable state (no remote desc yet) for", fromSocketId);
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-          // Process queued ICE candidates
-          const queue = iceQueueRef.current.get(fromSocketId);
-          if (queue && queue.length > 0) {
-            console.log("🔄 Processing", queue.length, "queued ICE candidates for", fromSocketId);
-            for (const candidate of queue) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              } catch (err) {
-                if (err.name !== "OperationError" || !err.message?.includes("already exists")) {
-                  console.warn("⚠️ Failed to process queued ICE candidate:", err);
-                }
-              }
-            }
-            iceQueueRef.current.delete(fromSocketId);
-          }
-        } else if (currentState === "stable" && remoteDesc) {
-          // Already have remote description, might be a duplicate answer
-          console.log("ℹ️ Ignoring duplicate answer - already have remote description for", fromSocketId);
-        } else {
-          console.warn("⚠️ Cannot set remote answer - wrong state:", currentState, "for", fromSocketId);
-        }
-      } catch (err) {
-        // If it's just a state error and we already have a connection, it's okay
-        if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
-          console.log("ℹ️ Answer received but connection already established for", fromSocketId);
-        } else {
-          console.error("❌ Error setting remote answer:", err, "for", fromSocketId);
-        }
+        return sessionStorage.getItem(`meeting_preJoinCompleted_${stableKey}`) === "true";
+      } catch {
+        return false;
       }
-    };
+    })();
+    // After a full page reload, show pre-join again; sessionStorage completion only applies within same document load.
+    const alreadyEnteredThisLoad =
+      !!preJoinCompletedRef.current[stableKey] || (!isPageReload && completedFromStorage);
 
-    const onIceCandidate = async (data) => {
-      const fromSocketId = data?.fromSocketId || data?.socketId || data?.from;
-      const mid = data?.meetingId;
-      const candidate = data?.candidate;
-      if (!fromSocketId || !mid || !candidate) return;
-      if (mid !== meetingIdRef.current) return;
+    // Modal is open and user has not confirmed — do not start RTC or re-trigger logic (fixes socket reconnect / dep churn).
+    const waitingOnPreJoinUi =
+      preJoinOpenedThisLoadRef.current && !preJoinCompletedRef.current[stableKey];
+    if (waitingOnPreJoinUi) {
+      return;
+    }
 
-      const pc = peersRef.current.get(fromSocketId);
-      if (!pc) {
-        console.warn("⚠️ Received ICE candidate but no peer connection for", fromSocketId);
-        return;
-      }
+    // One gate: not completed yet, not already in room, not already showing pre-join this visit.
+    // Avoid (isPageReload && isReturning) — it kept shouldShowPreJoin true after the modal opened and caused duplicate opens / races after refresh.
+    const shouldShowPreJoin =
+      !alreadyEnteredThisLoad &&
+      !hasJoined &&
+      !preJoinOpenedThisLoadRef.current &&
+      !userDismissedPreJoinRef.current[stableKey];
 
-      // If remote description is not set yet, queue the candidate
-      if (!pc.remoteDescription) {
-        if (!iceQueueRef.current.has(fromSocketId)) {
-          iceQueueRef.current.set(fromSocketId, []);
-        }
-        iceQueueRef.current.get(fromSocketId).push(candidate);
-        console.log("📦 Queued ICE candidate for", fromSocketId, "queue size:", iceQueueRef.current.get(fromSocketId).length);
-        return;
-      }
-
-      // If we have remote description, add the candidate immediately
+    if (shouldShowPreJoin) {
+      let gateAlreadySet = false;
       try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("✅ Added ICE candidate for", fromSocketId);
-      } catch (err) {
-        // If it's just a state error and connection is already established, it's okay
-        if (err.name === "InvalidStateError" && pc.connectionState !== "new") {
-          console.log("ℹ️ ICE candidate received but connection already established for", fromSocketId);
-        } else if (err.name === "OperationError" && err.message?.includes("already exists")) {
-          // Duplicate candidate, ignore
-          console.log("ℹ️ Duplicate ICE candidate ignored for", fromSocketId);
+        gateAlreadySet = sessionStorage.getItem(preJoinUiGateStorageKey(stableKey)) === "1";
+      } catch {
+        /* ignore */
+      }
+      if (gateAlreadySet) {
+        const preJoinDone =
+          sessionStorage.getItem(`meeting_preJoinCompleted_${stableKey}`) === "true";
+        if (preJoinDone) {
+          preJoinCompletedRef.current[stableKey] = true;
+          preJoinOpenedThisLoadRef.current = false;
+          try {
+            sessionStorage.removeItem(preJoinUiGateStorageKey(stableKey));
+          } catch {
+            /* ignore */
+          }
+          // Remount / StrictMode: gate stuck from first open but user already confirmed — do not reopen modal.
         } else {
-          console.error("❌ Error adding ICE candidate:", err, "for", fromSocketId);
-        }
-      }
-    };
-
-    console.log("👂 Setting up socket listeners for meeting room");
-
-    // Unified event names: participantJoined, participantLeft, participantsList
-    socket.on("participantJoined", onParticipantJoined);
-    socket.on("participantLeft", onParticipantLeft);
-    socket.on("participantsList", async (participants) => {
-      console.log("📋 Received participantsList event:", participants);
-      if (!Array.isArray(participants)) return;
-
-      const stream = localStreamRef.current;
-      if (!stream) {
-        console.warn("⚠️ Local stream not ready for participantsList");
-        return;
-      }
-
-      for (const p of participants) {
-        const peerSocketId = p?.socketId || p?.id || p;
-        if (!peerSocketId || peerSocketId === socket.id) continue;
-        if (peersRef.current.has(peerSocketId)) continue;
-
-        // Store metadata if provided
-        const meta = {
-          member_id: p?.member_id || p?.memberId || p?.userId || p?.user_id,
-          member_name: p?.member_name || p?.memberName || p?.name,
-          member_photo: p?.member_photo || p?.memberPhoto || p?.photo,
-        };
-        if (meta.member_id || meta.member_name || meta.member_photo) {
-          peerMetaRef.current.set(peerSocketId, meta);
-        }
-
-        console.log("🔗 Creating peer connection from participantsList for", peerSocketId);
-        const pc = createPeerConnection(peerSocketId);
-        peersRef.current.set(peerSocketId, pc);
-
-        // Determine polite/impolite based on socket.id comparison
-        if (socket.id < peerSocketId) {
-          polite.current.set(peerSocketId, false); // We are impolite
-          console.log("🔵 We are impolite for", peerSocketId, "(our id is smaller)");
-          await createAndSendOffer(peerSocketId);
-        } else {
-          polite.current.set(peerSocketId, true); // We are polite
-          console.log("🟢 We are polite for", peerSocketId, "(their id is smaller)");
-        }
-      }
-    });
-
-    socket.on("webrtcOffer", onWebrtcOffer);
-    socket.on("webrtcAnswer", onWebrtcAnswer);
-    socket.on("webrtcIceCandidate", onIceCandidate);
-    const onReaction = (data) => {
-      try {
-        console.log("🎉 Received reaction event:", data);
-        const mid = data?.meetingId;
-        if (!mid || mid !== meetingIdRef.current) {
-          console.log("⚠️ Ignoring reaction - wrong meeting or missing meetingId", { received: mid, current: meetingIdRef.current });
+          preJoinPromptedRef.current[stableKey] = true;
+          preJoinOpenedThisLoadRef.current = true;
+          if (!showPreJoinModalRef.current) setShowPreJoinModal(true);
           return;
         }
-        const type = data?.type || data?.reaction || "like";
-        const fromMemberId = data?.member_id || data?.memberId || null;
-        const fromSocketId = data?.fromSocketId || data?.from || data?.socketId || null;
-        const fromName = data?.member_name || data?.memberName || data?.name || (fromSocketId ? getPeerLabel(fromSocketId) : null) || "Someone";
-        const key = fromMemberId || fromSocketId || fromName;
-        console.log("✅ Processing reaction:", { type, fromName, key });
-        addReactionToMap(key, type, fromName);
-      } catch (e) {
-        console.error("❌ Error handling reaction event:", e, data);
+      } else {
+        try {
+          sessionStorage.setItem(preJoinUiGateStorageKey(stableKey), "1");
+        } catch {
+          /* ignore */
+        }
+        preJoinPromptedRef.current[stableKey] = true;
+        preJoinOpenedThisLoadRef.current = true;
+        setShowPreJoinModal(true);
+        return;
       }
-    };
-    socket.on("reaction", onReaction);
-    // Also listen for alternative event names in case backend uses different naming
-    socket.on("meetingReaction", onReaction);
-    socket.on("reactionReceived", onReaction);
+    }
+    if (userDismissedPreJoinRef.current[stableKey]) {
+      return;
+    }
+    rtc.startAndJoinMeetingRtc().then((result) => {
+      if (result?.error) smartToast.error(result.error);
+    });
+  }, [meetingId, socket, isConnected, hasJoined, setShowPreJoinModal, preJoinDismissTick]);
 
-    return () => {
-      console.log("🧹 Removing socket listeners");
-      socket.off("participantJoined", onParticipantJoined);
-      socket.off("participantLeft", onParticipantLeft);
-      socket.off("participantsList");
-      socket.off("webrtcOffer", onWebrtcOffer);
-      socket.off("webrtcAnswer", onWebrtcAnswer);
-      socket.off("webrtcIceCandidate", onIceCandidate);
-      socket.off("reaction", onReaction);
-      socket.off("meetingReaction", onReaction);
-      socket.off("reactionReceived", onReaction);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closePeer, createPeerConnection, socket, createAndSendOffer]);
+  useEffect(() => {
+    if (!setMeetingMediaRefs) return;
+    setMeetingMediaRefs({
+      remoteVideoRefsMap,
+      localParticipantAudioMutedRef,
+      localParticipantVolumeRef,
+    });
+    return () => setMeetingMediaRefs(null);
+  }, [setMeetingMediaRefs]);
 
-  const getPeerLabel = useCallback((socketId) => {
-    const meta = peerMetaRef.current.get(socketId);
-    return meta?.member_name || meta?.member_id || socketId;
-  }, []);
+  useEffect(() => {
+    localParticipantAudioMutedRef.current = localParticipantAudioMuted;
+    localParticipantVolumeRef.current = localParticipantVolume;
+  }, [localParticipantAudioMuted, localParticipantVolume]);
+
+  useEffect(() => {
+    const map = remoteVideoRefsMap.current;
+    const lap = localParticipantAudioMutedRef.current;
+    const lpv = localParticipantVolumeRef.current;
+    if (map && map.forEach) {
+      map.forEach((el, socketId) => {
+        if (el) {
+          el.muted = !!meetingSpeakerMuted || !!lap[socketId];
+          el.volume = meetingSpeakerMuted ? 0 : (lpv[socketId] ?? 1);
+        }
+      });
+    }
+  }, [meetingSpeakerMuted, localParticipantAudioMuted, localParticipantVolume]);
+
+  useMeetingRoomMediaEffects({
+    localStreamRef,
+    cameraVideoTrackRef,
+    localVideoRef,
+    localVideoRef2,
+    remoteVideoRefsMap,
+    videoMuted,
+    audioMuted,
+    screenSharing,
+    hasJoined,
+    ensureMediaTracks: rtc.ensureMediaTracks,
+    remoteStreams: rtc.remoteStreams,
+    localParticipantAudioMuted,
+    localParticipantVolume,
+    meetingSpeakerMuted,
+  });
 
   const selfMemberId = useMemo(() => user?.id || user?.member_id || null, [user?.id, user?.member_id]);
   const selfEmail = useMemo(() => user?.email || null, [user?.email]);
@@ -877,968 +472,360 @@ const MeetingRoom = () => {
     () => user?.user_photo || user?.photo || user?.member_photo || null,
     [user?.user_photo, user?.photo, user?.member_photo]
   );
-  const [reactionsMap, setReactionsMap] = useState({}); // { memberKey: { like: [names], ... } }
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef = useRef(null);
-  const emojiList = ["👍", "❤️", "😂", "👏", "😮", "🎉"];
-  const [floatingEmojis, setFloatingEmojis] = useState([]);
 
-  const getReactionIcon = (type) => {
-    // If type already is an emoji character, show it
-    try {
-      if (typeof type === "string" && /[\p{Emoji}]/u.test(type)) return type;
-    } catch (e) {
-      // older engines may not support \p{Emoji}
-      if (typeof type === "string" && /[\u{1F300}-\u{1FAFF}\u{2700}-\u{27BF}]/u.test(type)) return type;
+  const { getPeerLabel, getParticipantStream } = useMeetingRoomParticipantHelpers({
+    peerMetaRef: rtc.peerMetaRef,
+    remoteStreams: rtc.remoteStreams,
+  });
+
+  const { unifiedTiles, memberTiles, adminTile, adminTileForMembers } = useMeetingRoomUnifiedTiles({
+    participants,
+    remoteStreams: rtc.remoteStreams,
+    socket,
+    selfMemberId,
+    videoMuted,
+    screenSharing,
+    mediaStateMap,
+    localStreamRef,
+    localStream,
+    isMeetingAdmin,
+    meetingInfo,
+    currentUserFromToken: user,
+  });
+
+  const {
+    isRecording,
+    isRecordingPaused,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    cancelRecording,
+  } = useMeetingRecording({
+    localStreamRef,
+    remoteStreams: rtc.remoteStreams,
+    recordingPayloadRef,
+    recordingStartedRef,
+    meetingId,
+    meetingInfo,
+    hasJoined,
+    isMeetingAdmin,
+  });
+
+  const handleRecordingStartOrResume = useCallback(() => {
+    if (isRecording && isRecordingPaused) {
+      resumeRecording();
+    } else if (!isRecording) {
+      startRecording();
     }
-    if (type === "like") return "👍";
-    if (type === "heart") return "❤️";
-    return type;
-  };
+  }, [isRecording, isRecordingPaused, resumeRecording, startRecording]);
 
-  const displayParticipants = useMemo(() => {
-    const list = Array.isArray(participants) ? participants : [];
-    return list.filter((p) => {
-      if (!p) return false;
-      if (selfMemberId && p.member_id && String(p.member_id) === String(selfMemberId)) return false;
-      if (selfEmail && p.member_email && String(p.member_email).toLowerCase() === String(selfEmail).toLowerCase()) return false;
-      return true;
-    });
-  }, [participants, selfEmail, selfMemberId]);
-
-  const getParticipantStream = useCallback(
-    (participant) => {
-      const memberId = participant?.member_id;
-      const email = participant?.member_email;
-
-      // Try to match REST participant -> socketId via metadata received in socket events/acks
-      for (const [socketId, meta] of peerMetaRef.current.entries()) {
-        if (memberId && meta?.member_id && String(meta.member_id) === String(memberId)) {
-          const stream = remoteStreams.find((x) => x.socketId === socketId)?.stream;
-          if (stream) {
-            console.log("✅ Matched participant by member_id:", memberId, "to socketId:", socketId);
-            return stream;
-          }
-        }
-        // Also try matching by email
-        if (email && meta?.member_email && String(meta.member_email).toLowerCase() === String(email).toLowerCase()) {
-          const stream = remoteStreams.find((x) => x.socketId === socketId)?.stream;
-          if (stream) {
-            console.log("✅ Matched participant by email:", email, "to socketId:", socketId);
-            return stream;
-          }
-        }
-      }
-
-      // If no match found, log for debugging
-      if (memberId || email) {
-        console.warn("⚠️ Could not match participant to stream:", { memberId, email, availableStreams: remoteStreams.length, availableMeta: Array.from(peerMetaRef.current.keys()) });
-      }
-      return null;
-    },
-    [remoteStreams]
-  );
-
-  const handleLeaveMeeting = async () => {
-    try {
-      if (!meetingId) {
-        smartToast.error("Missing meeting id. Can't leave meeting.");
-        return;
-      }
-
-      // Stop WebRTC + leave socket room first (without disconnecting the app socket)
-      stopMeetingRtc();
-
-      await api.post(`/meeting/${meetingId}/leave`);
-      try {
-        sessionStorage.removeItem("activeMeetingId");
-        sessionStorage.removeItem("activeMeetingGroupId");
-      } catch (e) {
-        // ignore storage errors
-      }
-      smartToast.success("Left the meeting.");
-      // Return user to chats after leaving
-      navigate("/home");
-    } catch (error) {
-      console.error("❌ Error leaving meeting:", error);
-      smartToast.error(
-        error.response?.data?.message || error.message || "Failed to leave meeting. Please try again."
-      );
+  const handleRecordingStop = useCallback(() => {
+    if (isRecording && !isRecordingPaused) {
+      pauseRecording();
     }
-  };
+  }, [isRecording, isRecordingPaused, pauseRecording]);
 
-  const handleMeetingEnded = async () => {
+  const handleRecordingEnd = useCallback(() => {
+    if (!isRecording) return;
+    setShowSaveRecordingModal(true);
+  }, [isRecording]);
+
+  const handleConfirmSaveRecording = useCallback(() => {
+    setShowSaveRecordingModal(false);
+    stopRecording(recordingPayloadRef?.current);
+  }, [stopRecording]);
+
+  const handleCancelSaveRecording = useCallback(() => {
+    setShowSaveRecordingModal(false);
+    cancelRecording();
+  }, [cancelRecording]);
+
+  const { handleLeaveMeeting: handleLeaveMeetingBase, handleMeetingEnded } = useMeetingLifecycleHandlers({
+    meetingId,
+    meetingInfo,
+    isRecording,
+    stopRecording,
+    stopMeetingRtc: rtc.stopMeetingRtc,
+    navigate,
+    socket,
+    recordingStartedRef,
+  });
+  const handleLeaveMeeting = useCallback(() => {
+    userLeftMeetingRef.current = true;
     try {
-      console.log("⏰ Meeting has ended, auto-exiting...");
-      if (!meetingId) return;
-
-      // Stop WebRTC first
-      stopMeetingRtc();
-
-      // Emit event so MainChat knows to hide Join button
-      if (socket) {
-        socket.emit("meetingEnded", { meetingId }, () => { });
-      }
-
-      // Try to call leave API (best effort)
-      try {
-        await api.post(`/meeting/${meetingId}/leave`);
-        try {
-          sessionStorage.removeItem("activeMeetingId");
-          sessionStorage.removeItem("activeMeetingGroupId");
-        } catch (e) {
-          // ignore storage errors
-        }
-      } catch (e) {
-        console.warn("⚠️ Could not call leave API:", e);
-      }
-
-      // Show notification and redirect
-      smartToast.info("Meeting time has ended. Exiting...");
-      setTimeout(() => {
-        navigate("/home");
-      }, 1500);
-    } catch (error) {
-      console.error("❌ Error in handleMeetingEnded:", error);
+      const m = normalizeMeetingId(meetingIdRef.current ?? meetingId);
+      if (m != null) sessionStorage.removeItem(preJoinUiGateStorageKey(m));
+    } catch {
+      /* ignore */
     }
-  };
+    handleLeaveMeetingBase();
+  }, [handleLeaveMeetingBase, meetingId]);
 
-  // Socket listener for meeting end event
+  // Reset activeSlide to 0 if admin and currently on slide 2
   useEffect(() => {
-    if (!socket) return;
-
-    const onMeetingEnded = (data) => {
-      const mid = data?.meetingId;
-      if (!mid || mid !== meetingIdRef.current) return;
-      handleMeetingEnded();
-    };
-
-    socket.on("meetingEnded", onMeetingEnded);
-
-    return () => {
-      socket.off("meetingEnded", onMeetingEnded);
-    };
-  }, [socket]);
-
-  // Periodically check if meeting is still active (every 10 seconds)
-  useEffect(() => {
-    if (!meetingId) return;
-
-    const checkMeetingStatus = async () => {
-      try {
-        const res = await api.get(`/meeting/${meetingId}`);
-        const root = res?.data;
-
-        // Handle response format from API
-        // Response could be: { success: true, data: {...} } or { success: true, data: [{...}] }
-        let meeting;
-        if (root?.data) {
-          // If data is an array, find the meeting with matching ID
-          if (Array.isArray(root.data)) {
-            meeting = root.data.find(m => m.id === meetingId);
-          } else {
-            // If data is an object, use it directly
-            meeting = root.data;
-          }
-        } else {
-          // Fallback: use root as meeting if it has required fields
-          meeting = root?.id ? root : null;
-        }
-
-        if (!meeting) {
-          console.log("⏰ Meeting not found, ending...");
-          handleMeetingEnded();
-          return;
-        }
-
-        // console.log("📋 Meeting data:", {
-        //   id: meeting.id,
-        //   status: meeting.status,
-        //   end_time: meeting.end_time,
-        //   start_time: meeting.start_time
-        // });
-
-        const status = meeting?.status || "";
-        const normalizedStatus = (status || "").toString().trim().toLowerCase();
-
-        // If meeting is finished, ended, or closed, end the session
-        if (["finished", "ended", "closed"].includes(normalizedStatus)) {
-          console.log("⏰ Meeting status is", normalizedStatus, ", ending...");
-          handleMeetingEnded();
-          return;
-        }
-
-        // Check if end_time has passed
-        const endTime = meeting?.end_time;
-        if (endTime) {
-          const endDateTime = new Date(endTime);
-          const now = new Date();
-          const timeUntilEnd = endDateTime - now;
-
-          if (now >= endDateTime) {
-            console.log("⏰ Meeting end time reached, ending...");
-            handleMeetingEnded();
-            return;
-          }
-        }
-      } catch (error) {
-        // If API returns 404 or error, meeting likely ended
-        if (error.response?.status === 404) {
-          console.log("⏰ Meeting not found (404), ending...");
-          handleMeetingEnded();
-        } else {
-          console.warn("⚠️ Could not check meeting status:", error);
-        }
-      }
-    };
-
-    const interval = setInterval(checkMeetingStatus, 10000); // Check every 10 seconds
-    return () => clearInterval(interval);
-  }, [meetingId]);
-
-  const handleToggleAudio = () => {
-    const next = !audioMuted;
-    setAudioMuted(next);
-    const stream = localStreamRef.current;
-    if (stream) {
-      stream.getAudioTracks().forEach((t) => (t.enabled = !next));
+    if (isMeetingAdmin && activeSlide > 1) {
+      setActiveSlide(0);
     }
-    const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted: next, videoMuted });
-    }
-  };
+  }, [isMeetingAdmin, activeSlide]);
 
-  const handleToggleVideo = () => {
-    const next = !videoMuted;
-    setVideoMuted(next);
-    const stream = localStreamRef.current;
-    if (stream) {
-      stream.getVideoTracks().forEach((t) => (t.enabled = !next));
-    }
-    const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("updateMediaState", { meetingId: mid, audioMuted, videoMuted: next });
-    }
-  };
-
-  const handleToggleHand = () => {
-    const next = !handRaised;
-    setHandRaised(next);
-    const mid = meetingIdRef.current;
-    if (socket && mid) {
-      socket.emit("raiseHand", { meetingId: mid, raised: next });
-    }
-  };
-
-  const toggleFullscreenForElement = (el) => {
-    if (!el) return;
-    const doc = document;
-    const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
-    if (isFullscreen) {
-      const exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
-      if (exit) exit.call(doc);
+  // For admins, limit activeSlide to 0 or 1 (only 2 screens)
+  const handleSetActiveSlide = useCallback((slide) => {
+    if (isMeetingAdmin && slide > 1) {
+      setActiveSlide(1);
     } else {
-      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-      if (req) req.call(el);
+      setActiveSlide(slide);
     }
-  };
+  }, [isMeetingAdmin]);
 
-  const isScreenShareStream = (stream) => {
-    if (!stream) return false;
-    return stream.getVideoTracks().some((t) => {
-      try {
-        const s = t.getSettings?.();
-        if (s?.displaySurface === "monitor" || s?.displaySurface === "window" || s?.displaySurface === "browser") {
-          return true;
-        }
-        const label = (t.label || "").toLowerCase();
-        return label.includes("screen") || label.includes("display");
-      } catch {
-        return false;
-      }
-    });
-  };
+  const {
+    reactionsMap,
+    showEmojiPicker,
+    setShowEmojiPicker,
+    emojiPickerRef,
+    emojiList,
+    floatingEmojis,
+    addReactionToMap,
+    spawnFloatingEmojis,
+    setReactionsMap,
+    handleSendLike,
+    selectEmoji,
+  } = useMeetingRoomReactions({
+    meetingId,
+    setHandRaisedMap,
+    meetingIdRef,
+    socket,
+    user,
+    selfMemberId,
+    selfEmail,
+  });
 
-  const handleSendLike = () => {
-    const mid = meetingIdRef.current;
-    if (!socket || !mid) {
-      console.warn("⚠️ Cannot send reaction - socket or meetingId missing");
-      return;
-    }
-    // include sender info so server can broadcast who reacted
-    const payload = {
-      meetingId: mid,
-      type: "like",
-      member_id: selfMemberId,
-      member_name: user?.name || user?.member_name || user?.email || "You",
-      fromSocketId: socket.id,
-    };
-    console.log("📤 Emitting reaction:", payload);
-    socket.emit("reaction", payload, (ack) => {
-      if (ack && !ack.ok) {
-        console.error("❌ Reaction emit failed:", ack);
-      } else {
-        console.log("✅ Reaction emit acknowledged:", ack);
-      }
-    });
+  const {
+    screenShareFullscreenRef,
+    memberVideoFullscreenRef,
+    screenShareVideoRef,
+    memberVideoVideoRef,
+    toggleFullscreenForScreenShare,
+    toggleFullscreenForMember,
+  } = useMeetingRoomFullscreen({
+    localParticipantAudioMuted,
+    localParticipantVolume,
+    remoteStreams: rtc.remoteStreams,
+  });
 
-    // Optimistically show local reaction on your own tile
-    try {
-      const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
-      const name = user?.name || user?.member_name || user?.email || "You";
-      addReactionToMap(key, "like", name);
-    } catch (e) {
-      console.warn("Could not add local reaction:", e);
-    }
-  };
+  useMeetingRoomMeetingLifecycle({
+    meetingId,
+    meetingIdRef,
+    socket,
+    onMeetingEnded: handleMeetingEnded,
+    setMeetingTitle,
+  });
 
-  const selectEmoji = (emoji) => {
-    const mid = meetingIdRef.current;
-    if (!mid || !socket) {
-      console.warn("⚠️ Cannot send emoji - socket or meetingId missing");
-      return;
-    }
-    const payload = {
-      meetingId: mid,
-      type: emoji, // use emoji char as type
-      member_id: selfMemberId,
-      member_name: user?.name || user?.member_name || user?.email || "You",
-      fromSocketId: socket.id,
-    };
-    console.log("📤 Emitting emoji reaction:", payload);
-    socket.emit("reaction", payload, (ack) => {
-      if (ack && !ack.ok) {
-        console.error("❌ Emoji reaction emit failed:", ack);
-      } else {
-        console.log("✅ Emoji reaction emit acknowledged:", ack);
-      }
-    });
-    // update local map
-    try {
-      const key = selfMemberId || selfEmail || socket.id || (user?.name || "You");
-      const name = user?.name || user?.member_name || user?.email || "You";
-      addReactionToMap(key, emoji, name);
-    } catch (e) {
-      console.warn("Could not add emoji locally:", e);
-    }
-    // spawn floating emojis across the meeting viewport
-    spawnFloatingEmojis(emoji, user?.name || user?.member_name || user?.email || "You", 7);
-    setShowEmojiPicker(false);
-  };
-
-  const spawnFloatingEmojis = (emoji, name, count = 6) => {
-    const container = sliderViewportRef.current;
-    const rect = container ? container.getBoundingClientRect() : null;
-    const items = [];
-    for (let i = 0; i < count; i++) {
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      // random positions inside container
-      const left = rect ? Math.max(8, Math.random() * (rect.width - 48)) : Math.random() * 400;
-      const top = rect ? Math.max(8, Math.random() * (rect.height - 48)) : Math.random() * 140;
-      items.push({ id, emoji, name, left, top });
-    }
-    setFloatingEmojis((prev) => [...prev, ...items]);
-    // remove them after 3.2s
-    setTimeout(() => {
-      setFloatingEmojis((prev) => prev.filter((f) => !items.find((it) => it.id === f.id)));
-    }, 3200);
-  };
-
+  /** Single view (slide 1): show screen share when sharing, else camera/photo. Sync localVideoRef2 to the right stream. */
   useEffect(() => {
-    if (!showEmojiPicker) return;
-    const onDocClick = (ev) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(ev.target)) {
-        setShowEmojiPicker(false);
+    const stream = localStreamRef?.current ?? localStream ?? null;
+    const el = localVideoRef2?.current;
+    if (!el || !stream) return;
+    if (screenSharing) {
+      const screenTrack = getScreenShareTrack(stream);
+      if (screenTrack) {
+        const screenOnly = new MediaStream([screenTrack]);
+        if (el.srcObject !== screenOnly) {
+          el.srcObject = screenOnly;
+        }
       }
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [showEmojiPicker]);
+    } else {
+      const cameraTrack = getCameraTrack(stream);
+      const displayStream = cameraTrack
+        ? new MediaStream([cameraTrack, ...stream.getAudioTracks()])
+        : new MediaStream(stream.getAudioTracks());
+      if (el.srcObject !== displayStream) {
+        el.srcObject = displayStream;
+      }
+    }
+  }, [screenSharing, localStream]);
 
-  const addReactionToMap = (memberKey, type, name) => {
-    setReactionsMap((prev) => {
+  /** Mute/unmute all participants locally (affects only this user's listening) */
+  const handleMuteUnmuteAllParticipants = useCallback(() => {
+    const remoteIds = unifiedTiles
+      .filter((t) => !t?.isSelf && t?.socketId)
+      .map((t) => t.socketId);
+    if (remoteIds.length === 0) return;
+    const allMuted = remoteIds.every((sid) => !!localParticipantAudioMuted[sid]);
+    const nextMuted = !allMuted;
+    setLocalParticipantAudioMuted((prev) => {
       const next = { ...prev };
-      const entry = next[memberKey] ? { ...next[memberKey] } : {};
-      const list = Array.isArray(entry[type]) ? [...entry[type]] : [];
-      if (!list.includes(name)) list.push(name);
-      entry[type] = list;
-      next[memberKey] = entry;
+      remoteIds.forEach((sid) => {
+        next[sid] = nextMuted;
+      });
       return next;
     });
-  };
+  }, [unifiedTiles, localParticipantAudioMuted]);
 
+  useMeetingRoomSocketListeners({
+    socket,
+    meetingIdRef,
+    peersRef: rtc.peersRef,
+    peerMetaRef: rtc.peerMetaRef,
+    politeRef: rtc.politeRef,
+    makingOfferRef: rtc.makingOfferRef,
+    iceQueueRef: rtc.iceQueueRef,
+    setParticipants,
+    setHandRaisedMap,
+    setReactionsMap,
+    setMediaStateMap,
+    setRemoteStreams: rtc.setRemoteStreams,
+    toParticipantFn: toParticipant,
+    localStreamRef,
+    ensureLocalMedia: rtc.ensureLocalMedia,
+    createPeerConnection: rtc.createPeerConnection,
+    createAndSendOffer: rtc.createAndSendOffer,
+    closePeer: rtc.closePeer,
+    getReactionIcon,
+    addReactionToMap,
+    spawnFloatingEmojis,
+    selfMemberId,
+    setAudioMuted,
+    setContextAudioMuted,
+    setLocalParticipantAudioMuted,
+    getVideoMuted: () => videoMuted,
+  });
 
   const handleToggleScreenShare = async () => {
-    let stream = localStreamRef.current;
-    if (!stream) {
-      try {
-        stream = await ensureLocalMedia();
-      } catch {
-        smartToast.error("Could not start screen share. Please join the meeting first.");
-        return;
-      }
-    }
-
-    if (!screenSharing) {
-      try {
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            displaySurface: "monitor",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: true
-        });
-        const screenTrack = displayStream.getVideoTracks()?.[0];
-        if (!screenTrack) return;
-
-        screenTrackRef.current = screenTrack;
-        setScreenSharing(true);
-
-        const streamForScreen = new MediaStream([...stream.getAudioTracks(), screenTrack]);
-        const mid = meetingIdRef.current;
-
-        console.log("🖥️ Replacing video tracks with screen share for", peersRef.current.size, "peers");
-        for (const [peerSocketId, pc] of peersRef.current.entries()) {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-          if (sender) {
-            console.log("🔄 Replacing track for peer", peerSocketId);
-            try {
-              await sender.replaceTrack(screenTrack);
-              // Always trigger renegotiation after replacing track
-              try {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                  if (ack && !ack.ok) {
-                    console.error("❌ Screen share renegotiation failed:", ack);
-                  } else {
-                    console.log("✅ Screen share renegotiation sent to", peerSocketId);
-                  }
-                });
-              } catch (renegErr) {
-                console.error("❌ Renegotiation for screen share failed:", renegErr);
-              }
-              console.log("✅ Screen share track replaced for", peerSocketId);
-            } catch (err) {
-              console.error("❌ Failed to replace track for", peerSocketId, ":", err);
-            }
-          } else {
-            console.log("➕ Adding screen share track to peer", peerSocketId);
-            pc.addTrack(screenTrack, streamForScreen);
-            try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              console.log("📤 Sending renegotiation offer for screen share to", peerSocketId);
-              socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, (ack) => {
-                if (ack && !ack.ok) {
-                  console.error("❌ Screen share renegotiation failed:", ack);
-                } else {
-                  console.log("✅ Screen share renegotiation sent to", peerSocketId);
-                }
-              });
-            } catch (err) {
-              console.error("❌ Renegotiation for screen share failed:", err);
-            }
-          }
-        }
-
-        const newStream = new MediaStream([...stream.getAudioTracks(), screenTrack]);
-        localStreamRef.current = newStream;
-        setLocalStream(newStream);
-        if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
-        if (localVideoRef2.current) localVideoRef2.current.srcObject = newStream;
-
-        screenTrack.onended = async () => {
-          try {
-            const cameraTrack = cameraVideoTrackRef.current;
-            const mid = meetingIdRef.current;
-            for (const [peerSocketId, pc] of peersRef.current.entries()) {
-              const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-              if (sender) {
-                await sender.replaceTrack(cameraTrack || null);
-                // Trigger renegotiation after replacing back to camera
-                try {
-                  const offer = await pc.createOffer();
-                  await pc.setLocalDescription(offer);
-                  if (socket && mid) {
-                    socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-                  }
-                } catch (err) {
-                  console.error("❌ Renegotiation after screen share ended failed:", err);
-                }
-              }
-            }
-            const restored = cameraTrack
-              ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
-              : new MediaStream(stream.getAudioTracks());
-            localStreamRef.current = restored;
-            setLocalStream(restored);
-            if (localVideoRef.current) localVideoRef.current.srcObject = restored;
-            if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
-          } finally {
-            setScreenSharing(false);
-            screenTrackRef.current = null;
-          }
-        };
-      } catch (e) {
-        console.error("❌ Screen share failed:", e);
-        smartToast.error("Screen share failed.");
-        setScreenSharing(false);
-      }
-    } else {
-      const screenTrack = screenTrackRef.current;
-      if (screenTrack) {
-        screenTrack.stop();
-        screenTrackRef.current = null;
-      }
-      const cameraTrack = cameraVideoTrackRef.current;
-      const mid = meetingIdRef.current;
-      for (const [peerSocketId, pc] of peersRef.current.entries()) {
-        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-        if (sender) {
-          sender.replaceTrack(cameraTrack || null).then(async () => {
-            // Trigger renegotiation after replacing back to camera
-            try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              if (socket && mid) {
-                socket.emit("webrtcOffer", { toSocketId: peerSocketId, meetingId: mid, sdp: offer }, () => { });
-              }
-            } catch (err) {
-              console.error("❌ Renegotiation after stopping screen share failed:", err);
-            }
-          }).catch(() => { });
-        }
-      }
-      const restored = cameraTrack
-        ? new MediaStream([...stream.getAudioTracks(), cameraTrack])
-        : new MediaStream(stream.getAudioTracks());
-      localStreamRef.current = restored;
-      setLocalStream(restored);
-      if (localVideoRef.current) localVideoRef.current.srcObject = restored;
-      if (localVideoRef2.current) localVideoRef2.current.srcObject = restored;
-      setScreenSharing(false);
-      smartToast.success("Screen share stopped.");
-    }
+    const result = await rtc.handleToggleScreenShare();
+    if (result?.error) smartToast.error(result.error);
   };
+
 
   return (
     <div className="meeting-room">
-      {/* Header */}
-      <div className="meeting-room-header">
-        <div className="meeting-room-title-wrap">
-          <h1 className="meeting-room-title">Meeting room</h1>
-          <p className="meeting-room-subtitle">Group Meeting name</p>
-        </div>
-        <button
-          type="button"
-          className="meeting-room-expand-btn"
-          aria-label="Leave meeting"
-          onClick={handleLeaveMeeting}
-          disabled={!meetingId}
-          title={!meetingId ? "Missing meeting id" : "Leave meeting"}
-        >
-          <SignOut size={20} weight="bold" />
-        </button>
-      </div>
+      <ConfirmDeleteModal
+        show={showSaveRecordingModal}
+        onClose={handleCancelSaveRecording}
+        onConfirm={handleConfirmSaveRecording}
+        title="Save recording"
+        message="Do you want to save this recording and upload it to the server? If you cancel, the recording will be discarded."
+        confirmLabel="OK"
+        confirmPrimary
+      />
 
-      <div className="meeting-room-slider-viewport" ref={sliderViewportRef}>
-        <div
-          className={`meeting-room-slider-track ${activeSlide === 1 ? 'single-view' : ''}`}
-          style={{ transform: `translateX(-${activeSlide * (100 / 3)}%)` }}
-        >
-          <div className="meeting-room-slide">
-            <div className="meeting-room-grid">
-              {/* Local tile (no fullscreen on own screen share - it's your screen) */}
-              <div className="meeting-room-tile">
-                <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                  {(!videoMuted || screenSharing) ? (
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : selfPhoto ? (
-                    <img
-                      src={selfPhoto}
-                      alt="Your profile"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        console.warn("❌ Failed to load profile photo:", selfPhoto);
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <span className="meeting-room-tile-initial">
-                      {(user?.name || user?.member_name || user?.email || "You")
-                        .toString()
-                        .trim()
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                {/* raised hand indicator for current user (local) */}
-                {handRaised && (
-                  <div className="meeting-room-hand-overlay" title="Raised hand">
-                    <HandWaving size={18} weight="bold" />
-                  </div>
-                )}
-                <span className="meeting-room-tile-badge you">You</span>
-              </div>
+      <MeetingRoomPreJoinModal
+        visible={preJoin.showPreJoinModal}
+        stream={preJoin.preJoinStream}
+        videoMuted={preJoin.preJoinVideoMuted}
+        audioMuted={preJoin.preJoinAudioMuted}
+        loading={preJoin.preJoinLoading}
+        error={preJoin.preJoinError}
+        videoRef={preJoin.preJoinVideoRef}
+        onClose={preJoin.handlePreJoinClose}
+        onToggleVideo={preJoin.handlePreJoinToggleVideo}
+        onToggleAudio={preJoin.handlePreJoinToggleAudio}
+        onEnter={preJoin.handlePreJoinEnter}
+        onClearError={preJoin.clearPreJoinError}
+      />
 
-              {/* Participants tiles (from GET /meeting/{id}/participants) */}
-              {loadingParticipants ? (
-                <div className="meeting-room-tile">
-                  <div className="meeting-room-tile-avatar">
-                    <span className="meeting-room-tile-initial">...</span>
-                  </div>
-                </div>
-              ) : displayParticipants.length === 0 ? null : (
-                displayParticipants.map((p) => {
-                  const label = p?.member_name || "Member";
-                  const stream = getParticipantStream(p);
-                  const isRemoteScreenShare = isScreenShareStream(stream);
-                  return (
-                    <div
-                      key={p?.id || p?.member_id || label}
-                      className="meeting-room-tile"
-                      role={isRemoteScreenShare ? "button" : undefined}
-                      tabIndex={isRemoteScreenShare ? 0 : undefined}
-                      onClick={(e) => {
-                        if (isRemoteScreenShare && e.currentTarget) {
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
-                          e.preventDefault();
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
-                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
-                    >
-                      <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                        {stream ? (
-                          <video
-                            autoPlay
-                            playsInline
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            ref={(el) => {
-                              if (el && stream) {
-                                if (el.srcObject !== stream) {
-                                  console.log("🎥 Setting video srcObject for participant:", label, "stream:", {
-                                    videoTracks: stream.getVideoTracks().length,
-                                    audioTracks: stream.getAudioTracks().length,
-                                  });
-                                  el.srcObject = stream;
-                                  el.play?.().catch((err) => {
-                                    console.warn("⚠️ Video play failed for", label, ":", err);
-                                  });
-                                }
-                              }
-                            }}
-                            onLoadedMetadata={() => {
-                              console.log("✅ Video metadata loaded for participant:", label);
-                            }}
-                            onError={(e) => {
-                              console.error("❌ Video error for participant:", label, e);
-                            }}
-                          />
-                        ) : p?.member_photo ? (
-                          <img
-                            src={p.member_photo}
-                            alt={label}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          <span className="meeting-room-tile-initial">
-                            {String(label).trim().charAt(0).toUpperCase() || "M"}
-                          </span>
-                        )}
-                      </div>
-                      {/* reactions for this participant */}
-                      {(() => {
-                        const memberKey = p?.member_id || p?.member_email || p?.id || label;
-                        const entry = reactionsMap[memberKey];
-                        if (!entry) return null;
-                        return Object.entries(entry).map(([type, names]) => (
-                          <div key={type} className="meeting-room-reaction" title={type}>
-                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                            <div className="reaction-names">{names.map((n) => (
-                              <div key={n} className="reaction-name">{n}</div>
-                            ))}</div>
-                          </div>
-                        ));
-                      })()}
-                      <span className="meeting-room-tile-badge admin">{label}</span>
-                    </div>
-                  );
-                })
-              )}
+      <MeetingRoomHeader
+        meetingTitle={meetingTitle}
+        onLeaveMeeting={handleLeaveMeeting}
+        meetingId={meetingId}
+        isRecording={isRecording}
+      />
 
-              {/* Unmatched remote streams (if backend doesn't provide member_id mapping) */}
-              {remoteStreams
-                .filter(({ socketId }) => {
-                  // Show stream if it's not already matched to a participant
-                  const meta = peerMetaRef.current.get(socketId);
-                  const isMatched = meta?.member_id && displayParticipants.some(p => String(p.member_id) === String(meta.member_id));
-                  return !isMatched;
-                })
-                .map(({ socketId, stream }) => {
-                  console.log("🎥 Rendering unmatched remote stream:", socketId, {
-                    videoTracks: stream.getVideoTracks().length,
-                    audioTracks: stream.getAudioTracks().length,
-                  });
-                  const isRemoteScreenShare = isScreenShareStream(stream);
-                  return (
-                    <div
-                      key={`unmatched-${socketId}`}
-                      className="meeting-room-tile"
-                      role={isRemoteScreenShare ? "button" : undefined}
-                      tabIndex={isRemoteScreenShare ? 0 : undefined}
-                      onClick={(e) => {
-                        if (isRemoteScreenShare && e.currentTarget) {
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (isRemoteScreenShare && (e.key === "Enter" || e.key === " ") && e.currentTarget) {
-                          e.preventDefault();
-                          toggleFullscreenForElement(e.currentTarget);
-                        }
-                      }}
-                      style={isRemoteScreenShare ? { cursor: "pointer" } : undefined}
-                      title={isRemoteScreenShare ? "Click to fullscreen, ESC to exit" : undefined}
-                    >
-                      <div className="meeting-room-tile-avatar" style={{ overflow: "hidden" }}>
-                        <video
-                          autoPlay
-                          playsInline
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          ref={(el) => {
-                            if (el && stream) {
-                              if (el.srcObject !== stream) {
-                                console.log("🎥 Setting video srcObject for unmatched stream:", socketId, "stream:", {
-                                  videoTracks: stream.getVideoTracks().length,
-                                  audioTracks: stream.getAudioTracks().length,
-                                });
-                                el.srcObject = stream;
-                                el.play?.().catch((err) => {
-                                  console.warn("⚠️ Video play failed for unmatched stream", socketId, ":", err);
-                                });
-                              }
-                            }
-                          }}
-                          onLoadedMetadata={() => {
-                            console.log("✅ Video metadata loaded for unmatched stream:", socketId);
-                          }}
-                          onError={(e) => {
-                            console.error("❌ Video error for unmatched stream:", socketId, e);
-                          }}
-                        />
-                      </div>
-                      {(() => {
-                        const key = socketId;
-                        const entry = reactionsMap[key];
-                        if (!entry) return null;
-                        return Object.entries(entry).map(([type, names]) => (
-                          <div key={type} className="meeting-room-reaction" title={type}>
-                            <div className="reaction-icon">{type === 'like' ? '👍' : '❤️'}</div>
-                            <div className="reaction-names">{names.map((n) => (
-                              <div key={n} className="reaction-name">{n}</div>
-                            ))}</div>
-                          </div>
-                        ));
-                      })()}
-                      <span className="meeting-room-tile-badge admin">{getPeerLabel(socketId)}</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+      <MeetingRoomFullscreenVideos
+        screenShareFullscreenRef={screenShareFullscreenRef}
+        screenShareVideoRef={screenShareVideoRef}
+        memberVideoFullscreenRef={memberVideoFullscreenRef}
+        memberVideoVideoRef={memberVideoVideoRef}
+      />
 
-          <div className="meeting-room-slide">
-            <div className="meeting-room-single">
-              {/* Local tile large (no fullscreen on own screen share - it's your screen) */}
-              <div className="meeting-room-tile-large">
-                <div className="meeting-room-tile-avatar large" style={{ overflow: "hidden" }}>
-                  {(!videoMuted || screenSharing) ? (
-                    <video
-                      ref={localVideoRef2}
-                      autoPlay
-                      playsInline
-                      muted
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : selfPhoto ? (
-                    <img
-                      src={selfPhoto}
-                      alt="Your profile"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        console.warn("❌ Failed to load profile photo:", selfPhoto);
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <span className="meeting-room-tile-initial">
-                      {(user?.name || user?.member_name || user?.email || "You")
-                        .toString()
-                        .trim()
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                {/* raised hand indicator for single view */}
-                {handRaised && (
-                  <div className="meeting-room-hand-overlay" title="Raised hand">
-                    <HandWaving size={18} weight="bold" />
-                  </div>
-                )}
-                <span className="meeting-room-tile-badge you">You</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="meeting-room-slide">
-            <div className="meeting-room-screen">
-              <div className="meeting-room-screen-preview">
-                <div className="meeting-room-screen-placeholder" />
-              </div>
-              <span className="meeting-room-tile-badge admin">Admin screen</span>
-            </div>
-          </div>
-        </div>
-
-        {/* floating emojis rendered over the viewport */}
-        {floatingEmojis.map((f) => (
-          <div
-            key={f.id}
-            className="floating-emoji"
-            style={{ left: f.left, top: f.top }}
-            title={`Emoji by ${f.name}`}
-          >
-            <div className="floating-emoji-char">{f.emoji}</div>
-            <div className="floating-emoji-by">Emoji by {f.name}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Slider dots */}
-      <div className="meeting-room-dots">
-        {[0, 1, 2].map((i) => (
-          <button
-            key={i}
-            type="button"
-            className={`meeting-room-dot ${activeSlide === i ? "active" : ""}`}
-            onClick={() => setActiveSlide(i)}
-            aria-label={`View ${i === 0 ? "members" : i === 1 ? "you" : "screen"}`}
-          />
-        ))}
-      </div>
-
-      {/* Control bar */}
-      <div className={`meeting-room-control-bar ${showCommentInput ? 'has-input' : ''}`}>
-        <div className="meeting-room-controls">
-          <button
-            type="button"
-            className={`meeting-room-control-btn ${audioMuted ? "" : "active"}`}
-            aria-label="Microphone"
-            onClick={handleToggleAudio}
-            disabled={!meetingId}
-            title={!meetingId ? "Missing meeting id" : audioMuted ? "Unmute" : "Mute"}
-          >
-            {audioMuted ? (
-              <MicrophoneSlash size={22} weight="regular" />
-            ) : (
-              <Microphone size={22} weight="regular" />
-            )}
-          </button>
-          <button
-            type="button"
-            className={`meeting-room-control-btn ${handRaised ? "active" : ""}`}
-            aria-label="Raise hand"
-            onClick={handleToggleHand}
-            disabled={!meetingId}
-          >
-            <HandWaving size={22} weight="regular" />
-          </button>
-          <button
-            type="button"
-            className={`meeting-room-control-btn ${videoMuted ? "" : "active"}`}
-            aria-label="Camera"
-            onClick={handleToggleVideo}
-            disabled={!meetingId}
-            title={!meetingId ? "Missing meeting id" : videoMuted ? "Turn camera on" : "Turn camera off"}
-          >
-            <VideoCamera size={22} weight="regular" />
-          </button>
-          <button
-            type="button"
-            className={`meeting-room-control-btn ${screenSharing ? "active" : ""}`}
-            aria-label="Share screen"
-            onClick={handleToggleScreenShare}
-            disabled={!meetingId}
-          >
-            <MonitorArrowUp size={22} weight="regular" />
-          </button>
-          <button
-            type="button"
-            className="meeting-room-control-btn"
-            aria-label="Reactions"
-            onClick={() => setShowEmojiPicker((s) => !s)}
-            disabled={!meetingId}
-            title={!meetingId ? "Missing meeting id" : "Send like"}
-          >
-            <Smiley size={22} weight="regular" />
-          </button>
-          <button type="button" className="meeting-room-control-btn" aria-label="Chat" onClick={() => setShowCommentInput(true)}>
-            <ChatCircleDots size={22} weight="regular" />
-          </button>
-        </div>
-        {showCommentInput && (
-          <div className="meeting-room-comment-wrapper">
-            <input
-              type="text"
-              placeholder="Type a Comment..."
-              className="meeting-room-comment-input visible"
-              autoFocus
-              onBlur={() => setShowCommentInput(false)}
+      <div className="meeting-room-carousel-container">
+        <MeetingRoomSliderViewport
+          sliderViewportRef={sliderViewportRef}
+          activeSlide={activeSlide}
+          isAdmin={isMeetingAdmin}
+          slide0={
+            <MeetingRoomGrid
+              unifiedTiles={unifiedTiles}
+              handRaised={hand.handRaised}
+              handRaisedMap={handRaisedMap}
+              localVideoRef={localVideoRef}
+              remoteVideoRefsMap={remoteVideoRefsMap}
+              localParticipantAudioMuted={localParticipantAudioMuted}
+              localParticipantVolume={localParticipantVolume}
+              meetingSpeakerMuted={meetingSpeakerMuted}
+              toggleFullscreenForScreenShare={toggleFullscreenForScreenShare}
+              toggleFullscreenForMember={toggleFullscreenForMember}
             />
-            <button
-              type="button"
-              className="meeting-room-comment-send-btn"
-              aria-label="Send comment"
-            >
-              <ArrowUp size={18} weight="regular" />
-            </button>
-          </div>
-        )}
-        {/* Emoji picker popup */}
-        {showEmojiPicker && (
-          <div className="meeting-room-emoji-picker" ref={emojiPickerRef}>
-            {emojiList.map((e) => (
-              <button
-                key={e}
-                type="button"
-                className="emoji-btn"
-                onClick={() => selectEmoji(e)}
-                aria-label={`React ${e}`}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        )}
+          }
+          slide1={
+            <MeetingRoomSingleView
+              localVideoRef2={localVideoRef2}
+              videoMuted={videoMuted}
+              screenSharing={screenSharing}
+              selfPhoto={selfPhoto}
+              user={user}
+              handRaised={hand.handRaised}
+            />
+          }
+          slide2={
+            !isMeetingAdmin ? (
+              <MeetingRoomScreenPlaceholder
+                adminTile={adminTileForMembers}
+                remoteVideoRefsMap={remoteVideoRefsMap}
+                localParticipantAudioMuted={localParticipantAudioMuted}
+                localParticipantVolume={localParticipantVolume}
+                meetingSpeakerMuted={meetingSpeakerMuted}
+              />
+            ) : null
+          }
+          floatingEmojis={<MeetingRoomFloatingEmojis floatingEmojis={floatingEmojis} />}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        />
+
+        <div className="meeting-room-mobile-overlay">
+          <MeetingRoomSliderDots activeSlide={activeSlide} setActiveSlide={handleSetActiveSlide} isAdmin={isMeetingAdmin} />
+          <MeetingRoomControlBar
+            showCommentInput={chat.showCommentInput}
+            setShowCommentInput={chat.setShowCommentInput}
+            commentText={chat.commentText}
+            setCommentText={chat.setCommentText}
+            audioMuted={audioMuted}
+            videoMuted={videoMuted}
+            micLockedByAdmin={micLockedByAdmin}
+            handRaised={hand.handRaised}
+            screenSharing={screenSharing}
+            meetingId={meetingId}
+            unifiedTiles={unifiedTiles}
+            localParticipantAudioMuted={localParticipantAudioMuted}
+            handleToggleAudio={rtc.handleToggleAudio}
+            handleToggleHand={hand.handleToggleHand}
+            handleToggleVideo={rtc.handleToggleVideo}
+            handleToggleScreenShare={handleToggleScreenShare}
+            handleSendLike={handleSendLike}
+            isRecording={isRecording}
+            onStartRecording={handleRecordingStartOrResume}
+            onStopRecording={handleRecordingStop}
+            onEndRecording={handleRecordingEnd}
+            isRecordingPaused={isRecordingPaused}
+            isMeetingAdmin={isMeetingAdmin}
+            handleMuteUnmuteAllParticipants={handleMuteUnmuteAllParticipants}
+            handleSendComment={chat.handleSendComment}
+            socket={socket}
+            isConnected={isConnected}
+            meetingSpeakerMuted={meetingSpeakerMuted}
+            setMeetingSpeakerMuted={setMeetingSpeakerMuted}
+            selectEmoji={selectEmoji}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            emojiPickerRef={emojiPickerRef}
+            emojiList={emojiList}
+          />
+        </div>
       </div>
+
+      <MeetingRoomReactionsContainer reactionsMap={reactionsMap} getReactionIcon={getReactionIcon} />
     </div>
   );
 };

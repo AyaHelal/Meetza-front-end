@@ -5,6 +5,11 @@ body {
   overflow-x: hidden;
 }
 
+/* Ensure inner wrapper doesn't override the global background */
+.landing-background {
+  background: transparent;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 html::-webkit-scrollbar {
   display: none;
@@ -80,7 +85,7 @@ html:not(.group-chat-active) {
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: #00dc85;
+  background: var(--secondary-color);
   color: #fff;
   font-size: 20px;
   line-height: 44px;
@@ -100,7 +105,10 @@ html:not(.group-chat-active) {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
 }
 
 .back-to-top.visible {
@@ -195,3 +203,6 @@ html:not(.group-chat-active) {
     margin: 0 2rem 12rem 2rem;
   }
 }
+
+
+

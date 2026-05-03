@@ -7,6 +7,64 @@
   z-index: 20;
 }
 
+.chat-reply-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.chat-reply-banner-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-reply-banner-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1565c0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+
+.chat-reply-banner-meta {
+  font-weight: 600;
+  color: #0d47a1;
+}
+
+.chat-reply-banner-snippet {
+  display: block;
+  color: #424242;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.chat-reply-banner-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #1565c0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  line-height: 0;
+}
+
+.chat-reply-banner-dismiss:hover {
+  background: rgba(21, 101, 192, 0.08);
+}
+
 .chat-media-preview {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -211,12 +269,12 @@
 }
 
 .attachment-menu button:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-light);
 }
 
 .attachment-menu button span {
   font-size: 14px;
-  color: #333;
+  color: var(--text-dark);
 }
 
 .attachment-button {
@@ -237,7 +295,7 @@ input[type="text"] {
 
 /* Send button */
 .send {
-  background: #00dc85;
+  background: var(--secondary-color);
   color: white;
   border: none;
   border-radius: 50%;
@@ -258,3 +316,6 @@ input[type="text"] {
   background: #9edfc0;
   cursor: not-allowed;
 }
+
+
+

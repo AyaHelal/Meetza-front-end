@@ -1,0 +1,88 @@
+.legal-page {
+  min-height: 100vh;
+  padding: 3rem 1.25rem;
+  background-image: linear-gradient(
+    180deg,
+    rgba(33, 74, 184, 0.92) 0%,
+    rgba(0, 220, 133, 0.25) 55%,
+    rgba(33, 74, 184, 0.92) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top center;
+  color: #fff;
+}
+
+.legal-wrap {
+  width: min(900px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.legal-card {
+  max-width: 900px;
+  margin: 0 auto;
+  border-radius: 60px;
+  background: linear-gradient(135deg, #214ab8 30%, var(--secondary-color) 70%);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  padding: clamp(18px, 3vw, 34px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 0 80px rgba(0, 220, 133, 0.18);
+}
+
+.legal-back {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  padding: 0.5rem 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.legal-back:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.legal-back:focus,
+.legal-back:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.legal-title {
+  margin: 0 0 0.5rem;
+  font-weight: 800;
+}
+
+.legal-subtitle {
+  margin: 0 0 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.legal-body {
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.legal-body-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.legal-body h2 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.legal-body ul {
+  padding-left: 1.2rem;
+}
+
+
+
+

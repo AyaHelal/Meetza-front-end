@@ -2,6 +2,14 @@
 
 A comprehensive React-based platform designed for group communication and collaboration. Meetza enables users to connect through secure video meetings, real-time group chat, and efficient group management tools. Currently built as an educational project, it can be adapted for any type of organization in the future.
 
+## 📁 Repository Structure (Required)
+
+```text
+/src   → Source code
+/exe   → Executable files (if applicable)
+README.md
+```
+
 ## 🚀 Features
 
 - Secure Video Meetings: HD video calls with screen sharing, recording, and meeting notes
@@ -26,28 +34,122 @@ A comprehensive React-based platform designed for group communication and collab
 - Build Tool: Create React App (React Scripts 5.0.1)
 - Testing: Jest, React Testing Library
 
-## 📋 Prerequisites
+## ⚙️ Setup & Env
 
-- Node.js (v14 or higher)
-- npm or yarn package manager
+### Prerequisites and Dependencies
+
+#### System Requirements
+
+- OS: Windows / macOS / Linux
+- RAM: 4GB minimum (8GB recommended)
+- Disk: 1GB+ free space
+
+#### Required Software / Tools
+
+- Node.js: **v18+ recommended** (Docker build uses Node 18)
+- npm (or yarn)
+- Git
+
+#### External Services
+
+This frontend expects a backend API and a socket server:
+
+- API Base URL: `REACT_APP_API_URL` (default `http://localhost:4000/api`)
+- Socket URL: `REACT_APP_SOCKET_URL` (default `http://localhost:4000`)
+
+If your backend depends on a database or third‑party services, configure them on the backend and then point this frontend to it using the environment variables below.
+
+### Environment variables
+
+Create a `.env` file in the project root (you can copy from `.env.example`):
+
+    # Windows
+    copy .env.example .env
+
+    # Mac/Linux
+    cp .env.example .env
+
+Then update values as needed.
+
+Required variables:
+
+- `REACT_APP_API_URL`
+- `REACT_APP_SOCKET_URL`
+
+Optional (depending on your screens/features):
+
+- `REACT_APP_RECAPTCHA_SITE_KEY`
+
+### Environment modes
+
+#### Local Development
+Default setup uses local backend:
+- http://localhost:4000
+
+#### Production
+When deployed, replace with live server URLs in .env:
+- API: https://your-domain.com/api
+- Socket: https://your-domain.com
 
 ## 🔧 Installation
 
 1. Clone the repository
-      git clone <repository-url>
-   cd meetza
-   
+
+    git clone git@github.com:AyaHelal/Meetza-front-end.git
+    cd meetza
 
 2. Install dependencies
-      npm install
-   
 
-3. Start the development server
-      npm start
-   
+    npm install
 
-4. Open your browser
-   Navigate to [http://localhost:3000](http://localhost:3000)
+3. Configure the environment
+
+Make sure environment variables are set before running the app.
+
+Create your .env file from the example:
+
+# Windows
+copy .env.example .env
+
+# Mac/Linux
+cp .env.example .env
+
+4. Make sure backend is running
+
+## ▶️ Run
+
+### Development
+
+    npm start
+
+Open: http://localhost:3000
+
+### After building (serve `build/`)
+
+    npx serve -s build
+
+## 🏗 Build
+
+    npm run build
+
+Build output will be generated in the `build/` folder.
+
+This project is frontend-only and requires a backend server to function properly.
+
+## 🚀 Deployment
+
+### Docker (included)
+
+This repo includes `Dockerfile`, `nginx.conf`, and `docker-compose.yml`.
+
+    docker compose up --build
+
+Open: http://localhost:3001
+
+### Other common platforms
+
+- Vercel / Netlify: build command `npm run build`, publish directory `build/`, set env vars in the platform
+- CI/CD (GitHub Actions / GitLab CI): `npm ci` → `npm test` → `npm run build` → deploy artifacts
 
 ## 📖 Usage
 
@@ -69,11 +171,19 @@ npm test
 
 Launches the test runner in interactive watch mode.
 
-## 🏗 Building for Production
+## 📦 Pre-built Executable Setup (Optional)
 
-npm run build
+If you provide executables/installer files (optional for web apps), put them under:
 
-Builds the app for production to the build folder. The build is minified and optimized for the best performance.
+- `exe/`
+
+README should then include:
+
+- Download/installation instructions
+- How to run the executable
+- Any required prerequisites
+
+> Currently, this repository is submitted as **source code** + build/run/deployment instructions above.
 
 ## 🔗 Links
 

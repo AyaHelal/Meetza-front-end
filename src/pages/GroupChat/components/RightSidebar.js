@@ -8,6 +8,7 @@ import './RightSidebar.css';
 const RightSidebar = ({
     groupInfo,
     calendarEvents,
+    onGoToMeeting,
     user,
     isMobile,
     showMainChat,
@@ -23,7 +24,11 @@ const RightSidebar = ({
     contentSummary,
     mediaSummary,
     memberCount,
-    selectedChat
+    selectedChat,
+    onVideoSessionsClick,
+    showLeaveGroupInInfo = false,
+    onLeaveGroupClick,
+    leaveGroupLoading = false,
 }) => {
     const sidebarRef = useRef(null);
     const touchStartX = useRef(0);
@@ -87,14 +92,25 @@ const RightSidebar = ({
                     </div>
                 )}
                 <div className="video-sessions mt-2">
-                    <div className="video-banner">
+                    <button
+                        type="button"
+                        className="video-banner video-banner-btn"
+                        onClick={() => {
+                            if (isMobile) {
+                                onCloseMobile?.();
+                                setTimeout(() => onVideoSessionsClick?.(), 150);
+                            } else {
+                                onVideoSessionsClick?.();
+                            }
+                        }}
+                    >
                         <span className="play-icon">
                             <YoutubeLogo size={32} />
                         </span>
                         <span>Video Sessions</span>
-                    </div>
+                    </button>
                 </div>
-                <CalendarSection calendarEvents={calendarEvents} />
+                <CalendarSection calendarEvents={calendarEvents} onGoToMeeting={onGoToMeeting} />
                 {selectedChat !== null && (
                     <GroupInfo
                         groupInfo={groupInfo}
@@ -107,6 +123,9 @@ const RightSidebar = ({
                         memberCount={memberCount}
                         isMobile={isMobile}
                         onCloseMobile={onCloseMobile}
+                        showLeaveGroup={showLeaveGroupInInfo}
+                        onLeaveGroup={onLeaveGroupClick}
+                        leaveLoading={leaveGroupLoading}
                     />
                 )}
                 {/* UserStatus is now in AppLayout as fixed component */}

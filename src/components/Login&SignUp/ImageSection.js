@@ -21,7 +21,7 @@ const ImageSection = ({
             }}
         >
             <motion.img
-                src={images[currentImageIndex]}
+                src={images[currentImageIndex] || undefined}
                 alt="Illustration"
                 initial={{ opacity: 0.8 }}
                 animate={{ opacity: 1 }}

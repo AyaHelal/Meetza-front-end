@@ -1,24 +1,24 @@
 import React from 'react';
 import { List, Bell } from '@phosphor-icons/react';
 import './MobileHeader.css';
+import { useBranding } from '../../context/BrandingContext';
 
 const MobileHeader = ({
   onOpenNotifications,
   onOpenSidebar,
   unreadNotificationCount = 0
 }) => {
-  // Debug: Log count changes on mobile
-  React.useEffect(() => {
-    console.log('📱 MobileHeader - unreadNotificationCount:', unreadNotificationCount);
-  }, [unreadNotificationCount]);
-
+  const { systemName, logoUrl } = useBranding();
+  const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+  
   return (
     <div className="mobile-header">
       <div className="logo-section">
         <div className="logo-icon">
           <img
-            src="/assets/ss.png"
-            alt="logo"
+            src={(logoUrl && !isMeetza) ? logoUrl : "/assets/meetza_logo_1024.png"}
+            alt={systemName}
+            style={{ objectFit: 'contain' }}
           />
         </div>
         <div className="mobile-header-actions">
@@ -28,7 +28,6 @@ const MobileHeader = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔔 Bell clicked in right sidebar');
                 if (onOpenNotifications) {
                   onOpenNotifications(e);
                 }
@@ -49,7 +48,6 @@ const MobileHeader = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🍔 Hamburger clicked in right sidebar');
                 if (onOpenSidebar) {
                   onOpenSidebar(e);
                 }

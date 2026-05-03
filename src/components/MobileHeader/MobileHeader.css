@@ -51,7 +51,7 @@
     border: none;
     padding: 8px;
     cursor: pointer;
-    color: #333;
+    color: var(--text-dark);
     border-radius: 8px;
     transition: background-color 0.2s;
     display: flex;
@@ -60,7 +60,7 @@
   }
 
   .mobile-header .notification-bell-mobile:hover {
-    background-color: #f5f5f5;
+    background-color: var(--bg-light);
   }
 
   .notification-badge-mobile {
@@ -88,7 +88,7 @@
     border: none;
     padding: 8px;
     cursor: pointer;
-    color: #333;
+    color: var(--text-dark);
     border-radius: 8px;
     transition: background-color 0.2s;
     display: flex;
@@ -97,6 +97,9 @@
   }
 
   .mobile-header .hamburger-menu:hover {
-    background-color: #f5f5f5;
+    background-color: var(--bg-light);
   }
 }
+
+
+

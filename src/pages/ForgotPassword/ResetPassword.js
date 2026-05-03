@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { resetPassword } from "../../API/auth";
+import api from "../../API/axiosInstance";
+import BrandingLogo from "../../components/common/BrandingLogo";
+import { useBranding } from "../../context/BrandingContext";
 import PasswordField from "../../components/FormFields/PasswordField";
+import { resetPassword } from "../../API/auth";
 import "../Login/Login.css";
 import "./ForgotPassword.css";
 
 export default function ResetPassword() {
+    const { systemName, showPoweredBy } = useBranding();
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+    
     const [formData, setFormData] = useState({
         newPassword: "",
         confirmPassword: ""
@@ -26,7 +32,6 @@ export default function ResetPassword() {
         }
         // If not verified, still allow access but show a warning
         if (!isVerified) {
-            console.log("⚠️ Password reset without verification - API may not be available");
         }
     }, [navigate]);
 
@@ -46,9 +51,18 @@ export default function ResetPassword() {
         if (!formData.newPassword.trim()) {
             return "New password is required";
         }
-        if (formData.newPassword.length < 8) {
-            return "Password must be at least 8 characters long";
+        
+        const password = formData.newPassword;
+        const hasLowercase = /[a-z]/.test(password);
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+        const isLongEnough = password.length >= 8;
+
+        if (!hasLowercase || !hasUppercase || !hasNumber || !hasSpecialChar || !isLongEnough) {
+            return "Password must be at least 8 characters with uppercase, lowercase, number, and special character";
         }
+
         if (formData.newPassword !== formData.confirmPassword) {
             return "Passwords do not match";
         }
@@ -91,7 +105,6 @@ export default function ResetPassword() {
             console.error("Reset password error:", error);
             if (error.response?.status === 404) {
                 // If API is not available, still allow password reset
-                console.log("⚠️ Password reset API not available, but allowing password change");
                 setSuccess("Password updated successfully! (Note: Email verification may not be available)");
 
                 // Clear stored data
@@ -129,10 +142,28 @@ export default function ResetPassword() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        <img src="/assets/meetza.png" alt="Meetza" style={{
-                            maxWidth: '210px',
-                            height: 'auto'
-                        }} />
+                        <div className="d-flex flex-column align-items-center">
+                            <BrandingLogo
+                                showSystemName={!isMeetza}
+                                className={`d-flex flex-row align-items-center justify-content-center gap-2 ${isMeetza ? "meetza-standalone-logo" : ""}`}
+                                style={{
+                                    maxHeight: isMeetza ? '36px' : '60px',
+                                    objectFit: 'contain',
+                                    margin: '0',
+                                    padding: '0'
+                                }}
+                                systemNameStyle={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}
+                            />
+                            {(!isMeetza && showPoweredBy !== false) && (
+                                <div className="d-flex align-items-center justify-content-center mt-1 text-muted" style={{ fontSize: '0.75rem', gap: '5px' }}>
+                                    <span>Powered by</span>
+                                    <div className="d-flex align-items-center" style={{ gap: '2px' }}>
+                                        <img src="/assets/MeetzaLogo.png" alt="Meetza Logo" style={{ height: '18px', objectFit: 'contain' }} />
+                                        <img src="/assets/MeetzaWord.png" alt="Meetza Text" style={{ height: '18px', objectFit: 'contain', marginBottom: '-1px' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     {/* Title */}
@@ -200,6 +231,7 @@ export default function ResetPassword() {
                             onChange={handleChange}
                             name="newPassword"
                             label="New Password"
+                            showStrengthIndicator={true}
                         />
 
                         <div className="mt-3">

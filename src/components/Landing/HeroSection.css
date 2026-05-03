@@ -1,6 +1,5 @@
 /* Hero Section Styles */
 .hero-section {
-  background-size: cover;
   z-index: 1;
   background-attachment: fixed;
   min-height: 100vh;
@@ -10,6 +9,24 @@
   flex-direction: column;
   overflow-x: hidden;
   margin-bottom: 0;
+}
+
+/* Soften transition into next section */
+.hero-section::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(120px, 18vh, 240px);
+  pointer-events: none;
+  /* Fade hero into the page background below */
+  background: linear-gradient(
+    to bottom,
+    rgba(33, 74, 184, 0) 0%,
+    rgba(33, 74, 184, 0.65) 55%,
+    rgba(33, 74, 184, 0.92) 100%
+  );
 }
 
 .hero-content {
@@ -70,7 +87,7 @@
 }
 
 .hero-button-primary {
-  background-color: #00dc85;
+  background-color: var(--secondary-color);
   border: none;
   color: white;
 }
@@ -89,7 +106,7 @@
 }
 
 .hero-button-secondary {
-  background-color: #0076ea;
+  background-color: var(--primary-color);
   border: none;
   color: white;
 }
@@ -377,6 +394,46 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Landing navbar "Discover" dropdown */
+.hero-nav-container .hero-discover {
+  position: relative;
+}
+
+.hero-nav-container .hero-discover .dropdown-toggle::after {
+  margin-left: 0.5rem;
+  vertical-align: 0.15em;
+}
+
+.hero-nav-container .hero-discover-menu {
+  background: rgba(50, 65, 106, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 0.4rem;
+  min-width: 240px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25);
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item {
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item:hover,
+.hero-nav-container .hero-discover-menu .dropdown-item:focus {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.hero-nav-container .hero-discover-menu .dropdown-item:active {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(0);
+}
+
 /* Increase gaps between links on desktop */
 @media (min-width: 992px) {
   .hero-nav-container .navbar-nav {
@@ -387,9 +444,22 @@
 .hero-nav-container .nav-link:hover,
 .hero-nav-container .nav-link:active,
 .hero-nav-container .nav-link:focus {
-  background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
   outline: none;
+  box-shadow: none !important;
+}
+
+/* Remove Bootstrap focus ring/border on nav items (Landing navbar only) */
+.hero-nav-container .nav-link:focus-visible,
+.hero-nav-container .nav-link:focus,
+.hero-nav-container .dropdown-toggle:focus,
+.hero-nav-container .dropdown-toggle:focus-visible,
+.hero-nav-container .dropdown-item:focus,
+.hero-nav-container .dropdown-item:focus-visible,
+.hero-nav-container .btn:focus,
+.hero-nav-container .btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .hero-login-btn {
@@ -409,10 +479,9 @@
   outline: none;
 }
 
-.hero-section{
+.hero-section {
   min-height: 0;
 }
-
 
 .hero-login-btn:active {
   transform: translateY(0);
@@ -449,6 +518,17 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+  }
+
+  .hero-nav-container .hero-discover-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    margin: 0.25rem 0 0.5rem 0;
+  }
+
+  .hero-nav-container .hero-discover-menu .dropdown-item {
+    text-align: center;
   }
 
   .hero-nav-container .navbar-nav {
@@ -504,8 +584,8 @@
     padding: 0.625rem 0.875rem;
     min-height: 44px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: start;
+    justify-content: start;
     touch-action: manipulation;
   }
 
@@ -590,3 +670,6 @@
     max-width: 75px;
   }
 }
+
+
+

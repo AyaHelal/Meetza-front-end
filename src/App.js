@@ -2,12 +2,24 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { BrandingProvider, BrandingContext } from './context/BrandingContext';
 import { API_BASE_URL } from './API/axiosInstance';
 import Login from './pages/Login/Login';
 import SignUp from './pages/SignUp/SignUp';
 import Landing from './pages/Landing/Landing.js';
+import Blog from './pages/Blog/Blog';
+import BlogPost from './pages/Blog/BlogPost';
+import TermsPage from './pages/Legal/TermsPage';
+import PrivacyPage from './pages/Legal/PrivacyPage';
+import GuidelinesPage from './pages/Legal/GuidelinesPage';
 import GroupChat from './pages/GroupChat/GroupChat';
+import HomePage from './pages/Home/HomePage';
+import ProfilePage from './pages/Profile/ProfilePage';
+import VideoSessions from './pages/VideoSessions/VideoSessions';
+import AllVideosPage from './pages/VideoSessions/AllVideosPage';
+import SavedVideos from './pages/SavedVideos/SavedVideos';
 import Groups from './pages/Groups/Groups';
+import Calendar from './pages/Calendar/Calendar';
 import Meetings from './pages/Meetings/Meetings';
 import VerifyEmailCode from './pages/VerifyEmail/VerifyEmailCode';
 import ForgotPasswordForm from './pages/ForgotPassword/ForgotPasswordForm';
@@ -15,20 +27,73 @@ import VerifyResetCode from './pages/ForgotPassword/VerifyResetCode';
 import ResetPassword from './pages/ForgotPassword/ResetPassword';
 import PageLoader from './components/PageLoader/PageLoader.js';
 import AppLayout from './components/AppLayout/AppLayout';
-import { useState, useEffect, useContext, useRef } from "react";
+import AdminRoute from './components/AdminRoute';
+import CalendarRoute from './components/CalendarRoute';
+import ProfileRoute from './components/ProfileRoute';
+import AdminMeetingPage from './pages/AdminMeeting/AdminMeetingPage';
+import VideoBySlugPage from './pages/VideoSessions/VideoBySlugPage';
+import AppearancePage from './pages/Settings/AppearancePage';
+import { ChatbotProvider, ChatbotContainer } from './components/chatbot/chatbot';
+import NotFound from './pages/NotFound/NotFound';
+import { useEffect, useContext, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ensureUiSoundsUnlocked } from "./utils/uiSounds";
+
+/** Left-nav / AppLayout routes: suppress Lottie only when navigating between these. */
+function isMainAppShellPath(pathname) {
+  if (!pathname || typeof pathname !== "string") return false;
+  const exact = [
+    "/home",
+    "/messages",
+    "/groups",
+    "/calendar",
+    "/meetings",
+    "/video-sessions",
+    "/saved-videos",
+    "/admin-meetings",
+    "/profile",
+    "/settings",
+  ];
+  if (exact.includes(pathname)) return true;
+  return /^\/video(\/|$)/.test(pathname);
+}
+
 const AppRoutes = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const { token, initializing, isRemembered, loginUser } = useContext(AuthContext);
   const socialLoginProcessed = useRef(false);
+  const prevPathRef = useRef(location.pathname);
+  const [routeLoading, setRouteLoading] = useState(false);
+  // const [isChatbotOpen, setIsChatbotOpen] = useState(false); // Managed by ChatbotProvider now
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    ensureUiSoundsUnlocked();
   }, []);
+
+  // Lottie on route change for login, logout, landing, etc. — not when swapping main shell tabs only.
+  useEffect(() => {
+    const current = location.pathname;
+    const prev = prevPathRef.current ?? "";
+    prevPathRef.current = current;
+
+    const isAuthRoute = (p) => p === "/login" || p === "/signup";
+    const isLandingRoute = (p) => p === "/" || p === "/landing";
+
+    const suppressAuthSwitchLoader = isAuthRoute(current) && isAuthRoute(prev);
+    const suppressAuthEntryFromLanding = isAuthRoute(current) && isLandingRoute(prev);
+    const suppressMainShellLoader = isMainAppShellPath(current) && isMainAppShellPath(prev);
+
+    if (suppressMainShellLoader || suppressAuthSwitchLoader || suppressAuthEntryFromLanding) {
+      setRouteLoading(false);
+      return;
+    }
+
+    setRouteLoading(true);
+    const t = setTimeout(() => setRouteLoading(false), 650);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
 
   // When user closes tab/window while in a meeting, call leave API (same as Leave button)
   // Uses sendBeacon (more reliable on unload) with token in URL - backend accepts it via verifyTokenOrQuery
@@ -60,41 +125,18 @@ const AppRoutes = () => {
   }, []);
 
 
-  useEffect(() => {
-    if (location.pathname.startsWith("/landing")) {
-      setLoading(true);
-      const timer = setTimeout(() => setLoading(false), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [location]);
-
-  // Show loader only on initial navigation to /home (not when switching between pages)
-  useEffect(() => {
-    // Only show loader on initial mount or when coming from a different route type
-    const isProtectedRoute = location.pathname === "/home" || location.pathname === "/groups";
-    const wasProtectedRoute = sessionStorage.getItem('lastRoute')?.startsWith('/home') ||
-      sessionStorage.getItem('lastRoute')?.startsWith('/groups');
-
-    if (isProtectedRoute && !wasProtectedRoute && location.pathname === "/home") {
-      setLoading(true);
-      const timer = setTimeout(() => setLoading(false), 500);
-      return () => clearTimeout(timer);
-    }
-
-  // Store current route
-  sessionStorage.setItem('lastRoute', location.pathname);
-  }, [location.pathname]);
+  const { domains } = useContext(BrandingContext);
 
   // Handle social login redirect
   useEffect(() => {
     // Only process if we have token or error in URL and haven't processed yet
     const urlParams = new URLSearchParams(location.search);
-    const token = urlParams.get('token');
-    const user = urlParams.get('user');
+    const tokenFromUrl = urlParams.get('token');
+    const userDataStr = urlParams.get('user');
     const error = urlParams.get('error');
 
     // Skip if no token/error or already processed
-    if ((!token && !error) || socialLoginProcessed.current) {
+    if ((!tokenFromUrl && !error) || socialLoginProcessed.current) {
       return;
     }
 
@@ -109,23 +151,14 @@ const AppRoutes = () => {
     }
 
     // Process token
-    if (token) {
+    if (tokenFromUrl) {
       try {
         let userData = null;
 
         // Parse user data from URL (comes from backend)
-        if (user) {
+        if (userDataStr) {
           try {
-            userData = JSON.parse(decodeURIComponent(user));
-            console.log('✅ Parsed user data from URL:', userData);
-            console.log('📸 Photo fields in user data:', {
-              user_photo: userData?.user_photo,
-              photo: userData?.photo,
-              picture: userData?.picture,
-              avatar: userData?.avatar,
-              avatar_url: userData?.avatar_url,
-              google_photo: userData?.google_photo
-            });
+            userData = JSON.parse(decodeURIComponent(userDataStr));
 
             // Normalize Google photo field - Google OAuth typically returns 'picture'
             if (userData && !userData.user_photo && !userData.photo) {
@@ -150,26 +183,18 @@ const AppRoutes = () => {
         }
 
         // Store token and user data in localStorage (like normal login)
-        loginUser(userData, token, true); // true = localStorage (remember me)
-
-        // Verify token was stored
-        const storedToken = localStorage.getItem('token');
-        console.log('✅ Social login successful');
-        console.log('✅ Token stored in localStorage:', storedToken ? 'Yes' : 'No');
-        console.log('✅ Token value:', storedToken ? storedToken.substring(0, 20) + '...' : 'None');
-        console.log('✅ User data stored:', userData ? 'Yes' : 'No');
+        loginUser(userData, tokenFromUrl, true); // true = localStorage (remember me)
 
         // Wait a bit for state to update, then navigate
         setTimeout(() => {
           // Verify token is still there before navigating
           const verifyToken = localStorage.getItem('token');
           if (verifyToken) {
-            console.log('✅ Token verified before navigation');
             navigate('/home', { replace: true });
           } else {
             console.error('❌ Token not found after storage, retrying...');
             // Retry storing
-            loginUser(userData, token, true);
+            loginUser(userData, tokenFromUrl, true);
             setTimeout(() => navigate('/home', { replace: true }), 200);
           }
         }, 100);
@@ -179,14 +204,15 @@ const AppRoutes = () => {
         navigate('/login', { replace: true });
       }
     }
-  }, [location.search, loginUser, navigate]);
+  }, [location.search, loginUser, navigate, domains]);
 
-  if (loading || initializing) {
+  if (initializing || routeLoading) {
     return <PageLoader />;
   }
 
   return (
-    <Routes>
+    <>
+      <Routes>
       {/* Root: default to Landing; if remembered session exists, go to /home */}
       <Route
         path="/"
@@ -202,50 +228,88 @@ const AppRoutes = () => {
       />
       {/* Public Landing route */}
       <Route path="/landing" element={<Landing />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/guidelines" element={<GuidelinesPage />} />
       <Route path="/verify-email" element={<VerifyEmailCode />} />
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-reset-code" element={<VerifyResetCode />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Protected Home: if no token, go to Landing */}
+      {/* Protected routes: single AppLayout stays mounted across /home, /groups, /meetings */}
       <Route
-        path="/home"
-        element={token ? <AppLayout><GroupChat /></AppLayout> : <Navigate to="/landing" replace />}
-      />
-      <Route
-        path="/groups"
-        element={token ? <AppLayout><Groups /></AppLayout> : <Navigate to="/landing" replace />}
-      />
-      <Route
-        path="/meetings"
-        element={token ? <AppLayout><Meetings /></AppLayout> : <Navigate to="/landing" replace />}
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
+        path="/"
+        element={token ? <AppLayout /> : <Navigate to="/landing" replace />}
+      >
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<HomePage />} />
+        <Route
+          path="profile"
+          element={
+            <ProfileRoute>
+              <ProfilePage />
+            </ProfileRoute>
+          }
+        />
+        <Route path="messages" element={<GroupChat />} />
+        <Route path="video" element={<AllVideosPage />} />
+        <Route path="video/:slug" element={<VideoBySlugPage />} />
+        <Route path="video-sessions" element={<VideoSessions />} />
+        <Route path="saved-videos" element={<SavedVideos />} />
+        <Route path="groups" element={<Groups />} />
+        <Route
+          path="calendar"
+          element={
+            <CalendarRoute>
+              <Calendar />
+            </CalendarRoute>
+          }
+        />
+        <Route path="meetings" element={<Meetings />} />
+        <Route
+          path="admin-meetings"
+          element={
+            <AdminRoute>
+              <AdminMeetingPage />
+            </AdminRoute>
+          }
+        />
+        <Route path="settings" element={<AppearancePage />} />
+      </Route>
+      <Route path="/not-found" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/not-found" replace />} />
     </Routes>
-
-
+    {/* Global Robot Orb and Chatbot - Hidden on landing and auth pages */}
+    {!(location.pathname === "/" || location.pathname === "/landing" || location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/verify-email" || location.pathname === "/forgot-password" || location.pathname === "/verify-reset-code" || location.pathname === "/reset-password") && (
+      <ChatbotContainer />
+    )}
+    </>
   );
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <Router>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-          <AppRoutes />
-        </Router>
-      </SocketProvider>
-    </AuthProvider>
+    <BrandingProvider>
+      <ChatbotProvider>
+        <SocketProvider>
+          <Router>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+            />
+            <AppRoutes />
+          </Router>
+        </SocketProvider>
+      </ChatbotProvider>
+    </BrandingProvider>
   );
 }
 

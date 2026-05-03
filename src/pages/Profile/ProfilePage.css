@@ -1,0 +1,1160 @@
+/* Profile dashboard — match reference layout / tokens */
+
+.profile-page {
+  --profile-blue: #0d6efd;
+  --profile-green: #22c55e;
+  --profile-page-bg: #e8ecf1;
+  --profile-card-radius: 20px;
+  --profile-card-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --profile-meetings-card-max-height: 343px;
+  --profile-live-meetings-card-max-height: 285px;
+  --profile-notif-card-max-height: 134px;
+  --profile-files-card-max-height: 350px;
+  --profile-ongoing-shell-max-height: 175px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.profile-page.profile-page--member {
+  --profile-notif-card-max-height: 197px;
+}
+
+.profile-page.profile-page--no-saved-videos {
+  /* When Saved Videos section is empty, let Meetings occupy more vertical space. */
+  --profile-meetings-card-max-height: 420px;
+}
+
+.profile-dashboard-inner {
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/*
+ * Login.css applies `margin: 0 !important` to `.row` and `[class*="col-"]`, which removes
+ * Bootstrap's gutter margins (including vertical space between stacked columns on mobile).
+ * Restore grid offsets only inside the profile page.
+ */
+.profile-page>.profile-dashboard-inner>.row {
+  margin-left: calc(-0.5 * var(--bs-gutter-x)) !important;
+  margin-right: calc(-0.5 * var(--bs-gutter-x)) !important;
+  margin-top: calc(-1 * var(--bs-gutter-y)) !important;
+}
+
+.profile-page>.profile-dashboard-inner>.row>[class*="col-"] {
+  margin-top: var(--bs-gutter-y) !important;
+}
+
+/* Reliable vertical rhythm between cards inside each column */
+.profile-page .profile-dashboard-stack {
+  gap: 0.7rem !important;
+}
+
+/* Cards: large radius + soft shadow (reference) */
+.profile-design-card {
+  border-radius: var(--profile-card-radius) !important;
+  box-shadow: var(--profile-card-shadow) !important;
+}
+
+.profile-design-card .card-body,
+.profile-design-card .card-header {
+  border-radius: var(--profile-card-radius);
+}
+
+.profile-design-card.overflow-hidden .card-header {
+  border-radius: var(--profile-card-radius) var(--profile-card-radius) 0 0;
+}
+
+/* Welcome: compact strip */
+.profile-welcome-card .card-body {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+.profile-welcome-hand {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+/* Avatar + floating edit */
+.profile-avatar-block {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+
+.profile-avatar-block .user-photo-container {
+  margin: 0 auto;
+}
+
+.profile-avatar-block .user-photo-large .user-photo-avatar {
+  width: 128px;
+  height: 128px;
+}
+
+.profile-avatar-edit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 36px;
+  height: 36px;
+  background-color: var(--profile-blue) !important;
+  border-color: #fff !important;
+}
+
+.profile-page .profile-avatar-edit.btn-primary:hover {
+  background-color: #0a58ca !important;
+  border-color: #fff !important;
+}
+
+/* Profile field rows: bold label, value below, pencil right */
+.profile-field-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.profile-field-row--clickable {
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.profile-field-row--clickable:hover {
+  background: rgba(13, 110, 253, 0.06);
+}
+
+.profile-contact-row:hover {
+  background: transparent;
+}
+
+.profile-field-row--clickable:focus-visible {
+  outline: 2px solid rgba(13, 110, 253, 0.35);
+  outline-offset: 3px;
+}
+
+.profile-contact-row {
+  align-items: center;
+}
+
+.profile-contact-row__left {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #334155;
+  min-width: 0;
+}
+
+.profile-contact-row__right {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+.profile-field-row:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-field-row:first-of-type {
+  padding-top: 0;
+}
+
+.profile-field-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-field-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.2rem;
+}
+
+.profile-field-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+  word-break: break-word;
+  padding-left: 0.5rem;
+}
+
+.profile-field-edit-btn {
+  color: var(--profile-blue) !important;
+  padding: 0.15rem !important;
+  margin-top: -0.1rem;
+  line-height: 1;
+}
+
+.profile-field-edit-btn:hover {
+  color: #0a58ca !important;
+  background: rgba(13, 110, 253, 0.08) !important;
+}
+
+.profile-field-delete-btn {
+  color: #b91c1c !important;
+}
+
+.profile-field-delete-btn:hover:not(:disabled) {
+  color: #991b1b !important;
+  background: rgba(185, 28, 28, 0.08) !important;
+}
+
+.profile-field-delete-btn:disabled {
+  color: #94a3b8 !important;
+}
+
+/* Inline name edit — avoid global `* { max-width: 100% }` (Login.css) constraining the field oddly */
+.profile-name-edit {
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-name-edit-input.form-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Notification card — reference: bold title, hairline dividers, blue pill highlight */
+.profile-notif-card .card-body {
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: var(--profile-notif-card-max-height);
+}
+
+.profile-notif-card__title {
+  margin: 0;
+  padding: 1rem 1.1rem 0.65rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0a0a0a;
+  letter-spacing: -0.01em;
+}
+
+.profile-notif-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.75rem 0.85rem;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* legacy Edge */
+}
+
+.profile-notif-card__list::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.profile-notif-card__item {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #111827;
+  text-align: left;
+  line-height: 1.45;
+  border-bottom: 1px solid #e8eaef;
+}
+
+.profile-notif-card__item:last-child {
+  border-bottom: none;
+}
+
+.profile-notif-card__item.is-highlight {
+  margin: 0.45rem 0.15rem;
+  padding: 0.8rem 0.9rem;
+  font-weight: 500;
+  color: #ffffff;
+  background-color: var(--profile-blue);
+  border-radius: 13px;
+  border-bottom: none;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Hairline between highlight block and following row */
+.profile-notif-card__item.is-highlight+.profile-notif-card__item {
+  border-top: 1px solid #e8eaef;
+}
+
+/* Middle column: fill row height on large screens so Meetings can grow + scroll */
+@media (min-width: 1200px) {
+  .profile-dashboard-mid-stack {
+    height: 100%;
+  }
+}
+
+/* Saved Videos: full blue card + scroll list */
+.profile-saved-videos-card {
+  background-color: var(--primary-color) !important;
+  color: #fff;
+}
+
+.profile-saved-videos-card__head {
+  background: transparent !important;
+  padding: 0.75rem 0.9rem 0.35rem;
+}
+
+.profile-saved-videos-card__title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.profile-saved-head-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.profile-saved-head-icon__yt {
+  color: #111111;
+}
+
+.profile-saved-videos-card__body {
+  background: transparent !important;
+  padding: 0 0.9rem 0.85rem;
+  max-height: 235px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* legacy Edge */
+}
+
+.profile-saved-videos-card__body::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.profile-saved-videos-list .profile-saved-videos-tile {
+  margin-bottom: 1rem;
+}
+
+.profile-saved-videos-list .profile-saved-videos-tile:last-child {
+  margin-bottom: 0;
+}
+
+.profile-saved-videos-tile--static {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.profile-saved-video-card {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.profile-saved-video-card--static {
+  cursor: default;
+  pointer-events: none;
+}
+
+.profile-saved-video-card--live {
+  cursor: pointer;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.profile-saved-video-card--live:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.profile-saved-videos-view-all:hover,
+.profile-saved-videos-view-all:focus-visible {
+  text-decoration: underline !important;
+}
+
+.profile-saved-videos-status {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+}
+
+.profile-saved-videos-status--error {
+  color: #fecaca;
+}
+
+/* Must stay position:absolute to fill .ratio (never add position-relative on this node — it breaks Ratio) */
+.profile-saved-video-card .ratio>.profile-saved-video-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: var(--text-primary);
+}
+
+.profile-saved-video-thumb {
+  z-index: 0;
+}
+
+/* Bottom row: Video Title (physical left) + 3:22 (physical right) — LTR so RTL page matches mock */
+.profile-saved-pills {
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: 0.75rem;
+  width: auto;
+  z-index: 2;
+  /* above .profile-saved-video-thumb */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  direction: ltr;
+  text-align: start;
+  pointer-events: none;
+}
+
+.profile-saved-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.42rem 0.95rem;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.profile-saved-pill--title {
+  min-width: 0;
+  max-width: calc(100% - 5rem);
+}
+
+.profile-saved-pill--dur {
+  flex-shrink: 0;
+}
+
+/* Meetings card — max height من .profile-page (--profile-meetings-card-max-height) */
+.profile-meetings-card {
+  min-height: 0;
+  max-height: var(--profile-meetings-card-max-height);
+  width: 100%;
+  overflow: hidden;
+}
+
+.profile-meetings-card__body {
+  min-height: 0;
+}
+
+.profile-meetings-card__head {
+  flex-shrink: 0;
+  padding: 0.75rem 0.9rem 0.45rem;
+}
+
+.profile-meetings-view-calendar {
+  color: #0d6efd !important;
+  font-weight: 600;
+}
+
+.profile-meetings-view-calendar:hover,
+.profile-meetings-view-calendar:focus-visible {
+  color: #0a58ca !important;
+}
+
+.profile-meetings-status {
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+.profile-meetings-card__title {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0a0a0a;
+  letter-spacing: -0.01em;
+}
+
+.profile-meetings-card__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0.35rem 0.5rem;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* legacy Edge */
+}
+
+.profile-meetings-card__scroll::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.profile-meetings-list .list-group-item {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.profile-meetings-row {
+  padding-top: 0.95rem !important;
+  padding-bottom: 0.95rem !important;
+  border-bottom: 1px solid #e8eaef !important;
+}
+
+.profile-meetings-row:last-child {
+  border-bottom: none !important;
+}
+
+/* Mini calendar badge */
+.profile-meeting-date {
+  width: 70px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  align-self: flex-start;
+}
+
+.profile-meeting-month {
+  display: block;
+  background-color: var(--profile-blue);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.2rem;
+}
+
+.profile-meeting-day {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 0.45rem 0.2rem;
+  background: #f1f5f9;
+}
+
+.profile-meeting-online {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.profile-meeting-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.profile-meeting-live-dot--idle {
+  background: #cbd5e1;
+}
+
+.profile-meeting-group-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+/* Time row: large clock + small AM/PM under, chevron between */
+.profile-meeting-times {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.profile-meeting-time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+.profile-meeting-time-clock {
+  font-size: 1.7rem;
+  font-weight: 500;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.profile-meeting-time-meridian {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-top: 0.05rem;
+}
+
+.profile-meeting-times__chev {
+  color: #94a3b8;
+  margin: 0 0.15rem;
+  align-self: center;
+}
+
+/* Empty states — match reference cards */
+/* Specific card body overrides to center empty state */
+.profile-saved-videos-card__body:has(.empty-state-container),
+.profile-meetings-card__body:has(.empty-state-container),
+.profile-outgoing-card__body:has(.empty-state-container) {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-height: 240px;
+}
+
+.profile-files-card__body:has(.empty-state-container) {
+  /* Keep header left-aligned, empty state will center itself via its own CSS */
+}
+
+.profile-files-grid:has(.empty-state-container) {
+  display: block !important;
+}
+
+/* Uploaded files — CSS Grid so vertical gap between rows is reliable (not Bootstrap row gutters) */
+.profile-files-card {
+  min-height: 0;
+  max-height: var(--profile-files-card-max-height);
+  overflow: hidden;
+}
+
+.profile-files-card__body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-files-stack {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.profile-files-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* legacy Edge */
+}
+
+.profile-files-scroll::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.profile-files-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem 1.1rem;
+  width: 100%;
+}
+
+.profile-files-grid__cell {
+  min-width: 0;
+}
+
+/* File grid — dark tiles, white-ish labels */
+.profile-file-cell {
+  border-radius: 12px;
+  background: #616161;
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.profile-file-label {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.06em;
+  padding-bottom: 0.45rem;
+}
+
+/* Ongoing meeting — Frame: title outside dark shell; image + pill CTA inside */
+.profile-ongoing-card__title {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.profile-ongoing-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+  padding: 0.85rem 0.85rem 1rem;
+
+  min-height: var(--profile-ongoing-shell-max-height);
+  max-height: var(--profile-ongoing-shell-max-height);
+  overflow: hidden;
+  background-color: #121212;
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.profile-ongoing-preview {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #0a0a0a;
+}
+
+.profile-ongoing-preview__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* CTA — bright green pill (reference #00D17E) */
+.profile-ongoing-cta {
+  flex-shrink: 0;
+  background-color: #00d17e !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 999px !important;
+  padding-top: 0.7rem !important;
+  padding-bottom: 0.7rem !important;
+  box-shadow: 0 4px 18px rgba(0, 209, 126, 0.35);
+}
+
+.profile-ongoing-cta:hover {
+  background-color: #00b86f !important;
+  color: #ffffff !important;
+}
+
+/* يتضغط بدون تنقل — الـ onClick في ProfilePage.js فاضي */
+.profile-ongoing-cta--static {
+  cursor: pointer;
+}
+
+/* Live meeting alerts (Profile right column) */
+.profile-live-meetings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-live-meetings-card {
+  min-height: 0;
+  max-height: var(--profile-live-meetings-card-max-height);
+  overflow: hidden;
+}
+
+.profile-live-meetings-card__body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-live-meetings-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* legacy Edge */
+}
+
+.profile-live-meetings-scroll::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.profile-live-meeting-alert {
+  margin: 0;
+  cursor: pointer;
+  border-left-width: 6px;
+  animation: profileLivePulse 1.6s ease-in-out infinite;
+}
+
+.profile-live-meeting-alert:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.profile-live-meeting-alert:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.profile-live-meeting-alert:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+.profile-live-meeting-alert:focus-visible {
+  outline: 2px solid rgba(34, 197, 94, 0.6);
+  outline-offset: 3px;
+}
+
+/* Contact modal (Profile) */
+.profile-contact-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1050;
+}
+
+.profile-contact-modal {
+  width: min(560px, 96vw);
+  background: var(--card-bg);
+  border-radius: 18px;
+  box-shadow: var(--detail-card-shadow);
+  padding: 1rem;
+  color: var(--text-primary);
+}
+
+.profile-contact-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.profile-contact-modal__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.profile-contact-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  filter: var(--close-btn-filter);
+}
+
+.profile-contact-modal__close:hover {
+  color: var(--text-primary);
+}
+
+@keyframes profileLivePulse {
+
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.25);
+  }
+}
+
+/* ===== Profile: responsive (all breakpoints) ===== */
+@media (max-width: 1199.98px) {
+  .profile-dashboard-mid-stack {
+    height: auto !important;
+  }
+
+  .profile-page {
+    --profile-meetings-card-max-height: min(32vh, 230px);
+    --profile-live-meetings-card-max-height: min(30vh, 210px);
+    --profile-notif-card-max-height: min(26vh, 220px);
+    --profile-files-card-max-height: min(28vh, 220px);
+  }
+
+  .profile-saved-videos-card__body {
+    max-height: min(30vh, 190px);
+  }
+
+  .profile-meeting-time-clock {
+    font-size: 1.45rem;
+  }
+
+  .profile-avatar-block {
+    width: 112px;
+    height: 112px;
+  }
+
+  .profile-avatar-block .user-photo-large .user-photo-avatar {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .profile-page .profile-dashboard-inner {
+    padding-top: 1.25rem !important;
+    padding-bottom: 1.25rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .profile-page {
+    --profile-meetings-card-max-height: min(34vh, 210px);
+    --profile-live-meetings-card-max-height: min(32vh, 190px);
+    --profile-notif-card-max-height: min(26vh, 210px);
+    --profile-files-card-max-height: min(28vh, 210px);
+  }
+
+  .profile-page .profile-dashboard-stack {
+    gap: 0.65rem !important;
+  }
+
+  .profile-notif-card__title {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .profile-meetings-list .list-group-item {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  .profile-meetings-row {
+    gap: 0.65rem !important;
+  }
+
+  .profile-files-grid {
+    gap: 0.85rem 0.75rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .profile-page .profile-dashboard-inner {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+  }
+
+  .profile-welcome-card .card-body {
+    padding-top: 1.1rem !important;
+    padding-bottom: 1.1rem !important;
+  }
+
+  .profile-page {
+    --profile-meetings-card-max-height: min(36vh, 190px);
+    --profile-live-meetings-card-max-height: min(34vh, 175px);
+    --profile-notif-card-max-height: min(26vh, 200px);
+    --profile-files-card-max-height: min(28vh, 200px);
+  }
+
+  .profile-saved-videos-card__body {
+    max-height: min(32vh, 180px);
+  }
+
+  .profile-meeting-times {
+    flex-wrap: wrap;
+    align-items: flex-end;
+    row-gap: 0.25rem;
+  }
+
+  .profile-meeting-time-clock {
+    font-size: 1.2rem;
+  }
+
+  .profile-meeting-time-meridian {
+    font-size: 0.9rem;
+  }
+
+  .profile-meeting-date {
+    width: 58px;
+  }
+
+  .profile-meeting-day {
+    font-size: 1.05rem;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .profile-meeting-month {
+    font-size: 0.6rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+
+  .profile-design-card.profile-ongoing-card .card-body {
+    padding: 1rem !important;
+  }
+
+  .profile-ongoing-shell {
+    padding: 0.65rem 0.65rem 0.85rem;
+  }
+
+  .profile-ongoing-cta {
+    font-size: 0.88rem !important;
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+  }
+
+  .profile-file-label {
+    font-size: 0.62rem;
+  }
+
+  .profile-avatar-block {
+    width: 104px;
+    height: 104px;
+  }
+
+  .profile-avatar-block .user-photo-large .user-photo-avatar {
+    width: 104px;
+    height: 104px;
+  }
+
+  .profile-avatar-edit {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .profile-files-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 0.55rem;
+  }
+}
+
+/* Outgoing meetings section */
+.profile-outgoing-card {
+  min-height: 0;
+  max-height: var(--profile-live-meetings-card-max-height);
+  overflow: hidden;
+}
+
+.profile-outgoing-card__body {
+  min-height: 0;
+}
+
+.profile-outgoing-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.profile-outgoing-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-outgoing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-outgoing-list .outgoing-meeting-card:last-child {
+  margin-bottom: 0;
+}
+
+
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .profile-page {
+  --profile-page-bg: var(--bg-alt);
+  background-color: var(--bg-alt);
+}
+
+[data-theme="dark"] .profile-design-card {
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+[data-theme="dark"] .profile-field-row {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .profile-contact-row__left,
+[data-theme="dark"] .profile-field-label,
+[data-theme="dark"] .profile-notif-card__title,
+[data-theme="dark"] .profile-meetings-card__title,
+[data-theme="dark"] .profile-meeting-group-name,
+[data-theme="dark"] .profile-meeting-time-clock,
+[data-theme="dark"] .profile-ongoing-card__title,
+[data-theme="dark"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-contact-row__right,
+[data-theme="dark"] .profile-field-value,
+[data-theme="dark"] .profile-notif-card__item,
+[data-theme="dark"] .profile-meeting-online,
+[data-theme="dark"] .profile-meeting-time-meridian,
+[data-theme="dark"] .profile-meeting-times__chev,
+[data-theme="dark"] .profile-meeting-header-text .home-meeting-course,
+[data-theme="dark"] .profile-meeting-header-text .home-meeting-title,
+[data-theme="dark"] .profile-meeting-time-value {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-day {
+  background-color: var(--bg-alt) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-date {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .profile-meetings-row,
+[data-theme="dark"] .profile-notif-card__item {
+  border-bottom-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .profile-file-cell {
+  background-color: var(--bg-alt) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+[data-theme="dark"] .profile-saved-video-card {
+  background-color: var(--surface-color) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .profile-saved-head-icon {
+  background-color: var(--bg-alt) !important;
+}
+
+[data-theme="dark"] .profile-saved-head-icon__yt {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .profile-meeting-day {
+  background: var(--bg-alt) !important;
+}

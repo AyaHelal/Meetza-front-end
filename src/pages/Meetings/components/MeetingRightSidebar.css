@@ -1,10 +1,10 @@
+/* Right sidebar - no global scroll; each section scrolls independently */
 .meeting-right-sidebar {
     width: 300px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     flex-shrink: 0;
     min-height: 0;
     margin: 20px;
@@ -14,37 +14,107 @@
     box-sizing: border-box;
 }
 
-/* Custom scrollbar */
-.meeting-right-sidebar::-webkit-scrollbar {
+/* ── DARK THEME OVERRIDES ── */
+:root[data-theme="dark"] .meeting-right-sidebar {
+  background: var(--bg-color) !important;
+}
+:root[data-theme="dark"] .participate-card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+}
+:root[data-theme="dark"] .participate-title,
+:root[data-theme="dark"] .participant-name {
+  color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .participant-item--admin-pinned {
+  background: var(--card-bg) !important;
+}
+
+
+/* Scrollbars for localized sections - sidebar itself does not scroll */
+.video-description-scroll::-webkit-scrollbar,
+.participants-list::-webkit-scrollbar {
     width: 6px;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-track {
+.video-description-scroll::-webkit-scrollbar-track,
+.participants-list::-webkit-scrollbar-track {
     background: transparent;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-thumb {
+.video-description-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+}
+.video-description-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+.participants-list::-webkit-scrollbar-thumb {
     background: #d0d0d0;
     border-radius: 3px;
 }
-
-.meeting-right-sidebar::-webkit-scrollbar-thumb:hover {
+.participants-list::-webkit-scrollbar-thumb:hover {
     background: #b0b0b0;
 }
 
-/* Video Description Card */
+/* Video Description Card - fixed height with scrollable content */
 .video-description-card {
-    background: #1976d2;
+    background: var(--primary-color);
     color: #ffffff;
-    padding: 15px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    flex-shrink: 0;
+    height: 300px; /* Fixed height like the photo tiles */
     width: 100%;
     box-sizing: border-box;
-    min-height: 400px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.video-description-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 15px 15px 0 15px;
+}
+
+.video-description-card .video-description-title {
+    flex-shrink: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.add-resource-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 32px;
+    padding-left: 10px;
+    /* Nudge slightly left (toward title) */
+    margin-inline-start: -9px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffebee;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.add-resource-btn:hover:not(:disabled) {
+    background: transparent;
+}
+.add-resource-btn:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.video-description-scroll {
+    padding: 15px 15px 15px 15px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
 }
 
 .video-description-title {
@@ -52,6 +122,16 @@
     font-weight: 700;
     margin: 0;
     color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.video-description-title-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(191, 219, 254, 0.95);
 }
 
 .video-description-subtitle {
@@ -59,6 +139,7 @@
     font-weight: 400;
     margin: 0;
     margin-top: 5px;
+    margin-bottom: 10px;
     color: #ffffff;
     opacity: 0.95;
 }
@@ -74,10 +155,76 @@
     gap: 10px;
     color: #ffffff;
     font-size: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.description-item--with-actions {
+    align-items: flex-start;
+}
+
+.description-item-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    text-decoration: none;
+    color: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .description-item .item-icon {
     flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.resource-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.resource-delete-btn:hover:not(:disabled) {
+    background: transparent;
+}
+.resource-delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Pending resource upload styles */
+.description-item--uploading {
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.description-item-link--uploading {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.resource-uploading-indicator {
+    font-size: 12px;
+    color: #60a5fa;
+    font-weight: 500;
+    margin-left: auto;
+    animation: resourceUploadPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes resourceUploadPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 .video-description-text {
@@ -89,30 +236,37 @@
     line-height: 1.5;
 }
 
-/* Participate Card */
+/* Participate Card - scroll localized to participants list */
 .participate-card {
-    background: #ffffff;
+    background: #fff;
     padding: 1rem;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    overflow: hidden;
 }
 
 .participate-title {
     font-size: 18px;
     margin: 0;
-    color: #000000;
+    color: #333;
+    flex-shrink: 0;
 }
 
 .participants-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .participant-item {
@@ -121,11 +275,66 @@
     gap: 12px;
 }
 
+.participant-item--admin-pinned {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+    padding: 4px 0;
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.participant-badge-admin {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 400;
+    color: #888888;
+    background: transparent;
+    border-radius: 0;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.participant-mute-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #888888;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.participant-mute-btn:hover {
+    background: transparent;
+    color: var(--primary-color);
+}
+.participant-mute-btn[title="Unmute"] {
+    color: #d32f2f;
+}
+.participant-mute-btn[title="Unmute"]:hover {
+    background: transparent;
+    color: #b71c1c;
+}
+
+.participant-mute-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #888888;
+}
+
 .participant-avatar {
     width: 40px;
     height: 40px;
     flex-shrink: 0;
-    color: #1976d2;
+    color: var(--primary-color);
 }
 
 .participant-info {
@@ -138,21 +347,95 @@
 .participant-name {
     font-size: 14px;
     font-weight: 500;
-    color: #000000;
+    color: #333;
+}
+
+.participant-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.participant-status-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .participant-status {
     font-size: 12px;
     font-weight: 400;
-    color: #666666;
+    color: #888888;
 }
 
 .participant-status.online {
-    color: #4caf50;
+    color: #888888;
 }
 
 .participant-status.offline {
-    color: #999999;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .meeting-right-sidebar {
+        width: 100%;
+        margin: 0;
+        height: auto;
+        min-height: 0;
+        padding-bottom: 12px;
+    }
+
+    .participate-card {
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+        border: 1px solid rgba(148, 197, 246, 0.35);
+    }
+
+    .participate-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f2744;
+    }
+
+    .participant-name {
+        color: #0f2744;
+        font-weight: 700;
+    }
+
+    .participant-status.online {
+        color: var(--secondary-color);
+        font-weight: 600;
+    }
+
+    .video-description-card {
+        border-radius: 18px;
+        height: auto;
+        min-height: 160px;
+        max-height: 280px;
+        background: #0f2744;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2);
+    }
+
+    .video-description-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #93c5fd;
+    }
+
+    .video-description-subtitle {
+        color: #cbd5e1;
+        opacity: 1;
+    }
+
+    .description-item {
+        color: #cbd5e1;
+        font-size: 13px;
+    }
 }
 
 /* Responsive adjustments for larger screens */
@@ -164,8 +447,14 @@
     }
 
     .video-description-card {
-        padding: 10px;
-        min-height: 330px;
+        height: 300px; /* Fixed height maintained on larger screens */
+    }
+
+    .video-description-header,
+    .video-description-card .video-description-title,
+    .video-description-scroll {
+        padding-left: 10px;
+        padding-right: 10px;
     }
 
     .video-description-title,
@@ -173,4 +462,7 @@
         font-size: 20px;
     }
 }
+
+
+
 

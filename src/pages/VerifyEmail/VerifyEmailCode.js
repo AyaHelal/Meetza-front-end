@@ -3,8 +3,13 @@ import { motion } from "framer-motion";
 import { verifyEmail, resendResetCode } from "../../API/auth";
 import "../Login/Login.css";
 import { useNavigate, Link } from "react-router-dom";
+import BrandingLogo from "../../components/common/BrandingLogo";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function VerifyEmailCode() {
+    const { systemName, showPoweredBy } = useBranding();
+    const isMeetza = systemName?.trim().toLowerCase() === 'meetza';
+    
     const [code, setCode] = useState(["", "", "", ""]);
     const [loading, setLoading] = useState(false);
     const inputsRef = useRef([]);
@@ -13,9 +18,6 @@ export default function VerifyEmailCode() {
     const email = localStorage.getItem("userEmail");
 
     // Debug: Check what's in localStorage
-    console.log("🔍 VerifyEmail component loaded");
-    console.log("📧 Email from localStorage:", email);
-    console.log("🗂️ All localStorage items:", Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)}`));
 
     // === handle inputs ===
     const handleChange = (index, value) => {
@@ -57,10 +59,8 @@ export default function VerifyEmailCode() {
 
         try {
             setLoading(true);
-            console.log("📤 Sending resend request for email:", email);
 
             const res = await resendResetCode(email);
-            console.log("📥 Resend response:", res);
 
             alert("Verification code resent successfully!");
         } catch (err) {
@@ -98,10 +98,8 @@ export default function VerifyEmailCode() {
 
         try {
             setLoading(true);
-            console.log("📤 Sending verification request:", { email, code: otp });
 
             const res = await verifyEmail(email, otp);
-            console.log("📥 Verification response:", res);
 
             if (res.success) {
                 alert(res.message || "Email verified successfully!");
@@ -146,10 +144,28 @@ export default function VerifyEmailCode() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        <img src="/assets/meetza.png" alt="Meetza" style={{
-                            maxWidth: '210px',
-                            height: 'auto'
-                        }} />
+                        <div className="d-flex flex-column align-items-center">
+                            <BrandingLogo
+                                showSystemName={!isMeetza}
+                                className={`d-flex flex-row align-items-center justify-content-center gap-2 ${isMeetza ? "meetza-standalone-logo" : ""}`}
+                                style={{
+                                    maxHeight: isMeetza ? '36px' : '60px',
+                                    objectFit: 'contain',
+                                    margin: '0',
+                                    padding: '0'
+                                }}
+                                systemNameStyle={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}
+                            />
+                            {(!isMeetza && showPoweredBy !== false) && (
+                                <div className="d-flex align-items-center justify-content-center mt-1 text-muted" style={{ fontSize: '0.75rem', gap: '5px' }}>
+                                    <span>Powered by</span>
+                                    <div className="d-flex align-items-center" style={{ gap: '2px' }}>
+                                        <img src="/assets/MeetzaLogo.png" alt="Meetza Logo" style={{ height: '18px', objectFit: 'contain' }} />
+                                        <img src="/assets/MeetzaWord.png" alt="Meetza Text" style={{ height: '18px', objectFit: 'contain', marginBottom: '-1px' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     {/* Title */}
