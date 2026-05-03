@@ -72,8 +72,13 @@ const Login = () => {
         try {
             const response = await login(credentials);
 
-            if (response?.success && response?.data) {
-                const { user, token } = response.data;
+            // CRITICAL: Check if we actually got a token. 
+            // The backend might return success:true but with an error object inside data.
+            const actualData = response?.data || {};
+            const token = actualData?.token;
+            const user = actualData?.user;
+
+            if (response?.success && token) {
                 setShowCaptcha(false);
                 setCaptchaToken('');
                 setCaptchaRequiredByBackend(false);
@@ -99,9 +104,17 @@ const Login = () => {
 
                 setTimeout(() => navigate("/home"), 500);
             } else {
-                const msg = response?.message ?? "Login failed.";
+                // This is a failure, even if response.success is true
+                const msg = response?.message ?? actualData?.message ?? "Login failed.";
                 setMessage({ text: msg, type: "error" });
-                if (response?.remaining !== undefined) setRemainingAttempts(response.remaining);
+                
+                if (actualData.requiresCaptcha || response.requiresCaptcha) {
+                    setCaptchaRequiredByBackend(true);
+                    setShowCaptcha(true);
+                }
+                if (actualData.remaining !== undefined) {
+                    setRemainingAttempts(actualData.remaining);
+                }
             }
         } catch (error) {
             const res = error.response;
