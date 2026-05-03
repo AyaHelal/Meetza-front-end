@@ -112,18 +112,11 @@ const MeetingChat = () => {
             addChatMessage(newMessage);
         };
 
-        // Listen for the event
+        // Listen ONLY for meeting-specific chat messages
         socket.on("meetingChatMessage", onMeetingChatMessage);
-        // Also listen for alternative event names in case backend uses different naming
-        socket.on("chatMessage", onMeetingChatMessage);
-        socket.on("message", onMeetingChatMessage);
-        socket.on("meetingMessage", onMeetingChatMessage);
 
         return () => {
             socket.off("meetingChatMessage", onMeetingChatMessage);
-            socket.off("chatMessage", onMeetingChatMessage);
-            socket.off("message", onMeetingChatMessage);
-            socket.off("meetingMessage", onMeetingChatMessage);
         };
     }, [socket, isConnected, meetingId, user?.id, user?.member_id, addChatMessage]);
 

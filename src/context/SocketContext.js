@@ -587,6 +587,9 @@ export const SocketProvider = ({ children }) => {
     }
 
     socket.emit("markMessageRead", { groupId, messageId }, (ack) => {
+      if (ack && ack.ok) {
+        refreshUnreadGroupChatCount();
+      }
       if (callback) callback(ack);
     });
   };
@@ -601,9 +604,12 @@ export const SocketProvider = ({ children }) => {
     }
 
     socket.emit("markAllMessagesRead", { groupId }, (ack) => {
+      if (ack && ack.ok) {
+        refreshUnreadGroupChatCount();
+      }
       if (callback) callback(ack);
     });
-  }, [socket, isConnected]);
+  }, [socket, isConnected, refreshUnreadGroupChatCount]);
 
   // Helper function to get unread count
   const getUnreadCount = (groupId, callback) => {
@@ -713,6 +719,7 @@ export const SocketProvider = ({ children }) => {
     unreadNotificationCount,
     setUnreadNotificationCount,
     unreadGroupChatCount,
+    setUnreadGroupChatCount,
     refreshUnreadGroupChatCount,
   };
 

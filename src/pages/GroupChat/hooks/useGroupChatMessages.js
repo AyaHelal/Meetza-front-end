@@ -22,7 +22,8 @@ export function useGroupChatMessages(
   readGroupsRef,
   markedAsReadRef,
   currentGroupIdRef,
-  joinedGroupsRef
+  joinedGroupsRef,
+  setUnreadGroupChatCount
 ) {
   const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
@@ -89,6 +90,14 @@ export function useGroupChatMessages(
 
     const fetchMessagesAndInfo = async () => {
       try {
+        const groupIdStr = String(groupId);
+        const groupObj = groupChats.find(g => String(g.id) === groupIdStr);
+        const groupUnread = Number(groupObj?.unread ?? groupObj?.unread_count ?? 0);
+
+        if (groupUnread > 0 && !readGroupsRef?.current?.has(groupIdStr)) {
+          setUnreadGroupChatCount?.((prev) => Math.max(0, prev - groupUnread));
+        }
+
         readGroupsRef?.current?.add(groupIdStr);
         setGroupChats((prev) =>
           prev.map((g) => (String(g.id) === groupIdStr ? { ...g, unread: 0 } : g))

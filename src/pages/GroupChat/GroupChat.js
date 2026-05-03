@@ -39,6 +39,7 @@ export default function GroupChat() {
     getUnreadCount,
     sendMessage: socketSendMessage,
     setActiveGroupChatForSound,
+    setUnreadGroupChatCount,
   } = useSocket();
 
   const [selectedChat, setSelectedChat] = useState(null);
@@ -108,7 +109,8 @@ export default function GroupChat() {
     readGroupsRef,
     markedAsReadRef,
     currentGroupIdRef,
-    joinedGroupsRef
+    joinedGroupsRef,
+    setUnreadGroupChatCount
   );
 
   useEffect(() => {
