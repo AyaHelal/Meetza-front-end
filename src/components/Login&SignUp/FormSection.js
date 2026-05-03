@@ -392,10 +392,18 @@ const FormSection = ({
                                     Forgot Password ?
                                 </button>
                             </div>
+
+                            {showCaptcha && (
+                                <div 
+                                    id="recaptcha-container" 
+                                    className="g-recaptcha d-flex justify-content-center mt-3 mb-3"
+                                />
+                            )}
+
                             <Button
                                 type="submit"
                                 variant="primary"
-                                disabled={isLoading}
+                                disabled={isLoading || (captchaRequiredByBackend && !captchaToken)}
                                 className=" py-3 mb-3 position-relative button-submit"
                                 style={{
                                     borderRadius: '12px',
@@ -420,18 +428,6 @@ const FormSection = ({
                                     'Continue'
                                 )}
                             </Button>
-                            {showCaptcha && (
-                                <div className="mb-3 d-flex justify-content-center" key={`captcha-${Date.now()}`}>
-                                    <div
-                                        className="g-recaptcha"
-                                        data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LdzEfErAAAAADeiiCLtCGlNZ9YmPuSct-b1g0c2'}
-                                        data-callback="window.onCaptchaChange"
-                                        data-expired-callback="window.onCaptchaExpired"
-                                        data-theme="light"
-                                        data-size="normal"
-                                    ></div>
-                                </div>
-                            )}
                             {authGoogleEnabled && (
                                 <SocialLoginButtons redirectUrl={"https://meetza-front-end.vercel.app/home"} type={"signin"} />
                             )}
