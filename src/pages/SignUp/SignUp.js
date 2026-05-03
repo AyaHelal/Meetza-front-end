@@ -166,6 +166,7 @@ const SignUp = () => {
                     handleSubmit={handleSubmit}
                     isLoading={isLoading}
                     message={message}
+                    errors={errors}
                 >
 
                     {/* Username Field */}
