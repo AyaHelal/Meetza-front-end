@@ -70,7 +70,18 @@ const Landing = () => {
               <section id="landing-secure-video-meetings">
                 <FeatureCard
                   reverse={false}
-                  centerImage="/assets/vedioSession.png"
+                  media={(
+                    <video 
+                      className="feature-center-img" 
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline 
+                      style={{ width: '100%', height: 'auto', borderRadius: '12px' }}
+                    >
+                      <source src="https://res.cloudinary.com/dax2irx1f/video/upload/v1777909983/video_in_landing_i5ol9n.mp4" type="video/mp4" />
+                    </video>
+                  )}
                   variant="tertiary"
                   layoutClass="layout-video"
                   mediaFirst={true}

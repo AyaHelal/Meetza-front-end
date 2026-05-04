@@ -42,13 +42,17 @@ export default function FeatureCard({
           )}
 
           <div className="feature-inner">
-            {centerImage && sideText ? (
+            {(centerImage || media) && sideText ? (
               <div className="feature-content two-col">
                 {mediaFirst ? (
                   <>
                     <div className="feature-col feature-col-left">
                       <div className="media-surface">
-                        <img className="feature-center-img" src={centerImage} alt="center" />
+                        {media ? (
+                          media
+                        ) : (
+                          <img className="feature-center-img" src={centerImage} alt="center" />
+                        )}
                       </div>
                     </div>
                     <div className="feature-col feature-col-right">
@@ -74,7 +78,9 @@ export default function FeatureCard({
               </div>
             ) : (
               <div className="feature-content">
-                {centerImage ? (
+                {media ? (
+                  media
+                ) : centerImage ? (
                   <img className="feature-center-img" src={centerImage} alt="center" />
                 ) : (
                   <div className="feature-text">
