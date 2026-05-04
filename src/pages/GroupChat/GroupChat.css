@@ -323,12 +323,12 @@ body.group-chat-active {
 }
 
 .chat-name {
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-    min-width: 0;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-item.active .chat-name {
@@ -2397,15 +2397,23 @@ body.group-chat-active {
 }
 
 .status-icon.status-speaker {
-  color: var(--secondary-color) !important;
-  cursor: default;
+  color: var(--text-dark) !important;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .status-icon.status-speaker svg {
-  color: var(--secondary-color) !important;
+  color: var(--text-dark) !important;
   stroke: currentColor;
-  fill: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+/* When speaker is unmuted (active), show green color */
+.status-icon.status-speaker.active svg {
+  color: var(--secondary-color) !important;
+  stroke-width: 4;
 }
 
 /* Return to Meeting button - keep green background, white text */
@@ -5353,6 +5361,7 @@ body.group-chat-active {
 [data-theme="dark"] .message-reaction-sheet-avatar {
   background-color: var(--bg-alt) !important;
 }
+
 /* Quick Add Reaction Button (WhatsApp Style) */
 .message-reactions-wrapper {
   display: flex;

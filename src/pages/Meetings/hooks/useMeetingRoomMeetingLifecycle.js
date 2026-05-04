@@ -58,7 +58,7 @@ export function useMeetingRoomMeetingLifecycle({
         }
 
         if (!meeting) {
-          onMeetingEnded();
+          onMeetingEnded("Meeting has been deleted. Exiting...");
           return;
         }
 
@@ -81,7 +81,7 @@ export function useMeetingRoomMeetingLifecycle({
         }
       } catch (error) {
         if (error.response?.status === 404) {
-          onMeetingEnded();
+          onMeetingEnded("Meeting has been deleted. Exiting...");
         } else {
         }
       }
@@ -91,7 +91,7 @@ export function useMeetingRoomMeetingLifecycle({
     return () => clearInterval(interval);
   }, [meetingId, onMeetingEnded]);
 
-  // Socket listener for meeting end event
+  // Socket listener for meeting end/delete events
   useEffect(() => {
     if (!socket) return;
 
@@ -101,10 +101,18 @@ export function useMeetingRoomMeetingLifecycle({
       onMeetingEnded();
     };
 
+    const onMeetingDeletedEvent = (data) => {
+      const mid = data?.meetingId;
+      if (!mid || mid !== meetingIdRef.current) return;
+      onMeetingEnded("Meeting has been deleted. Exiting...");
+    };
+
     socket.on("meetingEnded", onMeetingEndedEvent);
+    socket.on("meetingDeleted", onMeetingDeletedEvent);
 
     return () => {
       socket.off("meetingEnded", onMeetingEndedEvent);
+      socket.off("meetingDeleted", onMeetingDeletedEvent);
     };
   }, [socket, onMeetingEnded, meetingIdRef]);
 }
