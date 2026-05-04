@@ -121,11 +121,13 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .meeting-room-slider-viewport {
   flex: 1;
-  max-height: 270px;
+  min-height: 0;
   border-radius: 22px;
   overflow: hidden;
   position: relative;
@@ -151,7 +153,6 @@
   align-items: flex-start;
   justify-content: center;
   border-radius: 22px;
-  overflow: hidden !important;
   position: relative;
   padding-top: 15px;
 }
@@ -167,23 +168,13 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  height: 100%;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .meeting-room-slide:first-child::-webkit-scrollbar {
-  width: 6px;
-}
-
-.meeting-room-slide:first-child::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.meeting-room-slide:first-child::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-.meeting-room-slide:first-child::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .meeting-room-slide:first-child .meeting-room-grid {
@@ -847,6 +838,8 @@
     border-radius: 22px;
     overflow: hidden;
     position: relative;
+    flex: 1;
+    min-height: 0;
   }
 
   .meeting-room-mobile-overlay {
@@ -928,13 +921,24 @@
     background: #eef6fc;
     background-image: none;
     box-shadow: none;
-    overflow: visible;
-    min-height: auto;
+    overflow: hidden; /* Force internal scroll */
+    height: calc(100vh - 80px); /* Fill screen but leave space for nav */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .meeting-room-slide.slide-0 {
     padding-top: 10px;
     align-items: flex-start;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .meeting-room-slide.slide-0::-webkit-scrollbar {
+    display: none;
   }
 
   .meeting-room-slide.slide-1,
@@ -947,10 +951,10 @@
   }
 
   .meeting-room-header {
-    padding: 15px 20px;
-    margin-bottom: 10px;
+    padding: 12px 16px;
+    margin-bottom: 8px; /* Reduced from 10px */
     border-radius: 0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
   }
 
   .meeting-room-title {
@@ -973,9 +977,7 @@
 
   .meeting-room-slider-viewport {
     flex: 1;
-    height: 100vh;
-    max-height: calc(100vh - 60px);
-    min-height: 550px;
+    min-height: 0; /* Removed fixed height to prevent overflow */
     padding: 0;
     margin: 0;
     width: 100%;
