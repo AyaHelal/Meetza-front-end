@@ -592,7 +592,7 @@ const participantMicMuted = isSelf
                                         </span>
                                         <div className="participant-status-row-actions">
                                             {isAdmin ? (
-                                                <span className="participant-badge-admin">Admin</span>
+                                                 <span className="participant-badge-admin">Leader</span>
                                             ) : null}
                                             {showMuteBtn ? (
                                                 <button

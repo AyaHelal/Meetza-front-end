@@ -118,7 +118,7 @@ const MeetingRoomScreenPlaceholder = ({ adminTile, remoteVideoRefsMap, localPart
           <div className="meeting-room-screen-placeholder" />
         )}
       </div>
-      <span className="meeting-room-tile-badge admin">Admin screen</span>
+      <span className="meeting-room-tile-badge admin">Leader screen</span>
     </div>
   );
 };
