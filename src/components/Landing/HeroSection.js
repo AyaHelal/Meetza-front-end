@@ -1,6 +1,9 @@
 import HeroNav from "./NavHero";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import Lottie from "lottie-react";
+import dashboardAnimation from "../../lottie/dashboard.json";
 
 const container = {
     hidden: { opacity: 0, y: 24 },
@@ -18,6 +21,20 @@ const item = {
 
 export default function HeroSection() {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleDashboardClick = () => {
+        setIsLoading(true);
+        const adminUrl = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3001/login' 
+            : 'https://meetza-front-end-admin.vercel.app/login';
+        
+        // Give time for animation to play before redirecting
+        setTimeout(() => {
+            window.location.href = adminUrl;
+        }, 2000);
+    };
+
     return (
         <div
             className="hero-section"
@@ -29,6 +46,29 @@ export default function HeroSection() {
                 backgroundAttachment: "fixed",
             }}
         >
+            <AnimatePresence>
+                {isLoading && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: 9999,
+                            background: "linear-gradient(to bottom, #00bfa5, #0066ff)",
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <div style={{ width: '400px', height: '400px' }}>
+                            <Lottie animationData={dashboardAnimation} loop={true} />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <HeroNav />
             <motion.div
                 className="container text-center text-white"
@@ -50,7 +90,7 @@ export default function HeroSection() {
                     >Meetza</motion.button>
                     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }} className=" hero-button-secondary hero-login-btn btn btn-lg btn-outline-light mt-3 px-5 rounded-3 py-2"
                         style={{ backgroundColor: "#0076EA", border: "none", fontSize: '18px' }}
-                        onClick={() => { window.location.href = 'https://meetza-front-end-admin.vercel.app/login'; }}
+                        onClick={handleDashboardClick}
                     >Dashboard</motion.button>
                 </motion.div>
             </motion.div>
