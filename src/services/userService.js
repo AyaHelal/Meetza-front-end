@@ -73,7 +73,6 @@ export const getUserByEmail = async (email) => {
  */
 export const getAdministrators = async () => {
   let fromApi = [];
-  // Try common paths
   for (const path of ['/administrator/', '/administrator']) {
     try {
       const res = await api.get(path);
