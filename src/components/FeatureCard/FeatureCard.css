@@ -4,7 +4,8 @@
 .feature-card {
   margin: 0;
   width: 100%;
-  position: relative; /* allow floating top figure */
+  position: relative;
+  /* allow floating top figure */
 }
 
 /* Apply Inter only within FeatureCard scope */
@@ -30,9 +31,11 @@
 .feature-outer.primary {
   background: linear-gradient(135deg, var(--secondary-color) 6%, #214ab8 58%);
 }
+
 .feature-outer.secondary {
   background: linear-gradient(142deg, #214ab8 27%, var(--secondary-color) 100%);
 }
+
 .feature-outer.tertiary {
   background: linear-gradient(135deg, #214ab8 30%, var(--secondary-color) 70%);
 }
@@ -122,7 +125,8 @@
   transform: translateX(-50%);
   width: clamp(80px, 12vw, 140px);
   height: auto;
-  z-index: 1001; /* above the card wrapper */
+  z-index: 1001;
+  /* above the card wrapper */
   pointer-events: none;
   filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.35));
 }
@@ -142,12 +146,14 @@
   height: auto;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
 }
+
 .figure-left {
   left: -111px;
   top: 136px;
   height: 439px;
   width: 293px;
 }
+
 .figure-right {
   right: -111px;
   top: 136px;
@@ -179,9 +185,11 @@
   flex-direction: column;
   justify-content: center;
 }
+
 .feature-col-left {
   align-items: flex-start;
 }
+
 .feature-col-right {
   align-items: center;
 }
@@ -206,27 +214,31 @@
   box-shadow: none;
   padding: 0;
 }
+
 .layout-video .feature-content.two-col {
   grid-template-columns: 1.3fr 1fr;
   align-items: center;
 }
+
 .layout-video .feature-text h2 {
   font-weight: 600;
   line-height: 1.15;
   font-size: clamp(1.6rem, 4.5vw, 3.4rem);
   margin: 0 0 0.75rem 2rem;
 }
+
 .layout-video .feature-text p {
   color: rgba(255, 255, 255, 0.9);
   font-size: clamp(0.95rem, 1.3vw, 1.05rem);
   line-height: 1.7;
   margin: 0 0 0 2rem;
 }
+
 .layout-video .media-surface {
   border-radius: 40px;
   padding: clamp(12px, 1.6vw, 22px);
   min-height: clamp(320px, 44vw, 600px);
-  max-height: 600px;
+  max-height: 2000px;
   margin: 0 auto;
   position: relative;
   background: linear-gradient(135deg, #214ab8 11%, #1f2120 100%);
@@ -237,7 +249,7 @@
   justify-content: center;
   overflow: hidden;
   width: 100%;
-  max-width: 800px;
+  max-width: 2000px;
 }
 
 /* Make the video image larger within its surface */
@@ -319,73 +331,92 @@
     align-items: center;
     width: 350px;
   }
+
   .layout-boy .feature-center-img {
     max-width: 270px;
   }
+
   .layout-boy .media-surface {
     max-width: 330px;
   }
+
   .layout-video .media-surface {
     min-height: clamp(193px, 44vw, 600px);
     align-items: center;
     width: 330px;
   }
+
   .layout-video .feature-center-img {
     margin: 0.5rem 0;
     max-width: 270px;
   }
+
   .layout-calendar .media-surface {
     min-height: clamp(193px, 44vw, 600px);
     margin: 0 auto;
     width: 200px;
   }
+
   .layout-video .feature-content.two-col {
     grid-template-columns: 1fr;
   }
+
   .layout-video .feature-col-left {
     order: -1;
   }
+
   .layout-video .top-body {
     top: -20px;
   }
+
   .layout-video .top-figure {
     top: -65px;
   }
+
   .feature-inner {
     flex-direction: column;
   }
+
   .figure {
     width: clamp(110px, 32vw, 170px);
     bottom: -6px;
   }
+
   .feature-center-img {
     width: clamp(220px, 62vw, 340px);
   }
+
   /* hide figures when the card requests it */
   .hide-figures-sm .figure {
     display: none;
   }
+
   .feature-content.two-col {
     grid-template-columns: 1fr;
   }
+
   .feature-col-right {
     order: -1;
   }
 }
 
 @media (min-width: 992px) {
+
   /* Adjust calendar image for larger screens */
   .feature-center-img[src*="calender.png"] {
     max-height: 500px;
   }
+
   .feature-card {
     height: 712px;
     margin: 3rem 0;
   }
+
   .feature-frame {
     height: calc(100% - 90px);
     min-height: unset;
   }
+
   .layout-boy .feature-text h2,
   .layout-boy .feature-text .h2 {
     font-weight: 500px;
@@ -393,9 +424,11 @@
     font-size: clamp(0, 4.8vw, 3.6rem);
     margin: 0 0 0.75rem 0;
   }
+
   .layout-boy .feature-text p {
     font-size: 20px;
   }
+
   /* Vertical centering for the custom layout on desktop */
   .layout-boy .feature-inner {
     min-height: clamp(520px, 54vw, 660px);
@@ -403,19 +436,23 @@
     align-items: center;
     padding-top: 4rem;
   }
+
   .layout-boy .feature-content.two-col {
     align-items: center;
     grid-template-columns: 1.2fr 1fr;
   }
+
   .layout-boy .media-surface {
     min-height: clamp(360px, 40vw, 560px);
     padding: 24px;
   }
+
   .layout-video .feature-inner {
     min-height: clamp(520px, 54vw, 680px);
     display: flex;
     align-items: center;
   }
+
   .figure-right {
     right: -48px;
     top: 235px;
@@ -428,6 +465,7 @@
   .feature-card {
     margin: 0.5rem 0;
   }
+
   .top-figure {
     position: absolute;
     top: -88px;
@@ -446,15 +484,18 @@
     font-size: clamp(1.4rem, 4.5vw, 3.4rem);
     margin-left: 0;
   }
+
   .layout-video .feature-text p {
     text-align: start;
     width: 100%;
     margin-left: 0;
     font-size: 1rem;
   }
+
   .layout-video .feature-text ul {
     padding-left: 2rem;
   }
+
   .layout-video .feature-text li {
     width: 215px;
   }
@@ -518,6 +559,7 @@
 /* iPhone specific adjustments */
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 576px) {
+
     .feature-text h2,
     .feature-text .h2 {
       font-size: clamp(1.1rem, 4.5vw, 2.2rem) !important;
@@ -566,39 +608,46 @@
   .feature-card {
     margin: 1.5rem 0;
   }
+
   .figure-left {
     left: -111px;
     top: 80px;
     height: 390px;
     width: 293px;
   }
+
   .figure-right {
     right: -111px;
     top: 80px;
     height: 390px;
     width: 293px;
   }
+
   .top-figure {
     top: -108px;
     left: 50%;
     transform: translateX(-50%);
     width: clamp(80px, 12vw, 140px);
   }
+
   .layout-video .top-figure {
     top: -70px;
-}
+  }
 }
 
 @media (min-width: 992px) and (max-width: 1199.98px) {
   .feature-card {
     margin: 2rem 0;
   }
+
   .feature-center-img {
     width: clamp(220px, 30vw, 340px);
   }
+
   .layout-video .top-figure {
     top: -95px;
   }
+
   .top-figure {
     position: absolute;
     top: -134px;
@@ -610,6 +659,7 @@
     pointer-events: none;
     filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.35));
   }
+
   .layout-video .feature-content.two-col {
     margin-top: 4rem;
     width: 100%;
@@ -622,71 +672,91 @@
     max-width: 1300px;
     margin: 0 auto;
   }
+
   .feature-content.two-col {
     max-width: 1250px;
   }
+
   .layout-video .media-surface {
     max-width: 750px;
   }
+
   .layout-video .feature-center-img {
     max-width: 550px;
   }
+
   .layout-boy .top-figure {
     left: 20%;
   }
+
   .feature-card {
     height: 620px;
   }
+
   .feature-frame {
     height: calc(100% - 80px);
   }
+
   .layout-boy .feature-inner {
     min-height: clamp(450px, 48vw, 580px);
     padding-top: 3rem;
   }
+
   .layout-video .feature-inner {
     min-height: clamp(450px, 48vw, 600px);
   }
+
   .layout-boy .media-surface {
     min-height: clamp(320px, 36vw, 500px);
   }
+
   .layout-video .media-surface {
     min-height: clamp(280px, 38vw, 520px);
     max-height: 520px;
   }
+
   .layout-video .feature-center-img {
     max-width: 500px;
   }
+
   .layout-video .feature-text h2 {
     font-size: clamp(1.4rem, 3.8vw, 2.8rem);
     margin: 0 0 0.5rem 2rem;
   }
+
   .layout-video .feature-text p {
     font-size: clamp(0.9rem, 1.1vw, 0.95rem);
     line-height: 1.6;
     margin: 0 0 0 2rem;
   }
+
   .layout-boy .feature-text h2,
   .layout-boy .feature-text .h2 {
     font-size: clamp(0, 4.2vw, 3.2rem);
   }
+
   .layout-boy .feature-text p {
     font-size: 18px;
   }
+
   .feature-outer {
     padding: 1.75rem 1.75rem 0.875rem 1.75rem;
   }
+
   .feature-frame {
     padding: clamp(1.25rem, 2.5vw, 2rem);
   }
+
   .feature-content.two-col {
     gap: 1.5rem;
   }
+
   /* Calendar card (Meeting Schedule) adjustments */
   .feature-center-img[src*="calender.png"] {
     max-height: 420px;
     padding: 0.75rem 0;
   }
+
   .feature-card:has(.feature-center-img[src*="calender.png"]) .feature-inner {
     padding: 0.75rem 0;
     min-height: auto;
@@ -694,10 +764,12 @@
     align-items: center;
     justify-content: center;
   }
+
   .feature-title {
     font-size: clamp(1.4rem, 3.5vw, 2.2rem);
     margin-bottom: 1rem;
   }
+
   /* Move figures inside feature frame on large screens - keep same size as normal screens */
   .figure-left {
     left: -100px;
@@ -705,6 +777,7 @@
     height: 439px;
     width: 293px;
   }
+
   .figure-right {
     right: -50px;
     top: 155px;
@@ -712,6 +785,3 @@
     width: 293px;
   }
 }
-
-
-
