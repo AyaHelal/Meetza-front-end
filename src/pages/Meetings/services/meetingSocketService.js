@@ -23,6 +23,7 @@ export const MEETING_EVENTS = {
   SCREEN_SHARE_STARTED: "screenShareStarted",
   SCREEN_SHARE_STOPPED: "screenShareStopped",
   MEETING_ENDED: "meetingEnded",
+  MEETING_DELETED: "meetingDeleted",
   MEETING_CHAT_MESSAGE: "meetingChatMessage",
   /** Server → all clients in room: admin forced mute/unmute for targetSocketId (keeps UI + playback in sync for everyone). */
   PARTICIPANT_ADMIN_MUTE: "participantAdminMute",

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
+import { useSocket } from "../../../context/SocketContext";
 import { smartToast } from "../../../API/toastManager";
 import {
   emptyFormState,
@@ -33,6 +34,7 @@ import { useMediaQuery } from "./useMediaQuery";
 
 export function useAdminMeetingPage() {
   const { user } = useContext(AuthContext);
+  const { socket } = useSocket();
   const navigate = useNavigate();
 
   const [meetings, setMeetings] = useState(() => {
@@ -108,17 +110,18 @@ export function useAdminMeetingPage() {
   // GET /meeting with token – backend returns only this admin's meetings for Administrator role
   const fetchMeetings = async (options) => {
     const cacheKey = `admin_meetings_${user?.id || 'guest'}`;
+    const isSilent = options?.silent === true;
     const hasCache = !!localStorage.getItem(cacheKey) && !options?.query;
     try {
-      if (!hasCache) setLoading(true);
+      if (!hasCache && !isSilent) setLoading(true);
       const meetingsList = await fetchMeetingsService(user, options);
       setMeetings(meetingsList);
       localStorage.setItem(cacheKey, JSON.stringify(meetingsList));
     } catch (error) {
       console.error("Error fetching meetings:", error);
-      if (!hasCache) smartToast.error("Failed to load meetings");
+      if (!hasCache && !isSilent) smartToast.error("Failed to load meetings");
     } finally {
-      if (!hasCache) setLoading(false);
+      if (!hasCache && !isSilent) setLoading(false);
     }
   };
 
@@ -126,6 +129,60 @@ export function useAdminMeetingPage() {
   useEffect(() => {
     fetchMeetings();
   }, [user?.id]);
+
+  // Socket listeners for real-time updates (Created/Updated/Deleted/Ended)
+  useEffect(() => {
+    if (!socket) return;
+
+    const onMeetingListChange = () => {
+      fetchMeetings({ query: searchTerm, silent: true });
+    };
+
+    socket.on("meetingCreated", onMeetingListChange);
+    socket.on("meetingUpdated", onMeetingListChange);
+    socket.on("meetingEnded", onMeetingListChange);
+    socket.on("meetingDeleted", onMeetingListChange);
+
+    return () => {
+      socket.off("meetingCreated", onMeetingListChange);
+      socket.off("meetingUpdated", onMeetingListChange);
+      socket.off("meetingEnded", onMeetingListChange);
+      socket.off("meetingDeleted", onMeetingListChange);
+    };
+  }, [socket, searchTerm]);
+
+  const [, setTick] = useState(0);
+  // Precision timers for time-based Join button visibility
+  useEffect(() => {
+    if (!meetings?.length) return;
+
+    const now = Date.now();
+    const timers = [];
+
+    meetings.forEach((m) => {
+      const startTime = m.start_time ? new Date(m.start_time).getTime() : null;
+      const endTime = m.end_time ? new Date(m.end_time).getTime() : null;
+
+      // Timer to show Join button
+      if (startTime && startTime > now) {
+        const delay = startTime - now;
+        // Max delay for setTimeout is ~24 days, but usually meetings are much sooner
+        if (delay < 2147483647) {
+          timers.push(setTimeout(() => setTick((t) => t + 1), delay + 100));
+        }
+      }
+
+      // Timer to hide Join button (Ended status)
+      if (endTime && endTime > now) {
+        const delay = endTime - now;
+        if (delay < 2147483647) {
+          timers.push(setTimeout(() => setTick((t) => t + 1), delay + 100));
+        }
+      }
+    });
+
+    return () => timers.forEach((t) => clearTimeout(t));
+  }, [meetings]);
 
   useEffect(() => {
     if (searchTerm === "") {

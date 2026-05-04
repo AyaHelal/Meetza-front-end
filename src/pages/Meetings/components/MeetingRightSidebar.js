@@ -123,7 +123,10 @@ const MeetingRightSidebar = () => {
 
     const fetchResources = useCallback(async (mid) => {
         if (!mid) return;
-        setLoadingResources(true);
+        // Only show loading on first fetch (when resources are empty)
+        if (resources.length === 0 && pendingResourceUploads.length === 0) {
+            setLoadingResources(true);
+        }
         try {
             const res = await api.get(`/group-contents/meeting/${mid}`);
             const root = res?.data;
@@ -145,7 +148,7 @@ const MeetingRightSidebar = () => {
         } finally {
             setLoadingResources(false);
         }
-    }, []);
+    }, [resources.length, pendingResourceUploads.length]);
 
     const currentUserId = authUser?.id ?? authUser?.user_id ?? null;
     const normalizedUserRole = (authUser?.role || "").toString().trim().toLowerCase();
@@ -450,21 +453,13 @@ const MeetingRightSidebar = () => {
                     )}
                 </div>
                 <div className="video-description-scroll">
-                    <p className="video-description-subtitle">
-                        {meetingDescription
-                            ? meetingDescription
-                            : "No description provided for this meeting."}
-                    </p>
+                    {meetingDescription && (
+                        <p className="video-description-subtitle">
+                            {meetingDescription}
+                        </p>
+                    )}
                     <div className="video-description-items">
-                        {loadingResources ? (
-                            <div className="description-item">
-                                <span>Loading resources...</span>
-                            </div>
-                        ) : resources.length === 0 && pendingResourceUploads.length === 0 ? (
-                            <div className="description-item">
-                                <span>No resources attached to this meeting.</span>
-                            </div>
-                        ) : (
+                        {loadingResources ? null : resources.length === 0 && pendingResourceUploads.length === 0 ? null : (
                             <>
                                 {/* Pending uploads - show first */}
                                 {pendingResourceUploads.map((resItem) => (

@@ -120,10 +120,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
 
   const onTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current || !touchStartY.current || !touchEndY.current) return;
-    
+
     const deltaX = touchStartX.current - touchEndX.current;
     const deltaY = touchStartY.current - touchEndY.current;
-    
+
     // Only swipe if horizontal movement is dominant
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
       const slideCount = isMeetingAdmin ? 2 : 3;
@@ -628,10 +628,20 @@ const MeetingRoom = ({ recordRegionRef }) => {
     if (!el || !stream) return;
     if (screenSharing) {
       const screenTrack = getScreenShareTrack(stream);
-      if (screenTrack) {
-        const screenOnly = new MediaStream([screenTrack]);
-        if (el.srcObject !== screenOnly) {
-          el.srcObject = screenOnly;
+      if (screenTrack && screenTrack.readyState === "live") {
+        // Include audio tracks with screen track for better stability
+        const screenStream = new MediaStream([screenTrack, ...stream.getAudioTracks()]);
+        if (el.srcObject !== screenStream) {
+          el.srcObject = screenStream;
+        }
+      } else {
+        // Fallback to camera if screen track is not available or not live
+        const cameraTrack = getCameraTrack(stream);
+        const displayStream = cameraTrack
+          ? new MediaStream([cameraTrack, ...stream.getAudioTracks()])
+          : new MediaStream(stream.getAudioTracks());
+        if (el.srcObject !== displayStream) {
+          el.srcObject = displayStream;
         }
       }
     } else {
