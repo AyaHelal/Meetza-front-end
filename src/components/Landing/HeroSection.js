@@ -1,7 +1,7 @@
 import HeroNav from "./NavHero";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Lottie from "lottie-react";
 import dashboardAnimation from "../../lottie/dashboard.json";
 
@@ -22,6 +22,20 @@ const item = {
 export default function HeroSection() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+
+    // Ensure loading state is reset if we return to this page (e.g. via Back button or BFcache)
+    useEffect(() => {
+        setIsLoading(false);
+        
+        const handlePageShow = (event) => {
+            if (event.persisted) {
+                setIsLoading(false);
+            }
+        };
+
+        window.addEventListener("pageshow", handlePageShow);
+        return () => window.removeEventListener("pageshow", handlePageShow);
+    }, []);
 
     const handleDashboardClick = () => {
         setIsLoading(true);
