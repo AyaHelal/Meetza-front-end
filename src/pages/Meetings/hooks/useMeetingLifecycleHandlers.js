@@ -62,7 +62,7 @@ export function useMeetingLifecycleHandlers({
     recordingStartedRef,
   ]);
 
-  const handleMeetingEnded = useCallback(async () => {
+  const handleMeetingEnded = useCallback(async (customMessage) => {
     try {
       if (!meetingId) return;
 
@@ -90,7 +90,7 @@ export function useMeetingLifecycleHandlers({
       } catch (e) {
       }
 
-      smartToast.info("Meeting time has ended. Exiting...");
+      smartToast.info(customMessage || "Meeting time has ended. Exiting...");
       setTimeout(() => navigate("/home"), 1500);
     } catch (error) {
       console.error("❌ Error in handleMeetingEnded:", error);
