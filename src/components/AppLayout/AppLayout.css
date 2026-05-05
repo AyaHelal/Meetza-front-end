@@ -24,7 +24,9 @@
   flex: 1;
   display: flex;
   min-height: 0; /* lets nested pages scroll instead of being clipped by overflow: hidden */
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   margin-left: 0;
 }
 
@@ -397,10 +399,11 @@
   }
 }
 
-
 /* Persistent Meeting Layer */
 .persistent-meeting-wrapper {
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 .persistent-meeting-wrapper.is-hidden-bg {
@@ -411,7 +414,3 @@
   height: 0;
   overflow: hidden;
 }
-
-
-
-
