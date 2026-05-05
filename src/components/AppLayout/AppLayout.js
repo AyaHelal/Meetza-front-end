@@ -395,45 +395,55 @@ const AppLayout = () => {
           </div>
         )}
 
-        {activeMeetingId ? (
-          <MeetingProvider>
-            {/* One MeetingRoom: route /meetings renders it via <Outlet /> (Meetings.js). When away, keep a hidden copy so media/socket stay alive. */}
-            {location.pathname !== "/meetings" && (
-              <div
-                className="app-layout-content"
-                style={{ display: "none" }}
-                aria-hidden
-              >
-                <div className="meetings-container">
-                  <div className="meetings-center">
-                    <MeetingRoom />
-                    <MeetingChat />
-                  </div>
-                  <MeetingRightSidebar />
+        <MeetingProvider>
+          {/* 
+            Persistent Meeting UI: 
+            Mounted if we are on /meetings OR there is an active meeting in progress.
+            This ensures the socket, WebRTC, and audio elements stay alive during navigation.
+          */}
+          {(activeMeetingId || location.pathname === "/meetings") && (
+            <div
+              className={`app-layout-content persistent-meeting-wrapper ${location.pathname === "/meetings" ? "is-visible" : "is-hidden-bg"}`}
+              style={{
+                display: location.pathname === "/meetings" ? "block" : "block", // Always mounted
+                visibility: location.pathname === "/meetings" ? "visible" : "hidden",
+                height: location.pathname === "/meetings" ? "auto" : "0px",
+                minHeight: location.pathname === "/meetings" ? "calc(100vh - 64px)" : "0px",
+                overflow: location.pathname === "/meetings" ? "visible" : "hidden",
+                opacity: location.pathname === "/meetings" ? 1 : 0,
+                pointerEvents: location.pathname === "/meetings" ? "all" : "none",
+                position: location.pathname === "/meetings" ? "relative" : "absolute",
+                zIndex: location.pathname === "/meetings" ? 1 : -1,
+              }}
+            >
+              <div className="meetings-container">
+                <div className="meetings-center">
+                  <MeetingRoom />
+                  <MeetingChat />
                 </div>
+                <MeetingRightSidebar />
               </div>
-            )}
-            <div className="app-layout-content">
-              <Outlet />
             </div>
-            {!isMobile && (
-              <div className="fixed-user-status">
-                <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
-              </div>
-            )}
-          </MeetingProvider>
-        ) : (
-          <>
-            <div className="app-layout-content">
-              <Outlet />
+          )}
+
+          {/* 
+            Main App Content:
+            Hidden when on /meetings because the persistent-meeting-wrapper above handles the UI.
+            This prevents dual rendering of MeetingRoom.
+          */}
+          <div
+            className="app-layout-content"
+            style={{ display: location.pathname === "/meetings" ? "none" : "block" }}
+          >
+            <Outlet />
+          </div>
+
+          {!isMobile && (
+            <div className="fixed-user-status">
+              <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
             </div>
-            {!isMobile && (
-              <div className="fixed-user-status">
-                <UserStatus user={user} activeMeetingId={activeMeetingId} activeGroupId={activeGroupId} />
-              </div>
-            )}
-          </>
-        )}
+          )}
+        </MeetingProvider>
       </div>
     </MediaProvider>
   );
