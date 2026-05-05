@@ -21,7 +21,7 @@
 
   /* Status Colors */
   --success: var(--secondary-color);
-  --error: #FF0000;
+  --error: #ff0000;
   --warning: #ff9800;
   --info: var(--primary-color);
 
@@ -39,7 +39,13 @@
   --shadow-lg: 0 8px 24px var(--shadow-color);
   --detail-card-shadow: none;
   --detail-card-border: none;
-  --card-active-gradient: linear-gradient(10deg, #ffffff 0%, #daeeff 45%, #a8d4f5 75%, #5bb4f0 110%);
+  --card-active-gradient: linear-gradient(
+    10deg,
+    #ffffff 0%,
+    #daeeff 45%,
+    #a8d4f5 75%,
+    #5bb4f0 110%
+  );
   --close-btn-filter: none;
 }
 
@@ -64,7 +70,13 @@
   --shadow-color: rgba(0, 0, 0, 0.4);
   --detail-card-shadow: 0 4px 20px var(--shadow-color);
   --detail-card-border: 1px solid var(--border-color);
-  --card-active-gradient: linear-gradient(10deg, #1e293b 0%, #3b82f6 45%, #2563eb 75%, #1d4ed8 110%);
+  --card-active-gradient: linear-gradient(
+    10deg,
+    #1e293b 0%,
+    #3b82f6 45%,
+    #2563eb 75%,
+    #1d4ed8 110%
+  );
   --close-btn-filter: invert(1) grayscale(100%) brightness(200%);
   color-scheme: dark;
 }
@@ -88,7 +100,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
   color: var(--text-primary);
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 /* Global Form Controls */
@@ -128,17 +142,17 @@ code {
 
 body,
 html {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
 }
 
-/* Logged-in shell: stop background page scroll so only the main pane scrolls (stable, no “moving with” bounce) */
+/* Logged-in shell: allow page scrolling (mouse wheel everywhere). */
 html:has(.app-layout),
 body:has(.app-layout) {
-  overflow: hidden;
+  overflow: auto;
   overscroll-behavior: none;
-  height: 100%;
-  max-height: 100%;
+  height: auto;
+  max-height: none;
 }
 
 #root {
@@ -148,9 +162,8 @@ body:has(.app-layout) {
 }
 
 #root:has(.app-layout) {
-  overflow: hidden;
-  height: 100%;
-  max-height: 100%;
+  height: auto;
+  max-height: none;
 }
 
 footer.footer-section {
