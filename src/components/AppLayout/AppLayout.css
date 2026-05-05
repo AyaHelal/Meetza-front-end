@@ -397,11 +397,21 @@
   }
 }
 
-@media (max-width: 768px) {
-  .fixed-user-status {
-    display: none !important;
-  }
+
+/* Persistent Meeting Layer */
+.persistent-meeting-wrapper {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
+
+.persistent-meeting-wrapper.is-hidden-bg {
+  /* Ensure it's not interactive but still processes media */
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
 
 
 
