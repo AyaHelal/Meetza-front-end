@@ -100,7 +100,7 @@ copy .env.example .env
 # Mac/Linux
 cp .env.example .env
 
-4. Make sure backend is running
+Make sure backend is running
 
 ## ▶️ Run
 
