@@ -9,7 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
     const navigate = useNavigate();
-    const { domains, authGoogleEnabled } = useBranding();
+    const { domains, authGoogleEnabled, systemName } = useBranding();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -31,12 +31,12 @@ const Login = () => {
             newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = "Please enter a valid email address";
-        } else if (!authGoogleEnabled && domains && domains.length > 0) {
-            // Domain validation: Only apply when Google Auth is DISABLED
+        } else if (!authGoogleEnabled && domains && domains.length > 0 && systemName !== 'Meetza') {
+            // Domain validation: Only apply when Google Auth is DISABLED and NOT the default platform
             const emailDomain = formData.email.split('@')[1]?.toLowerCase();
             const brandingDomains = domains.map(d => d.domain_name.toLowerCase());
             
-            if (!brandingDomains.includes(emailDomain)) {
+            if (!brandingDomains.includes(emailDomain) && emailDomain !== 'meetza.com') {
                 newErrors.email = `This email domain is not authorized. Allowed domains: ${domains.map(d => d.domain_name).join(', ')}.`;
             }
         }
