@@ -39,9 +39,15 @@ export default function HeroSection() {
 
     const handleDashboardClick = () => {
         setIsLoading(true);
-        const adminUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3001/login' 
-            : 'https://meetza-front-end-admin.vercel.app/login';
+        
+        let adminUrl;
+        if (window.location.hostname === 'localhost') {
+            const currentPort = window.location.port;
+            const targetPort = currentPort ? parseInt(currentPort) + 1 : 3001;
+            adminUrl = `http://localhost:${targetPort}/login`;
+        } else {
+            adminUrl = 'https://meetza-front-end-admin.vercel.app/login';
+        }
         
         // Give time for animation to play before redirecting
         setTimeout(() => {
