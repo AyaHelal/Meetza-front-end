@@ -9,7 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
     const navigate = useNavigate();
-    const { domains } = useBranding();
+    const { domains, authGoogleEnabled } = useBranding();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -31,16 +31,13 @@ const Login = () => {
             newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = "Please enter a valid email address";
-        } else if (domains && domains.length > 0) {
-            // Domain validation: Allow branding domains OR common public domains
+        } else if (!authGoogleEnabled && domains && domains.length > 0) {
+            // Domain validation: Only apply when Google Auth is DISABLED
             const emailDomain = formData.email.split('@')[1]?.toLowerCase();
-            const publicDomains = ['gmail.com', 'googlemail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com'];
             const brandingDomains = domains.map(d => d.domain_name.toLowerCase());
             
-            const isAllowed = brandingDomains.includes(emailDomain) || publicDomains.includes(emailDomain);
-            
-            if (!isAllowed) {
-                newErrors.email = `This email domain is not authorized. Allowed domains: ${domains.map(d => d.domain_name).join(', ')} or standard public emails.`;
+            if (!brandingDomains.includes(emailDomain)) {
+                newErrors.email = `This email domain is not authorized. Allowed domains: ${domains.map(d => d.domain_name).join(', ')}.`;
             }
         }
 
@@ -127,12 +124,15 @@ const Login = () => {
                 setRemainingAttempts(remaining);
             }
 
+            const networkError = !res && (error.message === 'Network Error' || error.code === 'ERR_NETWORK');
+            const displayMsg = networkError ? "Network Error" : msg;
+
             if (needsCaptcha) {
                 setCaptchaRequiredByBackend(true);
                 setShowCaptcha(true);
-                setMessage({ text: msg, type: "error" });
+                setMessage({ text: displayMsg, type: "error" });
             } else {
-                setMessage({ text: msg, type: "error" });
+                setMessage({ text: displayMsg, type: "error" });
             }
         } finally {
             setIsLoading(false);

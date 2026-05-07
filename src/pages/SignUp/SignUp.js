@@ -66,16 +66,13 @@ const SignUp = () => {
             newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = "Please enter a valid email address";
-        } else if (domains && domains.length > 0) {
-            // Domain validation: Allow branding domains OR common public domains
+        } else if (!authGoogleEnabled && domains && domains.length > 0) {
+            // Domain validation: Only apply when Google Auth is DISABLED
             const emailDomain = formData.email.split('@')[1]?.toLowerCase();
-            const publicDomains = ['gmail.com', 'googlemail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com'];
             const brandingDomains = domains.map(d => d.domain_name.toLowerCase());
             
-            const isAllowed = brandingDomains.includes(emailDomain) || publicDomains.includes(emailDomain);
-            
-            if (!isAllowed) {
-                newErrors.email = `This email domain is not authorized. Allowed domains: ${domains.map(d => d.domain_name).join(', ')} or standard public emails.`;
+            if (!brandingDomains.includes(emailDomain)) {
+                newErrors.email = `This email domain is not authorized. Allowed domains: ${domains.map(d => d.domain_name).join(', ')}.`;
             }
         }
 
@@ -142,8 +139,10 @@ const SignUp = () => {
             console.error('Signup error response status:', error.response?.status);
             console.error('Signup error response data:', error.response?.data);
 
+            const networkError = !error.response && (error.message === 'Network Error' || error.code === 'ERR_NETWORK');
+            
             setMessage({
-                text: error.response?.data?.message || "Error occurred during signup",
+                text: error.response?.data?.message || (networkError ? "Network Error" : "Error occurred during signup"),
                 type: "error"
             });
         } finally {

@@ -329,7 +329,12 @@ const FormSection = ({
                             {message.type === "success" ? "Success" : message.text}
                         </div>
                         <div className={`login-error-message ${message.type === "success" ? "success-message" : ""}`}>
-                            Please check your credentials and try again.
+                            {message.type === "success" 
+                                ? "Action completed successfully." 
+                                : (message.text?.toLowerCase().includes('network') 
+                                    ? "Please check your internet connection and try again." 
+                                    : "Please check your credentials and try again.")
+                            }
                         </div>
                     </div>
                 </div>
