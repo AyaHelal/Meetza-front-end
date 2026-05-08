@@ -232,7 +232,7 @@ export default function MainChatExpandedSection({
       await deleteMembership(mId);
       smartToast.success("Member removed successfully");
       setShowDeleteModal(false);
-      window.location.reload();
+      await onRefreshGroupInfo?.();
     } catch (error) {
       console.error("Failed to remove member:", error);
       smartToast.error(error.response?.data?.message || "Failed to remove member");
@@ -284,9 +284,7 @@ export default function MainChatExpandedSection({
       await deleteResource(groupInfo.content.id, resourceToDelete.id);
       smartToast.success("Resource deleted successfully");
       setShowDeleteResourceModal(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      await onRefreshGroupInfo?.();
     } catch (error) {
       console.error("Failed to delete resource:", error);
       smartToast.error(error.response?.data?.message || "Failed to delete resource");
@@ -318,7 +316,7 @@ export default function MainChatExpandedSection({
       smartToast.success("Member added successfully!");
       setShowAddMemberModal(false);
       setNewMemberEmail("");
-      window.location.reload();
+      await onRefreshGroupInfo?.();
     } catch (error) {
       console.error("Failed to add member:", error);
       const errorMsg = error.response?.data?.message || "Failed to add member. Please check if the user is already in the group.";
@@ -446,7 +444,7 @@ export default function MainChatExpandedSection({
       smartToast.success("Link added successfully");
       setShowAddLinkModal(false);
       setNewLinkUrl("");
-      window.location.reload();
+      await onRefreshGroupInfo?.();
     } catch (error) {
       console.error("Failed to add link:", error);
       smartToast.error(error.response?.data?.message || "Failed to add link");
