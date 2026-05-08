@@ -2,6 +2,7 @@ import React from "react";
 import {
   Microphone,
   Play,
+  Pause,
   Plus,
   Link as LinkIcon,
 } from "@phosphor-icons/react";
@@ -11,6 +12,75 @@ import {
   getDownloadFileName,
   getFileExtensionForLabel,
 } from "../utils/mainChatMessageUtils";
+import { getMediaType } from "../utils/messageItemUtils";
+import { useState, useRef } from "react";
+
+function VoiceNoteCard({ item, onContextMenu, onTouchStart, onTouchEnd }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
+  const url = item.url || item.file_url || "";
+
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((err) => {
+        console.error("Audio play failed:", err);
+      });
+    }
+  };
+
+  return (
+    <div
+      className="voice-note-card"
+      onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
+      onTouchStart={(e) => onTouchStart && onTouchStart(e, item)}
+      onTouchEnd={onTouchEnd}
+    >
+      <audio
+        ref={audioRef}
+        src={url}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
+        preload="metadata"
+      />
+      <div className="voice-note-header">
+        <div className="voice-note-icon-wrapper">
+          <Microphone size={20} weight="fill" />
+        </div>
+        <div className="voice-note-title">
+          <span className="voice-note-label">Voice Note</span>
+          <span className="voice-note-filename">
+            {item.file_name || "Recording"}
+          </span>
+        </div>
+      </div>
+      <div className="voice-note-waveform">
+        {Array.from({ length: 40 }, (_, i) => (
+          <div
+            key={i}
+            className="voice-note-bar"
+            style={{
+              height: `${20 + Math.random() * 60}%`,
+              animationDelay: `${i * 0.05}s`,
+              animationPlayState: isPlaying ? "running" : "paused",
+            }}
+          />
+        ))}
+      </div>
+      <div className="voice-note-play-button" onClick={togglePlay}>
+        {isPlaying ? (
+          <Pause size={16} weight="fill" />
+        ) : (
+          <Play size={16} weight="fill" />
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function ResourceGrid({
   items,
@@ -25,16 +95,10 @@ export function ResourceGrid({
       {items.map((item, index) => {
         if (item._uploadPlaceholder) {
           const url = item.url || item.file_url || item._previewObjectUrl || "";
-          const isImage =
-            /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
-            item.file_type?.startsWith("image/");
-          const isVideo =
-            /\.(mp4|webm|ogg|mov|mkv|avi)$/i.test(url) ||
-            item.file_type?.startsWith("video/");
-          const isAudio =
-            /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(url) ||
-            item.media_type === "audio" ||
-            item.file_type?.startsWith("audio/");
+          const type = getMediaType(item);
+          const isImage = type === "image";
+          const isVideo = type === "video";
+          const isAudio = type === "audio";
           return (
             <div
               key={item.id || index}
@@ -82,20 +146,10 @@ export function ResourceGrid({
           );
         }
         const url = item.url || item.file_url || "";
-        const isImage =
-          /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url) ||
-          item.media_type?.startsWith("image") ||
-          item.file_type?.startsWith("image/");
-        const isVideo =
-          /\.(mp4|webm|ogg|mov|mkv|avi)$/i.test(url) ||
-          item.media_type?.startsWith("video") ||
-          item.file_type?.startsWith("video/");
-        const isAudio =
-          /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(url) ||
-          item.media_type?.startsWith("audio") ||
-          item.media_type === "voice" ||
-          item.media_type === "voice_note" ||
-          item.file_type?.startsWith("audio/");
+        const type = getMediaType(item);
+        const isImage = type === "image";
+        const isVideo = type === "video";
+        const isAudio = type === "audio";
 
         return (
           <div
@@ -135,34 +189,12 @@ export function ResourceGrid({
                 </div>
               </div>
             ) : isAudio ? (
-              <div className="voice-note-card">
-                <div className="voice-note-header">
-                  <div className="voice-note-icon-wrapper">
-                    <Microphone size={20} weight="fill" />
-                  </div>
-                  <div className="voice-note-title">
-                    <span className="voice-note-label">Voice Note</span>
-                    <span className="voice-note-filename">
-                      {item.file_name || "Recording"}
-                    </span>
-                  </div>
-                </div>
-                <div className="voice-note-waveform">
-                  {Array.from({ length: 40 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="voice-note-bar"
-                      style={{
-                        height: `${20 + Math.random() * 60}%`,
-                        animationDelay: `${i * 0.05}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="voice-note-play-button">
-                  <Play size={16} weight="fill" />
-                </div>
-              </div>
+              <VoiceNoteCard
+                item={item}
+                onContextMenu={onContextMenu}
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEnd}
+              />
             ) : (
               <div className="media-placeholder">
                 <File size={24} />
