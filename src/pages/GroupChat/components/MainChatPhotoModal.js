@@ -14,6 +14,7 @@ export default function MainChatPhotoModal({ modalPhoto, onClose }) {
         ) : modalPhoto.media_type?.startsWith("video") ? (
           <video
             controls
+            autoPlay
             src={modalPhoto.media_url || modalPhoto.file_url || undefined}
             style={{ maxWidth: "100%", maxHeight: "80vh" }}
           />
