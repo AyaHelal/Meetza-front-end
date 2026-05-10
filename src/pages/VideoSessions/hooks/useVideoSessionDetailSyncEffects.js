@@ -136,7 +136,11 @@ export function useVideoSessionDetailSyncEffects({
         const data = await getVideoDetail(session.id);
         const commentsData = await getVideoComments(session.id);
         setDetail((prev) => mergeSocketVideoDetail(prev, detail, session, data, commentsData));
-        setComments(nestComments(Array.isArray(commentsData.comments) ? commentsData.comments : []));
+        setComments((prev) => {
+          const expandedIds = new Set(prev.filter(c => c.showReplies).map(c => c.id));
+          const fresh = nestComments(Array.isArray(commentsData.comments) ? commentsData.comments : []);
+          return fresh.map(c => ({ ...c, showReplies: expandedIds.has(c.id) }));
+        });
       } catch (err) {
         console.error("Error refreshing video detail from socket event", err);
       }

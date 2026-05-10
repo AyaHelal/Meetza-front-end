@@ -167,7 +167,7 @@ function AllVideosContent() {
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search videos"
         sessions={sessions}
-        onSubmitSearch={() => {}}
+        onSubmitSearch={() => { }}
         isAdmin={isAdmin}
         onPostVideoClick={() => setPostVideoModalOpen(true)}
         groupId={null}
