@@ -68,7 +68,7 @@ export const createMeeting = async (formData) => {
   form.append("start_time", formatForAPI(formData.startTime));
   form.append("end_time", formatForAPI(formData.endTime));
   form.append("group_id", formData.group_id);
-  form.append("status", formData.status);
+  // form.append("status", formData.status); // User requested not to send status on create
   form.append("recording", formData.recordMeeting === "Recording" ? "1" : "0");
   form.append("weekly", formData.weeklyOption === "Active" ? "1" : formData.weeklyOption === "Inactive" ? "0" : "");
   if (formData.description) form.append("description", formData.description);

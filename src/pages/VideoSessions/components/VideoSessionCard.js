@@ -177,6 +177,10 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
             </span>
           )}
 
+          {hasDescription && (
+            <p className="video-session-card-description">{description}</p>
+          )}
+
           {/* Topics Tags */}
           {(() => {
             const raw = session?.topics;
@@ -200,10 +204,6 @@ export default function VideoSessionCard({ session, onClick, isAdmin = false, on
               </div>
             );
           })()}
-
-          {hasDescription && (
-            <p className="video-session-card-description">{description}</p>
-          )}
         </div>
         {isAdmin && (onEdit || onDelete) && !session?._uploadPlaceholder && (
           <div className="video-session-card-menu-wrap" ref={menuRef}>
