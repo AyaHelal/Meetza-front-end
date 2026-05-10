@@ -93,9 +93,11 @@
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: linear-gradient(to right,
-      var(--secondary-color) var(--progress, 0%),
-      rgba(255, 255, 255, 0.35) var(--progress, 0%));
+  background: linear-gradient(
+    to right,
+    var(--secondary-color) var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -104,9 +106,11 @@
 .video-session-detail-progress::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(to right,
-      var(--secondary-color) var(--progress, 0%),
-      rgba(255, 255, 255, 0.35) var(--progress, 0%));
+  background: linear-gradient(
+    to right,
+    var(--secondary-color) var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
 }
 
 .video-session-detail-progress::-webkit-slider-thumb {
@@ -173,9 +177,11 @@
 .video-session-detail-progress::-moz-range-track {
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(to right,
-      var(--secondary-color) var(--progress, 0%),
-      rgba(255, 255, 255, 0.35) var(--progress, 0%));
+  background: linear-gradient(
+    to right,
+    var(--secondary-color) var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%)
+  );
 }
 
 .video-session-detail-progress::-moz-range-thumb {
@@ -207,13 +213,13 @@
 }
 
 /* play button only (direct first child of row), not the volume button inside .video-ctrl-volume */
-.video-session-detail-controls-row>.video-ctrl-btn:first-child {
+.video-session-detail-controls-row > .video-ctrl-btn:first-child {
   background: var(--primary-color);
   border: none;
   color: #fff !important;
 }
 
-.video-session-detail-controls-row>.video-ctrl-btn:first-child svg {
+.video-session-detail-controls-row > .video-ctrl-btn:first-child svg {
   width: 18px;
   height: 18px;
   fill: #fff !important;
@@ -728,8 +734,7 @@
 }
 
 .vsd-comment-reply-btn:hover {
-  color: #2563eb;
-  text-decoration: underline;
+  color: #000;
 }
 
 .vsd-comment-actions {
@@ -1222,15 +1227,17 @@
   position: absolute;
   inset: -1px;
   border-radius: 15px;
-  background: conic-gradient(from var(--angle),
-      transparent 0%,
-      rgba(139, 92, 246, 0.6) 15%,
-      rgba(96, 165, 250, 0.8) 30%,
-      rgba(167, 139, 250, 0.6) 45%,
-      transparent 60%,
-      rgba(96, 165, 250, 0.4) 75%,
-      rgba(139, 92, 246, 0.6) 90%,
-      transparent 100%);
+  background: conic-gradient(
+    from var(--angle),
+    transparent 0%,
+    rgba(139, 92, 246, 0.6) 15%,
+    rgba(96, 165, 250, 0.8) 30%,
+    rgba(167, 139, 250, 0.6) 45%,
+    transparent 60%,
+    rgba(96, 165, 250, 0.4) 75%,
+    rgba(139, 92, 246, 0.6) 90%,
+    transparent 100%
+  );
   animation: rotateAngle 3s linear infinite;
   z-index: -1;
   -webkit-mask:
@@ -1263,7 +1270,6 @@
 }
 
 @keyframes charmFloat {
-
   0%,
   100% {
     box-shadow:
@@ -1290,9 +1296,11 @@
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
-  background: radial-gradient(circle at top left,
-      rgba(59, 130, 246, 0.12),
-      transparent);
+  background: radial-gradient(
+    circle at top left,
+    rgba(59, 130, 246, 0.12),
+    transparent
+  );
 }
 
 .video-ai-summary-icon {
@@ -1353,7 +1361,6 @@
 }
 
 @media (max-width: 768px) {
-
   /* Below UserStatus breakpoint it's hidden, so AI Summary can use full bottom-right */
   .video-ai-summary {
     right: 12px;

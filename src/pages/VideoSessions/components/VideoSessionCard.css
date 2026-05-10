@@ -224,7 +224,7 @@
 }
 
 .video-session-card-description {
-  margin: 0;
+  margin: 0 0 6px 0;
   padding: 0;
   font-size: 0.875rem;
   color: var(--text-secondary);

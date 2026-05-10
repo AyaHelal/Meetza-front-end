@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import api from "../../../API/axiosInstance";
 import { useSocket } from "../../../context/SocketContext";
 import {
-  buildMeetingsParams,
-  filterMeetingsByDateRange,
   isMeetingLive,
 } from "../../Calendar/utils/calendarUtils";
+import { getHomeUpcomingMeetings } from "../../Home/services/homeUpcomingMeetingsService";
 
 const CALENDAR_MEETINGS_PATH = (process.env.REACT_APP_CALENDAR_MEETINGS_ENDPOINT || "meeting").replace(
   /^\//,
@@ -76,42 +75,17 @@ export default function useProfileMeetings() {
     setLoading(true);
     setError(null);
 
-    const today = new Date();
-    const rangeStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + 90);
-    const rangeParams = buildMeetingsParams("range", today, rangeStart, rangeEnd);
-    const startOfToday = rangeStart.getTime();
-
-    const upcomingSorted = (list) => {
-      const inWindow = filterMeetingsByDateRange(list, rangeStart, rangeEnd);
-      const upcoming = inWindow.filter((m) => {
-        const s = getMeetingStart(m);
-        return s && !Number.isNaN(s.getTime()) && s.getTime() >= startOfToday;
-      });
-      upcoming.sort((a, b) => {
+    try {
+      const list = await getHomeUpcomingMeetings({ limit: 50 });
+      
+      // Sort upcoming meetings by start time just to be sure
+      const upcoming = [...list].sort((a, b) => {
         const sa = getMeetingStart(a)?.getTime() ?? 0;
         const sb = getMeetingStart(b)?.getTime() ?? 0;
         return sa - sb;
       });
-      return mapToProfileRows(upcoming);
-    };
 
-    try {
-      let res;
-      try {
-        res = await api.get(`/${CALENDAR_MEETINGS_PATH}`, { params: rangeParams });
-      } catch (err) {
-        if (err?.response?.status !== 404) throw err;
-        try {
-          res = await api.get("/meeting", { params: rangeParams });
-        } catch (err2) {
-          if (err2?.response?.status !== 404) throw err2;
-          res = await api.get("/meeting");
-        }
-      }
-      const list = parseMeetingsPayload(res?.data);
-      setMeetings(upcomingSorted(list));
+      setMeetings(mapToProfileRows(upcoming));
     } catch (err) {
       setError(err?.message || "Failed to load meetings");
       setMeetings([]);

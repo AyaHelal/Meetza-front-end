@@ -61,16 +61,18 @@ export function AdminCreateMeetingForm({
         </select>
       </div>
 
-      <div className="form-group">
-        <label>
-          Status <span className="required">*</span>
-        </label>
-        <select name="status" value={formData.status} onChange={handleInputChange}>
-          <option value="Scheduled">Scheduled</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-      </div>
+      {editingMeetingId && (
+        <div className="form-group">
+          <label>
+            Status <span className="required">*</span>
+          </label>
+          <select name="status" value={formData.status} onChange={handleInputChange}>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      )}
 
       <div className="form-group">
         <label className="mb-2">Record Meeting</label>
