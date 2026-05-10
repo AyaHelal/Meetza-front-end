@@ -20,8 +20,20 @@ export default function PdfSummaryAction({
   /** null = default corner layout from CSS; set when user drags the card */
   const [cardPos, setCardPos] = useState(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
   const cardRef = useRef(null);
+  const dropdownRef = useRef(null);
   const dragMeta = useRef({ startX: 0, startY: 0, origLeft: 0, origTop: 0 });
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowLangDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!showSummary) {
@@ -80,16 +92,15 @@ export default function PdfSummaryAction({
   }, []);
 
   const runSummarize = useCallback(
-    async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    async (lang = "en") => {
       if (!fileUrl) {
         smartToast.error("PDF link is missing.");
         return;
       }
       setLoading(true);
+      setShowLangDropdown(false);
       try {
-        const { summary, topics } = await getPdfSummaryFromGroupContents(api, fileUrl, "en");
+        const { summary, topics } = await getPdfSummaryFromGroupContents(api, fileUrl, lang);
         setSummaryData({
           summary: summary || "No summary available",
           topics: topics || null,
@@ -165,27 +176,51 @@ export default function PdfSummaryAction({
 
   return (
     <>
-      <button
-        type="button"
-        className={`pdf-summary-trigger ${triggerClassName}`.trim()}
-        onClick={runSummarize}
-        disabled={loading}
-        title={loading ? "Generating summary…" : "AI PDF summary"}
-        aria-label="Summarize PDF"
+      <div
+        className={`pdf-summary-wrap ${triggerClassName}`.trim()}
+        ref={dropdownRef}
       >
-        {loading ? (
-          <Spinner
-            size={Math.max(14, Math.round(triggerLottieSize * 0.9))}
-            className="pdf-summary-trigger__spinner"
-          />
-        ) : (
-          <Lottie
-            animationData={aiAnimation}
-            style={{ width: triggerLottieSize, height: triggerLottieSize }}
-            loop
-          />
+        <button
+          type="button"
+          className="pdf-summary-trigger"
+          onClick={() => !loading && setShowLangDropdown(!showLangDropdown)}
+          disabled={loading}
+          title={loading ? "Generating summary…" : "AI PDF summary"}
+          aria-label="Summarize PDF"
+        >
+          {loading ? (
+            <Spinner
+              size={Math.max(14, Math.round(triggerLottieSize * 0.9))}
+              className="pdf-summary-trigger__spinner"
+            />
+          ) : (
+            <Lottie
+              animationData={aiAnimation}
+              style={{ width: triggerLottieSize, height: triggerLottieSize }}
+              loop
+            />
+          )}
+        </button>
+
+        {showLangDropdown && (
+          <div className="pdf-language-options">
+            <button
+              className="pdf-language-option"
+              onClick={() => runSummarize("en")}
+              disabled={loading}
+            >
+              English
+            </button>
+            <button
+              className="pdf-language-option"
+              onClick={() => runSummarize("ar")}
+              disabled={loading}
+            >
+              Arabic
+            </button>
+          </div>
         )}
-      </button>
+      </div>
       {panel}
     </>
   );

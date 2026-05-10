@@ -61,6 +61,7 @@ export default function MainChatExpandedSectionContentView({
           showUploadLinkActions={false}
           onUploadFile={handleUploadClick}
           onAddLink={() => setShowAddLinkModal(true)}
+          showPdfSummary={false}
         />
       </>
     );
@@ -80,6 +81,7 @@ export default function MainChatExpandedSectionContentView({
           showUploadLinkActions
           onUploadFile={handleUploadClick}
           onAddLink={() => setShowAddLinkModal(true)}
+          showPdfSummary={true}
         />
       </>
     );
