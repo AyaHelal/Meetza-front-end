@@ -39,8 +39,7 @@ export const useChatbot = () => {
       const errorMessage = { 
         id: Date.now() + 1, 
         text: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.", 
-        isBot: true,
-        isError: true
+        isBot: true
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
