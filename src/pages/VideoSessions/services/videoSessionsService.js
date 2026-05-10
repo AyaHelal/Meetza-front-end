@@ -526,10 +526,11 @@ export async function createVideo(payload) {
  */
 export async function updateVideo(videoId, payload) {
   if (!videoId) throw new Error("video id is required");
-  const { title, description } = payload ?? {};
+  const { title, description, poster_file } = payload ?? {};
   const formData = new FormData();
   if (title != null && title.toString().trim() !== "") formData.append("title", title.toString().trim());
   if (description != null) formData.append("description", (description && description.toString().trim()) || "");
+  if (poster_file instanceof File) formData.append("poster_file", poster_file);
   const res = await api.post(`/video/${encodeURIComponent(videoId)}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
     timeout: 60000,
