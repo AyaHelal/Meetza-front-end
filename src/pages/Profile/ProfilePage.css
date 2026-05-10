@@ -11,9 +11,13 @@
   --profile-notif-card-max-height: 134px;
   --profile-files-card-max-height: 350px;
   --profile-ongoing-shell-max-height: 175px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
+
+  /* Dashboard Mode: Lock the page scroll on desktop */
+  height: 100%;
+  width: 100%;
+  overflow: hidden; 
+  display: flex;
+  flex-direction: column;
 }
 
 .profile-page.profile-page--member {
@@ -31,11 +35,7 @@
   margin-right: auto;
 }
 
-/*
- * Login.css applies `margin: 0 !important` to `.row` and `[class*="col-"]`, which removes
- * Bootstrap's gutter margins (including vertical space between stacked columns on mobile).
- * Restore grid offsets only inside the profile page.
- */
+
 .profile-page>.profile-dashboard-inner>.row {
   margin-left: calc(-0.5 * var(--bs-gutter-x)) !important;
   margin-right: calc(-0.5 * var(--bs-gutter-x)) !important;
@@ -227,6 +227,11 @@
   flex-direction: column;
   min-height: 0;
   max-height: var(--profile-notif-card-max-height);
+}
+
+.profile-notif-card__list .profile-notif-card__item {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .profile-notif-card__title {
@@ -454,9 +459,10 @@
 /* Meetings card — max height من .profile-page (--profile-meetings-card-max-height) */
 .profile-meetings-card {
   min-height: 0;
-  max-height: var(--profile-meetings-card-max-height);
+  max-height: 400px; /* Re-enable a generous height that fits most screens */
   width: 100%;
-  overflow: hidden;
+  overflow-y: auto; /* Allow internal scroll only if absolutely necessary */
+  scrollbar-width: thin;
 }
 
 .profile-meetings-card__body {
@@ -515,8 +521,8 @@
 }
 
 .profile-meetings-row {
-  padding-top: 0.95rem !important;
-  padding-bottom: 0.95rem !important;
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.6rem !important;
   border-bottom: 1px solid #e8eaef !important;
 }
 
@@ -526,9 +532,9 @@
 
 /* Mini calendar badge */
 .profile-meeting-date {
-  width: 70px;
+  width: 58px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   align-self: flex-start;
@@ -547,10 +553,10 @@
 
 .profile-meeting-day {
   display: block;
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #0f172a;
-  padding: 0.45rem 0.2rem;
+  padding: 0.35rem 0.2rem;
   background: #f1f5f9;
 }
 
@@ -596,18 +602,18 @@
 }
 
 .profile-meeting-time-clock {
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   font-weight: 500;
   color: #0f172a;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .profile-meeting-time-meridian {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 400;
   color: #94a3b8;
   text-transform: uppercase;
-  margin-top: 0.05rem;
+  margin-top: 0rem;
 }
 
 .profile-meeting-times__chev {
@@ -672,7 +678,7 @@
 .profile-files-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.1rem 1.1rem;
+  gap: 0.75rem 0.75rem;
   width: 100%;
 }
 
@@ -897,6 +903,11 @@
     --profile-live-meetings-card-max-height: min(30vh, 210px);
     --profile-notif-card-max-height: min(26vh, 220px);
     --profile-files-card-max-height: min(28vh, 220px);
+
+    /* Disable internal scroll on mobile to let parent AppLayout scroll */
+    overflow-y: visible !important;
+    height: auto !important;
+    display: block;
   }
 
   .profile-saved-videos-card__body {

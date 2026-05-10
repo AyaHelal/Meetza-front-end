@@ -158,21 +158,19 @@ export const SocketProvider = ({ children }) => {
         });
 
         // Get initial unread notification count after socket connects
-        // Use REST API directly since socket event doesn't seem to work reliably
-        setTimeout(() => {
-          api
-            .get("/notification")
-            .then((response) => {
-              const notificationsData = parseNotificationsFromApiResponse(response.data);
-              const unreadCount = countUnreadNotifications(notificationsData);
-              notificationsSyncFingerprintRef.current =
-                notificationsListFingerprint(notificationsData);
-              notificationsListLengthRef.current = notificationsData.length;
-              unreadNotificationCountRef.current = unreadCount;
-              setUnreadNotificationCount(unreadCount);
-            })
-            .catch(() => {});
-        }, 500);
+        // We do this ONCE to set the baseline; real-time updates then come via sockets.
+        api
+          .get("/notification")
+          .then((response) => {
+            const notificationsData = parseNotificationsFromApiResponse(response.data);
+            const unreadCount = countUnreadNotifications(notificationsData);
+            notificationsSyncFingerprintRef.current =
+              notificationsListFingerprint(notificationsData);
+            notificationsListLengthRef.current = notificationsData.length;
+            unreadNotificationCountRef.current = unreadCount;
+            setUnreadNotificationCount(unreadCount);
+          })
+          .catch(() => {});
 
         setConnectionError(null);
         hasLoggedSocketErrorRef.current = false;
@@ -234,54 +232,33 @@ export const SocketProvider = ({ children }) => {
     };
   }, [token]);
 
-  // Poll notifications while logged in — backend may not emit socket events the client listens for.
+  /** One-time or focus-based sync for notifications to keep baseline accurate without polling. */
+  const refreshNotifications = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await api.get("/notification");
+      const list = parseNotificationsFromApiResponse(response.data);
+      const unread = countUnreadNotifications(list);
+      unreadNotificationCountRef.current = unread;
+      setUnreadNotificationCount(unread);
+    } catch {
+      /* ignore */
+    }
+  }, [token]);
+
+  // Sync notifications on window focus/visibility (much cleaner than periodic polling)
   useEffect(() => {
     if (!token) return;
-
-    const POLL_MS = 8000;
-
-    const syncFromApi = async () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
-        return;
-      }
-      try {
-        const response = await api.get("/notification");
-        const list = parseNotificationsFromApiResponse(response.data);
-        const fp = notificationsListFingerprint(list);
-        if (fp === notificationsSyncFingerprintRef.current) return;
-        const hadBaseline = notificationsSyncFingerprintRef.current !== "";
-        const prevUnread = Number(unreadNotificationCountRef.current) || 0;
-        const prevLen = notificationsListLengthRef.current;
-        const unread = countUnreadNotifications(list);
-        const len = list.length;
-        notificationsSyncFingerprintRef.current = fp;
-        notificationsListLengthRef.current = len;
-        unreadNotificationCountRef.current = unread;
-        setUnreadNotificationCount(unread);
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("meetza:notifications-sync", {
-              detail: { notifications: list, unreadCount: unread },
-            })
-          );
-        }
-        if (hadBaseline && (unread > prevUnread || len > prevLen)) {
-          playNotificationSound();
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-
-    const interval = setInterval(syncFromApi, POLL_MS);
-    window.addEventListener("focus", syncFromApi);
-    document.addEventListener("visibilitychange", syncFromApi);
+    window.addEventListener("focus", refreshNotifications);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refreshNotifications();
+    });
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", syncFromApi);
-      document.removeEventListener("visibilitychange", syncFromApi);
+      window.removeEventListener("focus", refreshNotifications);
+      document.removeEventListener("visibilitychange", refreshNotifications);
     };
-  }, [token]);
+  }, [token, refreshNotifications]);
+
 
   useEffect(() => {
     unreadNotificationCountRef.current = unreadNotificationCount;
@@ -721,6 +698,7 @@ export const SocketProvider = ({ children }) => {
     unreadGroupChatCount,
     setUnreadGroupChatCount,
     refreshUnreadGroupChatCount,
+    refreshNotifications,
   };
 
   return (
