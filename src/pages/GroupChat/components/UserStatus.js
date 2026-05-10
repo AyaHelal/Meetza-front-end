@@ -43,19 +43,25 @@ const UserStatus = ({ user, activeMeetingId, activeGroupId }) => {
                         {/* Always show mic and camera controls */}
                         <button
                             type="button"
-                            className={`status-icon status-mic ${!audioMuted ? 'active' : ''}`}
-                            onClick={toggleAudio}
+                            className={`status-icon status-mic ${!audioMuted ? 'active' : ''} ${!activeMeetingId ? 'disabled' : ''}`}
+                            onClick={() => {
+                                if (activeMeetingId) toggleAudio();
+                            }}
+                            disabled={!activeMeetingId}
                             aria-label={audioMuted ? "Unmute microphone" : "Mute microphone"}
-                            title={audioMuted ? "Unmute microphone" : "Mute microphone"}
+                            title={!activeMeetingId ? "Join a meeting to use microphone" : (audioMuted ? "Unmute microphone" : "Mute microphone")}
                         >
                             {audioMuted ? <MicrophoneSlash size={20} /> : <Microphone size={20} weight="fill" />}
                         </button>
                         <button
                             type="button"
-                            className={`status-icon status-camera ${!videoMuted ? 'active' : ''}`}
-                            onClick={toggleVideo}
+                            className={`status-icon status-camera ${!videoMuted ? 'active' : ''} ${!activeMeetingId ? 'disabled' : ''}`}
+                            onClick={() => {
+                                if (activeMeetingId) toggleVideo();
+                            }}
+                            disabled={!activeMeetingId}
                             aria-label={videoMuted ? "Turn on camera" : "Turn off camera"}
-                            title={videoMuted ? "Turn on camera" : "Turn off camera"}
+                            title={!activeMeetingId ? "Join a meeting to use camera" : (videoMuted ? "Turn on camera" : "Turn off camera")}
                         >
                             {videoMuted ? <VideoCameraSlash size={20} /> : <VideoCamera size={20} weight="fill" />}
                         </button>

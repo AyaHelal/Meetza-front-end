@@ -2352,6 +2352,13 @@ body.group-chat-active {
   padding: 0;
 }
 
+.status-icon:disabled,
+.status-icon.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Mic and Camera icons - darker gray by default, black on hover */
 .status-icon.status-mic,
 .status-icon.status-camera {
