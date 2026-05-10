@@ -17,7 +17,7 @@ function getVideoDuration(file) {
     video.preload = "metadata";
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(url);
-      const seconds = Math.floor(video.duration);
+      const seconds = Math.ceil(video.duration);
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
