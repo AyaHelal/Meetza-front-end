@@ -254,21 +254,21 @@ export function parseSession(raw) {
   const nestedWp = raw.watch_progress ?? raw.watchProgress;
   const embedSec = extractWatchProgressSeconds(
     nestedWp ??
-      raw.watch_progress ??
-      raw.watchProgress ??
-      raw.watch_progress_seconds ??
-      raw.watchProgressSeconds
+    raw.watch_progress ??
+    raw.watchProgress ??
+    raw.watch_progress_seconds ??
+    raw.watchProgressSeconds
   );
   const normFromList =
     nestedWp != null && typeof nestedWp === "object"
       ? normalizeWatchProgressData({ data: nestedWp })
       : normalizeWatchProgressData({
-          data: {
-            progress_seconds: raw.progress_seconds ?? raw.progressSeconds,
-            watch_status: raw.watch_status ?? raw.watchStatus,
-            progress_percentage: raw.progress_percentage ?? raw.progressPercentage,
-          },
-        });
+        data: {
+          progress_seconds: raw.progress_seconds ?? raw.progressSeconds,
+          watch_status: raw.watch_status ?? raw.watchStatus,
+          progress_percentage: raw.progress_percentage ?? raw.progressPercentage,
+        },
+      });
   const watchProgressSeconds = embedSec != null ? embedSec : normFromList.progressSeconds;
   const watchStatus = normFromList.watchStatus;
   const progressPercentage = normFromList.progressPercentage;

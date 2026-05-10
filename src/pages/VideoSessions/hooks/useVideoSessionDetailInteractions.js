@@ -139,23 +139,23 @@ export function useVideoSessionDetailInteractions({
         }
         const summaryDataRes = data?.summary;
         const transcriptData = data?.transcript;
-        
+
         // Handle {ar, en} format
         let finalSummary = '';
         let finalTranscript = '';
-        
+
         if (typeof summaryDataRes === 'object' && summaryDataRes !== null) {
           finalSummary = summaryDataRes[lang] || summaryDataRes.en || summaryDataRes.ar || '';
         } else if (typeof summaryDataRes === 'string') {
           finalSummary = summaryDataRes;
         }
-        
+
         if (typeof transcriptData === 'object' && transcriptData !== null) {
           finalTranscript = transcriptData[lang] || transcriptData.en || transcriptData.ar || '';
         } else if (typeof transcriptData === 'string') {
           finalTranscript = transcriptData;
         }
-        
+
         if (finalSummary || finalTranscript) {
           if (finalSummary === "No words were detected in the video.") finalSummary = "No summary available";
           if (!finalTranscript) finalTranscript = "No transcript available";
@@ -402,9 +402,23 @@ export function useVideoSessionDetailInteractions({
         await createComment(session.id, text, parentCommentId);
         setReplyDrafts((prev) => ({ ...prev, [parentCommentId]: "" }));
         toggleReplyInput(parentCommentId);
+
+        // Refresh comments and ensure the parent comment's replies are shown
         const commentsData = await getVideoComments(session.id);
         const nested = nestComments(commentsData.comments ?? []);
-        setComments(nested);
+
+        setComments((prev) => {
+          // Identify which comments were already expanded to preserve UX
+          const expandedIds = new Set(prev.filter(c => c.showReplies).map(c => c.id));
+          // Always expand the parent comment we just replied to
+          expandedIds.add(parentCommentId);
+
+          return nested.map((c) => ({
+            ...c,
+            showReplies: expandedIds.has(c.id)
+          }));
+        });
+
         setDetail((prev) => ({ ...prev, commentCount: commentsData.commentCount ?? (prev?.commentCount ?? 0) + 1 }));
         smartToast.success("Reply posted");
       } catch (err) {
