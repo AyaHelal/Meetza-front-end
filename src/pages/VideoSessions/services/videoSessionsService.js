@@ -98,8 +98,8 @@ export async function getVideoSessions(groupId = null, q = "") {
 /** Format seconds as HH:MM:SS or MM:SS for display */
 function formatDurationForDisplay(value) {
   if (value == null) return null;
-  if (typeof value === "string" && value.trim() !== "" && !value.match(/^\d+$/)) return value;
-  const sec = typeof value === "number" ? Math.floor(value) : parseInt(String(value).trim(), 10);
+  if (typeof value === "string" && value.trim() !== "" && !value.match(/^\d+(\.\d+)?$/)) return value;
+  const sec = typeof value === "number" ? Math.ceil(value) : Math.ceil(parseFloat(String(value).trim()));
   if (isNaN(sec) || sec < 0) return null;
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
@@ -500,7 +500,7 @@ export async function createVideo(payload) {
   if (!group_id || !group_id.toString().trim()) throw new Error("group_id is required");
 
   const seconds = typeof duration_seconds === "number" && !isNaN(duration_seconds) && duration_seconds >= 0
-    ? Math.floor(duration_seconds)
+    ? Math.ceil(duration_seconds)
     : parseDurationToSeconds(duration);
 
   const formData = new FormData();
