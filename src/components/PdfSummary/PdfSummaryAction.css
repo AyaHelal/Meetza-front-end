@@ -200,11 +200,18 @@
   }
 }
 
-/* Corner trigger on cards / message doc */
-.pdf-summary-trigger {
+/* Wrapper to handle dropdown positioning */
+.pdf-summary-wrap {
   position: absolute;
   top: 6px;
   right: 6px;
+  z-index: 100;
+  display: inline-flex;
+}
+
+/* Corner trigger on cards / message doc */
+.pdf-summary-trigger {
+  position: relative;
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -248,7 +255,7 @@
   }
 }
 
-.pdf-summary-trigger--doc-card {
+.pdf-summary-wrap.pdf-summary-trigger--doc-card {
   top: 4px;
   right: 4px;
 }
@@ -275,12 +282,12 @@
   max-width: 100%;
 }
 
-.message-media-doc--pdf .pdf-summary-trigger {
+.message-media-doc--pdf .pdf-summary-wrap {
   top: 13px;
   right: -19px;
 }
 
-.description-item--pdf-resource .pdf-summary-trigger {
+.description-item--pdf-resource .pdf-summary-wrap {
   position: static;
   flex-shrink: 0;
   margin-left: 4px;
@@ -304,6 +311,62 @@
 
 .pdf-summary-trigger.pdf-summary-trigger--meeting-resource .pdf-summary-trigger__spinner {
   color: var(--primary-color);
+}
+
+.pdf-language-options {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 10002;
+  min-width: 130px;
+  overflow: hidden;
+  animation: pdfLangFadeIn 0.2s ease-out;
+}
+
+@keyframes pdfLangFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pdf-language-option {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #111827);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.pdf-language-option:hover:not(:disabled) {
+  background: var(--bg-alt, #f3f4f6);
+  color: var(--primary-color, #2563eb);
+}
+
+.pdf-language-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-language-option + .pdf-language-option {
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
 }
 
 

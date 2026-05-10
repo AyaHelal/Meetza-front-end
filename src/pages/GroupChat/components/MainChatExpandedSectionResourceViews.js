@@ -14,6 +14,7 @@ import {
 } from "../utils/mainChatMessageUtils";
 import { getMediaType } from "../utils/messageItemUtils";
 import { useState, useRef } from "react";
+import PdfSummaryAction from "../../../components/PdfSummary/PdfSummaryAction";
 
 function VoiceNoteCard({ item, onContextMenu, onTouchStart, onTouchEnd }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -250,6 +251,7 @@ export function DocumentList({
   onContextMenu,
   onTouchStart,
   onTouchEnd,
+  showPdfSummary = false,
 }) {
   return (
     <div className="expanded-items documents-grid">
@@ -382,6 +384,14 @@ export function DocumentList({
                   >
                     {cardInner}
                   </a>
+                  {showPdfSummary && fileUrl && (
+                    <PdfSummaryAction
+                      fileUrl={fileUrl}
+                      fileName={fileName}
+                      triggerClassName="pdf-summary-trigger--doc-card"
+                      triggerLottieSize={20}
+                    />
+                  )}
                 </div>
               );
             }
@@ -422,6 +432,7 @@ export function TabbedSection({
   onUploadFile,
   onAddLink,
   showUploadLinkActions = false,
+  showPdfSummary = false,
 }) {
   return (
     <div className="expanded-section">
@@ -501,6 +512,7 @@ export function TabbedSection({
           onContextMenu={onContextMenu}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
+          showPdfSummary={showPdfSummary}
         />
       )}
     </div>
