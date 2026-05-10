@@ -22,7 +22,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
   const [postVideoModalOpen, setPostVideoModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", poster_file: null });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -68,6 +68,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
     setEditForm({
       title: session?.title ?? "",
       description: session?.description ?? "",
+      poster_file: null,
     });
     setShowEditModal(true);
   };
@@ -80,7 +81,7 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
     }
     setEditSubmitting(true);
     try {
-      await updateVideo(sessionToEdit.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "" });
+      await updateVideo(sessionToEdit.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "", poster_file: editForm.poster_file });
       smartToast.success("Video updated");
       setShowEditModal(false);
       setSessionToEdit(null);
@@ -261,6 +262,20 @@ export default function VideoSessionsSection({ onBack, groupId = null, groupName
                   placeholder="Video description"
                   rows={3}
                 />
+              </div>
+              <div className="video-edit-form-group">
+                <label htmlFor="edit-video-poster-section">Poster image</label>
+                <input
+                  id="edit-video-poster-section"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, poster_file: e.target.files?.[0] || null }))}
+                />
+                {editForm.poster_file && (
+                  <span className="small text-muted d-block mt-1">
+                    Selected: {editForm.poster_file.name}
+                  </span>
+                )}
               </div>
               <div className="video-edit-modal-actions">
                 <button type="button" className="video-edit-btn video-edit-btn-cancel" onClick={() => setShowEditModal(false)} disabled={editSubmitting}>Cancel</button>

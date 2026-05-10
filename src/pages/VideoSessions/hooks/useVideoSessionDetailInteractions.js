@@ -323,6 +323,7 @@ export function useVideoSessionDetailInteractions({
     setEditForm({
       title: detail?.title ?? session?.title ?? "",
       description: detail?.description ?? session?.description ?? "",
+      poster_file: null,
     });
     setShowEditModal(true);
   }, [detail?.title, detail?.description, session?.title, session?.description, setEditForm, setShowEditModal]);
@@ -336,8 +337,13 @@ export function useVideoSessionDetailInteractions({
       }
       setEditSubmitting(true);
       try {
-        await updateVideo(session.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "" });
-        setDetail((prev) => ({ ...prev, title: editForm.title.trim(), description: editForm.description?.trim() ?? "" }));
+        const newPosterUrl = await updateVideo(session.id, { title: editForm.title.trim(), description: editForm.description?.trim() ?? "", poster_file: editForm.poster_file });
+        setDetail((prev) => ({ 
+            ...prev, 
+            title: editForm.title.trim(), 
+            description: editForm.description?.trim() ?? "",
+            ...(newPosterUrl && typeof newPosterUrl === 'string' && { poster_url: newPosterUrl })
+        }));
         setShowEditModal(false);
         smartToast.success("Video updated");
       } catch (err) {

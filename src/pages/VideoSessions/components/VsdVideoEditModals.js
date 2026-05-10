@@ -59,6 +59,20 @@ export function VsdVideoEditModals({
                   rows={3}
                 />
               </div>
+              <div className="video-edit-form-group">
+                <label htmlFor="edit-video-poster">Poster image</label>
+                <input
+                  id="edit-video-poster"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, poster_file: e.target.files?.[0] || null }))}
+                />
+                {editForm.poster_file && (
+                  <span className="small text-muted d-block mt-1" style={{ fontSize: '0.875rem', marginTop: '4px' }}>
+                    Selected: {editForm.poster_file.name}
+                  </span>
+                )}
+              </div>
               <div className="video-edit-modal-actions">
                 <button
                   type="button"
