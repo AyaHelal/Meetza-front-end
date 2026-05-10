@@ -232,9 +232,9 @@ export default function PostVideoModal({
               type="text"
               name="duration"
               value={formData.duration}
-              onChange={handleChange}
-              placeholder={durationLoading ? "Reading from video…" : "Auto-filled from video file (HH:MM:SS)"}
-              readOnly={durationLoading}
+              placeholder={durationLoading ? "Reading from video…" : "Auto-calculated from video file"}
+              readOnly
+              className="post-video-input-readonly"
             />
             {durationLoading && (
               <span className="post-video-duration-hint">Reading duration from video file…</span>

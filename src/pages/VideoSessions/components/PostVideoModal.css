@@ -170,5 +170,11 @@
   cursor: not-allowed;
 }
 
+.post-video-input-readonly {
+  background-color: var(--divider-color, #f5f5f5) !important;
+  cursor: default;
+  border-color: var(--border-color) !important;
+}
+
 
 
