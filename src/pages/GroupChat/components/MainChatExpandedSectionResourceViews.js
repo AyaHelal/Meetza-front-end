@@ -384,7 +384,7 @@ export function DocumentList({
                   >
                     {cardInner}
                   </a>
-                  {showPdfSummary && fileUrl && (
+                  {showPdfSummary && item.summary && fileUrl && (
                     <PdfSummaryAction
                       fileUrl={fileUrl}
                       fileName={fileName}

@@ -115,6 +115,7 @@ export function VideoSessionDetailLayout(props) {
     shareUrl,
     onSelectSession,
     isAdmin,
+    hasSummary,
   } = props;
 
   const topicList = topics
@@ -229,27 +230,29 @@ export function VideoSessionDetailLayout(props) {
                 </button>
 
                 {/* AI Summary */}
-                <div className="summary-container">
-                  <button
-                    type="button"
-                    className={`video-session-detail-btn ${loadingSummary ? "loading" : ""}`}
-                    onClick={() => !loadingSummary && setShowLangDropdown(!showLangDropdown)}
-                    disabled={loadingSummary}
-                  >
-                    {loadingSummary ? (
-                      <Spinner size={16} className="spinning" />
-                    ) : (
-                      <Lottie animationData={aiAnimation} style={{ width: 20, height: 20 }} />
+                {hasSummary && (
+                  <div className="summary-container">
+                    <button
+                      type="button"
+                      className={`video-session-detail-btn ${loadingSummary ? "loading" : ""}`}
+                      onClick={() => !loadingSummary && setShowLangDropdown(!showLangDropdown)}
+                      disabled={loadingSummary}
+                    >
+                      {loadingSummary ? (
+                        <Spinner size={16} className="spinning" />
+                      ) : (
+                        <Lottie animationData={aiAnimation} style={{ width: 20, height: 20 }} />
+                      )}
+                      <span>{loadingSummary ? "Summarizing..." : "Summary"}</span>
+                    </button>
+                    {showLangDropdown && (
+                      <div className="language-options" onClick={(e) => e.stopPropagation()}>
+                        <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("en"); }} disabled={loadingSummary}>English</button>
+                        <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("ar"); }} disabled={loadingSummary}>Arabic</button>
+                      </div>
                     )}
-                    <span>{loadingSummary ? "Summarizing..." : "Summary"}</span>
-                  </button>
-                  {showLangDropdown && (
-                    <div className="language-options" onClick={(e) => e.stopPropagation()}>
-                      <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("en"); }} disabled={loadingSummary}>English</button>
-                      <button className="language-option" onClick={(e) => { e.stopPropagation(); handleSummarize("ar"); }} disabled={loadingSummary}>Arabic</button>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <button
                   type="button"

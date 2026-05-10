@@ -200,6 +200,17 @@ export function useVideoSessionDetail(session, options = {}) {
   const groupName = detail?.groupName ?? session?.groupName ?? session?.group_name ?? null;
   const sourceRelated = (relatedVideos?.length > 0 ? relatedVideos : relatedSessions) || [];
   const related = sourceRelated.filter((s) => (s.id ?? s.title) !== (session?.id ?? session?.title));
+  const hasSummary = (() => {
+    // If detail is loaded, it's the source of truth. If not, fallback to session.
+    const s = detail ? detail.summary : session?.summary;
+    if (!s) return false;
+    if (typeof s === "string") return s.trim().length > 0;
+    if (typeof s === "object") {
+      // Check if at least one language has content
+      return Object.values(s).some(val => val !== null && typeof val === 'string' && val.trim().length > 0);
+    }
+    return false;
+  })();
 
   return {
     user,
@@ -247,6 +258,7 @@ export function useVideoSessionDetail(session, options = {}) {
     deleting,
     isAdmin,
     related,
+    hasSummary,
     onSelectSession,
     detailError,
     loadingDetail,
