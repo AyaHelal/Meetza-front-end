@@ -17,7 +17,7 @@ const ChatsPanel = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const [unreadMap, setUnreadMap] = useChatsPanelUnread(
+  const [unreadMap, setUnreadMap, unreadLoading] = useChatsPanelUnread(
     axiosInstance,
     groupChats,
     selectedChat,
@@ -26,10 +26,13 @@ const ChatsPanel = ({
     getUnreadCount
   );
 
-  const messagePreviews = useChatsPanelMessagePreviews(
+  const [messagePreviews, previewsLoading] = useChatsPanelMessagePreviews(
     axiosInstance,
     groupChats
   );
+
+  const isPanelDataLoading =
+    Boolean(groupChats?.length) && (unreadLoading || previewsLoading);
 
   const mergedChats = useMemo(() => {
     return (groupChats || []).map((c, index) => {
@@ -80,6 +83,7 @@ const ChatsPanel = ({
           unreadMap={unreadMap}
           setUnreadMap={setUnreadMap}
           onChatSelect={onChatSelect}
+          isPanelDataLoading={isPanelDataLoading}
         />
       </div>
     </div>

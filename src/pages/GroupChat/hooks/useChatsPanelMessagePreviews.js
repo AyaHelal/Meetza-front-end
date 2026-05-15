@@ -3,11 +3,18 @@ import { fetchLastMessagePreview } from "../services/chatsPanelService";
 
 export function useChatsPanelMessagePreviews(axiosInstance, groupChats) {
   const [messagePreviews, setMessagePreviews] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const fetchingPreviewsRef = useRef(false);
   const fetchedPreviewsRef = useRef(new Set());
+  const initialFetchDoneRef = useRef(false);
 
   useEffect(() => {
-    if (!groupChats?.length || fetchingPreviewsRef.current) return;
+    if (!groupChats?.length) {
+      initialFetchDoneRef.current = false;
+      setIsLoading(false);
+      return;
+    }
+    if (fetchingPreviewsRef.current) return;
 
     const groupsToFetch = groupChats.filter((chat) => {
       const chatIdStr = String(chat.id);
@@ -21,9 +28,17 @@ export function useChatsPanelMessagePreviews(axiosInstance, groupChats) {
       return hasDate && !hasMessage && !hasSubject && !alreadyFetched;
     });
 
-    if (groupsToFetch.length === 0) return;
+    if (groupsToFetch.length === 0) {
+      if (!initialFetchDoneRef.current) {
+        initialFetchDoneRef.current = true;
+        setIsLoading(false);
+      }
+      return;
+    }
 
+    const isInitialFetch = !initialFetchDoneRef.current;
     fetchingPreviewsRef.current = true;
+    if (isInitialFetch) setIsLoading(true);
 
     (async () => {
       try {
@@ -43,9 +58,13 @@ export function useChatsPanelMessagePreviews(axiosInstance, groupChats) {
         }
       } finally {
         fetchingPreviewsRef.current = false;
+        if (isInitialFetch) {
+          initialFetchDoneRef.current = true;
+          setIsLoading(false);
+        }
       }
     })();
   }, [axiosInstance, groupChats]);
 
-  return messagePreviews;
+  return [messagePreviews, isLoading];
 }

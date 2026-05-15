@@ -18,7 +18,8 @@ export function useGroupChatSend(
   socket,
   isConnected,
   socketSendMessage,
-  groupInfoRef
+  groupInfoRef,
+  setSelectedChat
 ) {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
@@ -94,13 +95,31 @@ export function useGroupChatSend(
       setMessages((prev) => [...prev, optimisticMessage]);
       const previewLabel =
         trimmedText || (file ? getMediaLabel(finalMediaType, originalName) : "");
-      setGroupChats((prev) =>
-        prev.map((chat, index) =>
-          index === selectedChat
-            ? { ...chat, subject: previewLabel || chat.subject }
-            : chat
-        )
-      );
+      const now = new Date();
+      const previewDateLabel = now.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      });
+      setGroupChats((prev) => {
+        const i = selectedChat;
+        if (i == null || i < 0 || i >= prev.length) return prev;
+        const picked = prev[i];
+        const updatedRow = {
+          ...picked,
+          subject: previewLabel || picked.subject,
+          date: previewDateLabel,
+          last_message_at: now.toISOString(),
+        };
+        if (i === 0) {
+          const rest = prev.slice(1);
+          return [updatedRow, ...rest];
+        }
+        const without = [...prev.slice(0, i), ...prev.slice(i + 1)];
+        return [updatedRow, ...without];
+      });
+      if (typeof setSelectedChat === "function" && selectedChat > 0) {
+        setSelectedChat(0);
+      }
 
       const formData = buildSendMessageFormData({
         messageText: trimmedText,
@@ -203,6 +222,7 @@ export function useGroupChatSend(
       isConnected,
       socketSendMessage,
       groupInfoRef,
+      setSelectedChat,
     ]
   );
 
