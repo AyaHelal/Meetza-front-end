@@ -1,4 +1,4 @@
-/* ChatsPanel styles are in GroupChat.css */
-
-
-
+.chats-panel-loading {
+  flex: 1;
+  min-height: 120px;
+}

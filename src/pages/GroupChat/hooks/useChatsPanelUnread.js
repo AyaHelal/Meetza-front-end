@@ -5,17 +5,23 @@ const FETCH_COOLDOWN = 5000;
 
 export function useChatsPanelUnread(axiosInstance, groupChats, selectedChat, socket, isConnected, getUnreadCount) {
   const [unreadMap, setUnreadMap] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const unreadMapRef = useRef({});
   const fetchingRef = useRef(false);
   const endpointExistsRef = useRef(true);
   const lastFetchTimeRef = useRef({});
+  const initialFetchDoneRef = useRef(false);
 
   useEffect(() => {
     unreadMapRef.current = unreadMap;
   }, [unreadMap]);
 
   useEffect(() => {
-    if (!groupChats?.length) return;
+    if (!groupChats?.length) {
+      initialFetchDoneRef.current = false;
+      setIsLoading(false);
+      return;
+    }
     const now = Date.now();
     const idsToFetch = groupChats
       .map((g) => g?.id)
@@ -41,14 +47,22 @@ export function useChatsPanelUnread(axiosInstance, groupChats, selectedChat, soc
         return true;
       });
 
-    if (idsToFetch.length === 0) return;
+    if (idsToFetch.length === 0) {
+      if (!initialFetchDoneRef.current) {
+        initialFetchDoneRef.current = true;
+        setIsLoading(false);
+      }
+      return;
+    }
 
     let token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) return;
     if (fetchingRef.current) return;
     if (!endpointExistsRef.current) return;
 
+    const isInitialFetch = !initialFetchDoneRef.current;
     fetchingRef.current = true;
+    if (isInitialFetch) setIsLoading(true);
 
     (async () => {
       try {
@@ -88,6 +102,10 @@ export function useChatsPanelUnread(axiosInstance, groupChats, selectedChat, soc
         });
       } finally {
         fetchingRef.current = false;
+        if (isInitialFetch) {
+          initialFetchDoneRef.current = true;
+          setIsLoading(false);
+        }
       }
     })();
   }, [axiosInstance, groupChats, selectedChat, socket, isConnected, getUnreadCount]);
@@ -164,5 +182,5 @@ export function useChatsPanelUnread(axiosInstance, groupChats, selectedChat, soc
     }
   }, [selectedChat, groupChats]);
 
-  return [unreadMap, setUnreadMap];
+  return [unreadMap, setUnreadMap, isLoading];
 }

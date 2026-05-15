@@ -214,7 +214,8 @@ export default function GroupChat() {
     socket,
     isConnected,
     socketSendMessage,
-    groupInfoRef
+    groupInfoRef,
+    setSelectedChat
   );
 
   useEffect(() => {

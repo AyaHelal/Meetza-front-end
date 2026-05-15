@@ -2,6 +2,7 @@ import React from "react";
 import { Users } from "@phosphor-icons/react";
 import { normalizeLastMessagePreview } from "../utils/groupChatFormatters";
 import ChatItem from "./ChatItem";
+import "./MainChat.css";
 
 function formatChatDate(chat) {
   const dateField =
@@ -30,7 +31,17 @@ export default function ChatsPanelList({
   unreadMap,
   setUnreadMap,
   onChatSelect,
+  isPanelDataLoading = false,
 }) {
+  if (isPanelDataLoading) {
+    return (
+      <div className="loading-container chats-panel-loading">
+        <div className="loading-spinner" />
+        <p>Loading chats...</p>
+      </div>
+    );
+  }
+
   if (filteredChats.length === 0) {
     return (
       <div className="no-chats-container">
