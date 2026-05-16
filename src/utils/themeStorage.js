@@ -15,3 +15,10 @@ export const getStoredTheme = () => {
 export const saveTheme = (theme) => {
   localStorage.setItem('app-theme', theme);
 };
+
+/**
+ * Removes the theme preference from localStorage.
+ */
+export const clearStoredTheme = () => {
+  localStorage.removeItem('app-theme');
+};

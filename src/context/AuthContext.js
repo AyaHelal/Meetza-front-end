@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { extractUserFromToken } from "../utils/token";
+import { clearStoredTheme } from "../utils/themeStorage";
 
 export const AuthContext = createContext();
 
@@ -101,6 +102,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem("loginTime");
             sessionStorage.removeItem("user");
             sessionStorage.removeItem("token");
+            clearStoredTheme();
             const keysToRemove = [];
             for (let i = 0; i < sessionStorage.length; i++) {
                 const key = sessionStorage.key(i);

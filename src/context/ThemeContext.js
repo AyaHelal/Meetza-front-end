@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { getUserTheme, updateUserTheme } from '../services/themeService';
 import { getStoredTheme, saveTheme } from '../utils/themeStorage';
@@ -6,47 +6,80 @@ import { getStoredTheme, saveTheme } from '../utils/themeStorage';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, initializing } = useAuth();
 
   const [theme, setThemeState] = useState(() => {
-    return getStoredTheme() || 'light';
+    // 1. Try to get theme from stored user first (most reliable for logged in users)
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed.theme && (parsed.theme === 'light' || parsed.theme === 'dark')) {
+          if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', parsed.theme);
+          }
+          return parsed.theme;
+        }
+      }
+    } catch (e) { }
+
+    // 2. Fallback to generic stored theme
+    const stored = getStoredTheme() || 'light';
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', stored);
+    }
+    return stored;
   });
 
   const lastUserId = useRef(null);
   // Track if we had a local preference on mount to decide if we need to sync from server
   const initialThemeCheck = useRef(getStoredTheme());
 
-  // 1. Sync theme from backend once per user login if no local preference exists
+  // 1. Sync theme from backend once per user login
   useEffect(() => {
     const fetchTheme = async () => {
-      if (!user?.id) return;
+      if (initializing) return;
 
-      // Only sync from server if we haven't already saved a preference for this user
-      // or if we just logged in as a different user
+      if (!user?.id) {
+        lastUserId.current = null;
+        initialThemeCheck.current = null;
+        // Don't force 'light' immediately if we already have a theme, 
+        // but if no user, light is the safe default for guests
+        if (!getStoredTheme()) setThemeState('light');
+        return;
+      }
+
+      // If the user object already has a theme, apply it immediately (no 1s delay)
+      if (user.theme && (user.theme === 'light' || user.theme === 'dark')) {
+        if (theme !== user.theme) {
+          setThemeState(user.theme);
+          saveTheme(user.theme);
+        }
+      }
+
+      // Only sync from server if we just logged in as a different user
       if (lastUserId.current !== user.id) {
         lastUserId.current = user.id;
 
-        if (!initialThemeCheck.current) {
-          try {
-            const serverTheme = await getUserTheme(user.id);
-            if (serverTheme && (serverTheme === 'light' || serverTheme === 'dark')) {
+        try {
+          const serverTheme = await getUserTheme(user.id);
+          if (serverTheme && (serverTheme === 'light' || serverTheme === 'dark')) {
+            if (theme !== serverTheme) {
               setThemeState(serverTheme);
               saveTheme(serverTheme);
-              // Update ref so we don't re-sync unnecessarily
-              initialThemeCheck.current = serverTheme;
             }
-          } catch (e) {
-            console.warn("Failed to fetch server theme, falling back to local/default");
           }
+        } catch (e) {
+          console.warn("Failed to fetch server theme, falling back to local/default");
         }
       }
     };
 
     fetchTheme();
-  }, [user?.id]);
+  }, [user?.id, initializing, user?.theme]);
 
   // 2. Apply theme to DOM and persist to localStorage
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveTheme(theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -68,7 +101,7 @@ export const ThemeProvider = ({ children }) => {
         }
 
         // Update whichever storage holds the user object
-        const storage = localStorage.getItem('authToken') ? localStorage : sessionStorage;
+        const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
         const raw = storage.getItem('user');
         if (raw) {
           try {
