@@ -35,7 +35,7 @@ export const ThemeProvider = ({ children }) => {
   // Track if we had a local preference on mount to decide if we need to sync from server
   const initialThemeCheck = useRef(getStoredTheme());
 
-  // 1. Sync theme from backend once per user login
+  // 1. Sync theme from backend once per browser tab session
   useEffect(() => {
     const fetchTheme = async () => {
       if (initializing) return;
@@ -43,40 +43,46 @@ export const ThemeProvider = ({ children }) => {
       if (!user?.id) {
         lastUserId.current = null;
         initialThemeCheck.current = null;
-        // Don't force 'light' immediately if we already have a theme, 
-        // but if no user, light is the safe default for guests
         if (!getStoredTheme()) setThemeState('light');
         return;
       }
 
-      // If the user object already has a theme, apply it immediately (no 1s delay)
+      const sessionSyncKey = `theme_synced_${user.id}`;
+      const isSyncedInSession = sessionStorage.getItem(sessionSyncKey);
+
+      // 1. Sync from user object - ONLY if we don't have a strong local preference already
+      // This prevents the stale theme inside the JWT token from overwriting our fresh choice on refresh
       if (user.theme && (user.theme === 'light' || user.theme === 'dark')) {
-        if (theme !== user.theme) {
+        const hasLocalPreference = !!initialThemeCheck.current;
+        if (!hasLocalPreference && theme !== user.theme) {
           setThemeState(user.theme);
           saveTheme(user.theme);
         }
       }
 
-      // Only sync from server if we just logged in as a different user
-      if (lastUserId.current !== user.id) {
+      // 2. Sync from server once per session (Cloud truth)
+      if (lastUserId.current !== user.id || !isSyncedInSession) {
         lastUserId.current = user.id;
 
         try {
           const serverTheme = await getUserTheme(user.id);
           if (serverTheme && (serverTheme === 'light' || serverTheme === 'dark')) {
+            // Only overwrite if it's different from what we have
             if (theme !== serverTheme) {
               setThemeState(serverTheme);
               saveTheme(serverTheme);
             }
           }
+          sessionStorage.setItem(sessionSyncKey, 'true');
         } catch (e) {
           console.warn("Failed to fetch server theme, falling back to local/default");
+          sessionStorage.setItem(sessionSyncKey, 'true');
         }
       }
     };
 
     fetchTheme();
-  }, [user?.id, initializing, user?.theme]);
+  }, [user?.id, initializing, user?.theme, theme]); // Added theme to dependencies
 
   // 2. Apply theme to DOM and persist to localStorage
   useLayoutEffect(() => {
@@ -93,24 +99,31 @@ export const ThemeProvider = ({ children }) => {
     saveTheme(newTheme);
 
     if (user?.id) {
+      // 1. Update user context immediately (Optimistic)
+      if (setUser) {
+        setUser((prev) => (prev ? { ...prev, theme: newTheme } : prev));
+      }
+
+      // 2. Update whichever storage holds the user object immediately (Optimistic)
+      const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+      const raw = storage.getItem('user');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          storage.setItem('user', JSON.stringify({ ...parsed, theme: newTheme }));
+        } catch (_) { }
+      }
+      
+      // 3. Mark as synced for this session so we don't fetch stale data from server
+      sessionStorage.setItem(`theme_synced_${user.id}`, 'true');
+
+      // 4. Finally, persist to backend
       try {
         await updateUserTheme(user.id, newTheme);
-        // Update user context to keep theme property in sync
-        if (setUser) {
-          setUser((prev) => (prev ? { ...prev, theme: newTheme } : prev));
-        }
-
-        // Update whichever storage holds the user object
-        const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
-        const raw = storage.getItem('user');
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            storage.setItem('user', JSON.stringify({ ...parsed, theme: newTheme }));
-          } catch (_) { }
-        }
       } catch (error) {
         console.error("❌ Failed to persist theme to backend:", error);
+        // Note: We don't revert optimistic state here to keep the UI smooth, 
+        // it will try to sync again on next session/login.
       }
     }
   };
