@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import {
@@ -7,6 +7,7 @@ import {
   PencilSimple,
   Trash,
   Plus,
+  Smiley,
 } from '@phosphor-icons/react';
 import MessageItemMedia from './MessageItemMedia';
 import {
@@ -99,6 +100,17 @@ const MessageItem = ({
     message,
     onEditMessage,
   });
+
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(false);
+
+  const handleEditEmojiClick = (emojiData) => {
+    setEditText((prev) => prev + emojiData.emoji);
+    setShowEditEmojiPicker(false);
+  };
+
+  useEffect(() => {
+    if (!isEditing) setShowEditEmojiPicker(false);
+  }, [isEditing]);
 
   const { renderHighlighted } = useMessageItemSearchHighlight({
     searchWord,
@@ -200,15 +212,40 @@ const MessageItem = ({
       {displayText && (
         <div className="message-text">
           {!preview && isEditing ? (
-            <input
-              type="text"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              onBlur={handleEditSubmit}
-              onKeyDown={handleEditKeyDown}
-              autoFocus
-              className="edit-input"
-            />
+            <div className="edit-container position-relative d-flex align-items-center">
+              <input
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onBlur={() => {
+                  if (!showEditEmojiPicker) handleEditSubmit();
+                }}
+                onKeyDown={handleEditKeyDown}
+                autoFocus
+                className="edit-input flex-grow-1"
+              />
+              <button
+                type="button"
+                className="edit-emoji-btn-inline"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowEditEmojiPicker(!showEditEmojiPicker)}
+                style={{ background: 'none', border: 'none', padding: '0 8px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <Smiley size={20} />
+              </button>
+              {showEditEmojiPicker && (
+                <div className="edit-emoji-picker-wrapper" onMouseDown={(e) => e.preventDefault()}>
+                  <EmojiPicker
+                    theme={Theme.DARK}
+                    onEmojiClick={handleEditEmojiClick}
+                    height={300}
+                    width={280}
+                    searchDisabled
+                    skinTonesDisabled
+                  />
+                </div>
+              )}
+            </div>
           ) : (
             renderHighlighted(displayText)
           )}
@@ -380,7 +417,7 @@ const MessageItem = ({
               <span>Copy</span>
               <CopySimple size={22} className="message-context-action-icon" aria-hidden />
             </button>
-            {isOwnMessage && (
+            {isOwnMessage && (!message.media || message.media.length === 0) && (
               <button type="button" className="message-context-action-row" onClick={onEditClick}>
                 <span>Edit</span>
                 <PencilSimple size={22} className="message-context-action-icon" aria-hidden />
