@@ -151,6 +151,7 @@ const MeetingRoom = ({ recordRegionRef }) => {
   const preJoinOpenedThisLoadRef = useRef(false);
   const userDismissedPreJoinRef = useRef({});
   const [preJoinDismissTick, setPreJoinDismissTick] = useState(0);
+  const handleLeaveMeetingRef = useRef(null);
   /** After a full page reload while this meeting is open, reset join/pre-join once so user goes through join again. */
   const reloadJoinResetDoneForMidRef = useRef(null);
 
@@ -184,7 +185,13 @@ const MeetingRoom = ({ recordRegionRef }) => {
     }
     preJoinOpenedThisLoadRef.current = false;
     setPreJoinDismissTick((t) => t + 1);
-  }, [meetingId]);
+    
+    if (handleLeaveMeetingRef.current) {
+      handleLeaveMeetingRef.current();
+    } else {
+      navigate("/home");
+    }
+  }, [meetingId, navigate]);
 
   const rtc = useMeetingRoomRtc({
     socket,
@@ -561,6 +568,10 @@ const MeetingRoom = ({ recordRegionRef }) => {
     }
     handleLeaveMeetingBase();
   }, [handleLeaveMeetingBase, meetingId]);
+
+  useEffect(() => {
+    handleLeaveMeetingRef.current = handleLeaveMeeting;
+  }, [handleLeaveMeeting]);
 
   // Reset activeSlide to 0 if admin and currently on slide 2
   useEffect(() => {
