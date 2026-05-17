@@ -61,12 +61,12 @@ export const verifyResetCode = async (email, code) => {
 };
 
 // ✅ Reset password
-export const resetPassword = async (email, newPassword, isVerified = "true") => {
+export const resetPassword = async (email, newPassword, resetToken) => {
     try {
         const response = await axiosInstance.post("/auth/reset_password", {
             email,
             new_password: newPassword,
-            is_verified: isVerified
+            resetToken: resetToken
         });
         return response.data;
     } catch (error) {
