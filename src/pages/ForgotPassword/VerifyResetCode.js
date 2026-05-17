@@ -88,6 +88,10 @@ export default function VerifyResetCode() {
 
             if (response.success) {
                 // Store verification success for next page
+                const resetToken = response.data?.resetToken || response.resetToken;
+                if (resetToken) {
+                    localStorage.setItem("resetToken", resetToken);
+                }
                 localStorage.setItem("resetVerified", "true");
                 navigate("/reset-password");
             } else {

@@ -81,6 +81,7 @@ export default function ResetPassword() {
         }
 
         const email = localStorage.getItem("resetEmail");
+        const resetToken = localStorage.getItem("resetToken");
         if (!email) {
             setError("Email not found. Please start over.");
             return;
@@ -88,13 +89,14 @@ export default function ResetPassword() {
 
         try {
             setLoading(true);
-            const response = await resetPassword(email, formData.newPassword, "true");
+            const response = await resetPassword(email, formData.newPassword, resetToken);
 
             setSuccess(response.message || "Password reset successfully!");
 
             // Clear stored data
             localStorage.removeItem("resetEmail");
             localStorage.removeItem("resetVerified");
+            localStorage.removeItem("resetToken");
 
             // Redirect to login after success
             setTimeout(() => {
@@ -110,6 +112,7 @@ export default function ResetPassword() {
                 // Clear stored data
                 localStorage.removeItem("resetEmail");
                 localStorage.removeItem("resetVerified");
+                localStorage.removeItem("resetToken");
 
                 setTimeout(() => {
                     navigate("/login");
