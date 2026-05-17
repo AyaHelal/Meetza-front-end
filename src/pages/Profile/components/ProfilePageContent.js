@@ -19,6 +19,7 @@ import {
   FileText,
   CalendarBlank,
   Clock,
+  MusicNotes,
 } from "@phosphor-icons/react";
 import UserPhoto from "../../../components/UserPhoto/UserPhoto";
 import { ConfirmDeleteModal } from "../../../components/shared/ConfirmDeleteModal";
@@ -28,6 +29,7 @@ import { dateBadgeFromDate, firstName, formatClockPartsFromDate } from "../servi
 import { ProfileSavedVideoCard } from "./ProfileSavedVideoCard";
 import { OutgoingMeetingCard } from "./OutgoingMeetingCard";
 import { EmptyState } from "../../../components/shared/EmptyState";
+import { getMediaType, getExtension } from "../../GroupChat/utils/messageItemUtils";
 
 export function ProfilePageContent(props) {
   const navigate = useNavigate();
@@ -458,13 +460,15 @@ export function ProfilePageContent(props) {
                         <div className="profile-files-grid">
                           {chatMedia.length > 0 ? (
                             chatMedia.map((item, idx) => {
-                              const fileName = item?.file_name || "";
-                              const fileExt = fileName.split(".").pop().toLowerCase();
-                              const isImage = item?.media_type === "image" || ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExt);
-                              const isVideo = item?.media_type === "video" || ["mp4", "mov", "avi", "webm", "mkv", "3gp"].includes(fileExt);
-                              const isAudio = item?.media_type === "audio" || ["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(fileExt);
-                              const isPdf = item?.media_type === "pdf" || fileExt === "pdf";
-                              const ext = !isImage && !isVideo && !isAudio && !isPdf && fileName ? fileExt.toUpperCase() : fileName ? fileExt.toUpperCase() : "FILE";
+                              const fileName = item?.file_name || (item?.media_url ? item.media_url.split('/').pop().split('?')[0] : "");
+                              const fileType = getMediaType(item);
+                              const fileExt = getExtension(item);
+                              
+                              const isImage = fileType === "image";
+                              const isVideo = fileType === "video";
+                              const isAudio = fileType === "audio";
+                              const isPdf = fileExt === "pdf";
+                              const ext = fileExt.toUpperCase() || "FILE";
 
                               const handleDownload = async (e) => {
                                 e.preventDefault();
@@ -525,6 +529,13 @@ export function ProfilePageContent(props) {
                                           muted
                                           preload="metadata"
                                         />
+                                      ) : isAudio ? (
+                                        <div className="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style={{ background: "#6366f1" }}>
+                                          <MusicNotes size={32} weight="fill" color="#fff" />
+                                          <span className="mt-1 fw-bold" style={{ fontSize: "11px", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>
+                                            {fileExt === "mp3" ? "MP3" : "AUDIO"}
+                                          </span>
+                                        </div>
                                       ) : (
                                         <span className="profile-file-label" style={{ fontSize: "10px", padding: "4px 8px", wordWrap: "break-word", overflowWrap: "break-word", maxWidth: "100%", textAlign: "center", lineHeight: "1.2" }}>
                                           {isPdf ? fileName : ext}

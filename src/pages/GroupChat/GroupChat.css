@@ -5059,6 +5059,44 @@ body.group-chat-active {
   border-color: #007bff;
 }
 
+.edit-container {
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.edit-input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  padding: 4px 0 !important;
+  color: inherit !important;
+  caret-color: inherit;
+}
+
+.edit-emoji-btn-inline {
+  color: inherit !important;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.edit-emoji-btn-inline:hover {
+  opacity: 1;
+}
+
+.edit-emoji-picker-wrapper {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  z-index: 5005;
+  margin-bottom: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 
 
 
